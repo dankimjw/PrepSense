@@ -1,0 +1,26 @@
+# Environment files
+.env
+.env*.local
+
+# Node.js dependencies
+node_modules/
+
+# Python virtual environment
+venv/
+
+# macOS system files
+.DS_Store
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Ignore HTML files
+*.html
+
+# Ignore Jupyter Notebook files globally, but allow in notebooks/
+*.ipynb
+!notebooks/*.ipynb
+!notebooks/*.html
