@@ -1,9 +1,8 @@
 # filepath: /Users/danielkim/_Capstone/prepsense-app/PrepSense/backend-gateway/routers/pantry.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from services.pantry_service import get_pantry_items, add_pantry_item
-from models import PantryItem
 from database import get_db
+from backend_gateway.services.pantry_service import get_pantry_items, add_pantry_item
 
 router = APIRouter()
 
