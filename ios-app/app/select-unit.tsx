@@ -1,22 +1,30 @@
 import { useLocalSearchParams, router } from 'expo-router';
+import {
+  View, Text, FlatList, Pressable, StyleSheet,
+} from 'react-native';
 import { useState } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { Buffer } from 'buffer';
 
-const quantityUnitOptions = ['pcs', 'bag', 'kg', 'g', 'L', 'ml', 'pack', 'bottle', 'can'];
+/* helpers */
+const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
+const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
 
-export default function SelectUnitScreen() {
-  const { id, currentUnit, photoUri } = useLocalSearchParams<{
-    id: string;
-    currentUnit: string;
-    photoUri?: string;
-  }>();
-  const [selectedUnit, setSelectedUnit] = useState(currentUnit); // Track the selected unit
+const units = ['pcs', 'bag', 'kg', 'g', 'L', 'ml', 'pack', 'bottle', 'can'];
 
-  const handleUnitSelect = (unit: string) => {
-    setSelectedUnit(unit); // Highlight the selected unit
+export default function SelectUnit() {
+  const { index, data, photoUri } =
+    useLocalSearchParams<{ index: string; data: string; photoUri?: string }>();
+
+  const list = dec(data);
+  const idx  = Number(index);
+  const [selected, setSelected] = useState(list[idx].quantity_unit);
+
+  const choose = (u: string) => {
+    /* mutate the array, then encode once */
+    list[idx].quantity_unit = u;
     router.replace({
-      pathname: '/confirm', // Ensure this matches the file name
-      params: { id, newUnit: unit, photoUri }, // Pass the selected unit and photoUri back to the confirm screen
+      pathname: '/items-detected',
+      params: { data: enc(list), photoUri },   // ← only what ItemsDetected needs
     });
   };
 
@@ -24,22 +32,20 @@ export default function SelectUnitScreen() {
     <View style={styles.container}>
       <Text style={styles.header}>Select Unit</Text>
       <FlatList
-        data={quantityUnitOptions}
-        keyExtractor={(item) => item}
+        data={units}
+        keyExtractor={(u) => u}
         renderItem={({ item }) => (
           <Pressable
             style={[
-              styles.unitOption,
-              selectedUnit === item && styles.selectedUnitOption, // Highlight selected unit
+              styles.opt,
+              selected === item && styles.optSel,
             ]}
-            onPress={() => handleUnitSelect(item)}
+            onPress={() => { setSelected(item); choose(item); }}
           >
-            <Text
-              style={[
-                styles.unitText,
-                selectedUnit === item && styles.selectedUnitText, // Highlight selected text
-              ]}
-            >
+            <Text style={[
+              styles.txt,
+              selected === item && styles.txtSel,
+            ]}>
               {item}
             </Text>
           </Pressable>
@@ -52,17 +58,8 @@ export default function SelectUnitScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20 },
   header: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
-  unitOption: {
-    padding: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  selectedUnitOption: {
-    backgroundColor: '#e0f7fa', // Highlight background color
-  },
-  unitText: { fontSize: 16 },
-  selectedUnitText: {
-    fontWeight: 'bold', // Highlight text style
-    color: '#007bff',
-  },
+  opt: { padding: 12, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  optSel: { backgroundColor: '#e0f7fa' },
+  txt: { fontSize: 16 },
+  txtSel: { fontWeight: 'bold', color: '#007bff' },
 });
