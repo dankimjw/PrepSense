@@ -1,170 +1,166 @@
-import { useLocalSearchParams, router } from 'expo-router';
-import { useState, useEffect } from 'react';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import { Buffer } from 'buffer';
 import {
-  View, Image, FlatList, Text, TextInput, StyleSheet, Pressable,
+  View,
+  Image,
+  StyleSheet,
+  Pressable,
+  Text,
+  Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 
-/* ---> temporary dummy parse  -------------------------------- */
-const demoItems = [
-  { id: '1', name: 'Avocado', qty: '2', unit: 'pcs' },
-  { id: '2', name: 'Banana', qty: '5', unit: 'pcs' },
-  { id: '3', name: 'Macaroni', qty: '1', unit: 'bag' },
-];
-/* ------------------------------------------------------------- */
+import { Config } from '../config';
+const UPLOAD_URL = `${Config.API_BASE_URL}/images/upload`;
 
-export default function ConfirmScreen() {
-  const { photoUri, id, newUnit } = useLocalSearchParams<{
-    photoUri?: string;
-    id?: string;
-    newUnit?: string;
-  }>();
-  const [items, setItems] = useState(demoItems); // Editable list
+export default function Camera() {
+  const router = useRouter();
+  const { action } = useLocalSearchParams<{ action?: string }>();
 
-  // Update the unit of the item when returning from the select-unit screen
+  const [uri,   setUri] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  /* permissions */
   useEffect(() => {
-    if (id && newUnit) {
-      setItems((prevItems) =>
-        prevItems.map((item) =>
-          item.id === id ? { ...item, unit: newUnit } : item
-        )
-      );
-    }
-  }, [id, newUnit]);
+    (async () => {
+      if (Platform.OS !== 'web') {
+        await ImagePicker.requestCameraPermissionsAsync();
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      }
+    })();
+  }, []);
 
-  /* Cancel -> go back to the index screen */
-  function cancel() {
-    router.push('/index'); // Navigate to the index screen
-  }
+  /* reset coming back from items-detected */
+  useEffect(() => {
+    if (action === 'reset_image') setUri(null);
+  }, [action]);
 
-  /* Confirm -> later POST to gateway */
-  function confirm() {
-    console.log('Would POST these items:', items);
-    router.back();
-  }
-
-  /* Handle quantity change */
-  const handleQuantityChange = (id: string, newQty: string) => {
-    setItems((prevItems) =>
-      prevItems.map((item) =>
-        item.id === id ? { ...item, qty: newQty } : item
-      )
-    );
-  };
-
-  /* Navigate to Unit Selection Screen */
-  const navigateToUnitSelection = (id: string, currentUnit: string) => {
-    router.push({
-      pathname: '/select-unit',
-      params: { id, currentUnit, photoUri }, // Pass photoUri to retain the image
+  const pick = async () => {
+    const res = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
     });
+    if (!res.canceled) setUri(res.assets[0].uri);
   };
+
+  const shoot = async () => {
+    const res = await ImagePicker.launchCameraAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      quality: 0.8,
+    });
+    if (!res.canceled) setUri(res.assets[0].uri);
+  };
+
+  /* ---------- SINGLE confirm ---------- */
+  const confirmOnce = async () => {
+    if (!uri || busy) return;
+    try {
+      setBusy(true);
+
+      const info = await FileSystem.getInfoAsync(uri);
+      const body = new FormData();
+      body.append('file', {
+        uri,
+        name: info.uri.split('/').pop() ?? 'image.jpg',
+        type: 'image/jpeg',
+      } as any);
+
+      const r = await fetch(UPLOAD_URL, { method: 'POST', body });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+
+      const { pantry_items } = await r.json();
+      if (!Array.isArray(pantry_items) || pantry_items.length === 0) {
+        Alert.alert('No items detected', 'Try another photo?');
+        return;
+      }
+
+      const param = Buffer.from(JSON.stringify(pantry_items)).toString('base64');
+
+      router.push({
+        pathname: '/items-detected',
+        params: { data: param, photoUri: uri },
+      });
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Upload failed', e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const retake = () => setUri(null);
 
   return (
     <View style={styles.container}>
-      {photoUri && <Image source={{ uri: photoUri }} style={styles.preview} />}
+      {/* image frame */}
+      <View style={styles.frame}>
+        {uri ? (
+          <Image source={{ uri }} style={styles.preview} />
+        ) : (
+          <>
+            <Ionicons name="image-outline" size={48} color="#aaa" />
+            <Text style={styles.placeholder}>No image selected</Text>
+          </>
+        )}
 
-      <Text style={styles.header}>Detected Items</Text>
-
-      <FlatList
-        data={items}
-        keyExtractor={(i) => i.id}
-        contentContainerStyle={{ gap: 6 }}
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item.name}</Text>
-            <View style={styles.quantityContainer}>
-              <TextInput
-                style={styles.quantityInput}
-                value={item.qty}
-                onChangeText={(text) => handleQuantityChange(item.id, text)}
-                keyboardType="numeric"
-              />
-              <Pressable onPress={() => navigateToUnitSelection(item.id, item.unit)}>
-                <Text style={styles.unitText}>{item.unit}</Text>
-              </Pressable>
-            </View>
-            <Pressable style={styles.editBtn}>
-              <Text style={styles.editBtnText}>Edit</Text>
-            </Pressable>
+        {busy && (
+          <View style={styles.overlay}>
+            <ActivityIndicator size="large" />
           </View>
         )}
-      />
-
-      <View style={styles.row}>
-        <Pressable style={styles.cancelButton} onPress={cancel}>
-          <Text style={styles.buttonText}>Cancel</Text>
-        </Pressable>
-        <Pressable style={styles.confirmButton} onPress={confirm}>
-          <Text style={styles.buttonText}>Confirm</Text>
-        </Pressable>
       </View>
+
+      {/* buttons */}
+      {!uri ? (
+        <View style={styles.buttons}>
+          <Pressable style={styles.iconBtn} onPress={shoot} disabled={busy}>
+            <Ionicons name="camera" size={24} color="#fff" />
+          </Pressable>
+          <Pressable style={styles.mainBtn} onPress={pick} disabled={busy}>
+            <Text style={styles.mainTxt}>Upload Image</Text>
+          </Pressable>
+        </View>
+      ) : (
+        <View style={styles.row}>
+          <Pressable style={styles.mainBtn} onPress={retake} disabled={busy}>
+            <Text style={styles.mainTxt}>Retake</Text>
+          </Pressable>
+          {/* 🔑 this is now confirmOnce */}
+          <Pressable style={styles.mainBtn} onPress={confirmOnce} disabled={busy}>
+            <Text style={styles.mainTxt}>Confirm</Text>
+          </Pressable>
+        </View>
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, gap: 14 },
-  preview: { width: '100%', height: 250, borderRadius: 12, marginBottom: 6 },
-  header: { fontSize: 18, fontWeight: '600', marginTop: 6 },
-  card: {
-    flexDirection: 'row',
+  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  frame: {
+    width: 280, height: 280, borderWidth: 1, borderColor: '#ccc', borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', overflow: 'hidden',
+  },
+  preview: { width: '100%', height: '100%', resizeMode: 'cover' },
+  placeholder: { marginTop: 8, color: '#aaa' },
+  buttons: { flexDirection: 'row', gap: 12 },
+  row: { flexDirection: 'row', gap: 20 },
+  mainBtn: {
+    backgroundColor: '#297A56', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8,
+  },
+  mainTxt: { color: '#fff', fontWeight: 'bold' },
+  iconBtn: {
+    backgroundColor: '#297A56', padding: 12, borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.6)',
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 10,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-  },
-  name: { flex: 1, fontSize: 16 },
-  quantityContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  quantityInput: {
-    width: 50,
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 6,
-    padding: 4,
-    textAlign: 'center',
-  },
-  unitText: {
-    fontSize: 14,
-    color: '#007bff',
-    textDecorationLine: 'underline',
-  },
-  editBtn: {
-    backgroundColor: '#2563eb',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  editBtnText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 10,
-  },
-  cancelButton: {
-    backgroundColor: '#d9534f',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  confirmButton: {
-    backgroundColor: '#297A56',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
