@@ -8,6 +8,7 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import LoadingFactsScreen from '../loading-facts';
 
 import { Config } from '../../config';                // ← adjust if needed
 const UPLOAD_URL = `${Config.API_BASE_URL}/images/upload`;
@@ -52,41 +53,11 @@ export default function Camera() {
 
   /* single Confirm */
   const confirmOnce = async () => {
-    if (!uri || busy) return;
-    try {
-      setBusy(true);
-
-      const info = await FileSystem.getInfoAsync(uri);
-      const body = new FormData();
-      body.append('file', {
-        uri,
-        name: info.uri.split('/').pop() ?? 'image.jpg',
-        type: 'image/jpeg',
-      } as any);
-
-      const r = await fetch(UPLOAD_URL, { method: 'POST', body });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-      const { pantry_items } = await r.json();
-      if (!Array.isArray(pantry_items) || pantry_items.length === 0) {
-        Alert.alert('No items detected', 'Try another photo?');
-        return;                     // stay on camera
-      }
-
-      const dataParam = Buffer
-        .from(JSON.stringify(pantry_items))
-        .toString('base64');
-
-      router.push({
-        pathname: '/items-detected',
-        params: { data: dataParam, photoUri: uri },
-      });
-    } catch (e: any) {
-      console.error(e);
-      Alert.alert('Upload failed', e.message);
-    } finally {
-      setBusy(false);
-    }
+    if (!uri) return;
+    router.push({
+      pathname: '/loading-facts',
+      params: { photoUri: uri },
+    });
   };
 
   const retake = () => setUri(null);
