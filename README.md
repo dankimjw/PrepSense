@@ -131,7 +131,7 @@ The backend will be available at `http://127.0.0.1:8000`.
 
 3. **iOS App Setup**
    - Navigate to `ios-app` directory
-   - Run: `npx expo start --ios`
+   - Run: `npx expo start -c`
    - Use Expo Go app to test on your device
 
 4. **Security**
