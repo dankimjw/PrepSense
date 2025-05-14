@@ -3,6 +3,8 @@ import { Buffer } from 'buffer';
 import {
   View, FlatList, Text, TextInput,
   StyleSheet, Pressable, Image,
+  Alert,
+  SafeAreaView,
 } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import { Feather } from '@expo/vector-icons';
@@ -17,6 +19,7 @@ type Item = {
   quantity_amount: number;
   quantity_unit: string;
   expected_expiration: string;
+  count?: number;
 };
 
 export default function ItemsDetected() {
@@ -66,38 +69,46 @@ export default function ItemsDetected() {
   }
 
   return (
-    <View style={styles.container}>
-      <FlatList
-        data={items}
-        keyExtractor={(_, i) => i.toString()}
-        ListHeaderComponent={
-          photoUri ? <Image source={{ uri: photoUri }} style={styles.header} /> : null
-        }
-        ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
-        renderItem={({ item, index }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item.item_name}</Text>
-            <TextInput
-              style={styles.qty}
-              value={String(item.quantity_amount)}
-              keyboardType="numeric"
-              onChangeText={(t) => setQty(index, t)}
-            />
-            <Pressable onPress={() => goSelect(index)}>
-              <Text style={styles.unit}>{item.quantity_unit}</Text>
+    <SafeAreaView style={{ flex: 1 }}>
+      <View style={{ flex: 1 }}>
+        <Text style={styles.title}>Review Detected Items</Text>
+        <FlatList
+          data={items}
+          keyExtractor={(_, i) => i.toString()}
+          ListHeaderComponent={
+            photoUri ? <Image source={{ uri: photoUri }} style={styles.header} /> : null
+          }
+          ItemSeparatorComponent={() => <View style={{ height: 6 }} />}
+          renderItem={({ item, index }) => (
+            <Pressable
+              style={styles.card}
+              onPress={() => {
+                router.push({
+                  pathname: '/edit-item',
+                  params: { index: String(index), data: enc(items), photoUri },
+                });
+              }}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.name}>{item.item_name}</Text>
+                <Text style={styles.details}>
+                  {(item.count ?? 1)} × {item.quantity_amount} {item.quantity_unit}
+                </Text>
+                <Text style={styles.expiry}>
+                  Expires: {item.expected_expiration}
+                </Text>
+              </View>
             </Pressable>
-            <Pressable onPress={() => goEdit(index)}>
-              <Feather name="edit-2" size={18} color="#007bff" />
-            </Pressable>
-          </View>
-        )}
-        contentContainerStyle={{ padding: 20, paddingBottom: 80 }}
-      />
-
-      <Pressable style={styles.done} onPress={done}>
-        <Text style={styles.doneTxt}>Done</Text>
-      </Pressable>
-    </View>
+          )}
+          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+        />
+      </View>
+      <View style={styles.bottomBar}>
+        <Pressable style={styles.done} onPress={done}>
+          <Text style={styles.doneTxt}>Done</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -112,15 +123,26 @@ const styles = StyleSheet.create({
     padding: 8, borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
   },
   name: { flex: 1, fontSize: 16 },
-  qty: {
-    width: 50, borderWidth: 1, borderColor: '#ccc',
-    borderRadius: 6, padding: 4, textAlign: 'center',
-  },
-  unit: { fontSize: 14, color: '#007bff', textDecorationLine: 'underline' },
+  details: { fontSize: 14, color: '#555' },
+  expiry: { fontSize: 12, color: '#888', marginTop: 2 },
   done: {
     position: 'absolute', bottom: 24, alignSelf: 'center',
     backgroundColor: '#297A56', paddingVertical: 12,
     paddingHorizontal: 32, borderRadius: 8,
   },
   doneTxt: { color: '#fff', fontWeight: 'bold' },
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#222',
+    marginTop: 8,
+    marginBottom: 16,
+    alignSelf: 'center',
+    letterSpacing: 0.2,
+  },
+  bottomBar: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    backgroundColor: '#fff', padding: 12,
+    borderTopWidth: 1, borderTopColor: '#ccc',
+  },
 });

@@ -18,7 +18,7 @@ export default function LoadingFactsScreen() {
   useEffect(() => {
     intervalRef.current = setInterval(() => {
       setFactIndex((prev) => (prev + 1) % foodFacts.length);
-    }, 4000);
+    }, 5000);
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
@@ -42,7 +42,7 @@ export default function LoadingFactsScreen() {
         const { pantry_items } = await r.json();
         if (!Array.isArray(pantry_items) || pantry_items.length === 0) {
           Alert.alert('No items detected', 'Try another photo?');
-          router.replace('/');
+          router.replace('/tabs');
           return;
         }
 
@@ -56,7 +56,7 @@ export default function LoadingFactsScreen() {
         });
       } catch (e: any) {
         Alert.alert('Upload failed', e.message || 'Unknown error');
-        router.replace('/');
+        router.replace('/tabs');
       } finally {
         setLoading(false);
       }
