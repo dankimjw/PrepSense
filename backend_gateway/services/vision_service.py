@@ -56,26 +56,43 @@ class VisionService:
             f"You are a grocery inventory assistant helping track food items.\n\n"
             f"Today's date is {today_str}.\n\n"
             "Instructions:\n"
-            "- For each food item visible in the image:\n"
-            "  - Identify the full brand name and product type as the item_name (e.g., 'Neilson TruTaste 1% Milk', 'PC Greek Yogurt').\n"
-            "  - Identify quantity and packaging size (e.g., '2 kg bag', '1 L bottle', '15 oz can').\n" # Added example
-            "  - Find a visible Best Before (BB), Use By, or Expiry date on the package.\n"
-            "  - If no printed date is found, estimate expiration based on the type of item.\n"
-            "Return a STRICT JSON array ONLY like:\n"
+            "- Carefully examine the image for any visible food products.\n"
+            "- For each item identified, follow this detailed reasoning:\n"
+            "  1. Read all visible text and branding on the packaging to identify the full item name.\n"
+            "     - Include brand and type (e.g., 'Oasis Orange Juice', 'Great Value Basmati Rice').\n"
+            "  2. Scan the package for quantity indicators. These are often found next to weight (g, kg), volume (ml, L), or counts (e.g., '6-pack').\n"
+            "     - Convert all quantity details into a consistent quantity string (e.g., '500 g pack', '1.5 L bottle', '6 eggs').\n"
+            "     - Extract numerical value and unit separately.\n"
+            "       Examples:\n"
+            "         '1.5 L bottle' -> quantity_amount: 1.5, quantity_unit: 'L'\n"
+            "         '6 pack' -> quantity_amount: 6, quantity_unit: 'units'\n"
+            "  3. Visually count the number of identical items when possible.\n"
+            "     - If multiple identical units (like two chocolate bars or three peppers) are visible, count them.\n"
+            "     - Do not rely solely on printed text; use the visual layout of the image.\n"
+            "     - Include a field: 'count': <integer>.\n"
+            "  4. Look for any printed expiration date.\n"
+            "     - Accept 'Best Before', 'Use By', 'BB', or 'Expiry'.\n"
+            "     - If no printed date, estimate based on type:\n"
+            "         - Green banana: +7 days\n"
+            "         - Yellow banana: +5 days\n"
+            "         - Black banana: +2 days\n"
+            "         - Milk: +7 days\n"
+            "         - Yogurt: +10 days\n"
+            "         - Jarred sauces: +180 days\n"
+            "         - Staples (rice, oats, sugar, flour, lentils): +365 days\n"
+            "- Do not assign a date earlier than today's date.\n\n"
+            "Format your answer as a STRICT JSON array ONLY like this:\n"
             "[\n"
-            "  {{\"item_name\": <string>, \"quantity\": <string>, \"expiration_date\": <YYYY-MM-DD date>}},\n"
+            "  {\"item_name\": <string>, \"quantity\": <string>, \"count\": <integer>, \"expiration_date\": <YYYY-MM-DD>},\n"
             "  ...\n"
             "]\n"
-            "NO extra explanations, NO text before or after the JSON."
+            "DO NOT include any explanation before or after the JSON."
         )
 
         if not content_type:
             content_type = "image/jpeg" # Default if not provided
 
         try:
-            # Ensure this API call matches your OpenAI library version (older vs newer)
-            # This example assumes older library version (pre v1.0.0) due to previous contexts
-            # If you upgraded, use self.client.chat.completions.create(...)
             if hasattr(openai, 'OpenAI'): # Check if it's v1.0.0+ structure
                  client = openai.OpenAI(api_key=self.api_key)
                  response = await client.chat.completions.create(
@@ -124,10 +141,12 @@ class VisionService:
     def parse_openai_response(self, response_text: str) -> List[Dict[str, Any]]:
         """
         Parses the JSON response from OpenAI and extracts pantry items.
+        Combines duplicate items and sums their quantities.
         Returns a list of pantry items with their details.
         """
         today = datetime.today().date()
         records = []
+        item_dict = {}  # Dictionary to track unique items
 
         cleaned_text = response_text.strip()
         # Enhanced cleaning for potential markdown code blocks
@@ -158,6 +177,7 @@ class VisionService:
 
             item_name = item.get("item_name", "Unknown Item")
             quantity_str = item.get("quantity", "1 unit") # Default if not provided
+            count = item.get("count", 1) # Get count, default to 1 if not provided
             expiration_date_str = item.get("expiration_date")
 
             quantity_amount = 1.0
@@ -165,29 +185,23 @@ class VisionService:
 
             if quantity_str:
                 # Updated regex to capture number and the rest as unit/description
-                # Uses re.match to match from the beginning of the string
                 match = re.match(r"([\d\.]+)\s*(.*)", str(quantity_str).strip())
                 if match:
                     try:
                         quantity_amount = float(match.group(1))
-                        # group(2) will now contain things like "oz can", "kg bag", "slices", etc.
-                        # If group(2) is empty, it means only a number was provided.
                         parsed_unit = match.group(2).strip()
-                        if parsed_unit: # Check if there's anything after the number
+                        if parsed_unit:
                             quantity_unit = parsed_unit
-                        else: # Only a number was found, use default "unit" or a more specific default
-                            quantity_unit = "unit" # Or perhaps "item(s)" if only a number
+                        else:
+                            quantity_unit = "unit"
                     except ValueError:
                         print(f"Could not parse quantity amount from: '{match.group(1)}' for item '{item_name}'")
-                        # Fallback to default if conversion fails
                         quantity_amount = 1.0
-                        quantity_unit = str(quantity_str).strip() # Use the original string as unit in this case
+                        quantity_unit = str(quantity_str).strip()
                 else:
                      print(f"Could not parse quantity string: '{quantity_str}' for item '{item_name}' using regex. Using original as unit.")
-                     # If regex doesn't match at all, use the original string as the unit and default amount
-                     quantity_amount = 1.0 # Or try to parse the whole string as a number if it makes sense
+                     quantity_amount = 1.0
                      quantity_unit = str(quantity_str).strip()
-
 
             expected_expiry_date = today + timedelta(days=7) # Default if no date
             if expiration_date_str:
@@ -196,12 +210,28 @@ class VisionService:
                 except ValueError:
                     print(f"Could not parse expiration date '{expiration_date_str}' for item '{item_name}'. Using default.")
 
-            records.append({
-                "item_name": item_name,
-                "quantity_amount": quantity_amount,
-                "quantity_unit": quantity_unit,
-                "date_added": today.isoformat(),
-                "expected_expiration": expected_expiry_date.isoformat()
-            })
+            # Create a unique key for the item based on name and unit
+            item_key = f"{item_name}|{quantity_unit}"
+            
+            if item_key in item_dict:
+                # If item exists, update the quantity and count
+                item_dict[item_key]["quantity_amount"] += quantity_amount
+                item_dict[item_key]["count"] += count
+                # Keep the earlier expiration date
+                if expected_expiry_date < datetime.strptime(item_dict[item_key]["expected_expiration"], "%Y-%m-%d").date():
+                    item_dict[item_key]["expected_expiration"] = expected_expiry_date.isoformat()
+            else:
+                # If item doesn't exist, add it to the dictionary
+                item_dict[item_key] = {
+                    "item_name": item_name,
+                    "quantity_amount": quantity_amount,
+                    "quantity_unit": quantity_unit,
+                    "count": count,
+                    "date_added": today.isoformat(),
+                    "expected_expiration": expected_expiry_date.isoformat()
+                }
+
+        # Convert the dictionary values to a list
+        records = list(item_dict.values())
         return records
 

@@ -54,10 +54,10 @@ export default function Camera() {
   /* single Confirm */
   const confirmOnce = async () => {
     if (!uri) return;
-      router.push({
+    router.push({
       pathname: '/loading-facts',
       params: { photoUri: uri },
-      });
+    });
   };
 
   const retake = () => setUri(null);
