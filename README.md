@@ -18,31 +18,42 @@ Capstone project for University of Chicago
     ├── .env                  # Environment variables (e.g., VISION_URL, DB credentials)
 
 
-## Starting the iOS App
-To start the app, cd to ios-app folder and enter in the terminal `npx expo start --clear --localhost`
+## Prerequisites
 
-## Working on the project
+Before you begin, ensure you have the following installed:
+- Git
+- Python 3.8+
+- Node.js (LTS version recommended) and npm (comes with Node.js)
+- Expo CLI (you can install it globally via `npm install -g expo-cli` or use `npx` for commands)
 
-### 1. Clone the Repository
-Run the following command to clone the repository:
+## Quick Start
+
+To start the backend or iOS app, use the following commands from the project root:
+
 ```bash
-git clone https://github.com/<your-username>/PrepSense.git
-cd PrepSense
-```
-### 2. Backend Setup (`backend-gateway`)
+# Start the FastAPI backend server
+./start_app.sh backend
 
-#### a. Navigate to the `backend-gateway` directory:
-```bash
-cd backend-gateway
+# Start the iOS app
+./start_app.sh ios
 ```
 
-#### b. Create and activate a virtual environment:
+## Getting Started
+
+Follow these steps to set up the project environment.
+
+### 1. Backend Setup (`backend-gateway`)
+
+These steps will guide you through setting up the backend service. The Python virtual environment (`venv`) will be created and activated from the project root (`PrepSense`).
+
+#### a. Create and activate a virtual environment (from the `PrepSense` root directory):
+It's recommended to use a virtual environment to manage Python dependencies.
 ```ash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-#### c. Install Python dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -62,4 +73,94 @@ uvicorn app:app --reload
 
 The backend will be available at `http://127.0.0.1:8000`.
 
+## Collaboration Guidelines
+
+### Branch Management
+1. **Main Branch (`main`)**
+   - This is the production-ready branch
+   - Never commit directly to `main`
+   - All changes must come through pull requests
+
+2. **Feature Branches**
+   - Create a new branch for each feature/fix
+   - Branch naming convention: `feature/feature-name` or `fix/issue-name`
+   - Example: `feature/loading-screen`, `fix/auth-bug`
+
+3. **Development Workflow**
+   ```bash
+   # 1. Always start from an up-to-date main branch
+   git checkout main
+   git pull origin main
+
+   # 2. Create and switch to your feature branch
+   git checkout -b feature/your-feature-name
+
+   # 3. Make your changes and commit them
+   git add .
+   git commit -m "feat: your descriptive commit message"
+
+   # 4. Push your branch to remote
+   git push -u origin feature/your-feature-name
+
+   # 5. Create a pull request on GitHub
+   # 6. After review and approval, merge into main
+   ```
+
+### Commit Message Guidelines
+- Use clear, descriptive messages
+- Start with a type: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+- Example: `feat: add loading screen with facts`
+
+### Code Review Process
+1. Create a pull request for your changes
+2. Request review from at least one team member
+3. Address any feedback or requested changes
+4. Once approved, merge into main
+
+### Environment Setup
+1. **Virtual Environment**
+   - Always use the virtual environment
+   - Activate it using: `source venv/bin/activate`
+   - Keep `requirements.txt` updated
+   - Document any new dependencies
+
+2. **Backend Setup**
+   - Navigate to `backend_gateway` directory
+   - Run: `uvicorn app:app --reload`
+   - Server will be available at `http://127.0.0.1:8000`
+
+3. **iOS App Setup**
+   - Navigate to `ios-app` directory
+   - Run: `npx expo start --ios`
+   - Use Expo Go app to test on your device
+
+4. **Security**
+   - Never commit sensitive data or API keys
+   - Keep `.env` files local and in `.gitignore`
+
+### Best Practices
+1. **Code Organization**
+   - Keep related files together
+   - Follow the existing project structure
+   - Document new components or functions
+
+2. **Testing**
+   - Write tests for new features
+   - Ensure all tests pass before merging
+
+3. **Documentation**
+   - Update README for significant changes
+   - Document API changes
+   - Add comments for complex logic
+
+4. **Regular Updates**
+   - Pull from main regularly to stay up to date
+   - Resolve conflicts early
+   - Keep your feature branch current
+
+### Getting Help
+- Check existing documentation first
+- Ask in team chat for quick questions
+- Schedule a meeting for complex issues
+- Document solutions for future reference
 

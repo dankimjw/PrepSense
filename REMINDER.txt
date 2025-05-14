@@ -1,0 +1,7 @@
+REMINDER: How to start services
+
+To start the FastAPI backend:
+./start_app.sh backend
+
+To start the iOS app:
+./start_app.sh ios 
