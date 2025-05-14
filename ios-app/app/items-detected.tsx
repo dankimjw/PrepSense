@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import { Feather } from '@expo/vector-icons';
+import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
@@ -69,7 +70,7 @@ export default function ItemsDetected() {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaViewRN style={{ flex: 1, backgroundColor: '#fff' }}>
       <View style={{ flex: 1 }}>
         <Text style={styles.title}>Review Detected Items</Text>
         <FlatList
@@ -100,7 +101,7 @@ export default function ItemsDetected() {
               </View>
             </Pressable>
           )}
-          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
         />
       </View>
       <View style={styles.bottomBar}>
@@ -108,7 +109,7 @@ export default function ItemsDetected() {
           <Text style={styles.doneTxt}>Done</Text>
         </Pressable>
       </View>
-    </SafeAreaView>
+    </SafeAreaViewRN>
   );
 }
 
@@ -126,9 +127,14 @@ const styles = StyleSheet.create({
   details: { fontSize: 14, color: '#555' },
   expiry: { fontSize: 12, color: '#888', marginTop: 2 },
   done: {
-    position: 'absolute', bottom: 24, alignSelf: 'center',
-    backgroundColor: '#297A56', paddingVertical: 12,
-    paddingHorizontal: 32, borderRadius: 8,
+    width: '100%',
+    backgroundColor: '#297A56',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 0,
+    marginBottom: 0,
   },
   doneTxt: { color: '#fff', fontWeight: 'bold' },
   title: {
@@ -141,8 +147,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   bottomBar: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    backgroundColor: '#fff', padding: 12,
-    borderTopWidth: 1, borderTopColor: '#ccc',
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: -2 },
+    elevation: 8,
   },
 });

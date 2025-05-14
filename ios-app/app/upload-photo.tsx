@@ -8,9 +8,9 @@ import {
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
-import LoadingFactsScreen from '../loading-facts';
+import LoadingFactsScreen from './loading-facts';
 
-import { Config } from '../../config';                // ← adjust if needed
+import { Config } from '../config';                // ← adjust if needed
 const UPLOAD_URL = `${Config.API_BASE_URL}/images/upload`;
 
 export default function Camera() {
