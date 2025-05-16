@@ -11,7 +11,7 @@ const IS_DEVELOPMENT = __DEV__;
 // replace '127.0.0.1' with your computer's actual IP address on your local network.
 // '127.0.0.1' works if the app is running in a web browser on the SAME machine as the backend.
 const DEV_API_CONFIG = {
-  baseURL: 'http://127.0.0.1:8000/v1', // Corrected: Removed duplicate http://. Example: 'http://192.168.1.102:8000/v1'
+  baseURL: 'http://127.0.0.1:8001/v1', // Using port 8001 for the backend service
   timeout: 15000, // API request timeout in milliseconds (e.g., 15 seconds)
 };
 
