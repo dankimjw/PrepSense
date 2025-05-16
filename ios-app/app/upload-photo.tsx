@@ -37,7 +37,7 @@ export default function Camera() {
 
   const pick = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // deprecation-safe
+      mediaTypes: ['images'],
       quality: 0.8,
     });
     if (!res.canceled) setUri(res.assets[0].uri);
@@ -45,7 +45,7 @@ export default function Camera() {
 
   const shoot = async () => {
     const res = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       quality: 0.8,
     });
     if (!res.canceled) setUri(res.assets[0].uri);
