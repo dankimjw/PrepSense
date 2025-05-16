@@ -13,7 +13,7 @@ import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
 const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
-const CAMERA_ROUTE = '/';
+const CAMERA_ROUTE = '/upload-photo';
 
 type Item = {
   item_name: string;
