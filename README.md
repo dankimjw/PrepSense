@@ -31,11 +31,11 @@ Before you begin, ensure you have the following installed:
 To start the backend or iOS app, use the following commands from the project root:
 
 ```bash
-# Start the FastAPI backend server
-./start_app.sh backend
+# Start the FastAPI backend server (runs on port 8001)
+python run_server.py
 
 # Start the iOS app
-./start_app.sh ios
+python run_ios.py
 ```
 
 ## Getting Started
@@ -48,17 +48,17 @@ These steps will guide you through setting up the backend service. The Python vi
 
 #### a. Create and activate a virtual environment (from the `PrepSense` root directory):
 It's recommended to use a virtual environment to manage Python dependencies.
-```ash
+```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-
+#### b. Install dependencies:
 ```bash
 pip install -r requirements.txt
 ```
 
-#### d. Set up environment variables:
+#### c. Set up environment variables:
 - Create a `.env` file in the `backend-gateway` directory.
 - Add the required variables (e.g., `VISION_URL`, `OPENAI_API_KEY`):
 ```bash
@@ -66,12 +66,28 @@ VISION_URL=http://localhost:8001/detect
 OPENAI_API_KEY=your_openai_api_key
 ```
 
-#### e. Run the FastAPI app:
+#### d. Run the FastAPI app:
 ```bash
-uvicorn app:app --reload
+python run_server.py
 ```
 
-The backend will be available at `http://127.0.0.1:8000`.
+The backend will be available at `http://127.0.0.1:8001`.
+
+### 2. iOS App Setup
+
+#### a. Install dependencies:
+```bash
+cd ios-app
+npm install
+```
+
+#### b. Start the app:
+```bash
+# From the project root
+python run_ios.py
+```
+
+The app will start and provide a QR code that you can scan with the Expo Go app on your iOS device.
 
 ## Collaboration Guidelines
 
@@ -125,13 +141,13 @@ The backend will be available at `http://127.0.0.1:8000`.
    - Document any new dependencies
 
 2. **Backend Setup**
-   - Navigate to `backend_gateway` directory
-   - Run: `uvicorn app:app --reload`
-   - Server will be available at `http://127.0.0.1:8000`
+   - Navigate to project root directory
+   - Run: `python run_server.py`
+   - Server will be available at `http://127.0.0.1:8001`
 
 3. **iOS App Setup**
-   - Navigate to `ios-app` directory
-   - Run: `npx expo start -c`
+   - Navigate to project root directory
+   - Run: `python run_ios.py`
    - Use Expo Go app to test on your device
 
 4. **Security**
