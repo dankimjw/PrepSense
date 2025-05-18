@@ -1,6 +1,7 @@
 # PrepSense
 Capstone project for University of Chicago 
 
+```
 /backend-gateway
     ├── app.py                # Main FastAPI app (entry point)
     ├── routers/              # Directory for route handlers
@@ -16,6 +17,7 @@ Capstone project for University of Chicago
     ├── pubsub.py             # Pub/Sub integration (if asynchronous processing is used)
     ├── requirements.txt      # Python dependencies
     ├── .env                  # Environment variables (e.g., VISION_URL, DB credentials)
+```
 
 
 ## Prerequisites
