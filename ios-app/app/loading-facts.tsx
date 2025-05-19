@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { foodFacts } from './utils/facts';
+import { CustomHeader } from './components/CustomHeader';
 import * as FileSystem from 'expo-file-system';
 import { Buffer } from 'buffer';
 import { Config } from '../config';
@@ -28,32 +29,70 @@ export default function LoadingFactsScreen() {
     const uploadAndFetch = async () => {
       try {
         if (!photoUri) throw new Error('No photo URI provided');
+        console.log('Photo URI:', photoUri);
         const info = await FileSystem.getInfoAsync(photoUri);
+        console.log('File info:', info);
         const body = new FormData();
-        body.append('file', {
+        const fileExtension = info.uri.split('.').pop()?.toLowerCase() ?? 'jpg';
+        const mimeType = fileExtension === 'png' ? 'image/png' : 'image/jpeg';
+        const fileData = {
           uri: photoUri,
           name: info.uri.split('/').pop() ?? 'image.jpg',
-          type: 'image/jpeg',
-        } as any);
-
-        const r = await fetch(UPLOAD_URL, { method: 'POST', body });
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-
-        const { pantry_items } = await r.json();
-        if (!Array.isArray(pantry_items) || pantry_items.length === 0) {
-          Alert.alert('No items detected', 'Try another photo?');
-          router.replace('/');
-          return;
-        }
-
-        const dataParam = Buffer
-          .from(JSON.stringify(pantry_items))
-          .toString('base64');
-
-        router.replace({
-          pathname: '/items-detected',
-          params: { data: dataParam, photoUri },
+          type: mimeType,
+        };
+        body.append('file', fileData as any);
+        console.log('File data being sent:', {
+          uri: fileData.uri,
+          name: fileData.name,
+          type: fileData.type,
+          ...(info.exists ? {
+            size: info.size,
+            md5: info.md5
+          } : {})
         });
+
+        console.log('Making request to:', UPLOAD_URL);
+        try {
+          const r = await fetch(UPLOAD_URL, { 
+            method: 'POST', 
+            body,
+            headers: {
+              'Accept': 'application/json',
+            }
+          });
+          console.log('Response status:', r.status);
+          if (!r.ok) {
+            const errorText = await r.text();
+            console.error('Error response:', errorText);
+            throw new Error(`HTTP ${r.status}: ${errorText}`);
+          }
+
+          const responseData = await r.json();
+          console.log('Response data:', responseData);
+          const { pantry_items } = responseData;
+          if (!Array.isArray(pantry_items) || pantry_items.length === 0) {
+            Alert.alert('No items detected', 'Try another photo?');
+            router.replace('/');
+            return;
+          }
+
+          const dataParam = Buffer
+            .from(JSON.stringify(pantry_items))
+            .toString('base64');
+
+          router.replace({
+            pathname: '/items-detected',
+            params: { data: dataParam, photoUri },
+          });
+        } catch (e: any) {
+          console.error('Upload error:', e);
+          if (e.name === 'TypeError' && e.message.includes('Network request failed')) {
+            Alert.alert('Connection Error', 'Could not connect to the server. Please check if the server is running at ' + UPLOAD_URL);
+          } else {
+            Alert.alert('Upload failed', e.message || 'Unknown error');
+          }
+          router.replace('/');
+        }
       } catch (e: any) {
         Alert.alert('Upload failed', e.message || 'Unknown error');
         router.replace('/');
@@ -68,6 +107,17 @@ export default function LoadingFactsScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          header: () => (
+            <CustomHeader 
+              title="Processing"
+              showBackButton={true}
+            />
+          ),
+        }}
+      />
       <View style={styles.factBox}>
         <Text style={styles.category}>{fact.category}</Text>
         <Text style={styles.factText}>{fact.text}</Text>
