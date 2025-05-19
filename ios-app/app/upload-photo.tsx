@@ -5,9 +5,10 @@ import {
   View, Image, StyleSheet, Pressable, Text,
   Platform, Alert, ActivityIndicator,
 } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
+import { CustomHeader } from './components/CustomHeader';
 import LoadingFactsScreen from './loading-facts';
 
 import { Config } from '../config';                // ← adjust if needed

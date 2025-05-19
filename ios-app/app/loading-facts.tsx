@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
 import { foodFacts } from './utils/facts';
+import { CustomHeader } from './components/CustomHeader';
 import * as FileSystem from 'expo-file-system';
 import { Buffer } from 'buffer';
 import { Config } from '../config';
@@ -106,6 +107,17 @@ export default function LoadingFactsScreen() {
 
   return (
     <View style={styles.container}>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          header: () => (
+            <CustomHeader 
+              title="Processing"
+              showBackButton={true}
+            />
+          ),
+        }}
+      />
       <View style={styles.factBox}>
         <Text style={styles.category}>{fact.category}</Text>
         <Text style={styles.factText}>{fact.text}</Text>

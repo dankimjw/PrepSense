@@ -1,4 +1,4 @@
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Buffer } from 'buffer';
 import {
   View, FlatList, Text, TextInput,
@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import { Feather } from '@expo/vector-icons';
+import { CustomHeader } from './components/CustomHeader';
 import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 
 /* helpers */
@@ -58,7 +59,7 @@ export default function ItemsDetected() {
     });
 
   const done = () =>
-    router.replace({ pathname: CAMERA_ROUTE, params: { action: 'reset_image' } });
+    router.replace('/(tabs)');
 
   if (items.length === 0) {
     return (
@@ -71,8 +72,18 @@ export default function ItemsDetected() {
 
   return (
     <SafeAreaViewRN style={{ flex: 1, backgroundColor: '#fff' }}>
-      <View style={{ flex: 1 }}>
-        <Text style={styles.title}>Review Detected Items</Text>
+      <Stack.Screen
+        options={{
+          headerShown: true,
+          header: () => (
+            <CustomHeader 
+              title="Review Items"
+              showBackButton={true}
+            />
+          ),
+        }}
+      />
+      <View style={{ flex: 1, paddingTop: 20 }}>
         <FlatList
           data={items}
           keyExtractor={(_, i) => i.toString()}
