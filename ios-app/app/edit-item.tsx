@@ -143,7 +143,6 @@ export default function EditItem() {
         updatedList[idx] = updatedItem;
         
         // Go back to the previous screen with the updated data
-        // Use router.navigate with merge: true to update the current route's params
         router.navigate({
           pathname: '/items-detected',
           params: { 
@@ -308,7 +307,11 @@ export default function EditItem() {
         <Text style={{
           color: focusedInput === 'expiration' ? '#297A56' : '#2d3748'
         }}>
-          {expirationDate.toLocaleDateString()}
+          {new Date(form.expected_expiration).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
         </Text>
       </Pressable>
       <Modal
@@ -336,20 +339,31 @@ export default function EditItem() {
               minimumDate={new Date()}
               onChange={(event: any, selectedDate?: Date) => {
                 if (selectedDate) {
-                  setForm((f: Item) => ({ ...f, expected_expiration: selectedDate.toISOString().slice(0, 10) }));
+                  setForm((f: Item) => ({
+                    ...f,
+                    expected_expiration: selectedDate.toISOString().split('T')[0]
+                  }));
                   setDatePickerVisible(Platform.OS === 'ios');
                 } else {
                   setDatePickerVisible(false);
                 }
               }}
-              style={{ width: '100%', backgroundColor: '#fff', borderRadius: 12 }}
+              style={styles.dateTimePicker}
             />
-            <Pressable
-              style={styles.pickerDone}
-              onPress={() => setDatePickerVisible(false)}
-            >
-              <Text style={styles.pickerDoneTxt}>Done</Text>
-            </Pressable>
+            <View style={styles.pickerButtons}>
+              <Pressable
+                style={styles.pickerButton}
+                onPress={() => setDatePickerVisible(false)}
+              >
+                <Text style={styles.pickerButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.pickerButton, styles.pickerButtonPrimary]}
+                onPress={() => setDatePickerVisible(false)}
+              >
+                <Text style={[styles.pickerButtonText, styles.pickerButtonPrimaryText]}>Done</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -393,14 +407,12 @@ export default function EditItem() {
                 <Picker.Item label={category} value={category} key={category} />
               ))}
             </Picker>
-            {Platform.OS === 'ios' && (
-              <Pressable 
-                onPress={() => setDatePickerVisible(false)} 
-                style={styles.pickerDone}
-              >
-                <Text style={styles.pickerDoneTxt}>Done</Text>
-              </Pressable>
-            )}
+            <Pressable 
+              onPress={() => setShowCategoryPicker(false)} 
+              style={styles.pickerDone}
+            >
+              <Text style={styles.pickerDoneTxt}>Done</Text>
+            </Pressable>
           </View>
         </View>
       </Modal>
@@ -510,6 +522,33 @@ const styles = StyleSheet.create({
   },
   dateTextPressed: {
     color: '#297A56',
+  },
+  dateTimePicker: {
+    width: '100%',
+    backgroundColor: '#fff',
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginTop: 16,
+    gap: 12,
+  },
+  pickerButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  pickerButtonPrimary: {
+    backgroundColor: '#297A56',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    fontWeight: '500',
+  },
+  pickerButtonPrimaryText: {
+    color: '#fff',
   },
   unitText: {
     fontSize: 16,
