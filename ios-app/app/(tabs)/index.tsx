@@ -167,7 +167,13 @@ export default function HomeScreen() {
       quantity_amount: item.quantity_amount,
       quantity_unit: item.quantity_unit.trim(),
       expirationDate: new Date(item.expected_expiration),
-      daysUntilExpiry: Math.ceil((new Date(item.expected_expiration).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)),
+      daysUntilExpiry: (() => {
+        const expDate = new Date(item.expected_expiration);
+        expDate.setHours(23, 59, 59, 999);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+      })(),
       ...getItemStyle({
         name: item.item_name,
         unit: item.quantity_unit,
@@ -209,8 +215,16 @@ export default function HomeScreen() {
   // Helper function to format expiration date
   function formatExpirationDate(dateString: string) {
     const date = new Date(dateString);
+    // If the date is invalid, return a placeholder
+    if (isNaN(date.getTime())) return 'No date';
+    
+    // Set time to end of day for the expiration date and start of day for today
+    const expirationDate = new Date(date);
+    expirationDate.setHours(23, 59, 59, 999);
     const today = new Date();
-    const diffTime = date.getTime() - today.getTime();
+    today.setHours(0, 0, 0, 0);
+    
+    const diffTime = expirationDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
     if (diffDays < 0) {
