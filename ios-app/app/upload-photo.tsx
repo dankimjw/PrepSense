@@ -127,13 +127,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 20
   },
-  row: { flexDirection: 'row', gap: 20 },
+  row: { 
+    flexDirection: 'row', 
+    gap: 12,
+    width: 280, // Match the frame width
+    justifyContent: 'space-between',
+  },
   mainBtn: {
     backgroundColor: '#297A56', 
     paddingVertical: 14, 
-    paddingHorizontal: 28, 
+    paddingHorizontal: 8, 
     borderRadius: 8,
-    minWidth: 180,
+    width: '48.5%', // Slightly less than 50% to account for gap
     height: 52,
     justifyContent: 'center',
     alignItems: 'center',
