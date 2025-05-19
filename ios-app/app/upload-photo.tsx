@@ -106,22 +106,46 @@ export default function Camera() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  container: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    alignItems: 'center', 
+    padding: 20,
+    gap: 24 
+  },
   frame: {
     width: 280, height: 280, borderWidth: 1, borderColor: '#ccc', borderRadius: 12,
     justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff', overflow: 'hidden',
   },
   preview: { width: '100%', height: '100%', resizeMode: 'cover' },
   placeholder: { marginTop: 8, color: '#aaa' },
-  buttons: { flexDirection: 'row', gap: 12 },
+  buttons: { 
+    flexDirection: 'row', 
+    gap: 16,
+    alignItems: 'center',
+    width: '100%',
+    justifyContent: 'center',
+    paddingHorizontal: 20
+  },
   row: { flexDirection: 'row', gap: 20 },
   mainBtn: {
-    backgroundColor: '#297A56', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 8,
+    backgroundColor: '#297A56', 
+    paddingVertical: 14, 
+    paddingHorizontal: 28, 
+    borderRadius: 8,
+    minWidth: 180,
+    height: 52,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   mainTxt: { color: '#fff', fontWeight: 'bold' },
   iconBtn: {
-    backgroundColor: '#297A56', padding: 12, borderRadius: 8,
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: '#297A56', 
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    alignItems: 'center', 
+    justifyContent: 'center',
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
