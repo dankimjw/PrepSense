@@ -6,9 +6,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 type CustomHeaderProps = {
   title?: string;
   showBackButton?: boolean;
+  onBackPress?: () => void;
 };
 
-export function CustomHeader({ title = 'PrepSense', showBackButton = false }: CustomHeaderProps) {
+export function CustomHeader({ title = 'PrepSense', showBackButton = false, onBackPress }: CustomHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
@@ -21,7 +22,9 @@ export function CustomHeader({ title = 'PrepSense', showBackButton = false }: Cu
   };
 
   const handleBack = () => {
-    if (router.canGoBack()) {
+    if (onBackPress) {
+      onBackPress();
+    } else if (router.canGoBack()) {
       router.back();
     } else {
       router.replace('/(tabs)');
