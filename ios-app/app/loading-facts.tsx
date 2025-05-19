@@ -75,9 +75,15 @@ export default function LoadingFactsScreen() {
             router.replace('/');
             return;
           }
+          
+          // Add default category to items if not present
+          const itemsWithCategory = pantry_items.map((item: any) => ({
+            ...item,
+            category: item.category || 'Uncategorized'
+          }));
 
           const dataParam = Buffer
-            .from(JSON.stringify(pantry_items))
+            .from(JSON.stringify(itemsWithCategory))
             .toString('base64');
 
           router.replace({

@@ -1,4 +1,5 @@
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
+import { useItems } from '../context/ItemsContext';
 import { Buffer } from 'buffer';
 import {
   View, Text, TextInput, FlatList,
@@ -11,6 +12,30 @@ import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 const units = ['pcs', 'bag', 'kg', 'g', 'L', 'ml', 'pack', 'bottle', 'can'];
+
+const categories = [
+  'Dairy',
+  'Meat',
+  'Produce',
+  'Bakery',
+  'Pantry',
+  'Beverages',
+  'Frozen',
+  'Snacks',
+  'Canned Goods',
+  'Deli',
+  'Seafood',
+  'Dairy & Eggs',
+  'Bakery & Bread',
+  'Meat & Seafood',
+  'Fruits & Vegetables',
+  'Dairy & Alternatives',
+  'Bakery & Pastries',
+  'Meat & Poultry',
+  'Fruits',
+  'Vegetables',
+  'Other'
+];
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
 const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
 
@@ -20,6 +45,7 @@ type Item = {
   quantity_unit: string;
   expected_expiration: string;
   count?: number;
+  category?: string;
 };
 
 export default function EditItem() {
@@ -32,6 +58,7 @@ export default function EditItem() {
   const idx  = Number(index);
   const [form, setForm] = useState<Item>(list[idx]);
   const [show, setShow] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const expirationDate = form.expected_expiration ? new Date(form.expected_expiration) : new Date();
 
@@ -45,12 +72,24 @@ export default function EditItem() {
     }, 0);
   };
 
+  const router = useRouter();
+  const navigation = useNavigation();
+  const { updateItem } = useItems();
+  
   const save = () => {
-    list[idx] = form;
-    router.replace({
-      pathname: '/items-detected',
-      params: { data: enc(list), photoUri },
-    });
+    // Update the item in the global state
+    updateItem(list[idx].id, form);
+    
+    // Go back to the previous screen
+    if (navigation.canGoBack()) {
+      navigation.goBack();
+    } else {
+      // Fallback to home screen if can't go back
+      router.replace({
+        pathname: '/(tabs)' as const,
+        params: { updated: 'true' },
+      });
+    }
   };
 
   return (
@@ -143,6 +182,27 @@ export default function EditItem() {
         onBlur={() => setFocusedInput(null)}
       />
 
+      <Text style={styles.label}>Category</Text>
+      <Pressable 
+        onPress={() => {
+          setFocusedInput('category');
+          setShowCategoryPicker(true);
+        }}
+        style={[
+          styles.input,
+          { 
+            justifyContent: 'center',
+            ...(focusedInput === 'category' ? styles.inputFocused : {})
+          }
+        ]}
+      >
+        <Text style={{
+          color: focusedInput === 'category' ? '#297A56' : '#2d3748'
+        }}>
+          {form.category || 'Select a category'}
+        </Text>
+      </Pressable>
+
       <Text style={styles.label}>Expiration Date</Text>
       <Pressable 
         onPress={() => {
@@ -160,7 +220,11 @@ export default function EditItem() {
         <Text style={{
           color: focusedInput === 'expiration' ? '#297A56' : '#2d3748'
         }}>
-          {expirationDate.toLocaleDateString()}
+          {new Date(form.expected_expiration).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
         </Text>
       </Pressable>
       <Modal
@@ -174,21 +238,32 @@ export default function EditItem() {
             <DateTimePicker
               value={expirationDate}
               mode="date"
-              display={Platform.OS === 'ios' ? 'inline' : 'default'}
+              display="spinner"
+              themeVariant="light"
               onChange={(event: any, selectedDate?: Date) => {
-                if (Platform.OS !== 'ios') setDatePickerVisible(false);
                 if (selectedDate) {
-                  setForm((f: Item) => ({ ...f, expected_expiration: selectedDate.toISOString().slice(0, 10) }));
+                  setForm((f: Item) => ({
+                    ...f,
+                    expected_expiration: selectedDate.toISOString().split('T')[0]
+                  }));
                 }
               }}
-              style={{ width: '100%', backgroundColor: '#fff', borderRadius: 12 }}
+              style={styles.dateTimePicker}
             />
-            <Pressable
-              style={styles.pickerDone}
-              onPress={() => setDatePickerVisible(false)}
-            >
-              <Text style={styles.pickerDoneTxt}>Done</Text>
-            </Pressable>
+            <View style={styles.pickerButtons}>
+              <Pressable
+                style={styles.pickerButton}
+                onPress={() => setDatePickerVisible(false)}
+              >
+                <Text style={styles.pickerButtonText}>Cancel</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.pickerButton, styles.pickerButtonPrimary]}
+                onPress={() => setDatePickerVisible(false)}
+              >
+                <Text style={[styles.pickerButtonText, styles.pickerButtonPrimaryText]}>Done</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -210,6 +285,32 @@ export default function EditItem() {
               ))}
             </Picker>
             <Pressable onPress={() => setShow(false)} style={styles.pickerDone}>
+              <Text style={styles.pickerDoneTxt}>Done</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={showCategoryPicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Picker
+              selectedValue={form.category || 'Other'}
+              onValueChange={(category) => {
+                setForm((f: Item) => ({ ...f, category }));
+                setShowCategoryPicker(false);
+              }}
+              style={styles.picker}
+              itemStyle={styles.pickerItem}
+            >
+              {categories.map(category => (
+                <Picker.Item label={category} value={category} key={category} />
+              ))}
+            </Picker>
+            <Pressable 
+              onPress={() => setShowCategoryPicker(false)} 
+              style={styles.pickerDone}
+            >
               <Text style={styles.pickerDoneTxt}>Done</Text>
             </Pressable>
           </View>
@@ -321,6 +422,33 @@ const styles = StyleSheet.create({
   },
   dateTextPressed: {
     color: '#297A56',
+  },
+  dateTimePicker: {
+    width: '100%',
+    backgroundColor: '#fff',
+  },
+  pickerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    width: '100%',
+    marginTop: 16,
+    gap: 12,
+  },
+  pickerButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  pickerButtonPrimary: {
+    backgroundColor: '#297A56',
+  },
+  pickerButtonText: {
+    fontSize: 16,
+    color: '#4A4A4A',
+    fontWeight: '500',
+  },
+  pickerButtonPrimaryText: {
+    color: '#fff',
   },
   unitText: {
     fontSize: 16,
