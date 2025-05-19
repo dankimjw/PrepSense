@@ -6,7 +6,7 @@ import {
   Modal,
   Platform,
 } from 'react-native';
-import { useState } from 'react';     // ✅ add useState
+import { useState, useRef } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
@@ -23,6 +23,8 @@ type Item = {
 };
 
 export default function EditItem() {
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const amountInputRef = useRef<TextInput>(null);
   const { index, data, photoUri } =
     useLocalSearchParams<{ index: string; data: string; photoUri?: string }>();
 
@@ -36,6 +38,11 @@ export default function EditItem() {
   const pick = (u: string) => {
     setForm((f: Item) => ({ ...f, quantity_unit: u }));
     setShow(false);
+    // Focus the amount input after selecting a unit
+    setTimeout(() => {
+      amountInputRef.current?.focus();
+      setFocusedInput('amount');
+    }, 0);
   };
 
   const save = () => {
@@ -51,39 +58,110 @@ export default function EditItem() {
       <Text style={styles.title}>Edit Item Details</Text>
       <Text style={styles.label}>Name</Text>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          focusedInput === 'item_name' && styles.inputFocused
+        ]}
         value={form.item_name}
         onChangeText={(t) => setForm((f: Item) => ({ ...f, item_name: t }))}
+        onFocus={() => setFocusedInput('item_name')}
+        onBlur={() => setFocusedInput(null)}
       />
 
-      <Text style={styles.label}>Quantity per Unit</Text>
-      <TextInput
-        style={styles.input}
-        value={String(form.quantity_amount)}
-        keyboardType="numeric"
-        onChangeText={(t) =>
-          setForm((f: Item) => ({ ...f, quantity_amount: Number(t) || 0 }))
-        }
-      />
+      <Text style={styles.label}>Amount</Text>
+      <View 
+        style={[
+          styles.amountOuterContainer,
+          (focusedInput === 'amount' || focusedInput === 'unit') && styles.amountContainerFocused
+        ]}
+        onStartShouldSetResponder={() => true}
+        onResponderGrant={() => setFocusedInput('amount')}
+      >
+        <View style={styles.amountContainer}>
+          <TextInput
+            ref={amountInputRef}
+            style={[
+              styles.input,
+              styles.amountInput,
+              (focusedInput === 'amount' || focusedInput === 'unit') && { 
+                borderColor: 'transparent',
+                color: '#297A56' 
+              }
+            ]}
+            value={String(form.quantity_amount)}
+            keyboardType="numeric"
+            onChangeText={(t) =>
+              setForm((f: Item) => ({ ...f, quantity_amount: Number(t) || 0 }))
+            }
+            onFocus={() => setFocusedInput('amount')}
+          />
+          <View style={styles.unitButtonContainer}>
+            <View style={[
+              styles.divider,
+              (focusedInput === 'amount' || focusedInput === 'unit') && styles.dividerFocused
+            ]} />
+            <Pressable 
+              style={({ pressed }) => ({
+                ...styles.unitButton,
+                ...(pressed && styles.unitButtonPressed),
+                ...((focusedInput === 'amount' || focusedInput === 'unit') && { borderColor: 'transparent' })
+              })}
+              onPress={() => {
+                setFocusedInput('unit');
+                setShow(true);
+              }}
+            >
+              {({ pressed }) => (
+                <Text style={[
+                  styles.unitText,
+                  (pressed || focusedInput === 'amount' || focusedInput === 'unit') && styles.unitTextPressed
+                ]}>
+                  {form.quantity_unit}
+                  <Text style={[
+                    styles.unitCaret,
+                    (pressed || focusedInput === 'amount' || focusedInput === 'unit') && { color: '#297A56' }
+                  ]}> ▼</Text>
+                </Text>
+              )}
+            </Pressable>
+          </View>
+        </View>
+      </View>
 
-      <Text style={styles.label}>Count</Text>
+      <Text style={styles.label}>Number of Items</Text>
       <TextInput
-        style={styles.input}
+        style={[
+          styles.input,
+          focusedInput === 'count' && styles.inputFocused
+        ]}
         value={String(form.count ?? 1)}
         keyboardType="numeric"
         onChangeText={(t) =>
           setForm((f: Item) => ({ ...f, count: Math.max(1, Number(t) || 1) }))
         }
+        onFocus={() => setFocusedInput('count')}
+        onBlur={() => setFocusedInput(null)}
       />
 
-      <Text style={styles.label}>Unit</Text>
-      <Pressable onPress={() => setShow(true)}>
-        <Text style={styles.unit}>{form.quantity_unit} ▼</Text>
-      </Pressable>
-
       <Text style={styles.label}>Expiration Date</Text>
-      <Pressable onPress={() => setDatePickerVisible(true)}>
-        <Text style={styles.input}>{expirationDate.toLocaleDateString()}</Text>
+      <Pressable 
+        onPress={() => {
+          setFocusedInput('expiration');
+          setDatePickerVisible(true);
+        }}
+        style={[
+          styles.input,
+          { 
+            justifyContent: 'center',
+            ...(focusedInput === 'expiration' ? styles.inputFocused : {})
+          }
+        ]}
+      >
+        <Text style={{
+          color: focusedInput === 'expiration' ? '#297A56' : '#2d3748'
+        }}>
+          {expirationDate.toLocaleDateString()}
+        </Text>
       </Pressable>
       <Modal
         visible={datePickerVisible}
@@ -163,29 +241,96 @@ const styles = StyleSheet.create({
   },
   label: { fontSize: 15, color: '#222', fontWeight: '600', marginBottom: 2 },
   input: {
-    borderWidth: 0,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     borderRadius: 12,
     padding: 12,
     backgroundColor: '#fff',
     fontSize: 16,
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
+    color: '#2d3748',
+    shadowColor: 'transparent',
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    shadowOffset: { width: 0, height: 0 },
     marginBottom: 4,
   },
-  unit:  {
-    borderWidth: 0,
+  inputFocused: {
+    borderColor: '#297A56',
+    color: '#297A56',
+  },
+  amountOuterContainer: {
     borderRadius: 12,
-    padding: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     backgroundColor: '#fff',
-    fontSize: 16,
-    textAlign: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
     marginBottom: 4,
+    overflow: 'hidden',
+  },
+  amountContainerFocused: {
+    borderColor: '#297A56',
+  },
+  amountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    position: 'relative',
+  },
+  amountInput: {
+    flex: 2,
+    borderWidth: 0,
+    borderRadius: 0,
+    marginBottom: 0,
+    position: 'relative',
+    marginRight: 0,
+    backgroundColor: 'transparent',
+  },
+  unitButton: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    height: 48,
+    borderWidth: 0,
+    borderLeftWidth: 0,
+    position: 'relative',
+  },
+  divider: {
+    position: 'absolute',
+    left: 0,
+    top: 12,
+    bottom: 12,
+    width: 1, // Match container border width
+    backgroundColor: '#d1d5db',
+    zIndex: 1,
+  },
+  dividerFocused: {
+    backgroundColor: '#297A56',
+  },
+  unitButtonContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  unitButtonPressed: {
+    backgroundColor: '#f0f9f5',
+  },
+  unitTextPressed: {
+    color: '#297A56',
+  },
+  dateText: {
+    color: '#2d3748',
+  },
+  dateTextPressed: {
+    color: '#297A56',
+  },
+  unitText: {
+    fontSize: 16,
+    color: '#2d3748',
+    fontWeight: '500',
+  },
+  unitCaret: {
+    color: '#718096',
+    fontSize: 12,
+    opacity: 0.7,
   },
   modalOverlay: {
     flex: 1,
