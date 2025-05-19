@@ -43,10 +43,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               : route.name;
           const isFocused = state.index === index;
           let iconName: keyof typeof Ionicons.glyphMap = 'ellipse';
-          if (route.name === 'index') iconName = 'home';
-          if (route.name === 'stats') iconName = 'bar-chart';
-          if (route.name === 'recipes') iconName = 'restaurant';
-          if (route.name === 'profile') iconName = 'person';
+          if (route.name === 'index') iconName = isFocused ? 'home' : 'home-outline';
+          if (route.name === 'stats') iconName = isFocused ? 'bar-chart' : 'bar-chart-outline';
+          if (route.name === 'recipes') iconName = isFocused ? 'restaurant' : 'restaurant-outline';
+          if (route.name === 'profile') iconName = isFocused ? 'person' : 'person-outline';
           let labelText = '';
           if (typeof label === 'string') labelText = label;
           else if (typeof label === 'function') labelText = '';
@@ -59,7 +59,11 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               style={styles.tab}
               onPress={() => navigation.navigate(route.name)}
             >
-              <Ionicons name={iconName} size={24} color={isFocused ? '#297A56' : '#888'} />
+              <Ionicons 
+                name={iconName} 
+                size={24} 
+                color={isFocused ? '#297A56' : '#888'} 
+              />
               <Text style={[styles.label, isFocused && { color: '#297A56' }]}>{labelText}</Text>
             </TouchableOpacity>
           );
@@ -96,7 +100,7 @@ export default function TabsLayout() {
         headerShown: false,
       }}
     >
-      <Tabs.Screen name="index" options={{ tabBarLabel: 'Dashboard' }} />
+      <Tabs.Screen name="index" options={{ tabBarLabel: 'Home' }} />
       <Tabs.Screen name="stats" options={{ tabBarLabel: 'Stats' }} />
       <Tabs.Screen name="add" options={{ tabBarLabel: '' }} />
       <Tabs.Screen name="recipes" options={{ tabBarLabel: 'Recipes' }} />
@@ -111,21 +115,24 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    height: 64,
+    height: 72,
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    paddingHorizontal: 10,
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 8,
     shadowOffset: { width: 0, height: -2 },
     elevation: 8,
-    paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+    paddingVertical: 12,
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
+    justifyContent: 'flex-end',
+    paddingBottom: 8,
+    maxWidth: 80,
+    overflow: 'hidden',
   },
   label: {
     fontSize: 12,
@@ -139,6 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     width: 64,
+    paddingHorizontal: 0,
   },
   fab: {
     width: 56,
