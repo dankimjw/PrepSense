@@ -17,21 +17,59 @@ const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
 const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
 const CAMERA_ROUTE = '/upload-photo';
 
+// Helper function to get category color
+const getCategoryColor = (category: string) => {
+  const colors = {
+    'Dairy': '#E0F2FE',
+    'Meat': '#FEE2E2',
+    'Produce': '#DCFCE7',
+    'Bakery': '#FEF3C7',
+    'Pantry': '#EDE9FE',
+    'Beverages': '#E0E7FF',
+    'Frozen': '#E0F2F9',
+    'Snacks': '#FCE7F3',
+    'Canned Goods': '#F3E8FF',
+    'Deli': '#FEF08A',
+    'Seafood': '#BFDBFE',
+    'Dairy & Eggs': '#DBEAFE',
+    'Bakery & Bread': '#FEF3C7',
+    'Meat & Seafood': '#FECACA',
+    'Fruits & Vegetables': '#DCFCE7',
+    'Dairy & Alternatives': '#E0F2FE',
+    'Bakery & Pastries': '#FEF3C7',
+    'Meat & Poultry': '#FEE2E2',
+    'Fruits': '#DCFCE7',
+    'Vegetables': '#DCFCE7',
+    'Default': '#F3F4F6',
+  };
+  
+  return colors[category as keyof typeof colors] || colors['Default'];
+};
+
 // Using Item type from ItemsContext
 
 export default function ItemsDetected() {
-  const { data = '', photoUri, index, newUnit, newItem } =
+  const { data: initialData = '', photoUri, index, newUnit, newItem } =
     useLocalSearchParams<{
       data?: string; photoUri?: string;
       index?: string; newUnit?: string; newItem?: string;
     }>();
 
-  /* decode on every param change */
-  const [items, setItems] = useState<Item[]>(() => (data ? dec(data) : []));
+  /* decode on initial load */
+  const [items, setItems] = useState<Item[]>(() => (initialData ? dec(initialData) : []));
 
+  // Handle updates when navigating back with new data
   useEffect(() => {
-    if (data) setItems(dec(data));
-  }, [data]);
+    if (initialData) {
+      const decodedData = dec(initialData);
+      setItems(prevItems => {
+        // Only update if the data has actually changed
+        return JSON.stringify(prevItems) !== JSON.stringify(decodedData) 
+          ? decodedData 
+          : prevItems;
+      });
+    }
+  }, [initialData]);
 
   /* row-level changes update local state */
   const setQty = (i: number, v: string) =>
@@ -47,11 +85,18 @@ export default function ItemsDetected() {
       params: { index: String(i), data: enc(items), photoUri },
     });
 
-  const goEdit = (i: number) =>
+  const goEdit = (i: number) => {
     router.push({
       pathname: '/edit-item',
-      params: { index: String(i), data: enc(items), photoUri },
+      params: { 
+        index: String(i), 
+        data: enc(items), 
+        photoUri,
+        // Add a timestamp to force re-render when navigating back
+        _t: Date.now().toString()
+      },
     });
+  };
 
   const { addItems } = useItems();
   
@@ -98,7 +143,13 @@ export default function ItemsDetected() {
               onPress={() => {
                 router.push({
                   pathname: '/edit-item',
-                  params: { index: String(index), data: enc(items), photoUri },
+                  params: { 
+                    index: String(index), 
+                    data: enc(items), 
+                    photoUri,
+                    // Add a timestamp to force re-render when navigating back
+                    _t: Date.now().toString()
+                  },
                 });
               }}
             >
@@ -107,9 +158,22 @@ export default function ItemsDetected() {
                 <Text style={styles.details}>
                   {(item.count ?? 1)} × {item.quantity_amount} {item.quantity_unit}
                 </Text>
-                <Text style={styles.expiry}>
-                  Expires: {item.expected_expiration}
-                </Text>
+                <View style={styles.metaContainer}>
+                  <Text style={styles.expiry}>
+                    Expires: {item.expected_expiration}
+                  </Text>
+                  <View style={[
+                    styles.categoryChip,
+                    { 
+                      backgroundColor: getCategoryColor(item.category || 'Uncategorized'),
+                      opacity: item.category ? 1 : 0.7
+                    }
+                  ]}>
+                    <Text style={styles.categoryText}>
+                      {item.category || 'Uncategorized'}
+                    </Text>
+                  </View>
+                </View>
               </View>
             </Pressable>
           )}
@@ -190,6 +254,26 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
   doneTxt: { color: '#fff', fontWeight: 'bold' },
+  metaContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 4,
+    gap: 8,
+  },
+  categoryChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#E5F5EA',
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#0F5C36',
+  },
   title: {
     fontSize: 24,
     fontWeight: '700',
