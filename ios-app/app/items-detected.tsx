@@ -10,19 +10,14 @@ import { useMemo, useState, useEffect } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { CustomHeader } from './components/CustomHeader';
 import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
+import { useItems, type Item } from '../context/ItemsContext';
 
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
 const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
 const CAMERA_ROUTE = '/upload-photo';
 
-type Item = {
-  item_name: string;
-  quantity_amount: number;
-  quantity_unit: string;
-  expected_expiration: string;
-  count?: number;
-};
+// Using Item type from ItemsContext
 
 export default function ItemsDetected() {
   const { data = '', photoUri, index, newUnit, newItem } =
@@ -58,8 +53,14 @@ export default function ItemsDetected() {
       params: { index: String(i), data: enc(items), photoUri },
     });
 
-  const done = () =>
+  const { addItems } = useItems();
+  
+  const done = () => {
+    // Add all items to the context
+    addItems(items);
+    // Navigate back to home
     router.replace('/(tabs)');
+  };
 
   if (items.length === 0) {
     return (
@@ -83,7 +84,7 @@ export default function ItemsDetected() {
           ),
         }}
       />
-      <View style={{ flex: 1, paddingTop: 20 }}>
+      <View style={{ flex: 1, paddingTop: 16, backgroundColor: '#F9F7F4' }}>
         <FlatList
           data={items}
           keyExtractor={(_, i) => i.toString()}
@@ -126,17 +127,58 @@ export default function ItemsDetected() {
 
 /* styles */
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  header: { width: '100%', height: 220, borderRadius: 12, marginBottom: 10 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F9F7F4',
+  },
+  header: { 
+    width: '100%', 
+    height: 220, 
+    borderRadius: 12, 
+    marginBottom: 16,
+    backgroundColor: '#F9F7F4',
+  },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   link: { color: '#007bff', textDecorationLine: 'underline' },
   card: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    padding: 8, borderWidth: 1, borderColor: '#ccc', borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: 'rgba(0, 0, 0, 0.05)',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 1,
+    shadowRadius: 8,
+    elevation: 2,
+    marginBottom: 10,
+    borderWidth: 0,
+    borderLeftWidth: 4,
+    borderLeftColor: '#297A56',
   },
-  name: { flex: 1, fontSize: 16 },
-  details: { fontSize: 14, color: '#555' },
-  expiry: { fontSize: 12, color: '#888', marginTop: 2 },
+  name: { 
+    flex: 1, 
+    fontSize: 16, 
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  details: { 
+    fontSize: 14, 
+    color: '#4A4A4A',
+    marginBottom: 4,
+  },
+  expiry: { 
+    fontSize: 13, 
+    color: '#666666',
+    marginTop: 4,
+    fontWeight: '500',
+    backgroundColor: '#F0EFED',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
   done: {
     width: '100%',
     backgroundColor: '#297A56',

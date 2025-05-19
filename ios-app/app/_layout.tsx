@@ -4,6 +4,7 @@ import { useColorScheme, View, StyleSheet, Text, ActivityIndicator } from 'react
 import { ChatButton } from './components/ChatButton';
 import { CustomHeader } from './components/CustomHeader';
 import { useEffect, useState } from 'react';
+import { ItemsProvider } from '../context/ItemsContext';
 
 const styles = StyleSheet.create({
   container: {
@@ -83,77 +84,111 @@ export default function RootLayout() {
   const scheme = useColorScheme();
 
   return (
-    <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ItemsProvider>
       <AuthProvider>
-        <View style={styles.container}>
-          <Stack>
-            <Stack.Screen
-              name="(tabs)"
-              options={{
-                headerShown: true,
-                title: 'PrepSense',
-                header: () => (
-                  <CustomHeader 
-                    title="PrepSense"
-                    showBackButton={false}
-                  />
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="(auth)"
-              options={{
-                headerShown: false,
-              }}
-            />
-            <Stack.Screen
-              name="confirm"
-              options={{
-                title: 'Confirm Items',
-                header: () => (
-                  <CustomHeader 
-                    title="Confirm Items"
-                    showBackButton={true}
-                  />
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="chat"
-              options={{
-                headerShown: true,
-                title: 'Pantry Assistant',
-                header: ({ options }) => (
-                  <CustomHeader 
-                    title={options.title}
-                    showBackButton={true}
-                  />
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="upload-photo"
-              options={{
-                headerShown: true,
-                title: 'Upload Photo',
-                header: ({ options }) => (
-                  <CustomHeader 
-                    title={options.title}
-                    showBackButton={true}
-                  />
-                ),
-              }}
-            />
-            <Stack.Screen
-              name="settings"
-              options={{
-                headerShown: false,
-              }}
-            />
-          </Stack>
-          <ChatButton />
-        </View>
+        <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <View style={styles.container}>
+            <Stack>
+              <Stack.Screen 
+                name="(tabs)" 
+                options={{ 
+                  headerShown: true, 
+                  title: 'PrepSense', 
+                  header: () => <CustomHeader title="PrepSense" showBackButton={false} /> 
+                }} 
+              />
+              <Stack.Screen 
+                name="(auth)" 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="confirm" 
+                options={{ 
+                  title: 'Confirm Items', 
+                  header: () => <CustomHeader title="Confirm Items" showBackButton={true} /> 
+                }} 
+              />
+              <Stack.Screen 
+                name="chat" 
+                options={{ 
+                  headerShown: true, 
+                  title: 'Pantry Assistant', 
+                  header: () => <CustomHeader title="Pantry Assistant" showBackButton={true} /> 
+                }} 
+              />
+              <Stack.Screen 
+                name="upload-photo" 
+                options={{ 
+                  title: 'Upload Photo', 
+                  header: () => <CustomHeader title="Upload Photo" showBackButton={true} /> 
+                }} 
+              />
+              <Stack.Screen 
+                name="settings" 
+                options={{ headerShown: false }} 
+              />
+              <Stack.Screen 
+                name="confirm-photo" 
+                options={{ 
+                  title: 'Confirm Photo', 
+                  headerBackTitle: 'Back',
+                  header: ({ navigation }) => (
+                    <CustomHeader 
+                      title="Confirm Photo" 
+                      showBackButton={true} 
+                      onBackPress={() => navigation.goBack()}
+                    />
+                  )
+                }} 
+              />
+              <Stack.Screen 
+                name="items-detected" 
+                options={{ 
+                  title: 'Items Detected', 
+                  headerBackTitle: 'Back',
+                  header: ({ navigation }) => (
+                    <CustomHeader 
+                      title="Items Detected" 
+                      showBackButton={true} 
+                      onBackPress={() => navigation.goBack()}
+                    />
+                  )
+                }} 
+              />
+              <Stack.Screen 
+                name="edit-item" 
+                options={{ 
+                  title: 'Edit Item', 
+                  headerBackTitle: 'Back',
+                  header: ({ navigation }) => (
+                    <CustomHeader 
+                      title="Edit Item" 
+                      showBackButton={true} 
+                      onBackPress={() => navigation.goBack()}
+                    />
+                  )
+                }} 
+              />
+              <Stack.Screen 
+                name="select-unit" 
+                options={{ 
+                  title: 'Select Unit', 
+                  headerBackTitle: 'Back', 
+                  presentation: 'modal',
+                  header: ({ navigation }) => (
+                    <CustomHeader 
+                      title="Select Unit" 
+                      showBackButton={true} 
+                      onBackPress={() => navigation.goBack()}
+                    />
+                  )
+                }} 
+              />
+            </Stack>
+            <ChatButton />
+          </View>
+        </ThemeProvider>
       </AuthProvider>
-    </ThemeProvider>
+    </ItemsProvider>
   );
 }
