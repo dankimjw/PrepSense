@@ -62,6 +62,32 @@ export default function ItemsDetected() {
     router.replace('/(tabs)');
   };
 
+  const getCategoryColor = (category: string): string => {
+    const colors: Record<string, string> = {
+      'Dairy': '#4F46E5',
+      'Meat': '#DC2626',
+      'Produce': '#16A34A',
+      'Bakery': '#D97706',
+      'Pantry': '#9333EA',
+      'Beverages': '#0284C7',
+      'Frozen': '#0EA5E9',
+      'Snacks': '#E11D48',
+      'Canned Goods': '#F59E0B',
+      'Deli': '#10B981',
+      'Seafood': '#06B6D4',
+      'Dairy & Eggs': '#8B5CF6',
+      'Bakery & Bread': '#F59E0B',
+      'Meat & Seafood': '#EF4444',
+      'Fruits & Vegetables': '#10B981',
+      'Dairy & Alternatives': '#3B82F6',
+      'Bakery & Pastries': '#D97706',
+      'Meat & Poultry': '#DC2626',
+      'Fruits': '#22C55E',
+      'Vegetables': '#10B981',
+    };
+    return colors[category] || '#6B7280';
+  };
+
   if (items.length === 0) {
     return (
       <View style={styles.center}>
@@ -107,9 +133,16 @@ export default function ItemsDetected() {
                 <Text style={styles.details}>
                   {(item.count ?? 1)} × {item.quantity_amount} {item.quantity_unit}
                 </Text>
-                <Text style={styles.expiry}>
-                  Expires: {item.expected_expiration}
-                </Text>
+                <View style={styles.metaContainer}>
+                  <Text style={styles.expiry}>
+                    Expires: {item.expected_expiration}
+                  </Text>
+                  {item.category && (
+                    <Text style={[styles.category, { backgroundColor: getCategoryColor(item.category) }]}>
+                      {item.category}
+                    </Text>
+                  )}
+                </View>
               </View>
             </Pressable>
           )}
@@ -168,16 +201,30 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     marginBottom: 4,
   },
+  metaContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 4,
+  },
   expiry: { 
     fontSize: 13, 
     color: '#666666',
-    marginTop: 4,
     fontWeight: '500',
     backgroundColor: '#F0EFED',
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderRadius: 4,
     alignSelf: 'flex-start',
+  },
+  category: {
+    fontSize: 13,
+    color: '#fff',
+    fontWeight: '500',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   done: {
     width: '100%',
