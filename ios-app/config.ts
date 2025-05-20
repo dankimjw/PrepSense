@@ -6,12 +6,15 @@
 const IS_DEVELOPMENT = __DEV__;
 
 // --- API Configuration ---
+// Allow overriding the API URL via an environment variable exposed by Expo.
+const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 // Development API (your local machine running the backend)
 // IMPORTANT: If running the app on an emulator, simulator, or physical device,
 // replace '127.0.0.1' with your computer's actual IP address on your local network.
 // '127.0.0.1' works if the app is running in a web browser on the SAME machine as the backend.
 const DEV_API_CONFIG = {
-  baseURL: 'http://127.0.0.1:8001/v1', // Using port 8001 for the backend service
+  baseURL: ENV_API_URL || 'http://127.0.0.1:8001/v1', // Using port 8001 for the backend service
   timeout: 15000, // API request timeout in milliseconds (e.g., 15 seconds)
 };
 
