@@ -3,6 +3,10 @@ import os
 import sys
 from pathlib import Path
 
+# Default host and port for the development server
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 8001
+
 def main():
     # Get the project root directory (where this file is located)
     project_root = Path(__file__).parent.absolute()
@@ -17,9 +21,11 @@ def main():
         print("Warning: Not running in a virtual environment. It's recommended to use one.")
     
     # Configuration
-    host = "0.0.0.0"  # Allow external connections
-    port = 8001       # Use port 8001
-    reload = True     # Enable auto-reload for development
+    # Allow overriding the host and port via environment variables, but
+    # default to the values defined above for local development.
+    host = os.getenv("SERVER_HOST", DEFAULT_HOST)
+    port = int(os.getenv("SERVER_PORT", DEFAULT_PORT))
+    reload = True  # Enable auto-reload for development
     
     print(f"Starting server on {host}:{port}")
     print("Press Ctrl+C to stop the server")
@@ -39,4 +45,4 @@ def main():
         sys.exit(1)
 
 if __name__ == "__main__":
-    main() 
+    main()
