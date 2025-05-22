@@ -97,14 +97,24 @@ cd ios-app
 npm install
 cd ..
 
-# 3. Start the FastAPI backend (http://127.0.0.1:8001)
-python run_server.py
+# 3. Start the FastAPI backend on your machine's IP
+SERVER_HOST=0.0.0.0 python run_server.py
 
 # 4. Start the Expo app (shows a QR code for Expo Go)
-python run_ios.py
+python run_ios.py  # automatically sets EXPO_PUBLIC_API_BASE_URL
 ```
 
 Scan the QR code printed in the terminal with **Expo Go** on your iOS device to load the app.
+
+### Drag‑and‑drop testing on the iOS simulator
+
+You can add images to the simulator without a physical device:
+
+1. Drag any image file from your Mac onto the simulator window. It will be stored in the Photos app inside the simulator.
+2. In PrepSense tap **Upload Image** and pick the photo you just added.
+3. Press **Confirm** to send it through the backend to OpenAI.
+
+This mirrors the experience on real hardware while staying entirely on your desktop.
 
 ---
 
