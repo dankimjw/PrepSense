@@ -1,0 +1,121 @@
+# Environment files
+.env
+.env*.local
+
+# Node.js dependencies
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Python virtual environment
+venv/
+ENV/
+.env
+.venv
+env/
+
+# R
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows system files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# Logs
+*.log
+
+# Ignore HTML files
+*.html
+
+# Ignore Jupyter Notebook files globally, but allow in notebooks/
+*.ipynb
+!notebooks/*.ipynb
+!notebooks/*.html
+
+# IDE-specific files
+.vscode/
+.idea/
+.cursor/
+
+# Shell scripts
+*.sh
+
+# Ignore temporary files
+*.tmp
+
+my_notes/
+.gitignore
+.env
+.env
+/test_assets
+ios-app/expo-env.d.ts
+
+# API keys and credentials
+# Service account keys and credentials
+*.json
+!package.json
+!package-lock.json
+!tsconfig*.json
+!*.json.example
+
+# Google Cloud credentials
+*.json
+!*.json.example
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local development overrides
+local.*
+
+# Credentials from cloud providers
+*credentials*
+*secret*
+*password*
+*private*
+*key*
+*token*
+
+# Specific credential files (add any specific filenames that might contain sensitive data)
+secrets.*
+config.*
+
+# Keep this entry for backward compatibility
+adsp-34002-on02-prep-sense-ef1111b0833b.json
