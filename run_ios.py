@@ -1,9 +1,20 @@
 import subprocess
 import os
 import sys
+import socket
 from pathlib import Path
 
 from run_server import DEFAULT_HOST, DEFAULT_PORT
+
+
+def _get_local_ip(fallback: str = DEFAULT_HOST) -> str:
+    """Best-effort attempt to discover this machine's LAN IP address."""
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("8.8.8.8", 80))
+            return s.getsockname()[0]
+    except OSError:
+        return fallback
 
 def main():
     # Get the project root directory (where this file is located)
@@ -20,7 +31,18 @@ def main():
     # Determine backend URL from run_server configuration
     host = os.getenv("SERVER_HOST", DEFAULT_HOST)
     port = os.getenv("SERVER_PORT", str(DEFAULT_PORT))
-    backend_url = f"http://{host}:{port}/v1"
+
+    # If host is not explicitly provided or is a wildcard/localhost,
+    # use a best-effort guess for the machine's IP so the mobile
+    # simulator/physical device can reach the backend.
+    if host in {"0.0.0.0", "127.0.0.1", "localhost"}:
+        host_ip = _get_local_ip()
+    else:
+        host_ip = host
+
+    backend_url = f"http://{host_ip}:{port}/v1"
+
+    print(f"Using backend at {backend_url}")
 
     # Pass the backend URL to the Expo app via environment variable
     os.environ["EXPO_PUBLIC_API_BASE_URL"] = backend_url
