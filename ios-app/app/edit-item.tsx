@@ -324,12 +324,6 @@ export default function EditItem() {
           <View style={[styles.modalContent, { padding: 0 }]}>
             <View style={styles.datePickerHeader}>
               <Text style={styles.datePickerTitle}>Select Expiration Date</Text>
-              <Pressable 
-                onPress={() => setDatePickerVisible(false)}
-                style={styles.datePickerDone}
-              >
-                <Text style={styles.datePickerDoneText}>Done</Text>
-              </Pressable>
             </View>
             <DateTimePicker
               value={expirationDate}
@@ -370,7 +364,10 @@ export default function EditItem() {
 
       <Modal visible={show} transparent animationType="slide">
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { padding: 0 }]}>
+            <View style={styles.datePickerHeader}>
+              <Text style={styles.datePickerTitle}>Select Unit</Text>
+            </View>
             <Picker
               selectedValue={form.quantity_unit}
               onValueChange={(u) => {
@@ -384,9 +381,11 @@ export default function EditItem() {
                 <Picker.Item label={unit} value={unit} key={unit} />
               ))}
             </Picker>
-            <Pressable onPress={() => setShow(false)} style={styles.pickerDone}>
-              <Text style={styles.pickerDoneTxt}>Done</Text>
-            </Pressable>
+            <View style={{ padding: 20, paddingTop: 0, alignItems: 'center' }}>
+              <Pressable onPress={() => setShow(false)} style={styles.pickerDone}>
+                <Text style={styles.pickerDoneTxt}>Done</Text>
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
@@ -532,6 +531,8 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
     width: '100%',
     marginTop: 16,
+    paddingBottom: 30,
+    paddingHorizontal: 16,
     gap: 12,
   },
   pickerButton: {
@@ -564,6 +565,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.2)',
     justifyContent: 'flex-end',
+    alignItems: 'center',
   },
   modalContent: {
     backgroundColor: 'white',

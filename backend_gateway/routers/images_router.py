@@ -23,7 +23,7 @@ async def upload_image(
             # This case should ideally not happen with UploadFile, but good to check
             raise HTTPException(status_code=400, detail="Could not determine image content type.")
 
-        openai_raw_response = await vision_service.classify_food_items(base64_image, content_type)
+        openai_raw_response = vision_service.classify_food_items(base64_image, content_type)
         
         try:
             parsed_items = vision_service.parse_openai_response(openai_raw_response)
