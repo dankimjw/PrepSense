@@ -36,6 +36,11 @@ ENV/
 .venv
 env/
 
+# Temporary files with ~
+*~
+~*/
+*~
+
 # R
 .Rproj.user
 .Rhistory
