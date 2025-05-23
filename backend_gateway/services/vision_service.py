@@ -46,7 +46,7 @@ class VisionService:
         base64_image = base64.b64encode(img_bytes).decode("utf-8")
         return base64_image, file.content_type
 
-    async def classify_food_items(self, base64_image: str, content_type: Optional[str]) -> str:
+    def classify_food_items(self, base64_image: str, content_type: Optional[str]) -> str:
         """
         Sends the base64-encoded image to OpenAI's API with a detailed prompt.
         Returns the raw JSON response string from OpenAI.
@@ -96,7 +96,7 @@ class VisionService:
         try:
             if hasattr(openai, 'OpenAI'): # Check if it's v1.0.0+ structure
                  client = openai.OpenAI(api_key=self.api_key)
-                 response = await client.chat.completions.create(
+                 response = client.chat.completions.create(
                     model="gpt-4o", # Or your preferred current vision model
                     messages=[
                         {
@@ -116,7 +116,7 @@ class VisionService:
                  return response.choices[0].message.content.strip()
             else: # Older library
                 openai.api_key = self.api_key # Ensure API key is set for older library
-                response = await openai.ChatCompletion.acreate(
+                response = openai.ChatCompletion.create(
                     model="gpt-4o", # Or your preferred current vision model
                     messages=[
                         {
@@ -235,4 +235,3 @@ class VisionService:
         # Convert the dictionary values to a list
         records = list(item_dict.values())
         return records
-
