@@ -71,10 +71,13 @@ OPENAI_API_KEY=your_openai_api_key
 
 #### d. Run the FastAPI app:
 ```bash
-python run_server.py
+# Bind to all interfaces so mobile devices can reach the server
+SERVER_HOST=0.0.0.0 python run_server.py
 ```
 
-The backend will be available at `http://127.0.0.1:8001`.
+The backend will be available on your machine's IP address (e.g., `http://192.168.1.X:8001`).
+
+`run_ios.py` will automatically detect this IP and configure the Expo app accordingly.
 
 ### 2. iOS App Setup
 
@@ -91,6 +94,20 @@ python run_ios.py
 ```
 
 The app will start and provide a QR code that you can scan with the Expo Go app on your iOS device.
+
+### Testing image upload in the iOS simulator
+
+When running the app in the iOS simulator you can quickly add photos without
+using a real device:
+
+1. Drag any image file from your Mac onto the simulator window. It will be
+   imported into the Photos app inside the simulator.
+2. In the PrepSense app tap **Upload Image** and choose the photo you just added.
+3. Tap **Confirm** on the next screen to send the image to the backend (and then
+   on to OpenAI).
+
+This mirrors the flow on a physical device while keeping development entirely on
+your desktop.
 
 ## Collaboration Guidelines
 
