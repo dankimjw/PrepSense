@@ -1,194 +1,191 @@
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { useColorScheme, View, StyleSheet, Text, ActivityIndicator } from 'react-native';
+import { useColorScheme, View, StyleSheet, ActivityIndicator } from 'react-native';
 import { ChatButton } from './components/ChatButton';
 import { CustomHeader } from './components/CustomHeader';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
 });
 
-// This is a simple auth context for demo purposes
-// In a real app, you'd want to use a proper auth provider like Auth0, Firebase, etc.
-function useAuth() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState<string | null>(null);
+// This component will protect routes that require auth
+function AppContent() {
+  const colorScheme = useColorScheme();
+  const { isLoading, isAuthenticated, signIn } = useAuth();
+  const segments = useSegments();
+  const pathname = usePathname();
   const router = useRouter();
 
+  // Check if the current route is in the auth group
+  const isAuthRoute = segments[0] === '(auth)';
+
+  // Auto sign in with default credentials on initial load
   useEffect(() => {
-    // Check if user is logged in
-    const checkAuth = async () => {
-      // Simulate checking auth state
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // For demo, we'll consider user as logged in if they're not on auth screens
-      const isAuthRoute = ['/(auth)'].some(route => router.canGoBack());
-      setUser(isAuthRoute ? null : 'demo@example.com');
-      setIsLoading(false);
+    const autoSignIn = async () => {
+      if (!isAuthenticated && !isLoading) {
+        try {
+          // Use default credentials to sign in automatically
+          await signIn('samantha.smith@example.com', 'password');
+        } catch (error) {
+          console.log('Auto sign-in failed, showing sign-in screen');
+        }
+      }
     };
 
-    checkAuth();
-  }, []);
+    autoSignIn();
+  }, [isAuthenticated, isLoading]);
 
-  return {
-    isLoading,
-    user,
-    signIn: (email: string) => {
-      setUser(email);
-      return Promise.resolve();
-    },
-    signOut: () => {
-      setUser(null);
-      return Promise.resolve();
-    },
-  };
-}
-
-// This component will protect routes that require authentication
-function AuthProvider({ children }: { children: React.ReactNode }) {
-  const { isLoading, user } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-  const pathname = usePathname();
-
+  // Handle navigation based on auth state
   useEffect(() => {
-    if (isLoading) return;
-
-    const inAuthGroup = segments[0] === '(auth)';
-
-    if (!user && !inAuthGroup) {
-      // Redirect to sign-in if not authenticated and not in auth group
-      router.replace('/(auth)/sign-in');
-    } else if (user && inAuthGroup) {
-      // Redirect to home if authenticated and in auth group
-      router.replace('/(tabs)');
+    if (!isLoading) {
+      if (isAuthenticated && isAuthRoute) {
+        // If user is signed in and the current route is in the auth group, redirect to home
+        router.replace('/(tabs)');
+      } else if (!isAuthenticated && !isAuthRoute) {
+        // If user is not signed in and the current route is not in the auth group, redirect to sign-in
+        router.replace('/(auth)/sign-in');
+      }
     }
-  }, [user, isLoading, segments]);
+  }, [isLoading, isAuthenticated, isAuthRoute, pathname]);
 
+  // Show a loading indicator while checking auth state
   if (isLoading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />
       </View>
     );
   }
 
-  return <>{children}</>;
+  return (
+    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ItemsProvider>
+        <View style={styles.container}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="(auth)" 
+              options={{ 
+                headerShown: false,
+                animation: 'fade',
+              }} 
+            />
+            <Stack.Screen 
+              name="edit-item" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Edit Item" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                ),
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }} 
+            />
+            <Stack.Screen 
+              name="chat" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Chat with AI" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                ),
+                presentation: 'modal',
+                animation: 'slide_from_right',
+              }} 
+            />
+<Stack.Screen 
+              name="confirm" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Confirm Items" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                )
+              }} 
+            />
+            <Stack.Screen 
+              name="upload-photo" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Upload Photo" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                )
+              }} 
+            />
+            <Stack.Screen 
+              name="settings" 
+              options={{ headerShown: false }} 
+            />
+            <Stack.Screen 
+              name="confirm-photo" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Confirm Photo" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                )
+              }} 
+            />
+            <Stack.Screen 
+              name="items-detected" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Items Detected" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                )
+              }} 
+            />
+            <Stack.Screen 
+              name="select-unit" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Select Unit" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                ),
+                presentation: 'modal',
+              }} 
+            />
+          </Stack>
+          <ChatButton />
+        </View>
+      </ItemsProvider>
+    </ThemeProvider>
+  );
 }
 
 export default function RootLayout() {
-  const scheme = useColorScheme();
-
   return (
-    <ItemsProvider>
-      <AuthProvider>
-        <ThemeProvider value={scheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <View style={styles.container}>
-            <Stack>
-              <Stack.Screen 
-                name="(tabs)" 
-                options={{ 
-                  headerShown: true, 
-                  title: 'PrepSense', 
-                  header: () => <CustomHeader title="PrepSense" showBackButton={false} /> 
-                }} 
-              />
-              <Stack.Screen 
-                name="(auth)" 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="confirm" 
-                options={{ 
-                  title: 'Confirm Items', 
-                  header: () => <CustomHeader title="Confirm Items" showBackButton={true} /> 
-                }} 
-              />
-              <Stack.Screen 
-                name="chat" 
-                options={{ 
-                  headerShown: true, 
-                  title: 'Pantry Assistant', 
-                  header: () => <CustomHeader title="Pantry Assistant" showBackButton={true} /> 
-                }} 
-              />
-              <Stack.Screen 
-                name="upload-photo" 
-                options={{ 
-                  title: 'Upload Photo', 
-                  header: () => <CustomHeader title="Upload Photo" showBackButton={true} /> 
-                }} 
-              />
-              <Stack.Screen 
-                name="settings" 
-                options={{ headerShown: false }} 
-              />
-              <Stack.Screen 
-                name="confirm-photo" 
-                options={{ 
-                  title: 'Confirm Photo', 
-                  headerBackTitle: 'Back',
-                  header: ({ navigation }) => (
-                    <CustomHeader 
-                      title="Confirm Photo" 
-                      showBackButton={true} 
-                      onBackPress={() => navigation.goBack()}
-                    />
-                  )
-                }} 
-              />
-              <Stack.Screen 
-                name="items-detected" 
-                options={{ 
-                  title: 'Items Detected', 
-                  headerBackTitle: 'Back',
-                  header: ({ navigation }) => (
-                    <CustomHeader 
-                      title="Items Detected" 
-                      showBackButton={true} 
-                      onBackPress={() => navigation.goBack()}
-                    />
-                  )
-                }} 
-              />
-              <Stack.Screen 
-                name="edit-item" 
-                options={{ 
-                  title: 'Edit Item', 
-                  headerBackTitle: 'Back',
-                  header: ({ navigation }) => (
-                    <CustomHeader 
-                      title="Edit Item" 
-                      showBackButton={true} 
-                      onBackPress={() => navigation.goBack()}
-                    />
-                  )
-                }} 
-              />
-              <Stack.Screen 
-                name="select-unit" 
-                options={{ 
-                  title: 'Select Unit', 
-                  headerBackTitle: 'Back', 
-                  presentation: 'modal',
-                  header: ({ navigation }) => (
-                    <CustomHeader 
-                      title="Select Unit" 
-                      showBackButton={true} 
-                      onBackPress={() => navigation.goBack()}
-                    />
-                  )
-                }} 
-              />
-            </Stack>
-            <ChatButton />
-          </View>
-        </ThemeProvider>
-      </AuthProvider>
-    </ItemsProvider>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
