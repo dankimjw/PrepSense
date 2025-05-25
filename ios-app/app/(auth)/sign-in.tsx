@@ -3,13 +3,14 @@ import { Link, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const router = useRouter();
+  const { signIn, isLoading } = useAuth();
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -17,18 +18,11 @@ export default function SignInScreen() {
       return;
     }
 
-    setIsLoading(true);
-    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // For demo purposes, just navigate to home on any input
-      router.replace('/(tabs)');
+      await signIn(email, password);
+      // Navigation will be handled by the AuthProvider's state change
     } catch (error) {
       Alert.alert('Error', 'Failed to sign in. Please check your credentials.');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -105,13 +99,9 @@ export default function SignInScreen() {
             )}
           </Pressable>
 
+          {/* Temporarily removed sign-up link until we have a proper sign-up flow */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <Link href="/(auth)/sign-up" asChild>
-              <Pressable>
-                <Text style={styles.footerLink}>Sign Up</Text>
-              </Pressable>
-            </Link>
+            <Text style={styles.footerText}>Contact support to create an account</Text>
           </View>
         </View>
       </View>

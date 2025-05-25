@@ -41,6 +41,72 @@ python run_server.py
 python run_ios.py
 ```
 
+## Database Schema
+
+The application uses Google BigQuery with the dataset `adsp-34002-on02-prep-sense.Inventory`. Below is the detailed schema for all tables:
+
+### 1. `pantry`
+- `pantry_id` (INTEGER, NULLABLE)
+- `user_id` (INTEGER, NULLABLE)
+- `pantry_name` (STRING, NULLABLE)
+- `created_at` (DATETIME, NULLABLE)
+
+### 2. `pantry_items`
+- `pantry_item_id` (INTEGER, NULLABLE)
+- `pantry_id` (INTEGER, NULLABLE)
+- `quantity` (FLOAT, NULLABLE)
+- `unit_of_measurement` (STRING, NULLABLE)
+- `expiration_date` (DATE, NULLABLE)
+- `unit_price` (FLOAT, NULLABLE)
+- `total_price` (FLOAT, NULLABLE)
+- `created_at` (DATETIME, NULLABLE)
+- `used_quantity` (INTEGER, NULLABLE)
+- `status` (STRING, NULLABLE)
+
+### 3. `products`
+- `product_id` (INTEGER, NULLABLE)
+- `pantry_item_id` (INTEGER, NULLABLE)
+- `product_name` (STRING, NULLABLE)
+- `brand_name` (STRING, NULLABLE)
+- `category` (STRING, NULLABLE)
+- `upc_code` (STRING, NULLABLE)
+- `created_at` (DATETIME, NULLABLE)
+
+### 4. `recipies`
+- `recipe_id` (INTEGER, NULLABLE)
+- `product_id` (INTEGER, NULLABLE)
+- `recipe_name` (STRING, NULLABLE)
+- `quantity_needed` (FLOAT, NULLABLE)
+- `unit_of_measurement` (STRING, NULLABLE)
+- `instructions` (STRING, NULLABLE)
+- `created_at` (DATETIME, NULLABLE)
+
+### 5. `user`
+- `user_id` (INTEGER, NULLABLE)
+- `user_name` (STRING, NULLABLE)
+- `first_name` (STRING, NULLABLE)
+- `last_name` (STRING, NULLABLE)
+- `email` (STRING, NULLABLE)
+- `password_hash` (STRING, NULLABLE)
+- `role` (STRING, NULLABLE)
+- `api_key_enc` (BYTES, NULLABLE)
+- `created_at` (DATETIME, NULLABLE)
+
+### 6. `user_preference`
+- `user_id` (INTEGER, NULLABLE)
+- `household_size` (INTEGER, NULLABLE)
+- `dietary_preference` (STRING, REPEATED)
+- `allergens` (STRING, REPEATED)
+- `cuisine_preference` (STRING, REPEATED)
+- `created_at` (DATETIME, NULLABLE)
+
+### Key Observations:
+1. The `pantry_items` table tracks inventory with details like quantity, expiration, and usage.
+2. The `products` table contains product information linked to pantry items.
+3. The `recipies` table stores recipe information, linked to products.
+4. User management is handled through the `user` and `user_preference` tables.
+5. The `user_preference` table uses REPEATED fields for multiple selections like dietary preferences and allergens.
+
 ## Getting Started
 
 Follow these steps to set up the project environment.

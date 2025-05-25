@@ -3,9 +3,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable, Alert } from 'react-native';
 import React, { useState } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { CustomHeader } from '../components/CustomHeader';
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [modalVisible, setModalVisible] = useState(false);
+  
+  // Filter out the admin tab from the routes
+  const filteredRoutes = state.routes.filter(route => route.name !== 'admin');
+  console.log('Tab Routes:', filteredRoutes.map(r => r.name));
 
   const handleAddImage = () => {
     setModalVisible(false);
@@ -19,7 +24,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   return (
     <>
       <View style={styles.tabBar}>
-        {state.routes.map((route, index) => {
+        {filteredRoutes.map((route, index) => {
+          // Skip rendering the admin tab
+          if (route.name === 'admin') return null;
           if (route.name === 'add') {
             return (
               <TouchableOpacity
@@ -92,19 +99,72 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   );
 }
 
+// Define the tabs we want to show in the bottom tab bar
+const mainTabs = ['index', 'stats', 'add', 'recipes', 'profile'];
+
 export default function TabsLayout() {
   return (
     <Tabs
       tabBar={props => <CustomTabBar {...props} />}
       screenOptions={{
-        headerShown: false,
+        header: ({ navigation, route, options }) => {
+          // Don't show header for the add screen
+          if (route.name === 'add') return null;
+          
+          return (
+            <CustomHeader 
+              title="PrepSense"
+              showBackButton={false}
+            />
+          );
+        },
+        headerShown: true,
+        tabBarStyle: { display: 'none' },
       }}
     >
-      <Tabs.Screen name="index" options={{ tabBarLabel: 'Home' }} />
-      <Tabs.Screen name="stats" options={{ tabBarLabel: 'Stats' }} />
-      <Tabs.Screen name="add" options={{ tabBarLabel: '' }} />
-      <Tabs.Screen name="recipes" options={{ tabBarLabel: 'Recipes' }} />
-      <Tabs.Screen name="profile" options={{ tabBarLabel: 'Profile' }} />
+      <Tabs.Screen 
+        name="index" 
+        options={{ 
+          tabBarLabel: 'Home',
+          headerShown: false
+        }} 
+      />
+      <Tabs.Screen 
+        name="stats" 
+        options={{ 
+          tabBarLabel: 'Stats',
+          headerShown: false
+        }} 
+      />
+      <Tabs.Screen 
+        name="add" 
+        options={{ 
+          tabBarLabel: '',
+          headerShown: false
+        }} 
+      />
+      <Tabs.Screen 
+        name="recipes" 
+        options={{ 
+          tabBarLabel: 'Recipes',
+          headerShown: false
+        }} 
+      />
+      <Tabs.Screen 
+        name="profile" 
+        options={{ 
+          tabBarLabel: 'Profile',
+          headerShown: false
+        }} 
+      />
+      {/* Admin screen is not included in the tab bar */}
+      <Tabs.Screen 
+        name="admin" 
+        options={{
+          tabBarButton: () => null, // This hides the tab bar button
+          headerShown: false
+        }}
+      />
     </Tabs>
   );
 }

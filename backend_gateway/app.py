@@ -1,12 +1,17 @@
-# File: PrepSense/app.py
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
-# This import should now point to the router that uses the corrected service
-from backend_gateway.routers.images_router import router as images_router # Or pantry_router if you rename/prefer
+from fastapi.security import OAuth2PasswordBearer
+from typing import Optional
 import os
 from dotenv import load_dotenv
 import traceback
 import openai
+
+# Import routers
+from backend_gateway.routers.images_router import router as images_router
+from backend_gateway.routers.users import router as users_router
+from backend_gateway.services.user_service import UserService
+from backend_gateway.core.config import settings
 
 # Load environment variables from the .env file
 try:
@@ -26,21 +31,35 @@ except Exception as e:
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai  #  use the openai module directly
 
-app = FastAPI(title="PrepSense Gateway API", version="1.0.0")
+app = FastAPI(
+    title="PrepSense Gateway API",
+    version="1.0.0",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
 
 # Configure CORS
-# For production, be more restrictive with allow_origins
 app.add_middleware(
     CORSMiddleware,
-        allow_origins=["*"],  # Example: ["http://localhost:3000", "https://yourfrontend.com"]
-    )
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# Include your primary router for image processing
-app.include_router(images_router, prefix="/v1/images", tags=["Pantry Image Processing"])
+# Include routers
+app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"])
+app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["Pantry Image Processing"])
 
 @app.get("/", tags=["Root"])
 async def root():
     return {"message": "Welcome to the PrepSense Gateway API. Visit /docs for API documentation."}
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize data on startup"""
+    # Create default user if it doesn't exist
+    user_service = UserService()
+    await user_service.create_default_user()
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
