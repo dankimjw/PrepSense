@@ -126,14 +126,29 @@ export default function TabsLayout() {
         name="index" 
         options={{ 
           tabBarLabel: 'Home',
-          headerShown: false
+          title: 'Home',
+          header: () => (
+            <CustomHeader 
+              title="Home"
+              showBackButton={false}
+              showChatButton={true}
+              showAdminButton={true}
+            />
+          )
         }} 
       />
       <Tabs.Screen 
         name="stats" 
         options={{ 
           tabBarLabel: 'Stats',
-          headerShown: false
+          header: () => (
+            <CustomHeader 
+              title="Statistics"
+              showBackButton={false}
+              showChatButton={true}
+              showAdminButton={true}
+            />
+          )
         }} 
       />
       <Tabs.Screen 
@@ -147,14 +162,28 @@ export default function TabsLayout() {
         name="recipes" 
         options={{ 
           tabBarLabel: 'Recipes',
-          headerShown: false
+          header: () => (
+            <CustomHeader 
+              title="Recipes"
+              showBackButton={false}
+              showChatButton={true}
+              showAdminButton={true}
+            />
+          )
         }} 
       />
       <Tabs.Screen 
         name="profile" 
         options={{ 
           tabBarLabel: 'Profile',
-          headerShown: false
+          header: () => (
+            <CustomHeader 
+              title="My Profile"
+              showBackButton={false}
+              showChatButton={true}
+              showAdminButton={true}
+            />
+          )
         }} 
       />
       {/* Admin screen is not included in the tab bar */}
@@ -162,7 +191,14 @@ export default function TabsLayout() {
         name="admin" 
         options={{
           tabBarButton: () => null, // This hides the tab bar button
-          headerShown: false
+          header: () => (
+            <CustomHeader 
+              title="Admin Dashboard"
+              showBackButton={true}
+              showChatButton={false}
+              showAdminButton={false}
+            />
+          )
         }}
       />
     </Tabs>
