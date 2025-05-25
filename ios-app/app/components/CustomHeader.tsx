@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#1b6b45',
+    marginLeft: 0,
   },
   menuButton: {
     marginLeft: 'auto', // Push to the right
