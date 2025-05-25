@@ -2,9 +2,12 @@ import subprocess
 import os
 import sys
 import socket
+import platform
+import signal
 from pathlib import Path
+from typing import Optional, List
 
-from run_server import DEFAULT_HOST, DEFAULT_PORT
+from run_server import DEFAULT_HOST, DEFAULT_PORT, kill_processes_on_port
 
 
 def _get_local_ip(fallback: str = DEFAULT_HOST) -> str:
@@ -47,7 +50,15 @@ def main():
     # Pass the backend URL to the Expo app via environment variable
     os.environ["EXPO_PUBLIC_API_BASE_URL"] = backend_url
 
-    print("Starting iOS app...")
+    # Common ports used by Expo/React Native
+    expo_ports = [19000, 19001, 19002, 19006, 8081]
+    
+    print("Checking for existing Expo/metro processes...")
+    for port in expo_ports:
+        if kill_processes_on_port(port):
+            print(f"Successfully terminated processes on port {port}")
+    
+    print("\nStarting iOS app...")
     print("Press Ctrl+C to stop the app")
     
     try:
@@ -57,9 +68,15 @@ def main():
         print("\nApp stopped by user")
     except subprocess.CalledProcessError as e:
         print(f"Error starting iOS app: {e}")
+        print("Trying to clean up any remaining processes...")
+        for port in expo_ports:
+            kill_processes_on_port(port)
         sys.exit(1)
     except Exception as e:
         print(f"Unexpected error: {e}")
+        print("Cleaning up any remaining processes...")
+        for port in expo_ports:
+            kill_processes_on_port(port)
         sys.exit(1)
 
 if __name__ == "__main__":
