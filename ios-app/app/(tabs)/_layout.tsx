@@ -4,6 +4,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable, A
 import React, { useState } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CustomHeader } from '../components/CustomHeader';
+import { ChatButton } from '../components/ChatButton';
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const [modalVisible, setModalVisible] = useState(false);
@@ -104,104 +105,107 @@ const mainTabs = ['index', 'stats', 'add', 'recipes', 'profile'];
 
 export default function TabsLayout() {
   return (
-    <Tabs
-      tabBar={props => <CustomTabBar {...props} />}
-      screenOptions={{
-        header: ({ navigation, route, options }) => {
-          // Don't show header for the add screen
-          if (route.name === 'add') return null;
-          
-          return (
-            <CustomHeader 
-              title="PrepSense"
-              showBackButton={false}
-            />
-          );
-        },
-        headerShown: true,
-        tabBarStyle: { display: 'none' },
-      }}
-    >
-      <Tabs.Screen 
-        name="index" 
-        options={{ 
-          tabBarLabel: 'Home',
-          title: 'Home',
-          header: () => (
-            <CustomHeader 
-              title="Home"
-              showBackButton={false}
-              showChatButton={true}
-              showAdminButton={true}
-            />
-          )
-        }} 
-      />
-      <Tabs.Screen 
-        name="stats" 
-        options={{ 
-          tabBarLabel: 'Stats',
-          header: () => (
-            <CustomHeader 
-              title="Statistics"
-              showBackButton={false}
-              showChatButton={true}
-              showAdminButton={true}
-            />
-          )
-        }} 
-      />
-      <Tabs.Screen 
-        name="add" 
-        options={{ 
-          tabBarLabel: '',
-          headerShown: false
-        }} 
-      />
-      <Tabs.Screen 
-        name="recipes" 
-        options={{ 
-          tabBarLabel: 'Recipes',
-          header: () => (
-            <CustomHeader 
-              title="Recipes"
-              showBackButton={false}
-              showChatButton={true}
-              showAdminButton={true}
-            />
-          )
-        }} 
-      />
-      <Tabs.Screen 
-        name="profile" 
-        options={{ 
-          tabBarLabel: 'Profile',
-          header: () => (
-            <CustomHeader 
-              title="My Profile"
-              showBackButton={false}
-              showChatButton={true}
-              showAdminButton={true}
-            />
-          )
-        }} 
-      />
-      {/* Admin screen is not included in the tab bar */}
-      <Tabs.Screen 
-        name="admin" 
-        options={{
-          tabBarButton: () => null, // This hides the tab bar button
-          header: () => (
-            <CustomHeader 
-              title="Admin Dashboard"
-              showBackButton={true}
-              showChatButton={false}
-              showAdminButton={false}
-            />
-          )
+    <>
+      <Tabs
+        tabBar={props => <CustomTabBar {...props} />}
+        screenOptions={{
+          header: ({ navigation, route, options }) => {
+            // Don't show header for the add screen
+            if (route.name === 'add') return null;
+            
+            return (
+              <CustomHeader 
+                title="PrepSense"
+                showBackButton={false}
+              />
+            );
+          },
+          headerShown: true,
+          tabBarStyle: { display: 'none' },
         }}
-      />
-    </Tabs>
+      >
+        <Tabs.Screen 
+          name="index" 
+          options={{ 
+            tabBarLabel: 'Home',
+            title: 'Home',
+            header: () => (
+              <CustomHeader 
+                title="Home"
+                showBackButton={false}
+                showChatButton={true}
+                showAdminButton={true}
+              />
+            )
+          }} 
+        />
+        <Tabs.Screen 
+          name="stats" 
+          options={{ 
+            tabBarLabel: 'Stats',
+            header: () => (
+              <CustomHeader 
+                title="Statistics"
+                showBackButton={false}
+                showChatButton={true}
+                showAdminButton={true}
+              />
+            )
+          }} 
+        />
+        <Tabs.Screen 
+          name="add" 
+          options={{ 
+            tabBarLabel: '',
+            headerShown: false
+          }} 
+        />
+        <Tabs.Screen 
+          name="recipes" 
+          options={{ 
+            tabBarLabel: 'Recipes',
+            header: () => (
+              <CustomHeader 
+                title="Recipes"
+                showBackButton={false}
+                showChatButton={true}
+                showAdminButton={true}
+              />
+            )
+          }} 
+        />
+        <Tabs.Screen 
+          name="profile" 
+          options={{ 
+            tabBarLabel: 'Profile',
+            header: () => (
+              <CustomHeader 
+                title="My Profile"
+                showBackButton={false}
+                showChatButton={true}
+                showAdminButton={true}
+              />
+            )
+          }} 
+        />
+        {/* Admin screen is not included in the tab bar */}
+        <Tabs.Screen 
+          name="admin" 
+          options={{
+            tabBarButton: () => null, // This hides the tab bar button
+            header: () => (
+              <CustomHeader 
+                title="Admin Dashboard"
+                showBackButton={true}
+                showChatButton={false}
+                showAdminButton={false}
+              />
+            )
+          }}
+        />
+      </Tabs>
+      <ChatButton />
+    </>
   );
 }
 
