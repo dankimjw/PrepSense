@@ -1,3 +1,5 @@
+"""Wrapper around OpenAI vision APIs used by image routes."""
+
 # File: PrepSense/backend_gateway/services/vision_service.py
 import base64
 import openai # Or from openai import OpenAI if you upgraded to v1.0.0+

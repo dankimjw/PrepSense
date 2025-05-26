@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import { Item } from '../context/ItemsContext';
 
 // Helper to get a date X days from now

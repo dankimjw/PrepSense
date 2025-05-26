@@ -1,3 +1,5 @@
+"""Unit tests validating BigQueryService functionality using mocks."""
+
 import pytest
 import os
 from datetime import datetime, date, timedelta

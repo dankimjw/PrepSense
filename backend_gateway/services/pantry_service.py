@@ -1,3 +1,5 @@
+"""Service layer for pantry item queries and updates."""
+
 from database import get_db
 
 class PantryService:

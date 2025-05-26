@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

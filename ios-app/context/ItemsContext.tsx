@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { defaultItems } from '../constants/defaultItems';
 

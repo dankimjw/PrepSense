@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import * as ImagePicker from 'expo-image-picker';
 // Tip: on the iOS simulator you can drag images from your Mac straight onto the
 // simulator window. They appear in the Photos app for easy selection.

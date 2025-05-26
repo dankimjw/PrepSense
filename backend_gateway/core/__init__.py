@@ -1,3 +1,5 @@
+"""Exports configuration settings and security utilities for use across the gateway."""
+
 # This file makes the core directory a Python package
 # Import core modules here to make them available when importing from backend_gateway.core
 from .config import settings

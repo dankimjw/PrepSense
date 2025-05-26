@@ -1,3 +1,5 @@
+"""Abstraction over Google BigQuery operations with helper methods."""
+
 import os
 import sys
 import json

@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Dimensions, View } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';

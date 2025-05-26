@@ -1,1 +1,1 @@
-# This file makes the test_images directory a Python package
+"""Marks the images test package and exposes helpers."""

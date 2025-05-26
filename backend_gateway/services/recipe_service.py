@@ -1,3 +1,5 @@
+"""Generates recipes using prompts and pantry data."""
+
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel

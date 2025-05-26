@@ -1,3 +1,5 @@
+"""Tests for the VisionService response parsing and error handling."""
+
 import os
 import base64
 import json

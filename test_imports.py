@@ -1,3 +1,5 @@
+"""Ensures modules can be imported without side effects."""
+
 def test_imports():
     print("Testing imports...\n")
     

@@ -1,3 +1,5 @@
+"""Handles user persistence in BigQuery and related lookups."""
+
 from google.cloud import bigquery
 from datetime import datetime, timezone
 import uuid

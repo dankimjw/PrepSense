@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem   from 'expo-file-system';
 import { Buffer }        from 'buffer';

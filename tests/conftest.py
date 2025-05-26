@@ -1,3 +1,5 @@
+"""Pytest configuration and reusable fixtures for test suite."""
+
 import os
 import sys
 

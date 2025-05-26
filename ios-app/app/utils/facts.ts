@@ -1,3 +1,4 @@
+/**\n * This module is part of the PrepSense React Native app.\n * It defines a screen or component and interacts with context and API services.\n */
 // Food facts categorized for loading screen rotation
 export const foodFacts = [
   { category: 'Green fact', text: 'Eating one plant-based meal a day can save over 200,000 gallons of water a year.' },

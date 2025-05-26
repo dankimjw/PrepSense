@@ -1,3 +1,5 @@
+"""Endpoints exposing BigQuery operations via BigQueryService."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime

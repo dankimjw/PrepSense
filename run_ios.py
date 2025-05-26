@@ -1,3 +1,5 @@
+"""Launches the Expo development server for the iOS app."""
+
 import subprocess
 import os
 import sys

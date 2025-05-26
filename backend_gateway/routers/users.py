@@ -1,3 +1,5 @@
+"""CRUD endpoints for users relying on UserService and security helpers."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
 from typing import Any, Optional, List

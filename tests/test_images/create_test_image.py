@@ -1,3 +1,5 @@
+"""Creates small in-memory images used across tests."""
+
 from PIL import Image, ImageDraw, ImageFont
 import os
 

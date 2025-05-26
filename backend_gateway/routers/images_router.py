@@ -1,3 +1,5 @@
+"""Routes for uploading images and detecting items using VisionService."""
+
 # File: PrepSense/backend_gateway/routers/images_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from typing import Dict, Any, List # For type hinting

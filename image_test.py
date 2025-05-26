@@ -1,3 +1,5 @@
+"""Utility for manual image generation in tests."""
+
 import pytest
 from unittest.mock import AsyncMock
 from fastapi.testclient import TestClient

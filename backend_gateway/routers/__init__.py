@@ -1,3 +1,5 @@
+"""Aggregates and registers all API routers with the application."""
+
 # Import all routers
 from backend_gateway.routers.images_router import router as images_router
 

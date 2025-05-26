@@ -1,15 +1,4 @@
-#!/usr/bin/env python3
-"""
-Integration test script for BigQueryService.
-
-This script tests the BigQueryService with a real BigQuery connection.
-Make sure to set the GOOGLE_APPLICATION_CREDENTIALS environment variable
-before running this script.
-
-Example:
-    export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/credentials.json"
-    python scripts/test_bigquery_integration.py
-"""
+"""Integration tests exercising BigQueryService against real BigQuery."""
 
 import os
 import sys

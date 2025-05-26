@@ -1,3 +1,5 @@
+"""High level tests for creating and authenticating users."""
+
 import asyncio
 import httpx
 import json

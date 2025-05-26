@@ -1,3 +1,5 @@
+"""Utilities for JWT creation, password hashing and OAuth2 helpers."""
+
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 

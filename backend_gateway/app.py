@@ -1,3 +1,5 @@
+"""Creates the FastAPI application and wires routers and services together."""
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer

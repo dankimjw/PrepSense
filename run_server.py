@@ -1,3 +1,5 @@
+"""Starts the FastAPI dev server with optional port cleanup."""
+
 import uvicorn
 import os
 import sys

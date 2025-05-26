@@ -1,3 +1,5 @@
+"""Routes that generate recipes from pantry contents via RecipeService."""
+
 from fastapi import APIRouter
 from backend_gateway.models import PantryDB
 

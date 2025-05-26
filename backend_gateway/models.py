@@ -1,3 +1,5 @@
+"""Pydantic models shared across routers for pantry and recipe data."""
+
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
