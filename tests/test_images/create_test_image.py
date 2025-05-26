@@ -1,3 +1,5 @@
+"""Utility for generating a test image used by vision service tests."""
+
 from PIL import Image, ImageDraw, ImageFont
 import os
 

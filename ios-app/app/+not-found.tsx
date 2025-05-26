@@ -1,3 +1,4 @@
+// app/+not-found.tsx - Part of the PrepSense mobile app
 import { Link, Stack } from 'expo-router';
 import { StyleSheet } from 'react-native';
 

@@ -1,3 +1,4 @@
+// app/items-detected.tsx - Part of the PrepSense mobile app
 import { useLocalSearchParams, router, Stack } from 'expo-router';
 import { Buffer } from 'buffer';
 import {
