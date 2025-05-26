@@ -1,3 +1,4 @@
+// components/ui/IconSymbol.ios.tsx - Part of the PrepSense mobile app
 import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
 import { StyleProp, ViewStyle } from 'react-native';
 

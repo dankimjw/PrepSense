@@ -1,3 +1,4 @@
+// hooks/useThemeColor.ts - Part of the PrepSense mobile app
 /**
  * Learn more about light and dark modes:
  * https://docs.expo.dev/guides/color-schemes/

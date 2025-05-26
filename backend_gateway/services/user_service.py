@@ -1,3 +1,5 @@
+"""Service class for CRUD operations on users stored in BigQuery."""
+
 from google.cloud import bigquery
 from datetime import datetime, timezone
 import uuid

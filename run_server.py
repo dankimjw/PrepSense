@@ -1,3 +1,5 @@
+"""Command-line utility to run the FastAPI development server."""
+
 import uvicorn
 import os
 import sys

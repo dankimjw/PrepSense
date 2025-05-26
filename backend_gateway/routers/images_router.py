@@ -1,3 +1,5 @@
+"""Endpoints for uploading pantry images and detecting items."""
+
 # File: PrepSense/backend_gateway/routers/images_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from typing import Dict, Any, List # For type hinting

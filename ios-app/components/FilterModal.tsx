@@ -1,3 +1,4 @@
+// components/FilterModal.tsx - Part of the PrepSense mobile app
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';

@@ -1,3 +1,5 @@
+"""Logic for generating recipes using OpenAI based on pantry items."""
+
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel

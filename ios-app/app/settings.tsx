@@ -1,3 +1,4 @@
+// app/settings.tsx - Part of the PrepSense mobile app
 import { View, Text, StyleSheet, Switch, Pressable, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
