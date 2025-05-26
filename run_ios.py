@@ -1,3 +1,5 @@
+"""Utility script to launch the Expo-based iOS application."""
+
 import subprocess
 import os
 import sys

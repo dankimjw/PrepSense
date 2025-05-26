@@ -1,3 +1,5 @@
+"""Abstraction over Google BigQuery interactions used by the API."""
+
 import os
 import sys
 import json

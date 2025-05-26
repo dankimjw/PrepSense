@@ -1,3 +1,4 @@
+// context/AuthContext.tsx - Part of the PrepSense mobile app
 import React, { createContext, useState, useEffect, useContext, ReactNode } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import { Config } from '../config';

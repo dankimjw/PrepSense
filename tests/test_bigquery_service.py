@@ -1,3 +1,5 @@
+"""Unit tests for the :mod:`BigQueryService` class."""
+
 import pytest
 import os
 from datetime import datetime, date, timedelta

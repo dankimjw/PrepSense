@@ -1,3 +1,4 @@
+// app/(tabs)/stats.tsx - Part of the PrepSense mobile app
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 

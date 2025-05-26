@@ -1,3 +1,4 @@
+// config.ts - Part of the PrepSense mobile app
 // src/config.ts (or your preferred location)
 
 // --- Environment Detection ---

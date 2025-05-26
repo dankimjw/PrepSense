@@ -1,3 +1,4 @@
+// components/Collapsible.tsx - Part of the PrepSense mobile app
 import { PropsWithChildren, useState } from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 
