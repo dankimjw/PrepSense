@@ -1,3 +1,4 @@
+// context/ItemsContext.tsx - Part of the PrepSense mobile app
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { defaultItems } from '../constants/defaultItems';
 

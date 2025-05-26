@@ -1,3 +1,4 @@
+// constants/defaultItems.ts - Part of the PrepSense mobile app
 import { Item } from '../context/ItemsContext';
 
 // Helper to get a date X days from now

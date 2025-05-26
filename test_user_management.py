@@ -1,3 +1,5 @@
+"""Manual integration test for user API endpoints."""
+
 import asyncio
 import httpx
 import json

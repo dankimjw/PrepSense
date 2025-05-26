@@ -1,3 +1,5 @@
+"""Authentication and token endpoints."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm, HTTPBearer, HTTPAuthorizationCredentials
 from datetime import timedelta

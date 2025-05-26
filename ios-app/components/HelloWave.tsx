@@ -1,3 +1,4 @@
+// components/HelloWave.tsx - Part of the PrepSense mobile app
 import { useEffect } from 'react';
 import { StyleSheet } from 'react-native';
 import Animated, {

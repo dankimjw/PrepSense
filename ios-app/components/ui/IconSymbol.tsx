@@ -1,3 +1,4 @@
+// components/ui/IconSymbol.tsx - Part of the PrepSense mobile app
 // Fallback for using MaterialIcons on Android and web.
 
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
