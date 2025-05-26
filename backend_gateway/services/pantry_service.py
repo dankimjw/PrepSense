@@ -1,3 +1,5 @@
+"""Service functions for accessing pantry data in the database."""
+
 from database import get_db
 
 class PantryService:
