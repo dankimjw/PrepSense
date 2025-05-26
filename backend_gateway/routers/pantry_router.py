@@ -1,3 +1,5 @@
+"""Example router for pantry CRUD endpoints."""
+
 # filepath: /Users/danielkim/_Capstone/prepsense-app/PrepSense/backend-gateway/routers/pantry.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session

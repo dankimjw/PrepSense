@@ -1,3 +1,4 @@
+// app/confirm.tsx - Part of the PrepSense mobile app
 import * as ImagePicker from 'expo-image-picker';
 // Tip: on the iOS simulator you can drag images from your Mac straight onto the
 // simulator window. They appear in the Photos app for easy selection.

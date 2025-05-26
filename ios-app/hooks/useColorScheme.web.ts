@@ -1,3 +1,4 @@
+// hooks/useColorScheme.web.ts - Part of the PrepSense mobile app
 import { useEffect, useState } from 'react';
 import { useColorScheme as useRNColorScheme } from 'react-native';
 

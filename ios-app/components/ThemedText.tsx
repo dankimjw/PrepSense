@@ -1,3 +1,4 @@
+// components/ThemedText.tsx - Part of the PrepSense mobile app
 import { StyleSheet, Text, type TextProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';

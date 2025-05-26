@@ -1,3 +1,4 @@
+// components/SearchBar.tsx - Part of the PrepSense mobile app
 import React, { useState } from 'react';
 import { View, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
