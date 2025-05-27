@@ -33,12 +33,26 @@ def get_password_hash(password: str) -> str:
 
 # OAuth2 scheme for token authentication
 from fastapi.security import OAuth2PasswordBearer
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
 )
+
+# Optional OAuth2 scheme for endpoints that don't require authentication
+class OAuth2PasswordBearerOptional(OAuth2PasswordBearer):
+    def __init__(self):
+        super().__init__(tokenUrl=f"{settings.API_V1_STR}/login/access-token", auto_error=False)
+
+    async def __call__(self, request: Request) -> Optional[str]:
+        try:
+            return await super().__call__(request)
+        except HTTPException:
+            return None
+
+oauth2_scheme_optional = OAuth2PasswordBearerOptional()
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),

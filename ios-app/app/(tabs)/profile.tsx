@@ -5,17 +5,31 @@ import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
 import { Config } from '../../config';
 
+interface UserProfilePreference {
+  household_size?: number | null;
+  dietary_preference?: string | null;
+  allergens?: string[] | null;
+  cuisine_preference?: string | null;
+  preference_created_at?: string | null; 
+}
+
 interface UserProfile {
   id: string;
   email: string;
   first_name: string;
   last_name: string;
   is_admin: boolean;
+  user_created_at: string;
+  user_updated_at: string;
+  password_hash: string;
+  role: string;
+  api_key_enc: string;
+  preferences?: UserProfilePreference | null;
 }
 
 export default function ProfileScreen() {
   const { user: authUser, isLoading: isAuthLoading, signOut, token } = useAuth();
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [userProfileData, setUserProfileData] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -29,7 +43,7 @@ export default function ProfileScreen() {
       
       try {
         setIsLoading(true);
-        const response = await fetch(`${Config.API_BASE_URL}/users/me`, {
+        const response = await fetch(`${Config.API_BASE_URL}/users/${authUser.id}/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -41,13 +55,21 @@ export default function ProfileScreen() {
         }
         
         const userData = await response.json();
-        setUser(userData);
+        setUserProfileData(userData);
       } catch (err) {
         console.error('Error fetching user data:', err);
         setError('Failed to load user data. Using cached data.');
-        // Fall back to the user data from auth context if available
+        // Fall back to the user data from auth context if available (basic info only)
         if (authUser) {
-          setUser(authUser);
+          setUserProfileData({
+            ...authUser,
+            user_created_at: '', // These fields won't be in authUser
+            user_updated_at: '', // These fields won't be in authUser
+            preferences: null,
+            password_hash: '', // Add missing required fields
+            role: authUser.is_admin ? 'admin' : 'user',
+            api_key_enc: ''
+          });
         }
       } finally {
         setIsLoading(false);
@@ -75,7 +97,7 @@ export default function ProfileScreen() {
     );
   }
 
-  if (!user) {
+  if (!userProfileData) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>
@@ -96,14 +118,14 @@ export default function ProfileScreen() {
       <View style={styles.profileHeader}>
         <View style={styles.avatar}>
           <Text style={styles.avatarText}>
-            {user.first_name ? user.first_name[0] : ''}{user.last_name ? user.last_name[0] : ''}
+            {userProfileData.first_name ? userProfileData.first_name[0] : ''}{userProfileData.last_name ? userProfileData.last_name[0] : ''}
           </Text>
         </View>
         <Text style={styles.name}>
-          {user.first_name} {user.last_name}
+          {userProfileData.first_name} {userProfileData.last_name}
         </Text>
-        <Text style={styles.email}>{user.email}</Text>
-        {user.is_admin && (
+        <Text style={styles.email}>{userProfileData.email}</Text>
+        {userProfileData.is_admin && (
           <View style={styles.adminBadge}>
             <Text style={styles.adminText}>Administrator</Text>
           </View>
@@ -115,34 +137,67 @@ export default function ProfileScreen() {
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>User ID</Text>
           <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">
-            {user.id}
+            {userProfileData.id}
           </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Username</Text>
+          <Text style={styles.infoValue}>
+            {userProfileData.first_name.toLowerCase()}_{userProfileData.last_name.toLowerCase()}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Email</Text>
+          <Text style={styles.infoValue}>{userProfileData.email}</Text>
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>Role</Text>
           <Text style={styles.infoValue}>
-            {user.is_admin ? 'Administrator' : 'Standard User'}
+            {userProfileData.is_admin ? 'Administrator' : 'Standard User'}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>API Key</Text>
+          <Text style={styles.infoValue} numberOfLines={1} ellipsizeMode="tail">
+            {userProfileData.api_key_enc}
+          </Text>
+        </View>
+        <View style={styles.infoRow}>
+          <Text style={styles.infoLabel}>Created At</Text>
+          <Text style={styles.infoValue}>
+            {new Date(userProfileData.user_created_at).toLocaleString()}
           </Text>
         </View>
       </View>
 
-      {user.is_admin && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Admin</Text>
-          <TouchableOpacity 
-            style={[styles.button, { backgroundColor: '#4a6da7' }]} 
-            onPress={() => router.push('/(tabs)/admin')}
-          >
-            <Text style={styles.buttonText}>Manage Users</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Preferences</Text>
-        <Text style={styles.preferencesText}>
-          Your preferences will appear here
-        </Text>
+        <View>
+          {userProfileData.preferences ? (
+            <>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Household Size</Text>
+                <Text style={styles.infoValue}>{userProfileData.preferences?.household_size || 'N/A'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Dietary Preference</Text>
+                <Text style={styles.infoValue}>{userProfileData.preferences?.dietary_preference || 'N/A'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Allergens</Text>
+                <Text style={styles.infoValue}>{userProfileData.preferences?.allergens?.join(', ') || 'N/A'}</Text>
+              </View>
+              <View style={styles.infoRow}>
+                <Text style={styles.infoLabel}>Cuisine Preference</Text>
+                <Text style={styles.infoValue}>{userProfileData.preferences?.cuisine_preference || 'N/A'}</Text>
+              </View>
+            </>
+          ) : (
+            <Text style={styles.preferencesText}>
+              No preferences set.
+            </Text>
+          )}
+        </View>
       </View>
 
       <View style={styles.buttonContainer}>
@@ -153,6 +208,18 @@ export default function ProfileScreen() {
           <Text style={styles.buttonText}>Sign Out</Text>
         </TouchableOpacity>
       </View>
+
+      {userProfileData.is_admin && (
+        <View style={[styles.section, styles.adminSection]}> 
+          <Text style={styles.sectionTitle}>Admin</Text>
+          <TouchableOpacity 
+            style={[styles.button, { backgroundColor: '#4a6da7' }]} 
+            onPress={() => router.push('/(tabs)/admin')}
+          >
+            <Text style={styles.buttonText}>Manage Users</Text>
+          </TouchableOpacity>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -287,5 +354,8 @@ const styles = StyleSheet.create({
   preferencesText: {
     color: '#666',
     fontStyle: 'italic',
+  },
+  adminSection: {
+    marginTop: 20,
   },
 });
