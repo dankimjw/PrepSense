@@ -1,3 +1,4 @@
+// app/confirm-photo.tsx - Part of the PrepSense mobile app
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';

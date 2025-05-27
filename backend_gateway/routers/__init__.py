@@ -1,3 +1,5 @@
+"""Collection of API routers used by the FastAPI app."""
+
 # Import all routers
 from backend_gateway.routers.images_router import router as images_router
 

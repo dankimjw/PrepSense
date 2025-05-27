@@ -1,3 +1,5 @@
+"""Simple helper for publishing messages to Google Pub/Sub."""
+
 from google.cloud import pubsub_v1
 
 def publish_message(topic_name, message):

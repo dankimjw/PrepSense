@@ -1,3 +1,4 @@
+// app/edit-item.tsx - Part of the PrepSense mobile app
 import { useLocalSearchParams, useRouter, useNavigation } from 'expo-router';
 import { Buffer } from 'buffer';
 import {

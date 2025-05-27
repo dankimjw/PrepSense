@@ -1,3 +1,4 @@
+// app/select-unit.tsx - Part of the PrepSense mobile app
 import { useLocalSearchParams, router } from 'expo-router';
 import {
   View, Text, FlatList, Pressable, StyleSheet,

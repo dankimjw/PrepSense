@@ -1,3 +1,5 @@
+"""Security helpers for authentication and password management."""
+
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 

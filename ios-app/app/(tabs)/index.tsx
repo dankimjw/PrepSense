@@ -1,3 +1,4 @@
+// app/(tabs)/index.tsx - Part of the PrepSense mobile app
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';

@@ -1,1 +1,1 @@
-# This file makes the test_images directory a Python package
+"""Test resources for image based unit tests."""

@@ -1,3 +1,5 @@
+"""Shared Pydantic models used throughout the backend API."""
+
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
