@@ -10,6 +10,7 @@ import openai
 # Import routers
 from backend_gateway.routers.images_router import router as images_router
 from backend_gateway.routers.users import router as users_router
+from backend_gateway.routers.bigquery_router import router as bigquery_router
 from backend_gateway.services.user_service import UserService
 from backend_gateway.core.config import settings
 
@@ -49,6 +50,7 @@ app.add_middleware(
 # Include routers
 app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"])
 app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["Pantry Image Processing"])
+app.include_router(bigquery_router, prefix=f"{settings.API_V1_STR}/bigquery", tags=["BigQuery"])
 
 @app.get("/", tags=["Root"])
 async def root():
