@@ -1,3 +1,4 @@
+// app/components/CustomHeader.tsx - Part of the PrepSense mobile app
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';

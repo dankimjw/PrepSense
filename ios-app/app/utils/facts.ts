@@ -1,3 +1,4 @@
+// app/utils/facts.ts - Part of the PrepSense mobile app
 // Food facts categorized for loading screen rotation
 export const foodFacts = [
   { category: 'Green fact', text: 'Eating one plant-based meal a day can save over 200,000 gallons of water a year.' },

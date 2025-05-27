@@ -1,3 +1,4 @@
+// components/ThemedView.tsx - Part of the PrepSense mobile app
 import { View, type ViewProps } from 'react-native';
 
 import { useThemeColor } from '@/hooks/useThemeColor';
