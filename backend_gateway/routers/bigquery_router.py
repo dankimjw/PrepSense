@@ -1,3 +1,5 @@
+"""REST endpoints for interacting with BigQuery tables."""
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List, Dict, Any, Optional
 from datetime import date, datetime

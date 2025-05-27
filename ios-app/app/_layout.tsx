@@ -1,3 +1,4 @@
+// app/_layout.tsx - Part of the PrepSense mobile app
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme, View, StyleSheet, ActivityIndicator } from 'react-native';

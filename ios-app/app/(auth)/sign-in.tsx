@@ -1,3 +1,4 @@
+// app/(auth)/sign-in.tsx - Part of the PrepSense mobile app
 import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';

@@ -1,3 +1,5 @@
+"""Tests for :class:`VisionService` image parsing and classification."""
+
 import os
 import base64
 import json

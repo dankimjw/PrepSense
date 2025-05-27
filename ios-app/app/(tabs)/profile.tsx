@@ -1,3 +1,4 @@
+// app/(tabs)/profile.tsx - Part of the PrepSense mobile app
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
