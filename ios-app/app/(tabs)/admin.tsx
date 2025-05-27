@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, Alert } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
 import { Config } from '../../config';
@@ -14,50 +14,237 @@ interface UserProfile {
   updated_at: string;
 }
 
+// Mock data for prototype - TODO: Replace with real API calls when backend is ready
+const MOCK_USERS: UserProfile[] = [
+  {
+    id: 'samantha-smith-001',
+    email: 'samantha.smith@prepsense.com',
+    first_name: 'Samantha',
+    last_name: 'Smith',
+    is_admin: true,
+    created_at: '2024-01-15T10:00:00Z',
+    updated_at: '2024-01-15T10:00:00Z',
+  },
+  {
+    id: 'john-doe-002',
+    email: 'john.doe@prepsense.com',
+    first_name: 'John',
+    last_name: 'Doe',
+    is_admin: false,
+    created_at: '2024-01-20T14:30:00Z',
+    updated_at: '2024-01-20T14:30:00Z',
+  },
+  {
+    id: 'jane-admin-003',
+    email: 'jane.admin@prepsense.com',
+    first_name: 'Jane',
+    last_name: 'Admin',
+    is_admin: true,
+    created_at: '2024-02-01T09:15:00Z',
+    updated_at: '2024-02-01T09:15:00Z',
+  },
+];
+
 export default function AdminScreen() {
-  const { user: currentUser, token, signOut } = useAuth();
+  const { user: currentUser } = useAuth(); // Removed token and signOut for prototype
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Fetch all users when the component mounts
+  const [activeTab, setActiveTab] = useState<'users' | 'bigquery'>('users');
+  const [isMockMode, setIsMockMode] = useState(false);
+
+  // Load mock users for prototype - TODO: Replace with real API when backend is ready
   useEffect(() => {
-    const fetchUsers = async () => {
-      if (!token) {
-        setError('Not authenticated');
-        setIsLoading(false);
-        return;
-      }
-      
+    const loadMockUsers = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch(`${Config.API_BASE_URL}/users/`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
         
-        if (!response.ok) {
-          if (response.status === 403) {
-            throw new Error('Admin access required');
-          }
-          throw new Error('Failed to fetch users');
-        }
+        // Simulate API delay for realistic feel
+        await new Promise(resolve => setTimeout(resolve, 500));
         
-        const data = await response.json();
-        setUsers(data);
+        // Use mock data for prototype
+        setUsers(MOCK_USERS);
+        setError(null);
+        
+        // TODO: Replace with real API call when backend is ready
+        // const response = await fetch(`${Config.API_BASE_URL}/users/`, {
+        //   headers: {
+        //     'Authorization': `Bearer ${token}`,
+        //     'Content-Type': 'application/json',
+        //   },
+        // });
+
+        // if (!response.ok) {
+        //   if (response.status === 403) {
+        //     throw new Error('Admin access required');
+        //   }
+        //   throw new Error(`Failed to fetch users: ${response.status}`);
+        // }
+
+        // const userData = await response.json();
+        // setUsers(userData);
+        
       } catch (err) {
-        console.error('Error fetching users:', err);
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
+        console.error('Error loading users:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load users');
+        
+        // For prototype: still show mock data even if there's an "error"
+        setUsers(MOCK_USERS);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    fetchUsers();
-  }, [token]);
-  
+
+    loadMockUsers();
+  }, []); // Removed token dependency for prototype
+
+  // Mock toggle user admin status - TODO: Implement real API when backend is ready
+  const toggleUserAdmin = async (userId: string) => {
+    try {
+      // For prototype: just update local state
+      setUsers(prevUsers =>
+        prevUsers.map(user =>
+          user.id === userId
+            ? { ...user, is_admin: !user.is_admin, updated_at: new Date().toISOString() }
+            : user
+        )
+      );
+
+      // TODO: Implement real API call when backend is ready
+      // const response = await fetch(`${Config.API_BASE_URL}/users/${userId}/toggle-admin`, {
+      //   method: 'PATCH',
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //     'Content-Type': 'application/json',
+      //   },
+      // });
+
+      // if (!response.ok) {
+      //   throw new Error('Failed to update user');
+      // }
+
+      // const updatedUser = await response.json();
+      // setUsers(prevUsers =>
+      //   prevUsers.map(user => user.id === userId ? updatedUser : user)
+      // );
+    } catch (err) {
+      console.error('Error updating user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update user');
+    }
+  };
+
+  const renderUsersTab = () => (
+    <>
+      <Text style={styles.header}>User Management</Text>
+
+      {users.length === 0 ? (
+        <Text>No users found</Text>
+      ) : (
+        <View style={styles.usersContainer}>
+          {users.map((user) => (
+            <View key={user.id} style={styles.userCard}>
+              <Text style={styles.userName}>
+                {user.first_name} {user.last_name}
+                {user.is_admin && ' (Admin)'}
+              </Text>
+              <Text style={styles.userEmail}>{user.email}</Text>
+              <Text style={styles.userId}>ID: {user.id}</Text>
+              <Text style={styles.userDate}>
+                Created: {new Date(user.created_at).toLocaleDateString()}
+              </Text>
+              
+              {/* User Actions */}
+              <View style={styles.userActions}>
+                <TouchableOpacity
+                  style={[styles.actionButton, user.is_admin ? styles.removeAdminButton : styles.makeAdminButton]}
+                  onPress={() => toggleUserAdmin(user.id)}
+                >
+                  <Text style={styles.actionButtonText}>
+                    {user.is_admin ? '⬇️ Remove Admin' : '⬆️ Make Admin'}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.viewUserButton]}
+                  onPress={() => {
+                    Alert.alert(
+                      'User Details',
+                      `Name: ${user.first_name} ${user.last_name}\nEmail: ${user.email}\nAdmin: ${user.is_admin ? 'Yes' : 'No'}\nCreated: ${new Date(user.created_at).toLocaleDateString()}\nLast Updated: ${new Date(user.updated_at).toLocaleDateString()}`,
+                      [{ text: 'OK' }]
+                    );
+                  }}
+                >
+                  <Text style={styles.actionButtonText}>👁️ View Details</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+    </>
+  );
+
+  const renderBigQueryTab = () => (
+    <View style={styles.bigQueryContainer}>
+      <Text style={styles.header}>BigQuery Testing</Text>
+
+      <View style={styles.settingRow}>
+        <Text style={styles.settingLabel}>Mock Mode</Text>
+        <Switch
+          value={isMockMode}
+          onValueChange={setIsMockMode}
+          trackColor={{ false: '#767577', true: '#81b0ff' }}
+          thumbColor={isMockMode ? '#f5dd4b' : '#f4f3f4'}
+        />
+        <Text style={[styles.settingValue, !isMockMode && styles.activeMode]}>
+          {isMockMode ? 'Using Mock Data' : 'Live Mode'}
+        </Text>
+      </View>
+
+      <Text style={styles.sectionTitle}>Available Tables</Text>
+      <View style={styles.tablesContainer}>
+        {[
+          { id: 'users', name: 'Users', description: 'User accounts and profiles' },
+          { id: 'inventory', name: 'Inventory', description: 'Inventory items' },
+          { id: 'transactions', name: 'Transactions', description: 'Transaction history' },
+          { id: 'food_items', name: 'Food Items', description: 'Food items in inventory' },
+          { id: 'expenses', name: 'Expenses', description: 'Expense tracking' },
+        ].map((table) => (
+          <TouchableOpacity
+            key={table.id}
+            style={styles.tableCard}
+            onPress={() => router.push('/bigquery-tester')}
+          >
+            <Text style={styles.tableName}>{table.name}</Text>
+            <Text style={styles.tableDescription}>{table.description}</Text>
+            <View style={styles.tableFooter}>
+              <Text style={styles.tableId}>{table.id}</Text>
+              <Text style={styles.tableLink}>Open in Query Tester →</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      <View style={styles.quickQueries}>
+        <Text style={styles.sectionTitle}>Quick Access</Text>
+
+        <TouchableOpacity
+          style={styles.queryButton}
+          onPress={() => router.push('/bigquery-tester')}
+        >
+          <Text style={styles.queryButtonText}>🔍 Open BigQuery Tester</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.queryButton}
+          onPress={() => router.push('/bigquery-tester')}
+        >
+          <Text style={styles.queryButtonText}>📊 Test Database Queries</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
@@ -66,13 +253,13 @@ export default function AdminScreen() {
       </View>
     );
   }
-  
+
   if (error) {
     return (
       <View style={[styles.container, styles.centered]}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={[styles.button, { marginTop: 20 }]} 
+        <TouchableOpacity
+          style={[styles.button, { marginTop: 20 }]}
           onPress={() => router.back()}
         >
           <Text style={styles.buttonText}>Go Back</Text>
@@ -80,38 +267,36 @@ export default function AdminScreen() {
       </View>
     );
   }
-  
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        <Text style={styles.header}>User Management</Text>
-        
-        {users.length === 0 ? (
-          <Text>No users found</Text>
-        ) : (
-          <View style={styles.usersContainer}>
-            {users.map((user) => (
-              <View key={user.id} style={styles.userCard}>
-                <Text style={styles.userName}>
-                  {user.first_name} {user.last_name}
-                  {user.is_admin && ' (Admin)'}
-                </Text>
-                <Text style={styles.userEmail}>{user.email}</Text>
-                <Text style={styles.userId}>ID: {user.id}</Text>
-                <Text style={styles.userDate}>
-                  Created: {new Date(user.created_at).toLocaleDateString()}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-      
-      <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          {users.length} user{users.length !== 1 ? 's' : ''} total
-        </Text>
+      {/* Tab Navigation */}
+      <View style={styles.tabContainer}>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'users' && styles.activeTab]}
+          onPress={() => setActiveTab('users')}
+        >
+          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Users</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'bigquery' && styles.activeTab]}
+          onPress={() => setActiveTab('bigquery')}
+        >
+          <Text style={[styles.tabText, activeTab === 'bigquery' && styles.activeTabText]}>BigQuery</Text>
+        </TouchableOpacity>
       </View>
+
+      <ScrollView style={styles.scrollView}>
+        {activeTab === 'users' ? renderUsersTab() : renderBigQueryTab()}
+      </ScrollView>
+
+      {activeTab === 'users' && (
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>
+            {users.length} user{users.length !== 1 ? 's' : ''} total
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -131,6 +316,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
+  },
+  tabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  tab: {
+    flex: 1,
+    paddingVertical: 16,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
+  },
+  activeTab: {
+    borderBottomColor: '#297A56',
+  },
+  tabText: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#666',
+  },
+  activeTabText: {
+    color: '#297A56',
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -178,6 +388,124 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
   },
+  userActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  actionButton: {
+    padding: 8,
+    borderRadius: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 80,
+  },
+  makeAdminButton: {
+    backgroundColor: '#297A56',
+  },
+  removeAdminButton: {
+    backgroundColor: '#d32f2f',
+  },
+  viewUserButton: {
+    backgroundColor: '#4CAF50',
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  bigQueryContainer: {
+    flex: 1,
+  },
+  settingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  settingLabel: {
+    fontSize: 16,
+    marginRight: 12,
+    flex: 1,
+  },
+  settingValue: {
+    fontSize: 14,
+    color: '#666',
+    marginLeft: 8,
+  },
+  activeMode: {
+    color: '#297A56',
+    fontWeight: '600',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 12,
+    color: '#333',
+  },
+  tablesContainer: {
+    marginBottom: 24,
+  },
+  tableCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  tableName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#297A56',
+    marginBottom: 4,
+  },
+  tableDescription: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  tableFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  tableId: {
+    fontSize: 12,
+    color: '#999',
+    fontFamily: 'monospace',
+  },
+  tableLink: {
+    fontSize: 12,
+    color: '#297A56',
+    fontWeight: '500',
+  },
+  quickQueries: {
+    marginTop: 8,
+  },
+  queryButton: {
+    backgroundColor: '#297A56',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+  },
+  queryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
   errorText: {
     color: '#d32f2f',
     textAlign: 'center',
@@ -199,13 +527,13 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
     backgroundColor: '#fff',
+    borderTopWidth: 0.5,
+    borderTopColor: '#e5e5e5',
+    alignItems: 'center',
   },
   footerText: {
-    textAlign: 'center',
-    color: '#666',
     fontSize: 14,
+    color: '#666',
   },
 });
