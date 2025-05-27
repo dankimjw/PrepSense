@@ -1,0 +1,9 @@
+modules = ["web", "nodejs-20", "python-3.12"]
+run = "uvicorn undefined:app --host 0.0.0.0 --port 3000"
+
+[nix]
+channel = "stable-24_05"
+packages = ["bash", "gitFull", "glibcLocales", "playwright-driver"]
+
+[deployment]
+run = ["sh", "-c", "uvicorn undefined:app --host 0.0.0.0 --port 3000"]
