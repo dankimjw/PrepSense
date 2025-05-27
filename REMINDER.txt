@@ -1,7 +1,7 @@
 REMINDER: How to start services
 
 To start the FastAPI backend:
-./start_app.sh backend
+python run_app.py --backend
 
 To start the iOS app:
-./start_app.sh ios 
+python run_app.py --ios

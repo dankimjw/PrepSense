@@ -34,11 +34,14 @@ Before you begin, ensure you have the following installed:
 To start the backend or iOS app, use the following commands from the project root:
 
 ```bash
-# Start the FastAPI backend server (runs on port 8001)
-python run_server.py
+# Launch both backend and iOS app
+python run_app.py
 
-# Start the iOS app
-python run_ios.py
+# Or start only the backend
+python run_app.py --backend
+
+# Or start only the iOS app
+python run_app.py --ios
 ```
 
 ## Database Schema
@@ -138,12 +141,12 @@ OPENAI_API_KEY=your_openai_api_key
 #### d. Run the FastAPI app:
 ```bash
 # Bind to all interfaces so mobile devices can reach the server
-SERVER_HOST=0.0.0.0 python run_server.py
+SERVER_HOST=0.0.0.0 python run_app.py --backend
 ```
 
 The backend will be available on your machine's IP address (e.g., `http://192.168.1.X:8001`).
 
-`run_ios.py` will automatically detect this IP and configure the Expo app accordingly.
+`run_app.py` will automatically detect this IP and configure the Expo app accordingly.
 
 ### 2. iOS App Setup
 
@@ -156,7 +159,7 @@ npm install
 #### b. Start the app:
 ```bash
 # From the project root
-python run_ios.py
+python run_app.py --ios
 ```
 
 The app will start and provide a QR code that you can scan with the Expo Go app on your iOS device.
@@ -228,12 +231,12 @@ your desktop.
 
 2. **Backend Setup**
    - Navigate to project root directory
-   - Run: `python run_server.py`
+   - Run: `python run_app.py --backend`
    - Server will be available at `http://127.0.0.1:8001`
 
 3. **iOS App Setup**
    - Navigate to project root directory
-   - Run: `python run_ios.py`
+   - Run: `python run_app.py --ios`
    - Use Expo Go app to test on your device
 
 4. **Security**
