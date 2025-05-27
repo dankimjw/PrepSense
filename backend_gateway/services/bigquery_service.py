@@ -1,8 +1,6 @@
-"""Abstraction over Google BigQuery interactions used by the API."""
-
-import os
 import sys
 import json
+import os
 import logging
 from typing import List, Dict, Any, Optional, Union
 from datetime import datetime, date
@@ -11,10 +9,85 @@ from functools import wraps
 from google.cloud import bigquery
 from google.oauth2 import service_account
 from pydantic import BaseModel
+from dotenv import load_dotenv
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+"""
+PREPSENSE DATABASE SCHEMA REFERENCE
+====================================
+Dataset: adsp-34002-on02-prep-sense.Inventory
+
+**1. pantry**
+* pantry_id (INTEGER, NULLABLE) - Unique identifier for each pantry
+* user_id (INTEGER, NULLABLE) - Foreign key to user table
+* pantry_name (STRING, NULLABLE) - Name of the pantry
+* created_at (DATETIME, NULLABLE) - Timestamp when pantry was created
+
+**2. pantry_items**
+* pantry_item_id (INTEGER, NULLABLE) - Unique identifier for each pantry item
+* pantry_id (INTEGER, NULLABLE) - Foreign key to pantry table
+* quantity (FLOAT, NULLABLE) - Current quantity of the item
+* unit_of_measurement (STRING, NULLABLE) - Unit for quantity (e.g., 'kg', 'lbs', 'pieces')
+* expiration_date (DATE, NULLABLE) - When the item expires
+* unit_price (FLOAT, NULLABLE) - Price per unit
+* total_price (FLOAT, NULLABLE) - Total price for the quantity
+* created_at (DATETIME, NULLABLE) - Timestamp when item was added
+* used_quantity (INTEGER, NULLABLE) - Amount of item that has been used
+* status (STRING, NULLABLE) - Status of the item (e.g., 'available', 'expired', 'used')
+
+**3. products**
+* product_id (INTEGER, NULLABLE) - Unique identifier for each product
+* pantry_item_id (INTEGER, NULLABLE) - Foreign key to pantry_items table
+* product_name (STRING, NULLABLE) - Name of the product
+* brand_name (STRING, NULLABLE) - Brand name of the product
+* category (STRING, NULLABLE) - Product category (e.g., 'dairy', 'meat', 'vegetables')
+* upc_code (STRING, NULLABLE) - Universal Product Code for the product
+* created_at (DATETIME, NULLABLE) - Timestamp when product was created
+
+**4. recipies**
+* recipe_id (INTEGER, NULLABLE) - Unique identifier for each recipe
+* product_id (INTEGER, NULLABLE) - Foreign key to products table
+* recipe_name (STRING, NULLABLE) - Name of the recipe
+* quantity_needed (FLOAT, NULLABLE) - Amount of the product needed for recipe
+* unit_of_measurement (STRING, NULLABLE) - Unit for quantity needed
+* instructions (STRING, NULLABLE) - Recipe preparation instructions
+* created_at (DATETIME, NULLABLE) - Timestamp when recipe was created
+
+**5. user**
+* user_id (INTEGER, NULLABLE) - Unique identifier for each user
+* user_name (STRING, NULLABLE) - Username for login
+* first_name (STRING, NULLABLE) - User's first name
+* last_name (STRING, NULLABLE) - User's last name
+* email (STRING, NULLABLE) - User's email address
+* password_hash (STRING, NULLABLE) - Hashed password for authentication
+* role (STRING, NULLABLE) - User role (e.g., 'user', 'admin')
+* api_key_enc (BYTES, NULLABLE) - Encrypted API key for the user
+* created_at (DATETIME, NULLABLE) - Timestamp when user account was created
+
+**6. user_preference**
+* user_id (INTEGER, NULLABLE) - Foreign key to user table
+* household_size (INTEGER, NULLABLE) - Number of people in household
+* dietary_preference (STRING, REPEATED) - Array of dietary preferences (e.g., ['vegetarian', 'gluten-free'])
+* allergens (STRING, REPEATED) - Array of allergens to avoid (e.g., ['nuts', 'dairy'])
+* cuisine_preference (STRING, REPEATED) - Array of preferred cuisines (e.g., ['italian', 'mexican'])
+* created_at (DATETIME, NULLABLE) - Timestamp when preferences were set
+
+**Key Relationships:**
+1. user -> user_preference (1:1) - Each user has preferences
+2. user -> pantry (1:many) - Users can have multiple pantries
+3. pantry -> pantry_items (1:many) - Each pantry contains multiple items
+4. pantry_items -> products (1:1) - Each pantry item is a specific product
+5. products -> recipies (1:many) - Products can be used in multiple recipes
+
+**Usage Notes:**
+- REPEATED fields in user_preference table contain arrays of strings
+- Timestamps are stored as DATETIME in UTC
+- All foreign key relationships use INTEGER ids
+- Status fields use string enums for categorization
+"""
 
 class BigQueryService:
     """
@@ -31,15 +104,19 @@ class BigQueryService:
             dataset_id: BigQuery dataset ID (default: from environment)
             credentials_path: Path to the service account JSON file (default: from environment)
         """
-        import os
-        from dotenv import load_dotenv
-        
         # Load environment variables from .env file
         load_dotenv()
         
-        self.project_id = project_id or os.getenv('BIGQUERY_PROJECT_ID')
+        self.project_id = project_id or os.getenv('BIGQUERY_PROJECT')
         self.dataset_id = dataset_id or os.getenv('BIGQUERY_DATASET')
         self.credentials_path = credentials_path or os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
+        
+        # Debug logging
+        logger.info(f"BigQuery Service initialization:")
+        logger.info(f"  Project ID: {self.project_id}")
+        logger.info(f"  Dataset ID: {self.dataset_id}")
+        logger.info(f"  Credentials path from env: {os.getenv('GOOGLE_APPLICATION_CREDENTIALS')}")
+        logger.info(f"  Actual credentials path: {self.credentials_path}")
         
         if not self.project_id or not self.dataset_id:
             raise ValueError("Project ID and Dataset ID must be provided or set in environment variables")
@@ -82,6 +159,8 @@ class BigQueryService:
             List of dictionaries representing the query results
         """
         try:
+            query = self._qualify_table_names(query)
+            
             job_config = bigquery.QueryJobConfig()
             
             # Add parameters if provided
@@ -115,6 +194,33 @@ class BigQueryService:
         except Exception as e:
             logger.error(f"Error executing query: {str(e)}")
             raise
+    
+    def _qualify_table_names(self, query: str) -> str:
+        """
+        Automatically qualify unqualified table names in SQL queries.
+        Replaces `table_name` with `project.dataset.table_name` if not already qualified.
+        Only applies to simple table names, not already qualified ones.
+        """
+        import re
+        
+        # Pattern to match simple table references that are not already qualified
+        # This pattern looks for backticked table names that are standalone (not part of a qualified name)
+        # It should match `tablename` but not `project.dataset.tablename` or parts of qualified names
+        pattern = r'`([^`]+)`(?!\s*\.\s*`)'  # Table name not followed by .`
+        
+        def replace_table(match):
+            table_content = match.group(1)
+            # If the content contains dots, it's likely already qualified
+            if '.' in table_content:
+                return match.group(0)  # Return original if already qualified
+            
+            # Check if this looks like a simple table name (not a complex qualified reference)
+            if re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', table_content):
+                return f'`{self.project_id}.{self.dataset_id}.{table_content}`'
+            
+            return match.group(0)  # Return original if doesn't match simple table name pattern
+        
+        return re.sub(pattern, replace_table, query)
     
     def get_table(self, table_name: str) -> bigquery.Table:
         """Get a BigQuery table reference."""
