@@ -29,6 +29,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const TOKEN_KEY = 'auth_token';
 const USER_KEY = 'user_data';
 
+// Default user for prototype - Samantha Smith (admin user)
+// TODO: Remove this when implementing real authentication
+const DEFAULT_USER: User = {
+  id: 'samantha-smith-001',
+  email: 'samantha.smith@prepsense.com',
+  first_name: 'Samantha',
+  last_name: 'Smith',
+  is_admin: true,
+};
+
+// Mock token for prototype
+// TODO: Remove this when implementing real authentication
+const MOCK_TOKEN = 'mock-admin-token-for-prototype';
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
@@ -37,145 +51,138 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: false,
   });
 
-  // Load token and user from secure storage on initial load
+  // Load default user for prototype (no real authentication)
+  // TODO: Replace with real authentication when backend is ready
   useEffect(() => {
-    const loadAuthData = async () => {
+    const loadDefaultUser = async () => {
       try {
-        const [token, userData] = await Promise.all([
-          SecureStore.getItemAsync(TOKEN_KEY),
-          SecureStore.getItemAsync(USER_KEY),
-        ]);
-
-        if (token && userData) {
-          setAuthState({
-            user: JSON.parse(userData),
-            token,
-            isLoading: false,
-            isAuthenticated: true,
-          });
-        } else {
-          setAuthState(prev => ({ ...prev, isLoading: false }));
-        }
-      } catch (error) {
-        console.error('Failed to load auth data', error);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
-      }
-    };
-
-    loadAuthData();
-  }, []);
-
-  const signIn = async (email: string, password: string) => {
-    try {
-      const response = await fetch(`${Config.API_BASE_URL}/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Failed to sign in');
-      }
-
-      const { access_token, user } = await response.json();
-      
-      // Store the token and user data
-      await Promise.all([
-        SecureStore.setItemAsync(TOKEN_KEY, access_token),
-        SecureStore.setItemAsync(USER_KEY, JSON.stringify(user)),
-      ]);
-      
-      setAuthState({
-        user,
-        token: access_token,
-        isLoading: false,
-        isAuthenticated: true,
-      });
-    } catch (error) {
-      console.error('Sign in error:', error);
-      // Fallback to mock data if API is not available
-      if (__DEV__) {
-        console.log('Falling back to mock user data');
-        const mockUser = {
-          id: '1',
-          email: 'samantha.smith@example.com',
-          first_name: 'Samantha',
-          last_name: 'Smith',
-          is_admin: true,
-        };
-        
-        const mockToken = 'mock-jwt-token';
-        
-        await Promise.all([
-          SecureStore.setItemAsync(TOKEN_KEY, mockToken),
-          SecureStore.setItemAsync(USER_KEY, JSON.stringify(mockUser)),
-        ]);
-        
+        // For prototype: automatically set Samantha Smith as authenticated user
         setAuthState({
-          user: mockUser,
-          token: mockToken,
+          user: DEFAULT_USER,
+          token: MOCK_TOKEN,
           isLoading: false,
           isAuthenticated: true,
         });
-        return;
+      } catch (error) {
+        console.error('Error loading default user:', error);
+        setAuthState({
+          user: null,
+          token: null,
+          isLoading: false,
+          isAuthenticated: false,
+        });
       }
-      throw error;
-    }
-  };
+    };
 
-  const signOut = async () => {
+    loadDefaultUser();
+  }, []);
+
+  // Mock sign in function for prototype
+  // TODO: Implement real authentication when backend is ready
+  const signIn = async (email: string, password: string): Promise<void> => {
     try {
-      await Promise.all([
-        SecureStore.deleteItemAsync(TOKEN_KEY),
-        SecureStore.deleteItemAsync(USER_KEY),
-      ]);
+      setAuthState(prev => ({ ...prev, isLoading: true }));
+
+      // For prototype: always succeed with Samantha Smith
+      setAuthState({
+        user: DEFAULT_USER,
+        token: MOCK_TOKEN,
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      // TODO: Replace with real API call when backend is ready
+      // const response = await fetch(`${Config.API_BASE_URL}/auth/login`, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ email, password }),
+      // });
       
+      // if (!response.ok) {
+      //   throw new Error('Login failed');
+      // }
+      
+      // const data = await response.json();
+      // await Promise.all([
+      //   SecureStore.setItemAsync(TOKEN_KEY, data.token),
+      //   SecureStore.setItemAsync(USER_KEY, JSON.stringify(data.user)),
+      // ]);
+      
+      // setAuthState({
+      //   user: data.user,
+      //   token: data.token,
+      //   isLoading: false,
+      //   isAuthenticated: true,
+      // });
+    } catch (error) {
+      console.error('Sign in error:', error);
       setAuthState({
         user: null,
         token: null,
         isLoading: false,
         isAuthenticated: false,
       });
-    } catch (error) {
-      console.error('Sign out error:', error);
-      throw new Error('Failed to sign out');
+      throw error;
     }
   };
 
-  const getAuthHeader = async () => {
-    // First try to use the in-memory token if available
-    if (authState.token) {
-      return { Authorization: `Bearer ${authState.token}` };
+  // Mock sign out function for prototype
+  // TODO: Implement real sign out when authentication is added
+  const signOut = async (): Promise<void> => {
+    try {
+      // For prototype: just reset to default user
+      await Promise.all([
+        SecureStore.deleteItemAsync(TOKEN_KEY).catch(() => {}),
+        SecureStore.deleteItemAsync(USER_KEY).catch(() => {}),
+      ]);
+
+      // Reset to default user for prototype
+      setAuthState({
+        user: DEFAULT_USER,
+        token: MOCK_TOKEN,
+        isLoading: false,
+        isAuthenticated: true,
+      });
+
+      // TODO: When real auth is implemented, call logout API and set to unauthenticated state
+      // setAuthState({
+      //   user: null,
+      //   token: null,
+      //   isLoading: false,
+      //   isAuthenticated: false,
+      // });
+    } catch (error) {
+      console.error('Sign out error:', error);
     }
-    
-    // Fall back to secure storage if needed
-    const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  };
+
+  // Get authentication header for API calls
+  // TODO: Update when implementing real authentication
+  const getAuthHeader = async (): Promise<{ Authorization: string } | undefined> => {
+    const { token } = authState;
     if (token) {
       return { Authorization: `Bearer ${token}` };
     }
     return undefined;
   };
 
+  const contextValue: AuthContextType = {
+    ...authState,
+    signIn,
+    signOut,
+    getAuthHeader,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        ...authState,
-        signIn,
-        signOut,
-        getAuthHeader,
-      }}
-    >
-      {!authState.isLoading && children}
+    <AuthContext.Provider value={contextValue}>
+      {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

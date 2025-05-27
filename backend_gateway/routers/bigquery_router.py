@@ -5,9 +5,12 @@ from typing import List, Dict, Any, Optional
 from datetime import date, datetime
 from pydantic import BaseModel
 import logging
+import os
+from dotenv import load_dotenv
 
 # Import our BigQuery service
-from ..services.bigquery_service import BigQueryService, FastAPIBigQueryDependency
+from ..services.bigquery_service import BigQueryService
+from ..core.config import settings
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -15,13 +18,22 @@ logger = logging.getLogger(__name__)
 
 # Create router
 router = APIRouter(
-    prefix="/api/bigquery",
     tags=["bigquery"],
     responses={404: {"description": "Not found"}},
 )
 
-# Initialize the BigQuery dependency
-bq_dependency = FastAPIBigQueryDependency()  # Uses environment variables by default
+# Initialize the BigQuery dependency with proper error handling
+def get_bigquery_service():
+    """Dependency that provides a BigQueryService instance."""
+    try:
+        service = BigQueryService()
+        return service
+    except Exception as e:
+        logger.error(f"BigQuery service initialization failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"BigQuery service unavailable: {str(e)}"
+        )
 
 # Pydantic models for request/response validation
 class PantryItemBase(BaseModel):
@@ -56,12 +68,26 @@ class PantryItem(PantryItemBase):
 def row_to_pantry_item(row: Dict) -> PantryItem:
     return PantryItem(**row)
 
+# Query execution models for the BigQuery tester
+class QueryExecuteRequest(BaseModel):
+    query: str
+    queryType: Optional[str] = "SELECT"
+    table: Optional[str] = None
+
+class QueryExecuteResponse(BaseModel):
+    success: bool
+    query: str
+    result: List[Dict[str, Any]]
+    execution_time: str
+    rows_affected: Optional[int] = None
+    error: Optional[str] = None
+
 # Routes
 @router.get("/pantry-items/", response_model=List[PantryItem])
 async def get_pantry_items(
     pantry_id: Optional[int] = None,
     status: Optional[str] = None,
-    bq: BigQueryService = Depends(bq_dependency)
+    bq: BigQueryService = Depends(get_bigquery_service)
 ):
     """
     Get all pantry items, optionally filtered by pantry_id and/or status.
@@ -96,7 +122,7 @@ async def get_pantry_items(
 @router.get("/pantry-items/{item_id}", response_model=PantryItem)
 async def get_pantry_item(
     item_id: int,
-    bq: BigQueryService = Depends(bq_dependency)
+    bq: BigQueryService = Depends(get_bigquery_service)
 ):
     """
     Get a single pantry item by ID.
@@ -130,7 +156,7 @@ async def get_pantry_item(
 @router.post("/pantry-items/", response_model=PantryItem, status_code=status.HTTP_201_CREATED)
 async def create_pantry_item(
     item: PantryItemCreate,
-    bq: BigQueryService = Depends(bq_dependency)
+    bq: BigQueryService = Depends(get_bigquery_service)
 ):
     """
     Create a new pantry item.
@@ -186,7 +212,7 @@ async def create_pantry_item(
 async def update_pantry_item(
     item_id: int,
     item_update: PantryItemUpdate,
-    bq: BigQueryService = Depends(bq_dependency)
+    bq: BigQueryService = Depends(get_bigquery_service)
 ):
     """
     Update an existing pantry item.
@@ -233,7 +259,7 @@ async def update_pantry_item(
 @router.delete("/pantry-items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_pantry_item(
     item_id: int,
-    bq: BigQueryService = Depends(bq_dependency)
+    bq: BigQueryService = Depends(get_bigquery_service)
 ):
     """
     Delete a pantry item.
@@ -263,4 +289,75 @@ async def delete_pantry_item(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to delete pantry item"
+        )
+
+@router.post("/execute", response_model=QueryExecuteResponse)
+async def execute_query(
+    request: QueryExecuteRequest,
+    bq: BigQueryService = Depends(get_bigquery_service)
+) -> QueryExecuteResponse:
+    """
+    Execute a BigQuery SQL query.
+    Supports SELECT, INSERT, UPDATE, DELETE, and custom queries.
+    """
+    try:
+        import time
+        start_time = time.time()
+        
+        logger.info(f"Executing query: {request.query}")
+        
+        result = bq.execute_query(request.query)
+        
+        end_time = time.time()
+        execution_time = f"{end_time - start_time:.2f}s"
+        
+        # Determine rows affected for non-SELECT queries
+        rows_affected = None
+        if request.queryType and request.queryType.upper() != 'SELECT':
+            rows_affected = len(result) if result else 0
+        
+        return QueryExecuteResponse(
+            success=True,
+            query=request.query,
+            result=result,
+            execution_time=execution_time,
+            rows_affected=rows_affected
+        )
+        
+    except Exception as e:
+        logger.error(f"Query execution failed: {str(e)}")
+        return QueryExecuteResponse(
+            success=False,
+            query=request.query,
+            result=[],
+            execution_time="0s",
+            error=str(e)
+        )
+
+@router.get("/tables")
+async def get_tables(
+    bq: BigQueryService = Depends(get_bigquery_service)
+) -> List[Dict[str, str]]:
+    """
+    Get list of available tables in the dataset.
+    """
+    try:
+        # Get dataset reference from real BigQuery service
+        dataset_ref = bq.client.dataset(bq.dataset_id)
+        tables = bq.client.list_tables(dataset_ref)
+        
+        table_list = []
+        for table in tables:
+            table_list.append({
+                "tableId": table.table_id,
+                "description": f"Table: {table.table_id}"
+            })
+        
+        return table_list
+        
+    except Exception as e:
+        logger.error(f"Failed to get tables: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to get tables"
         )

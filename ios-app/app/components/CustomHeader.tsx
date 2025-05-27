@@ -9,6 +9,7 @@ type CustomHeaderProps = {
   showBackButton?: boolean;
   showChatButton?: boolean;
   showAdminButton?: boolean;
+  showDbButton?: boolean;
   onBackPress?: () => void;
 };
 
@@ -17,6 +18,7 @@ export function CustomHeader({
   showBackButton = false, 
   showChatButton = false, 
   showAdminButton = false,
+  showDbButton = false,
   onBackPress 
 }: CustomHeaderProps) {
   const router = useRouter();
@@ -35,9 +37,10 @@ export function CustomHeader({
     '/(tabs)/profile',
   ].some(path => pathname.startsWith(path));
   
-  // Always show chat and admin buttons on main tabs, unless explicitly disabled
+  // Show buttons based on props and current route
   const shouldShowChat = isMainTab && showChatButton !== false;
   const shouldShowAdmin = isMainTab && showAdminButton !== false;
+  const shouldShowDb = isMainTab && showDbButton !== false;
 
   const toggleMenu = () => {
     // Navigate to settings when menu is pressed
@@ -74,6 +77,15 @@ export function CustomHeader({
         <Text style={styles.title}>{headerTitle}</Text>
         
         <View style={styles.rightButtons}>
+          {shouldShowDb && (
+            <Pressable 
+              hitSlop={12} 
+              onPress={() => router.push('/bigquery-tester')}
+              style={styles.iconButton}
+            >
+              <Ionicons name="server-outline" size={24} color="#1b6b45" />
+            </Pressable>
+          )}
           {shouldShowChat && (
             <Pressable 
               hitSlop={12} 

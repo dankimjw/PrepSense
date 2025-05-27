@@ -16,7 +16,7 @@ const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // replace '127.0.0.1' with your actual IP address.
 // '127.0.0.1' works if the app is running in a web browser on the SAME machine as the backend.
 const DEV_API_CONFIG = {
-  baseURL: ENV_API_URL || 'http://127.0.0.1:8001/v1', // Using port 8001 for the backend service
+  baseURL: ENV_API_URL || 'http://127.0.0.1:8001/api/v1', // Using port 8001 for the backend service
   timeout: 15000, // API request timeout in milliseconds (e.g., 15 seconds)
 };
 
