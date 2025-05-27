@@ -6,4 +6,16 @@ channel = "stable-24_05"
 packages = ["bash", "gitFull", "glibcLocales", "playwright-driver"]
 
 [deployment]
-run = ["sh", "-c", "uvicorn undefined:app --host 0.0.0.0 --port 3000"]
+run = ["sh", "-c", "python3 run_app.py"]
+
+[workflows]
+runButton = "Start PrepSense App"
+
+[[workflows.workflow]]
+name = "Start PrepSense App"
+author = 3473558
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "python3 run_app.py"
