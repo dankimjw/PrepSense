@@ -53,8 +53,8 @@ export default function AdminScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'bigquery'>('cleanup');
-  const [isMockMode, setIsMockMode] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [cleanupTimeframe, setCleanupTimeframe] = useState<number | null>(24); // Default: 24 hours
 
   // Load mock users for prototype - TODO: Replace with real API when backend is ready
   useEffect(() => {
@@ -188,16 +188,26 @@ export default function AdminScreen() {
   );
 
   // Function to cleanup recently added items from BigQuery
-  const cleanupRecentItems = async () => {
+  const cleanupRecentItems = async (hours: number | null = null) => {
     if (isCleaningUp) return;
     
+    let timeframeText = 'all time';
+    if (hours !== null) {
+      const minutes = Math.round(hours * 60);
+      if (minutes < 60) {
+        timeframeText = `the last ${minutes} minute${minutes === 1 ? '' : 's'}`;
+      } else {
+        timeframeText = 'the last hour';
+      }
+    }
+    
     Alert.alert(
-      'Clean up recent items?',
-      'This will delete items added via vision detection in the last 24 hours. This action cannot be undone.',
+      'Clean up items?',
+      `This will delete items added via vision detection ${timeframeText}. This action cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         { 
-          text: 'Clean Up', 
+          text: `Clean Up ${hours ? `(${hours}h)` : '(All)'}`, 
           style: 'destructive',
           onPress: async () => {
             try {
@@ -210,7 +220,7 @@ export default function AdminScreen() {
                 },
                 body: JSON.stringify({
                   user_id: 111, // Default demo user ID
-                  hours_ago: 24  // Delete items from the last 24 hours
+                  hours_ago: hours  // Can be null to delete all
                 }),
               });
               
@@ -242,13 +252,13 @@ export default function AdminScreen() {
       <View style={styles.settingRow}>
         <Text style={styles.settingLabel}>Mock Mode</Text>
         <Switch
-          value={isMockMode}
-          onValueChange={setIsMockMode}
+          value={false}
+          onValueChange={() => {}}
           trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={isMockMode ? '#f5dd4b' : '#f4f3f4'}
+          thumbColor={'#f4f3f4'}
         />
-        <Text style={[styles.settingValue, !isMockMode && styles.activeMode]}>
-          {isMockMode ? 'Using Mock Data' : 'Live Mode'}
+        <Text style={[styles.settingValue, styles.activeMode]}>
+          Live Mode
         </Text>
 
         {/* Cleanup Button */}
@@ -376,12 +386,38 @@ export default function AdminScreen() {
             <Text style={styles.header}>Cleanup Vision Items</Text>
             <View style={styles.cleanupContainer}>
               <Text style={styles.cleanupDescription}>
-                This will remove all items that were added via vision detection in the last 24 hours.
-                This action cannot be undone.
+                Remove items that were added via vision detection. This action cannot be undone.
               </Text>
+              
+              <View style={styles.timeframeContainer}>
+                <Text style={styles.timeframeLabel}>Timeframe:</Text>
+                <View style={styles.timeframeButtons}>
+                  {[1/6, 1/12, 0.5, 1, null].map((hours) => {
+                    const minutes = hours !== null ? Math.round(hours * 60) : null;
+                    return (
+                      <TouchableOpacity
+                        key={hours || 'all'}
+                        style={[
+                          styles.timeframeButton,
+                          cleanupTimeframe === hours && styles.timeframeButtonActive
+                        ]}
+                        onPress={() => setCleanupTimeframe(hours)}
+                      >
+                        <Text style={[
+                          styles.timeframeButtonText,
+                          cleanupTimeframe === hours && styles.timeframeButtonTextActive
+                        ]}>
+                          {hours === null ? 'All' : minutes === 1 ? '1m' : minutes < 60 ? `${minutes}m` : '1h'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              
               <TouchableOpacity
                 style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]}
-                onPress={cleanupRecentItems}
+                onPress={() => cleanupRecentItems(cleanupTimeframe)}
                 disabled={isCleaningUp}
               >
                 {isCleaningUp ? (
@@ -389,7 +425,12 @@ export default function AdminScreen() {
                 ) : (
                   <>
                     <MaterialCommunityIcons name="broom" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
-                    <Text style={styles.cleanupButtonText}>Cleanup Vision Items</Text>
+                    <Text style={styles.cleanupButtonText}>
+                      Cleanup {cleanupTimeframe === null ? 'All' : 
+                        cleanupTimeframe < 1 ? 
+                          `Last ${Math.round(cleanupTimeframe * 60)}m` : 
+                          'Last 1h'} Items
+                    </Text>
                   </>
                 )}
               </TouchableOpacity>
@@ -674,20 +715,58 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#dc3545',
-    paddingVertical: 16,
-    paddingHorizontal: 24,
+    backgroundColor: '#FF3B30',
+    padding: 12,
     borderRadius: 8,
-    elevation: 2,
-    marginTop: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginTop: 16,
   },
   cleanupButtonDisabled: {
-    opacity: 0.7,
-    backgroundColor: '#f87171',
+    opacity: 0.6,
+  },
+  
+  // Timeframe selector styles
+  timeframeContainer: {
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  
+  timeframeLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  
+  timeframeButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  
+  timeframeButton: {
+    flex: 1,
+    marginHorizontal: 4,
+    padding: 8,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFF',
+  },
+  
+  timeframeButtonActive: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  
+  timeframeButtonText: {
+    fontSize: 14,
+    color: '#333',
+  },
+  
+  timeframeButtonTextActive: {
+    color: '#FFF',
+    fontWeight: '600',
   },
   cleanupIcon: {
     marginRight: 10,
