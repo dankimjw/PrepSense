@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Any, Dict, Optional
+import logging
 
 # Security imports
 from backend_gateway.core.security import oauth2_scheme_optional, get_current_user
@@ -15,6 +16,9 @@ from backend_gateway.services.pantry_service import PantryService
 # Model for creating a pantry item
 from pydantic import BaseModel, Field
 from datetime import date
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 class PantryItemCreate(BaseModel):
     product_name: str = Field(..., example="Whole Milk", description="Name of the product.")
@@ -79,3 +83,32 @@ async def add_pantry_item_for_user(
         # Log the exception for server-side diagnostics
         logger.error(f"Error adding pantry item: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
+
+@router.get("/user-pantry-full", response_model=List[Dict[str, Any]], summary="Get User's Full Pantry View")
+async def get_user_pantry_full(
+    user_id: int = 111,
+    bq: BigQueryService = Depends(get_bigquery_service)
+):
+    """
+    Get the user's full pantry view ordered by expiration date.
+    Uses the user_pantry_full table which likely contains joined data.
+    """
+    try:
+        query = """
+            SELECT *
+            FROM `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
+            WHERE user_id = @user_id
+            ORDER BY expiration_date
+        """
+        
+        params = {"user_id": user_id}
+        results = bq.execute_query(query, params)
+        
+        return results
+        
+    except Exception as e:
+        logger.error(f"Error fetching user pantry full for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to retrieve user pantry data: {str(e)}"
+        )
