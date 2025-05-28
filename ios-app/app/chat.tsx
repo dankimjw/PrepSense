@@ -13,17 +13,25 @@ type Message = {
   recipes?: Recipe[];
 };
 
+const suggestedMessages = [
+  "What can I make for dinner?",
+  "What can I make with only ingredients I have?",
+  "What's good for breakfast?",
+  "Show me healthy recipes",
+  "Quick meals under 20 minutes",
+  "What should I cook tonight?",
+];
+
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
   const insets = useSafeAreaInsets();
 
-  const handleSend = async () => {
-    if (inputText.trim() === '' || isLoading) return;
+  const sendMessage = async (messageText: string) => {
+    if (isLoading) return;
     
-    const messageText = inputText.trim();
-    setInputText('');
     setIsLoading(true);
     
     // Add user message
@@ -64,6 +72,18 @@ export default function ChatScreen() {
     }
   };
 
+  const handleSend = async () => {
+    if (inputText.trim() === '') return;
+    
+    const messageText = inputText.trim();
+    setInputText('');
+    await sendMessage(messageText);
+  };
+
+  const handleSuggestedMessage = async (suggestion: string) => {
+    await sendMessage(suggestion);
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
@@ -77,6 +97,24 @@ export default function ChatScreen() {
             <View style={styles.emptyState}>
               <Ionicons name="chatbubble-ellipses" size={48} color="#ccc" />
               <Text style={styles.emptyStateText}>Ask me anything about your pantry!</Text>
+              
+              {showSuggestions && (
+                <View style={styles.suggestionsContainer}>
+                  <Text style={styles.suggestionsTitle}>Try asking:</Text>
+                  <View style={styles.suggestionBubbles}>
+                    {suggestedMessages.map((suggestion, index) => (
+                      <TouchableOpacity
+                        key={index}
+                        style={styles.suggestionBubble}
+                        onPress={() => handleSuggestedMessage(suggestion)}
+                        disabled={isLoading}
+                      >
+                        <Text style={styles.suggestionText}>{suggestion}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
             </View>
           ) : (
             messages.map((message) => (
@@ -136,6 +174,29 @@ export default function ChatScreen() {
               </View>
             ))
           )}
+          
+          {/* Show suggestions even after messages if user wants them */}
+          {messages.length > 0 && showSuggestions && (
+            <View style={styles.inlineSuggestionsContainer}>
+              <Text style={styles.inlineSuggestionsTitle}>Quick suggestions:</Text>
+              <ScrollView 
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.inlineSuggestionBubbles}
+              >
+                {suggestedMessages.slice(0, 3).map((suggestion, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.inlineSuggestionBubble}
+                    onPress={() => handleSuggestedMessage(suggestion)}
+                    disabled={isLoading}
+                  >
+                    <Text style={styles.inlineSuggestionText}>{suggestion}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </ScrollView>
         
         <KeyboardAvoidingView 
@@ -149,6 +210,18 @@ export default function ChatScreen() {
             placeholder="Type a message..."
             placeholderTextColor="#999"
           />
+          {messages.length > 0 && (
+            <TouchableOpacity 
+              style={styles.suggestionsToggle} 
+              onPress={() => setShowSuggestions(!showSuggestions)}
+            >
+              <Ionicons 
+                name={showSuggestions ? "bulb" : "bulb-outline"} 
+                size={20} 
+                color="#297A56" 
+              />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity 
             style={styles.sendButton} 
             onPress={handleSend}
@@ -310,5 +383,80 @@ const styles = StyleSheet.create({
   nutritionText: {
     fontSize: 12,
     color: '#666',
+  },
+  suggestionsContainer: {
+    marginTop: 24,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  suggestionsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  suggestionBubbles: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  suggestionBubble: {
+    backgroundColor: '#F0F7F4',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#297A56',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  inlineSuggestionsContainer: {
+    marginTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  inlineSuggestionsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  inlineSuggestionBubbles: {
+    paddingRight: 16,
+  },
+  inlineSuggestionBubble: {
+    backgroundColor: '#F8F9FA',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  inlineSuggestionText: {
+    fontSize: 12,
+    color: '#6C757D',
+    fontWeight: '500',
+  },
+  suggestionsToggle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
 });
