@@ -1,43 +1,67 @@
 // app/chat.tsx - Part of the PrepSense mobile app
-import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { CustomHeader } from './components/CustomHeader';
+import { sendChatMessage, Recipe } from '../services/api';
 
 type Message = {
   id: string;
   text: string;
   sender: 'user' | 'ai';
+  recipes?: Recipe[];
 };
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const insets = useSafeAreaInsets();
 
-  const handleSend = () => {
-    if (inputText.trim() === '') return;
+  const handleSend = async () => {
+    if (inputText.trim() === '' || isLoading) return;
+    
+    const messageText = inputText.trim();
+    setInputText('');
+    setIsLoading(true);
     
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
-      text: inputText,
+      text: messageText,
       sender: 'user',
     };
     
     setMessages(prev => [...prev, userMessage]);
-    setInputText('');
     
-    // Simulate AI response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      // Call the actual API
+      const response = await sendChatMessage(messageText);
+      
+      // Add AI response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "I'm your AI assistant. How can I help you with your pantry today?",
+        text: response.response,
+        sender: 'ai',
+        recipes: response.recipes,
+      };
+      
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error sending message:', error);
+      
+      // Add error message
+      const errorMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running and try again.",
         sender: 'ai',
       };
-      setMessages(prev => [...prev, aiMessage]);
-    }, 1000);
+      
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,16 +80,59 @@ export default function ChatScreen() {
             </View>
           ) : (
             messages.map((message) => (
-              <View 
-                key={message.id} 
-                style={[
-                  styles.messageBubble,
-                  message.sender === 'user' ? styles.userBubble : styles.aiBubble,
-                ]}
-              >
-                <Text style={message.sender === 'user' ? styles.userText : styles.aiText}>
-                  {message.text}
-                </Text>
+              <View key={message.id}>
+                <View 
+                  style={[
+                    styles.messageBubble,
+                    message.sender === 'user' ? styles.userBubble : styles.aiBubble,
+                  ]}
+                >
+                  <Text style={message.sender === 'user' ? styles.userText : styles.aiText}>
+                    {message.text}
+                  </Text>
+                </View>
+                
+                {/* Show recipe cards for AI messages with recipes */}
+                {message.sender === 'ai' && message.recipes && message.recipes.length > 0 && (
+                  <View style={styles.recipesContainer}>
+                    {message.recipes.map((recipe, index) => (
+                      <View key={index} style={styles.recipeCard}>
+                        <Text style={styles.recipeTitle}>{recipe.name}</Text>
+                        <Text style={styles.recipeTime}>⏱️ {recipe.time} minutes</Text>
+                        <Text style={styles.recipeMatch}>
+                          📊 {Math.round(recipe.match_score * 100)}% match
+                        </Text>
+                        
+                        {recipe.available_ingredients.length > 0 && (
+                          <View style={styles.ingredientSection}>
+                            <Text style={styles.ingredientTitle}>✅ Available:</Text>
+                            <Text style={styles.availableIngredients}>
+                              {recipe.available_ingredients.join(', ')}
+                            </Text>
+                          </View>
+                        )}
+                        
+                        {recipe.missing_ingredients.length > 0 && (
+                          <View style={styles.ingredientSection}>
+                            <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
+                            <Text style={styles.missingIngredients}>
+                              {recipe.missing_ingredients.join(', ')}
+                            </Text>
+                          </View>
+                        )}
+                        
+                        <View style={styles.nutritionRow}>
+                          <Text style={styles.nutritionText}>
+                            🔥 {recipe.nutrition.calories} cal
+                          </Text>
+                          <Text style={styles.nutritionText}>
+                            💪 {recipe.nutrition.protein}g protein
+                          </Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
               </View>
             ))
           )}
@@ -85,13 +152,17 @@ export default function ChatScreen() {
           <TouchableOpacity 
             style={styles.sendButton} 
             onPress={handleSend}
-            disabled={inputText.trim() === ''}
+            disabled={inputText.trim() === '' || isLoading}
           >
-            <Ionicons 
-              name="send" 
-              size={24} 
-              color={inputText.trim() === '' ? '#ccc' : '#297A56'} 
-            />
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#297A56" />
+            ) : (
+              <Ionicons 
+                name="send" 
+                size={24} 
+                color={inputText.trim() === '' ? '#ccc' : '#297A56'} 
+              />
+            )}
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </View>
@@ -174,5 +245,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  recipesContainer: {
+    marginTop: 8,
+    marginLeft: 16,
+  },
+  recipeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  recipeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  recipeTime: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  recipeMatch: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '600',
+    marginBottom: 12,
+  },
+  ingredientSection: {
+    marginBottom: 8,
+  },
+  ingredientTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  availableIngredients: {
+    fontSize: 14,
+    color: '#297A56',
+    lineHeight: 20,
+  },
+  missingIngredients: {
+    fontSize: 14,
+    color: '#DC2626',
+    lineHeight: 20,
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  nutritionText: {
+    fontSize: 12,
+    color: '#666',
   },
 });

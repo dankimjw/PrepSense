@@ -116,3 +116,70 @@ class PantryService:
             # logger.error(f"Error adding pantry item: {e}") # Requires logger setup
             print(f"Error adding pantry item: {e}") # Simple print for now
             raise # Re-raise the exception to be handled by the router
+            
+    async def delete_user_pantry_items(self, user_id: int, hours_ago: int = None, delete_all: bool = False) -> Dict[str, Any]:
+        """
+        Deletes pantry items for a specific user.
+        
+        Args:
+            user_id: The user ID whose pantry items to delete
+            hours_ago: If provided, only delete items added within the last X hours
+            delete_all: If True, delete all items for this user (overrides hours_ago)
+        
+        Returns:
+            Dict with deletion status and count of deleted items
+        """
+        # First get the pantry IDs for this user to ensure we only delete their items
+        pantry_query = """
+            SELECT pantry_id
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
+            WHERE user_id = @user_id
+        """
+        pantry_params = {"user_id": user_id}
+        pantry_results = self.bq_service.execute_query(pantry_query, pantry_params)
+        
+        if not pantry_results:
+            return {"message": "No pantry found for this user", "deleted_count": 0}
+            
+        # Extract pantry IDs
+        pantry_ids = [row["pantry_id"] for row in pantry_results]
+        
+        # Build the deletion query
+        if delete_all:
+            # Delete all items for this user's pantries
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_id IN UNNEST(@pantry_ids)
+            """
+            delete_params = {"pantry_ids": pantry_ids}
+        elif hours_ago is not None:
+            # Delete only items added within the specified time window
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_id IN UNNEST(@pantry_ids)
+                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @hours_ago HOUR)
+            """
+            delete_params = {"pantry_ids": pantry_ids, "hours_ago": hours_ago}
+        else:
+            # Default: delete items added in the last 24 hours
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_id IN UNNEST(@pantry_ids)
+                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+            """
+            delete_params = {"pantry_ids": pantry_ids}
+        
+        # Execute the deletion
+        try:
+            result = self.bq_service.execute_query(delete_query, delete_params)
+            # For DML operations like DELETE, the result typically contains statistics
+            # about the operation rather than deleted rows
+            return {
+                "message": "Pantry items deleted successfully", 
+                "deleted_count": "See BigQuery job statistics",
+                "user_id": user_id,
+                "pantry_ids": pantry_ids
+            }
+        except Exception as e:
+            print(f"Error deleting pantry items: {str(e)}")
+            return {"message": f"Error deleting pantry items: {str(e)}", "deleted_count": 0}
