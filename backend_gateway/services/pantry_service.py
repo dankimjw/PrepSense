@@ -183,3 +183,62 @@ class PantryService:
         except Exception as e:
             print(f"Error deleting pantry items: {str(e)}")
             return {"message": f"Error deleting pantry items: {str(e)}", "deleted_count": 0}
+            
+    async def delete_detected_items(self, user_id: int, hours_ago: int = None) -> Dict[str, Any]:
+        """
+        Deletes ONLY pantry items that were added via vision detection.
+        This is safer than delete_user_pantry_items as it preserves manually added items.
+        
+        Args:
+            user_id: The user ID whose detected items to delete
+            hours_ago: If provided, only delete detected items added within the last X hours
+        
+        Returns:
+            Dict with deletion status and count of deleted items
+        """
+        # First get the pantry IDs for this user to ensure we only delete their items
+        pantry_query = """
+            SELECT pantry_id
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
+            WHERE user_id = @user_id
+        """
+        pantry_params = {"user_id": user_id}
+        pantry_results = self.bq_service.execute_query(pantry_query, pantry_params)
+        
+        if not pantry_results:
+            return {"message": "No pantry found for this user", "deleted_count": 0}
+            
+        # Extract pantry IDs
+        pantry_ids = [row["pantry_id"] for row in pantry_results]
+        
+        # Build the deletion query that ONLY targets items tagged with 'vision_detected'
+        if hours_ago is not None:
+            # Delete only vision-detected items added within the specified time window
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_id IN UNNEST(@pantry_ids)
+                AND source = 'vision_detected'
+                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @hours_ago HOUR)
+            """
+            delete_params = {"pantry_ids": pantry_ids, "hours_ago": hours_ago}
+        else:
+            # Default: delete all vision-detected items regardless of time
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_id IN UNNEST(@pantry_ids)
+                AND source = 'vision_detected'
+            """
+            delete_params = {"pantry_ids": pantry_ids}
+        
+        # Execute the deletion
+        try:
+            result = self.bq_service.execute_query(delete_query, delete_params)
+            return {
+                "message": "Vision detected items deleted successfully", 
+                "deleted_count": "See BigQuery job statistics",
+                "user_id": user_id,
+                "pantry_ids": pantry_ids
+            }
+        except Exception as e:
+            print(f"Error deleting vision detected items: {str(e)}")
+            return {"message": f"Error deleting vision detected items: {str(e)}", "deleted_count": 0}

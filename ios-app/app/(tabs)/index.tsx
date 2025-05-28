@@ -1,13 +1,15 @@
 // app/(tabs)/index.tsx - Part of the PrepSense mobile app
 import React, { useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
 import { Buffer } from 'buffer';
 import { useItems } from '../../context/ItemsContext';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
+import { CustomHeader } from '../components/CustomHeader';
 import { API_BASE_URL } from '../../constants/Config';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Helper functions for encoding/decoding data
 function enc(o: any): string {
@@ -136,6 +138,7 @@ const IndexScreen: React.FC = () => {
   // Context hooks after state - must be in consistent order
   const { items, isInitialized, fetchItems } = useItems();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Format, filter, group, and sort items - using useMemo for performance
   const recentItems = useMemo(() => {
@@ -324,58 +327,6 @@ const IndexScreen: React.FC = () => {
     setSelectedCategories([]);
   };
   
-  // Function to cleanup recently added items from BigQuery
-  const cleanupRecentItems = async () => {
-    if (isCleaningUp) return;
-    
-    Alert.alert(
-      'Clean up recent items?',
-      'This will delete items added to the database in the last 24 hours. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Clean Up', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsCleaningUp(true);
-              
-              const response = await fetch(`${API_BASE_URL}/images/cleanup-detected-items`, {
-                method: 'DELETE',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  user_id: 111, // Default demo user ID
-                  hours_ago: 24  // Delete items from the last 24 hours
-                }),
-              });
-              
-              if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.detail || 'Failed to clean up items');
-              }
-              
-              const result = await response.json();
-              console.log('Items cleaned up:', result);
-              
-              // Refresh items list after cleanup
-              fetchItems();
-              
-              Alert.alert('Success', 'Recent items have been cleaned up from the database');
-              
-            } catch (error: any) {
-              console.error('Error cleaning up items:', error);
-              Alert.alert('Error', `Failed to clean up items: ${error.message}`);
-            } finally {
-              setIsCleaningUp(false);
-            }
-          } 
-        },
-      ]
-    );
-  };
-
   // Helper function to format expiration date
   function formatExpirationDate(dateString: string) {
     const date = new Date(dateString);
@@ -409,16 +360,18 @@ const IndexScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>Hello, User</Text>
-          <Text style={styles.date}>{currentDate}</Text>
-        </View>
-        <TouchableOpacity style={styles.profileButton}>
-          <Ionicons name="person-circle" size={32} color="#297A56" />
-        </TouchableOpacity>
-      </View>
+      <Stack.Screen
+        options={{
+          header: () => (
+            <CustomHeader 
+              title="Home"
+              showBackButton={false}
+              showChatButton={true}
+              showAdminButton={true}
+            />
+          )
+        }}
+      />
       
       {/* Search, Filter, and Sort Bar */}
       <SearchBar
@@ -628,20 +581,6 @@ const IndexScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
-      <TouchableOpacity 
-        style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]} 
-        onPress={cleanupRecentItems}
-        disabled={isCleaningUp}
-      >
-        {isCleaningUp ? (
-          <ActivityIndicator size="small" color="#FFFFFF" />
-        ) : (
-          <>
-            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FFFFFF" />
-            <Text style={styles.cleanupButtonText}>Cleanup</Text>
-          </>
-        )}
-      </TouchableOpacity>
     </View>
   );
 };
@@ -925,43 +864,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#4B5563',
   },
-  cleanupButton: {
-    position: 'absolute',
-    right: 16,
-    bottom: 100,
-    backgroundColor: '#EF4444',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    zIndex: 10,
-  },
-  cleanupButtonDisabled: {
-    backgroundColor: '#F87171',
-  },
-  cleanupButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-    fontSize: 14,
-    marginLeft: 6,
-  },
+
   itemName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#111827',
+    color: '#1F2937',
     marginBottom: 4,
   },
   itemExpiry: {
     fontSize: 14,
     color: '#6B7280',
     marginLeft: 8,
-    fontWeight: '500',
   },
   expiringSoon: {
     color: '#D97706',

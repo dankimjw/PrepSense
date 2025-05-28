@@ -20,6 +20,7 @@ export default function RecipeDetailsScreen() {
   const [imageLoading, setImageLoading] = useState(true);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  const [useGenerated, setUseGenerated] = useState(true); // Default to AI generated images
 
   useEffect(() => {
     if (params.recipe) {
@@ -28,19 +29,23 @@ export default function RecipeDetailsScreen() {
         setRecipe(recipeData);
         
         // Generate image for the recipe
-        generateImageForRecipe(recipeData.name);
+        generateImageForRecipe(recipeData.name, useGenerated);
       } catch (error) {
         console.error('Error parsing recipe data:', error);
       }
     }
-  }, [params.recipe]);
+  }, [params.recipe, useGenerated]);
 
-  const generateImageForRecipe = async (recipeName: string) => {
+  const generateImageForRecipe = async (recipeName: string, useAI: boolean = false) => {
     try {
       setImageLoading(true);
       setImageError(null);
       
-      const imageResponse = await generateRecipeImage(recipeName, "professional food photography, beautifully plated, appetizing");
+      const imageResponse = await generateRecipeImage(
+        recipeName, 
+        "professional food photography, beautifully plated, appetizing",
+        useAI
+      );
       setGeneratedImageUrl(imageResponse.image_url);
     } catch (error) {
       console.error('Error generating recipe image:', error);
@@ -156,7 +161,7 @@ export default function RecipeDetailsScreen() {
                   <Text style={styles.imageErrorText}>Image generation failed</Text>
                   <TouchableOpacity 
                     style={styles.retryButton}
-                    onPress={() => generateImageForRecipe(recipe.name)}
+                    onPress={() => generateImageForRecipe(recipe.name, useGenerated)}
                   >
                     <Text style={styles.retryButtonText}>Retry</Text>
                   </TouchableOpacity>
@@ -191,6 +196,10 @@ export default function RecipeDetailsScreen() {
             <View style={styles.metricItem}>
               <Ionicons name="checkmark-circle" size={20} color="#297A56" />
               <Text style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
+            </View>
+            <View style={styles.metricItem}>
+              <Ionicons name="star" size={20} color="#F59E0B" />
+              <Text style={styles.metricText}>{recipe.expected_joy || 75}% joy</Text>
             </View>
           </View>
 

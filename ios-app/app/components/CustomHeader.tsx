@@ -1,8 +1,10 @@
 // app/components/CustomHeader.tsx - Part of the PrepSense mobile app
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useState } from 'react';
+import { API_BASE_URL } from '../../constants/Config';
 
 type CustomHeaderProps = {
   title?: string;
@@ -11,6 +13,7 @@ type CustomHeaderProps = {
   showAdminButton?: boolean;
   showDbButton?: boolean;
   onBackPress?: () => void;
+  onRefresh?: () => void;
 };
 
 export function CustomHeader({ 
@@ -19,11 +22,14 @@ export function CustomHeader({
   showChatButton = false, 
   showAdminButton = false,
   showDbButton = false,
-  onBackPress 
+  onBackPress,
+  onRefresh
 }: CustomHeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   
   // Always show 'PrepSense' as the title
   const headerTitle = 'PrepSense';
@@ -41,6 +47,8 @@ export function CustomHeader({
   const shouldShowChat = isMainTab && showChatButton !== false;
   const shouldShowAdmin = isMainTab && showAdminButton !== false;
   const shouldShowDb = isMainTab && showDbButton !== false;
+  
+  // Cleanup functionality has been moved to the Admin screen
 
   const toggleMenu = () => {
     // Navigate to settings when menu is pressed
@@ -96,13 +104,36 @@ export function CustomHeader({
             </Pressable>
           )}
           {shouldShowAdmin && (
-            <Pressable 
-              hitSlop={12} 
-              onPress={() => router.push('/(tabs)/admin')}
-              style={styles.iconButton}
-            >
-              <Ionicons name="shield-outline" size={24} color="#1b6b45" />
-            </Pressable>
+            <View>
+              <Pressable 
+                hitSlop={12} 
+                onPress={() => setShowAdminMenu(!showAdminMenu)}
+                style={styles.iconButton}
+              >
+                <Ionicons name="shield-outline" size={24} color="#1b6b45" />
+              </Pressable>
+              
+              {/* Popup admin menu */}
+              {showAdminMenu && (
+                <View style={styles.adminMenuContainer}>
+                  {/* Admin Settings option */}
+                  <Pressable 
+                    style={styles.adminMenuItem}
+                    onPress={() => {
+                      setShowAdminMenu(false);
+                      router.push('/(tabs)/admin');
+                    }}
+                  >
+                    <View style={styles.adminMenuIcon}>
+                      <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
+                    </View>
+                    <Text style={styles.adminMenuText}>Admin Panel</Text>
+                  </Pressable>
+                  
+
+                </View>
+              )}
+            </View>
           )}
           <Pressable 
             hitSlop={12} 
@@ -121,32 +152,74 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: '#fff',
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e5e5',
+    borderBottomColor: '#e4e4e7',
+    zIndex: 10, // Increased to ensure admin menu shows above everything
+    elevation: 10,
   },
   header: {
-    marginTop: 17, // Matches iOS standard spacing
-    marginHorizontal: 24,
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    height: 36, // Standard touch target size
-    marginBottom: 8,
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#1b6b45',
-    marginLeft: 0,
+    flex: 1,
+    textAlign: 'center',
+  },
+  leftButton: {
+    width: 40,
+    alignItems: 'flex-start',
   },
   rightButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginLeft: 'auto',
   },
   iconButton: {
-    marginLeft: 16,
+    paddingHorizontal: 8,
   },
-  leftButton: {
-    marginRight: 'auto',
+  adminMenuContainer: {
+    position: 'absolute',
+    right: 0,
+    top: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    padding: 8,
+    width: 200,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    zIndex: 20,
+  },
+  adminMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 4,
+  },
+  adminMenuItemDisabled: {
+    opacity: 0.6,
+  },
+  adminMenuIcon: {
+    backgroundColor: '#1b6b45',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  adminMenuText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#1F2937',
   },
 });
+
+export default CustomHeader;

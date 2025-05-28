@@ -1,6 +1,7 @@
 // app/(tabs)/admin.tsx - Part of the PrepSense mobile app
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Switch, Alert, ActivityIndicatorBase } from 'react-native';
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
 import { Config } from '../../config';
@@ -51,8 +52,9 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'users' | 'bigquery'>('users');
+  const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'bigquery'>('cleanup');
   const [isMockMode, setIsMockMode] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   // Load mock users for prototype - TODO: Replace with real API when backend is ready
   useEffect(() => {
@@ -185,6 +187,54 @@ export default function AdminScreen() {
     </>
   );
 
+  // Function to cleanup recently added items from BigQuery
+  const cleanupRecentItems = async () => {
+    if (isCleaningUp) return;
+    
+    Alert.alert(
+      'Clean up recent items?',
+      'This will delete items added via vision detection in the last 24 hours. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clean Up', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsCleaningUp(true);
+              
+              const response = await fetch(`${Config.API_BASE_URL}/images/cleanup-detected-items`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  user_id: 111, // Default demo user ID
+                  hours_ago: 24  // Delete items from the last 24 hours
+                }),
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to clean up items');
+              }
+              
+              const result = await response.json();
+              console.log('Items cleaned up:', result);
+              Alert.alert('Success', 'Vision-detected items have been cleaned up from the database');
+              
+            } catch (error: any) {
+              console.error('Error cleaning up items:', error);
+              Alert.alert('Error', `Failed to clean up items: ${error.message}`);
+            } finally {
+              setIsCleaningUp(false);
+            }
+          } 
+        },
+      ]
+    );
+  };
+
   const renderBigQueryTab = () => (
     <View style={styles.bigQueryContainer}>
       <Text style={styles.header}>BigQuery Testing</Text>
@@ -200,6 +250,27 @@ export default function AdminScreen() {
         <Text style={[styles.settingValue, !isMockMode && styles.activeMode]}>
           {isMockMode ? 'Using Mock Data' : 'Live Mode'}
         </Text>
+
+        {/* Cleanup Button */}
+        <View style={styles.cleanupContainer}>
+          <TouchableOpacity
+            style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]}
+            onPress={cleanupRecentItems}
+            disabled={isCleaningUp}
+          >
+            {isCleaningUp ? (
+              <ActivityIndicator size="small" color="#FFFFFF" />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+                <Text style={styles.cleanupButtonText}>Cleanup Vision Items</Text>
+              </>
+            )}
+          </TouchableOpacity>
+          <Text style={styles.cleanupDescription}>
+            Remove items added via vision detection in the last 24 hours
+          </Text>
+        </View>
       </View>
 
       <Text style={styles.sectionTitle}>Available Tables</Text>
@@ -274,21 +345,61 @@ export default function AdminScreen() {
       {/* Tab Navigation */}
       <View style={styles.tabContainer}>
         <TouchableOpacity
+          style={[styles.tab, activeTab === 'cleanup' && styles.activeTab]}
+          onPress={() => setActiveTab('cleanup')}
+        >
+          <Text style={[styles.tabText, activeTab === 'cleanup' && styles.activeTabText]}>
+            <MaterialCommunityIcons name="broom" size={16} style={styles.tabIcon} /> Cleanup
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
           style={[styles.tab, activeTab === 'users' && styles.activeTab]}
           onPress={() => setActiveTab('users')}
         >
-          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>Users</Text>
+          <Text style={[styles.tabText, activeTab === 'users' && styles.activeTabText]}>
+            <Ionicons name="people-outline" size={16} style={styles.tabIcon} /> Users
+          </Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.tab, activeTab === 'bigquery' && styles.activeTab]}
           onPress={() => setActiveTab('bigquery')}
         >
-          <Text style={[styles.tabText, activeTab === 'bigquery' && styles.activeTabText]}>BigQuery</Text>
+          <Text style={[styles.tabText, activeTab === 'bigquery' && styles.activeTabText]}>
+            <Ionicons name="analytics-outline" size={16} style={styles.tabIcon} /> BigQuery
+          </Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView}>
-        {activeTab === 'users' ? renderUsersTab() : renderBigQueryTab()}
+        {activeTab === 'cleanup' ? (
+          <View style={styles.cleanupTabContainer}>
+            <Text style={styles.header}>Cleanup Vision Items</Text>
+            <View style={styles.cleanupContainer}>
+              <Text style={styles.cleanupDescription}>
+                This will remove all items that were added via vision detection in the last 24 hours.
+                This action cannot be undone.
+              </Text>
+              <TouchableOpacity
+                style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]}
+                onPress={cleanupRecentItems}
+                disabled={isCleaningUp}
+              >
+                {isCleaningUp ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <MaterialCommunityIcons name="broom" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+                    <Text style={styles.cleanupButtonText}>Cleanup Vision Items</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : activeTab === 'users' ? (
+          renderUsersTab()
+        ) : (
+          renderBigQueryTab()
+        )}
       </ScrollView>
 
       {activeTab === 'users' && (
@@ -326,18 +437,22 @@ const styles = StyleSheet.create({
   },
   tab: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 12,
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#297A56',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: '#6B7280',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  tabIcon: {
+    marginRight: 4,
+  },
+  activeTab: {
+    borderBottomWidth: 2,
+    borderBottomColor: '#297A56',
   },
   activeTabText: {
     color: '#297A56',
@@ -536,5 +651,56 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 14,
     color: '#666',
+  },
+  // Cleanup Tab Styles
+  cleanupTabContainer: {
+    padding: 20,
+  },
+  cleanupContainer: {
+    marginTop: 20,
+    marginBottom: 20,
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  cleanupButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#dc3545',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    elevation: 2,
+    marginTop: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  cleanupButtonDisabled: {
+    opacity: 0.7,
+    backgroundColor: '#f87171',
+  },
+  cleanupIcon: {
+    marginRight: 10,
+  },
+  cleanupButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  cleanupDescription: {
+    fontSize: 15,
+    color: '#4b5563',
+    lineHeight: 24,
+    marginBottom: 8,
   },
 });
