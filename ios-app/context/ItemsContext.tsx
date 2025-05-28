@@ -39,12 +39,13 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       // Transform the pantry items to match the Item type
       const transformedItems = pantryItems.map(item => ({
         ...item,
-        id: item.id?.toString() || Math.random().toString(36).substr(2, 9), // Ensure ID is a string
-        item_name: item.item_name || 'Unknown Item',
-        quantity_amount: item.quantity_amount || 1,
-        quantity_unit: item.quantity_unit || 'unit',
-        expected_expiration: item.expected_expiration || new Date().toISOString(),
-        addedDate: item.addedDate || new Date().toISOString()
+        id: item.pantry_item_id?.toString() || Math.random().toString(36).substr(2, 9), // Use pantry_item_id as the ID
+        item_name: item.product_name || 'Unknown Item',
+        quantity_amount: item.quantity || 1,
+        quantity_unit: item.unit_of_measurement || 'unit',
+        expected_expiration: item.expiration_date || new Date().toISOString(),
+        category: item.food_category || 'Uncategorized',
+        addedDate: item.pantry_item_created_at || new Date().toISOString()
       }));
       
       setItems(transformedItems);
