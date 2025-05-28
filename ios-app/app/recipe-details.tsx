@@ -11,24 +11,44 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Recipe } from '../services/api';
+import { Recipe, generateRecipeImage } from '../services/api';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
 
   useEffect(() => {
     if (params.recipe) {
       try {
         const recipeData = JSON.parse(params.recipe as string);
         setRecipe(recipeData);
+        
+        // Generate image for the recipe
+        generateImageForRecipe(recipeData.name);
       } catch (error) {
         console.error('Error parsing recipe data:', error);
       }
     }
   }, [params.recipe]);
+
+  const generateImageForRecipe = async (recipeName: string) => {
+    try {
+      setImageLoading(true);
+      setImageError(null);
+      
+      const imageResponse = await generateRecipeImage(recipeName, "professional food photography, beautifully plated, appetizing");
+      setGeneratedImageUrl(imageResponse.image_url);
+    } catch (error) {
+      console.error('Error generating recipe image:', error);
+      setImageError('Failed to generate recipe image');
+    } finally {
+      setImageLoading(false);
+    }
+  };
 
   if (!recipe) {
     return (
@@ -39,12 +59,6 @@ export default function RecipeDetailsScreen() {
     );
   }
 
-  // Generate image URL based on recipe name
-  const getRecipeImageUrl = (recipeName: string) => {
-    // Using a food image API (like Unsplash or Pexels)
-    const query = recipeName.toLowerCase().replace(/\s+/g, '%20');
-    return `https://source.unsplash.com/800x400/?${query},food,recipe`;
-  };
 
   // Generate step-by-step instructions based on recipe
   const generateInstructions = (recipe: Recipe) => {
@@ -123,15 +137,36 @@ export default function RecipeDetailsScreen() {
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Recipe Image */}
         <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: getRecipeImageUrl(recipe.name) }}
-            style={styles.recipeImage}
-            onLoadStart={() => setImageLoading(true)}
-            onLoadEnd={() => setImageLoading(false)}
-          />
-          {imageLoading && (
-            <View style={styles.imageLoadingOverlay}>
-              <ActivityIndicator size="large" color="#297A56" />
+          {generatedImageUrl && !imageError ? (
+            <Image
+              source={{ uri: generatedImageUrl }}
+              style={styles.recipeImage}
+              onError={() => setImageError('Failed to load generated image')}
+            />
+          ) : (
+            <View style={styles.imagePlaceholder}>
+              {imageLoading ? (
+                <>
+                  <ActivityIndicator size="large" color="#297A56" />
+                  <Text style={styles.imageLoadingText}>Generating recipe image...</Text>
+                </>
+              ) : imageError ? (
+                <>
+                  <Ionicons name="image-outline" size={64} color="#ccc" />
+                  <Text style={styles.imageErrorText}>Image generation failed</Text>
+                  <TouchableOpacity 
+                    style={styles.retryButton}
+                    onPress={() => generateImageForRecipe(recipe.name)}
+                  >
+                    <Text style={styles.retryButtonText}>Retry</Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="image-outline" size={64} color="#ccc" />
+                  <Text style={styles.imageErrorText}>No image available</Text>
+                </>
+              )}
             </View>
           )}
         </View>
@@ -421,5 +456,36 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+  },
+  imageLoadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  imageErrorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 12,
+    backgroundColor: '#297A56',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

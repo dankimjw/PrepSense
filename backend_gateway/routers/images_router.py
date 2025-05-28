@@ -119,7 +119,9 @@ async def save_detected_items(
                     "expiration_date": item.get("expiration_date") or item.get("expected_expiration"),
                     "status": "available",
                     "unit_price": 0.0,  # Default since vision can't detect price
-                    "total_price": 0.0  # Default 
+                    "total_price": 0.0,  # Default
+                    "source": "vision_detected",  # Tag items as detected by vision for safer cleanup
+                    "detection_timestamp": "CURRENT_TIMESTAMP()"  # Add timestamp for filtering during cleanup
                 }
                 
                 result = await pantry_service.add_pantry_item(pantry_id, item_data)
@@ -156,7 +158,8 @@ async def cleanup_detected_items(
     pantry_service: PantryService = Depends(get_pantry_service)
 ):
     """
-    Cleanup recently detected food items for demo purposes.
+    Cleanup items that were specifically detected and added via vision detection.
+    Only removes items tagged with 'vision_detected' source, preserving manually added items.
     
     Args:
         user_id: The user ID to clean up items for (defaults to 111 for demo)
@@ -167,7 +170,7 @@ async def cleanup_detected_items(
         A status message and count of deleted items
     """
     try:
-        result = await pantry_service.delete_user_pantry_items(
+        result = await pantry_service.delete_detected_items(
             user_id=user_id,
             hours_ago=hours_ago
         )
