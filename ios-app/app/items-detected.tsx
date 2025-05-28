@@ -6,12 +6,14 @@ import {
   StyleSheet, Pressable, Image,
   Alert,
   SafeAreaView,
+  ActivityIndicator
 } from 'react-native';
 import { useMemo, useState, useEffect } from 'react';
 import { Feather } from '@expo/vector-icons';
 import { CustomHeader } from './components/CustomHeader';
 import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 import { useItems, type Item } from '../context/ItemsContext';
+import { API_BASE_URL } from '../constants/Config';
 
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
@@ -100,12 +102,63 @@ export default function ItemsDetected() {
   };
 
   const { addItems } = useItems();
+  const [isSaving, setIsSaving] = useState(false);
+  const [savedToBigQuery, setSavedToBigQuery] = useState(false);
   
+  // Just add to local context and navigate home
   const done = () => {
     // Add all items to the context
     addItems(items);
     // Navigate back to home
     router.replace('/(tabs)');
+  };
+  
+  // Save items to BigQuery and add to local context
+  const saveToDatabase = async () => {
+    if (isSaving || items.length === 0) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Call the backend API endpoint to save items to BigQuery
+      const response = await fetch(`${API_BASE_URL}/images/save-detected-items`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: items,
+          user_id: 111 // Default demo user ID
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to save items');
+      }
+      
+      const result = await response.json();
+      console.log('Items saved to BigQuery:', result);
+      
+      // Add to local context as well
+      addItems(items);
+      
+      // Show success message
+      Alert.alert(
+        'Success', 
+        `${result.saved_count} items saved to database successfully!`,
+        [{ text: 'OK', onPress: () => {
+          setSavedToBigQuery(true);
+          router.replace('/(tabs)');
+        }}]
+      );
+      
+    } catch (error) {
+      console.error('Error saving items to BigQuery:', error);
+      Alert.alert('Error', `Failed to save items: ${error.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const getCategoryColor = (category: string): string => {
@@ -208,8 +261,19 @@ export default function ItemsDetected() {
         />
       </View>
       <View style={styles.bottomBar}>
+        <Pressable 
+          style={[styles.saveToDb, { opacity: isSaving ? 0.7 : 1 }]} 
+          onPress={saveToDatabase}
+          disabled={isSaving}
+        >
+          {isSaving ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <Text style={styles.saveToBqTxt}>Save to Database</Text>
+          )}
+        </Pressable>
         <Pressable style={styles.done} onPress={done}>
-          <Text style={styles.doneTxt}>Done</Text>
+          <Text style={styles.doneTxt}>Skip</Text>
         </Pressable>
       </View>
     </SafeAreaViewRN>
@@ -284,17 +348,33 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  done: {
-    width: '100%',
-    backgroundColor: '#297A56',
-    paddingVertical: 16,
-    borderRadius: 12,
+  done: { 
+    flex: 1,
+    height: 56,
+    backgroundColor: '#6B7280',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 0,
-    marginBottom: 0,
+    borderRadius: 8,
+    marginLeft: 12,
   },
-  doneTxt: { color: '#fff', fontWeight: 'bold' },
+  doneTxt: { 
+    color: '#FFFFFF', 
+    fontSize: 16, 
+    fontWeight: '600' 
+  },
+  saveToDb: {
+    flex: 2,
+    height: 56,
+    backgroundColor: '#297A56',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  saveToBqTxt: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600'
+  },
   metaContainer: {
     flexDirection: 'row',
     alignItems: 'center',
