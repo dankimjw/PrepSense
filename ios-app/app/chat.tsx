@@ -3,6 +3,7 @@ import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, Keyb
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { CustomHeader } from './components/CustomHeader';
 import { sendChatMessage, Recipe } from '../services/api';
 
@@ -27,6 +28,7 @@ export default function ChatScreen() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(true);
+  const router = useRouter();
   const insets = useSafeAreaInsets();
 
   const sendMessage = async (messageText: string) => {
@@ -134,7 +136,16 @@ export default function ChatScreen() {
                 {message.sender === 'ai' && message.recipes && message.recipes.length > 0 && (
                   <View style={styles.recipesContainer}>
                     {message.recipes.map((recipe, index) => (
-                      <View key={index} style={styles.recipeCard}>
+                      <TouchableOpacity 
+                        key={index} 
+                        style={styles.recipeCard}
+                        onPress={() => {
+                          router.push({
+                            pathname: '/recipe-details',
+                            params: { recipe: JSON.stringify(recipe) }
+                          });
+                        }}
+                      >
                         <Text style={styles.recipeTitle}>{recipe.name}</Text>
                         <Text style={styles.recipeTime}>⏱️ {recipe.time} minutes</Text>
                         <Text style={styles.recipeMatch}>
@@ -167,7 +178,11 @@ export default function ChatScreen() {
                             💪 {recipe.nutrition.protein}g protein
                           </Text>
                         </View>
-                      </View>
+                        
+                        <View style={styles.tapHintContainer}>
+                          <Text style={styles.tapHint}>Tap for full recipe →</Text>
+                        </View>
+                      </TouchableOpacity>
                     ))}
                   </View>
                 )}
@@ -458,5 +473,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
+  },
+  tapHintContainer: {
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  tapHint: {
+    fontSize: 12,
+    color: '#999',
+    fontStyle: 'italic',
   },
 });
