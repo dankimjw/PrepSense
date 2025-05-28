@@ -9,6 +9,7 @@ import logging
 
 from ..models.user import UserCreate, UserInDB, UserResponse, UserProfileResponse, UserProfilePreference
 from ..services.bigquery_service import BigQueryService
+from ..services.recipe_service import RecipeService
 from ..services.user_service import UserService
 from ..core.security import create_access_token, reusable_oauth2, get_password_hash, verify_password, oauth2_scheme_optional
 from ..core.config import settings

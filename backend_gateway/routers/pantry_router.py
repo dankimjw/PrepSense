@@ -1,6 +1,10 @@
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Any, Dict, Optional
 import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 # Security imports
 from backend_gateway.core.security import oauth2_scheme_optional, get_current_user
@@ -15,7 +19,7 @@ from backend_gateway.services.pantry_service import PantryService
 
 # Model for creating a pantry item
 from pydantic import BaseModel, Field
-from datetime import date
+from datetime import date, datetime
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -34,6 +38,30 @@ class PantryItemCreate(BaseModel):
         from_attributes = True
 
 
+class UserPantryItem(BaseModel):
+    user_id: int
+    user_name: str
+    pantry_id: int
+    pantry_item_id: int
+    quantity: float
+    unit_of_measurement: str
+    expiration_date: Optional[date]
+    unit_price: Optional[float]
+    total_price: Optional[float]
+    pantry_item_created_at: Optional[datetime]
+    used_quantity: Optional[int]
+    status: Optional[str]
+    product_id: Optional[int]
+    product_name: Optional[str]
+    brand_name: Optional[str]
+    food_category: Optional[str]
+    upc_code: Optional[str]
+    product_created_at: Optional[datetime]
+    
+    class Config:
+        from_attributes = True
+
+
 router = APIRouter(
     prefix="/pantry",
     tags=["Pantry"],
@@ -48,19 +76,33 @@ def get_bigquery_service() -> BigQueryService:
 def get_pantry_service(bq_service: BigQueryService = Depends(get_bigquery_service)) -> PantryService:
     return PantryService(bq_service=bq_service)
 
-@router.get("/items", response_model=List[Dict[str, Any]], summary="List User's Pantry Items")
-async def list_user_pantry_items(
+@router.get("/user/{user_id}/items", response_model=List[UserPantryItem], summary="Get User's Pantry Items")
+async def get_user_pantry_items(
+    user_id: int,
     pantry_service: PantryService = Depends(get_pantry_service)
 ):
-    """List all pantry items for a hardcoded user (ID 111)."""
-    numeric_user_id = 111  # TEMPORARY: Hardcode for user 111
+    """
+    Get all pantry items for a specific user from the user_pantry_full view.
     
+    Args:
+        user_id: The ID of the user whose pantry items to retrieve
+        pantry_service: The pantry service instance
+        
+    Returns:
+        List of UserPantryItem objects containing all pantry details
+        
+    Raises:
+        HTTPException: If there's an error retrieving items
+    """
     try:
-        items = await pantry_service.get_pantry_items(numeric_user_id)
+        items = await pantry_service.get_user_pantry_items(user_id)
         return items
     except Exception as e:
-        # Consider logging the exception e for server-side diagnostics
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve pantry items: {str(e)}")
+        logger.error(f"Error retrieving pantry items for user {user_id}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve pantry items: {str(e)}"
+        )
 
 @router.post("/items", response_model=Dict[str, Any], status_code=201, summary="Add Item to User's Pantry")
 async def add_pantry_item_for_user(

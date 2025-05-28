@@ -54,6 +54,10 @@ app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"]
 app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["Pantry Image Processing"])
 app.include_router(bigquery_router, prefix=f"{settings.API_V1_STR}/bigquery", tags=["BigQuery"])
 
+# Import pantry router after other routers to avoid circular imports
+from backend_gateway.routers.pantry_router import router as pantry_router
+app.include_router(pantry_router, prefix=f"{settings.API_V1_STR}", tags=["Pantry"])
+
 @app.get("/", tags=["Root"])
 async def root():
     return {"message": "Welcome to the PrepSense Gateway API. Visit /docs for API documentation."}
