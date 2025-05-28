@@ -41,6 +41,8 @@ import argparse
 from pathlib import Path
 from typing import Optional, List
 import socket
+import webbrowser
+import threading
 from dotenv import load_dotenv
 
 # Default configuration
@@ -195,10 +197,29 @@ def check_port_available(host: str, port: int) -> bool:
         return False
 
 def start_backend_server(host: str, port: int, reload: bool = True):
-    """Start the backend server using uvicorn"""
+    """Start the backend server using uvicorn and attempt to open docs page."""
     print(f"Starting backend server on {host}:{port}")
+
+    def open_docs_in_browser(target_host: str, target_port: int):
+        docs_url_host = "127.0.0.1" if target_host == "0.0.0.0" else target_host
+        docs_url = f"http://{docs_url_host}:{target_port}/docs"
+        # Adding a newline for cleaner output, as this might print after other uvicorn logs
+        print(f"\nAttempting to open API docs at {docs_url} in your browser (after 3s delay)...")
+        try:
+            webbrowser.open_new_tab(docs_url)
+            print("Successfully requested to open API docs in browser.")
+        except Exception as e:
+            print(f"Could not open browser automatically: {e}")
+            print(f"Please open the API docs manually by navigating to: {docs_url}")
+
+    # Start a timer to open the docs page.
+    # This timer will run 'open_docs_in_browser' after 3 seconds in a separate thread.
+    doc_opener_timer = threading.Timer(3.0, open_docs_in_browser, args=[host, port])
+    doc_opener_timer.daemon = True  # So it doesn't prevent program exit
+    doc_opener_timer.start()
+
     try:
-        from backend_gateway.app import app
+        from backend_gateway.app import app # Original placement
         uvicorn.run(
             "backend_gateway.app:app",
             host=host,
