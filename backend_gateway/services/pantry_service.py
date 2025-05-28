@@ -12,31 +12,16 @@ class PantryService:
         """
         self.bq_service = bq_service
 
-    async def get_pantry_items(self, user_id: int) -> List[Dict[str, Any]]: # Modified
+    async def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
         """
         Retrieves all pantry items for a specific user from BigQuery.
         """
         query = """
-            SELECT
-              pi.pantry_item_id,
-              pi.pantry_id,
-              p.user_id, -- Added for clarity/verification, though filtered by it
-              pi.quantity,
-              pi.unit_of_measurement,
-              pi.expiration_date,
-              pi.unit_price,
-              pi.total_price,
-              pi.created_at AS item_created_at, -- Aliased to avoid conflict if pantry also has created_at
-              pi.used_quantity,
-              pi.status
+            SELECT *
             FROM
-              `adsp-34002-on02-prep-sense.Inventory.pantry_items` AS pi
-            INNER JOIN
-              `adsp-34002-on02-prep-sense.Inventory.pantry` AS p
-            ON
-              pi.pantry_id = p.pantry_id
+              `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
             WHERE
-              p.user_id = @user_id;
+              user_id = @user_id;
         """
         params = {"user_id": user_id}
         # BigQueryService.execute_query is synchronous, if it needs to be async,
