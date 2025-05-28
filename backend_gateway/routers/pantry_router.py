@@ -126,31 +126,63 @@ async def add_pantry_item_for_user(
         logger.error(f"Error adding pantry item: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
 
-@router.get("/user-pantry-full", response_model=List[Dict[str, Any]], summary="Get User's Full Pantry View")
-async def get_user_pantry_full(
-    user_id: int = 111,
-    bq: BigQueryService = Depends(get_bigquery_service)
-):
+@router.get("/user/{user_id}/full", response_model=List[Dict[str, Any]])
+async def get_user_pantry_full(user_id: int = 111, bq: BigQueryService = Depends(get_bigquery_service)):
     """
     Get the user's full pantry view ordered by expiration date.
     Uses the user_pantry_full table which likely contains joined data.
     """
     try:
+        # The query to get the full user pantry view
         query = """
             SELECT *
-            FROM `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
-            WHERE user_id = @user_id
-            ORDER BY expiration_date
+            FROM
+              `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
+            WHERE
+              user_id = @user_id
+            ORDER BY
+              expiration_date ASC
         """
         
         params = {"user_id": user_id}
-        results = bq.execute_query(query, params)
         
-        return results
-        
+        # Execute the query and return results
+        return bq.execute_query(query, params)
+    
     except Exception as e:
-        logger.error(f"Error fetching user pantry full for user {user_id}: {str(e)}")
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to retrieve user pantry data: {str(e)}"
+        logger.error(f"Error retrieving user pantry full view: {e}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving pantry items: {str(e)}")
+
+
+@router.delete("/user/{user_id}/items", response_model=Dict[str, Any])
+async def delete_user_pantry_items(
+    user_id: int = 111, 
+    hours_ago: Optional[int] = None,
+    delete_all: bool = False,
+    pantry_service: PantryService = Depends(get_pantry_service)
+):
+    """
+    Delete pantry items for a specific user.
+    
+    For demo purposes, this endpoint allows removing recently added items to prevent
+    accumulation of duplicate items when testing vision detection and item adding features.
+    
+    Args:
+        user_id: The ID of the user whose pantry items to delete (defaults to 111 for demo)
+        hours_ago: If provided, only delete items added within the last X hours
+        delete_all: If True, delete all items for this user (overrides hours_ago)
+        pantry_service: The pantry service instance
+        
+    Returns:
+        A status message and count of deleted items
+    """
+    try:
+        result = await pantry_service.delete_user_pantry_items(
+            user_id=user_id,
+            hours_ago=hours_ago,
+            delete_all=delete_all
         )
+        return result
+    except Exception as e:
+        logger.error(f"Error deleting user pantry items: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting pantry items: {str(e)}")
