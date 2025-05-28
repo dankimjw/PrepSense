@@ -58,6 +58,10 @@ app.include_router(bigquery_router, prefix=f"{settings.API_V1_STR}/bigquery", ta
 from backend_gateway.routers.pantry_router import router as pantry_router
 app.include_router(pantry_router, prefix=f"{settings.API_V1_STR}", tags=["Pantry"])
 
+# Import chat router
+from backend_gateway.routers.chat_router import router as chat_router
+app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
+
 @app.get("/", tags=["Root"])
 async def root():
     return {"message": "Welcome to the PrepSense Gateway API. Visit /docs for API documentation."}

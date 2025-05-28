@@ -1,72 +1,80 @@
 // app/(tabs)/index.tsx - Part of the PrepSense mobile app
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Buffer } from 'buffer';
-
-// Helper functions for encoding/decoding data
-const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
-const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useItems } from '../../context/ItemsContext';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
 
+// Helper functions for encoding/decoding data
+function enc(o: any): string {
+  return Buffer.from(JSON.stringify(o)).toString('base64');
+}
+
+function dec(s: string): any {
+  return JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
+}
+
+// Type definitions
+type SortBy = 'name' | 'expiry' | 'category';
+type SortOrder = 'asc' | 'desc';
+
 // Helper function to get icon and color based on item details
 const getItemStyle = (item: { name: string; unit: string; category?: string }) => {
-  const lowerName = item.name.toLowerCase();
-  const lowerUnit = item.unit.toLowerCase();
-  
-  // Default style
-  let style = {
-    icon: 'shopping-bag' as keyof typeof MaterialIcons.glyphMap,
-    bgColor: '#F0F7F4',
-    iconColor: '#297A56',
-    isProduce: false,
-    isBox: false,
-    isCan: false
+  const unit = item.unit.toLowerCase();
+  const name = item.name.toLowerCase();
+  const category = item.category?.toLowerCase() || '';
+
+  // Define icon mappings
+  const iconMappings: { [key: string]: { icon: string; color: string } } = {
+    // Weight-based items
+    'kg': { icon: 'scale', color: '#4F46E5' },
+    'g': { icon: 'scale', color: '#4F46E5' },
+    'lb': { icon: 'scale', color: '#4F46E5' },
+    'oz': { icon: 'scale', color: '#4F46E5' },
+    
+    // Volume-based items
+    'l': { icon: 'water', color: '#3B82F6' },
+    'ml': { icon: 'water', color: '#3B82F6' },
+    'gallon': { icon: 'water', color: '#3B82F6' },
+    'quart': { icon: 'water', color: '#3B82F6' },
+    'pint': { icon: 'water', color: '#3B82F6' },
+    'cup': { icon: 'cup', color: '#8B5CF6' },
+    'tbsp': { icon: 'silverware', color: '#8B5CF6' },
+    'tsp': { icon: 'silverware', color: '#8B5CF6' },
+    
+    // Count-based items
+    'count': { icon: 'numeric', color: '#10B981' },
+    'dozen': { icon: 'egg-easter', color: '#10B981' },
+    
+    // Category-based overrides
+    'dairy': { icon: 'cow', color: '#F59E0B' },
+    'meat': { icon: 'food-steak', color: '#DC2626' },
+    'produce': { icon: 'food-apple', color: '#10B981' },
+    'bakery': { icon: 'bread-slice', color: '#D97706' },
+    'beverage': { icon: 'cup-water', color: '#3B82F6' },
+    'snack': { icon: 'popcorn', color: '#8B5CF6' },
+    'frozen': { icon: 'snowflake', color: '#06B6D4' },
+    'canned': { icon: 'can', color: '#6B7280' },
+    'dry': { icon: 'barley', color: '#A16207' },
+    'spice': { icon: 'shaker', color: '#D946EF' },
+    'condiment': { icon: 'bottle-tonic', color: '#EC4899' },
   };
-  
-  // Check for specific food categories
-  // Fruits
-  if (/apple|pear|peach|plum|nectarine|apricot|banana|orange|tangerine|clementine|mandarin|strawberr|blueberr|raspberr|blackberr|berry|berries|grape|watermelon|cantaloupe|honeydew|melon|pineapple|mango|papaya|guava|kiwi|dragonfruit|passionfruit|avocado|tomato|cherr/i.test(lowerName)) {
-    style = { ...style, icon: 'eco', bgColor: '#FEF3F2', iconColor: '#DC2626', isProduce: true };
+
+  // Check category first
+  if (category && iconMappings[category]) {
+    return iconMappings[category];
   }
-  
-  // Vegetables
-  if (/carrot|potato|onion|garlic|ginger|beet|radish|turnip|parsnip|rutabaga|broccoli|cauliflower|cabbage|brussel|kale|lettuce|spinach|arugula|chard|collard|pepper|chili|jalapeno|habanero|poblano|serrano|cucumber|zucchini|squash|pumpkin|eggplant|corn|peas|bean|legume|lentil|chickpea|edamame|soy/i.test(lowerName)) {
-    style = { ...style, icon: 'eco', bgColor: '#F0FDF4', iconColor: '#16A34A', isProduce: true };
+
+  // Then check unit
+  if (iconMappings[unit]) {
+    return iconMappings[unit];
   }
-  
-  // Packaging types
-  if (/can|tin/i.test(lowerName) || /can|tin/i.test(lowerUnit)) {
-    style = { ...style, icon: 'local-drink', bgColor: '#EFF6FF', iconColor: '#2563EB', isCan: true };
-  }
-  if (/box|pack|package|cereal/i.test(lowerName) || /box|pack|package/i.test(lowerUnit)) {
-    style = { ...style, icon: 'inventory-2', bgColor: '#F5F3FF', iconColor: '#7C3AED', isBox: true };
-  }
-  if (/bottle|bottles|jar|beverage|drink|soda|water|juice/i.test(lowerName) || /bottle|bottles|jar/i.test(lowerUnit)) {
-    style = { ...style, icon: 'local-drink', bgColor: '#E0F2FE', iconColor: '#0284C7' };
-  }
-  if (/bag|pouch|sack/i.test(lowerName) || /bag|pouch|sack/i.test(lowerUnit)) {
-    style = { ...style, icon: 'shopping-bag', bgColor: '#FEF3C7', iconColor: '#D97706' };
-  }
-  if (/carton|milk|cream|yogurt|cheese|dairy/i.test(lowerName) || /carton/i.test(lowerUnit)) {
-    style = { ...style, icon: 'local-drink', bgColor: '#FEF2F2', iconColor: '#DC2626' };
-  }
-  
-  // Category-based fallback
-  const categoryStyles: Record<string, Partial<typeof style>> = {
-    'Dairy': { icon: 'local-drink', bgColor: '#FEF2F2', iconColor: '#DC2626' },
-    'Meat': { icon: 'restaurant', bgColor: '#FEF2F2', iconColor: '#B91C1C' },
-    'Produce': { ...style, isProduce: true },
-    'Bakery': { icon: 'breakfast-dining', bgColor: '#FEF3F2', iconColor: '#9A3412' },
-    'Pantry': { icon: 'kitchen', bgColor: '#F5F3FF', iconColor: '#7C3AED' },
-    'Beverages': { icon: 'local-cafe', bgColor: '#EFF6FF', iconColor: '#2563EB' },
-    'Frozen': { icon: 'ac-unit', bgColor: '#E0F2FE', iconColor: '#0C4A6E' },
-  };
-  
-  return { ...style, ...(categoryStyles[item.category || ''] || {}) };
+
+  // Default icon
+  return { icon: 'food', color: '#6B7280' };
 };
 
 // Group items by name and unit for consistent grouping with items-detected screen
@@ -74,119 +82,88 @@ const groupItems = (items: any[]) => {
   const grouped: Record<string, any> = {};
   
   items.forEach(item => {
-    // Create a consistent key using name and unit
-    const key = `${item.item_name.trim().toLowerCase()}_${item.quantity_unit.trim().toLowerCase()}`;
+    const key = `${item.item_name}-${item.quantity_unit}`;
     
     if (!grouped[key]) {
-      // If this is the first item with this key, initialize the group
       grouped[key] = {
         ...item,
         count: 1,
-        ids: [item.id],
-        // Sum quantities for identical items
-        totalQuantity: item.quantity_amount,
-        // Keep track of individual quantities
-        quantities: [item.quantity_amount]
       };
     } else {
-      // If we already have this item, increment the count and update quantities
       grouped[key].count += 1;
-      grouped[key].ids.push(item.id);
-      grouped[key].totalQuantity = (grouped[key].totalQuantity || 0) + item.quantity_amount;
-      grouped[key].quantities.push(item.quantity_amount);
     }
   });
-  
-  // Convert the grouped object to an array and sort by name
-  return Object.values(grouped).sort((a: any, b: any) => 
-    a.item_name.localeCompare(b.item_name)
-  );
+
+  return Object.values(grouped);
 };
 
-const quickActions = [
-  { id: 'add', title: 'Add Item', icon: 'add-circle', color: '#297A56', route: '/upload-photo' },
-  { id: 'scan', title: 'Scan Receipt', icon: 'receipt', color: '#3B82F6', route: '/scan-receipt' },
-  { id: 'recipes', title: 'Recipes', icon: 'restaurant', color: '#8B5CF6', route: '/recipes' },
-];
-
-
-
-type SortBy = 'name' | 'expiry' | 'category';
-type SortOrder = 'asc' | 'desc';
-
-export default function HomeScreen() {
-  const { items } = useItems();
-  const router = useRouter();
-  
-  // State for search and filters
+const IndexScreen: React.FC = () => {
+  // State management
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('expiry');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   
-  const handleSearch = (text: string) => {
-    setSearchQuery(text);
-  };
-  
-  const handleFilterApply = (filters: {
-    categories: string[];
-    sortBy: SortBy;
-    sortOrder: SortOrder;
-  }) => {
-    setSelectedCategories(filters.categories);
-    setSortBy(filters.sortBy);
-    setSortOrder(filters.sortOrder);
-  };
-  
-  const resetFilters = () => {
-    setSearchQuery('');
-    setSelectedCategories([]);
-    setSortBy('expiry');
-    setSortOrder('asc');
-  };
+  // Context hooks after state - must be in consistent order
+  const { items, isInitialized, fetchItems } = useItems();
+  const router = useRouter();
 
-  // Format, filter, group, and sort items
+  // Format, filter, group, and sort items - using useMemo for performance
   const recentItems = useMemo(() => {
-    // Filter items by search query
+    if (!items) return [];
+    
+    // Filter by search query
     const filteredBySearch = items.filter(item => 
-      item.item_name.toLowerCase().includes(searchQuery.toLowerCase())
+      item.item_name?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     
-    // Filter by selected categories if any are selected
+    // Filter by category if any are selected
     const filteredByCategory = selectedCategories.length > 0
-      ? filteredBySearch.filter(item => item.category && selectedCategories.includes(item.category))
+      ? filteredBySearch.filter(item => 
+          item.category && selectedCategories.includes(item.category)
+        )
       : filteredBySearch;
     
     // Format each item with its styles and metadata
-    const formattedItems = filteredByCategory.map(item => ({
-      id: item.id,
-      item_name: item.item_name.trim(),
-      name: item.item_name.trim(),
-      expiry: formatExpirationDate(item.expected_expiration),
-      category: item.category || 'Uncategorized',
-      quantity_amount: item.quantity_amount,
-      quantity_unit: item.quantity_unit.trim(),
-      expirationDate: new Date(item.expected_expiration),
-      daysUntilExpiry: (() => {
-        const expDate = new Date(item.expected_expiration);
-        expDate.setHours(23, 59, 59, 999);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return Math.max(0, Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
-      })(),
-      ...getItemStyle({
-        name: item.item_name,
-        unit: item.quantity_unit,
-        category: item.category
-      })
-    }));
+    const formattedItems = filteredByCategory.map(item => {
+      const expirationDate = item.expected_expiration || new Date().toISOString();
+      return {
+        id: item.id,
+        item_name: item.item_name?.trim() || 'Unnamed Item',
+        name: item.item_name?.trim() || 'Unnamed Item',
+        expiry: formatExpirationDate(expirationDate),
+        category: item.category || 'Uncategorized',
+        quantity_amount: item.quantity_amount || 0,
+        quantity_unit: (item.quantity_unit || 'each').trim(),
+        expected_expiration: expirationDate,
+        expirationDate: new Date(expirationDate),
+        daysUntilExpiry: (() => {
+          try {
+            const expDate = new Date(expirationDate);
+            expDate.setHours(23, 59, 59, 999);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return Math.max(0, Math.ceil((expDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+          } catch (e) {
+            return 0; // Default to 0 days if date parsing fails
+          }
+        })(),
+        ...getItemStyle({
+          name: item.item_name,
+          unit: item.quantity_unit,
+          category: item.category
+        })
+      };
+    });
     
     // Group items by name and unit
     const groupedItems = groupItems(formattedItems);
     
     // Sort items based on selected criteria and order
-    return [...groupedItems].sort((a: any, b: any) => {
+    return groupedItems.sort((a: any, b: any) => {
       let comparison = 0;
       
       switch (sortBy) {
@@ -212,6 +189,114 @@ export default function HomeScreen() {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
   }, [items, searchQuery, selectedCategories, sortBy, sortOrder]);
+
+  // Fetch items when the component mounts or fetchItems changes
+  useEffect(() => {
+    let isMounted = true;
+    
+    const loadItems = async () => {
+      try {
+        if (isMounted) {
+          setIsLoading(true);
+          setError(null);
+        }
+        
+        await fetchItems();
+        
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      } catch (err) {
+        console.error('Failed to load items:', err);
+        if (isMounted) {
+          setError('Failed to load pantry items. Please try again.');
+          setIsLoading(false);
+        }
+      }
+    };
+
+    if (!isInitialized) {
+      loadItems();
+    } else if (isMounted) {
+      setIsLoading(false);
+    }
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [fetchItems, isInitialized]);
+
+  // Quick action buttons with proper typing
+  const quickActions = [
+    { 
+      id: 'add', 
+      icon: 'add-circle' as const, 
+      title: 'Add Item',
+      color: '#297A56',
+      route: '/add-item' as const
+    },
+    { 
+      id: 'scan', 
+      icon: 'barcode' as const, 
+      title: 'Scan Barcode',
+      color: '#4F46E5',
+      onPress: () => Alert.alert('Barcode Scanner', 'Barcode scanning functionality will be implemented soon.')
+    },
+    { 
+      id: 'recipe', 
+      icon: 'restaurant' as const, 
+      title: 'Recipes',
+      color: '#DB2777',
+      route: '/recipes' as const
+    },
+    { 
+      id: 'shopping', 
+      icon: 'cart' as const, 
+      title: 'Shopping List',
+      color: '#7C3AED',
+      route: '/shopping-list' as const
+    },
+  ];
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+  };
+
+  // Handle filter apply
+  const handleFilterApply = (filters: { categories: string[]; sortBy: SortBy; sortOrder: SortOrder }) => {
+    setSelectedCategories(filters.categories);
+    setSortBy(filters.sortBy);
+    setSortOrder(filters.sortOrder);
+    setIsFilterModalVisible(false);
+  };
+
+  // Handle item press
+  const handleItemPress = (item: any) => {
+    // Using relative path for navigation
+    router.push({
+      pathname: '/item-details',
+      params: { item: enc(item) }
+    } as any);
+  };
+
+  // Handle quick action press
+  const handleQuickAction = (actionId: string) => {
+    const action = quickActions.find(a => a.id === actionId);
+    if (!action) return;
+    
+    if ('onPress' in action && action.onPress) {
+      action.onPress();
+    } else if ('route' in action && action.route) {
+      router.push(action.route as any);
+    }
+  };
+  
+  // Reset filters function
+  const resetFilters = () => {
+    setSearchQuery('');
+    setSelectedCategories([]);
+  };
 
   // Helper function to format expiration date
   function formatExpirationDate(dateString: string) {
@@ -327,7 +412,13 @@ export default function HomeScreen() {
             <TouchableOpacity 
               key={action.id}
               style={[styles.actionCard, { backgroundColor: action.color + '15' }]}
-              onPress={() => router.push(action.route as any)}
+              onPress={() => {
+                if ('route' in action && action.route) {
+                  router.push(action.route as any);
+                } else if ('onPress' in action && action.onPress) {
+                  action.onPress();
+                }
+              }}
             >
               <View style={[styles.actionIcon, { backgroundColor: action.color }]}>
                 <Ionicons name={action.icon as any} size={24} color="white" />
@@ -409,7 +500,7 @@ export default function HomeScreen() {
                     >
                       {item.count > 1 ? (
                         <>
-                          {item.quantities.join(' + ')} {item.quantity_unit} (total: {item.totalQuantity} {item.quantity_unit})
+                          {item.quantities ? item.quantities.join(' + ') : item.quantity_amount} {item.quantity_unit} {item.totalQuantity ? `(total: ${item.totalQuantity} ${item.quantity_unit})` : ''}
                         </>
                       ) : (
                         `${item.quantity_amount} ${item.quantity_unit}`
@@ -453,7 +544,9 @@ export default function HomeScreen() {
       </ScrollView>
     </View>
   );
-}
+};
+
+export default IndexScreen;
 
 // Helper function to get category color
 const getCategoryColor = (category: string) => {
@@ -471,7 +564,67 @@ const getCategoryColor = (category: string) => {
   return colors[category as keyof typeof colors] || colors.Default;
 };
 
+// Add these new styles
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#6B7280',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#DC2626',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  retryButton: {
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  retryButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addButton: {
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  addButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    marginLeft: 8,
+    fontSize: 16,
+  },
   // New styles for search and filter components
   activeFiltersContainer: {
     paddingVertical: 8,

@@ -1,6 +1,6 @@
 // context/ItemsContext.tsx - Part of the PrepSense mobile app
-import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { defaultItems } from '../constants/defaultItems';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { fetchPantryItems } from '../services/api';
 
 export type Item = {
   id: string;
@@ -18,6 +18,8 @@ type ItemsContextType = {
   addItems: (newItems: Item[]) => void;
   removeItem: (id: string) => void;
   updateItem: (id: string, updates: Partial<Item>) => void;
+  fetchItems: () => Promise<Item[]>;
+  isInitialized: boolean;
 };
 
 const ItemsContext = createContext<ItemsContextType | undefined>(undefined);
@@ -28,25 +30,42 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [items, setItems] = useState<Item[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
   
-  // Load items from storage on initial render
-  useEffect(() => {
-    const loadItems = async () => {
-      try {
-        // In a real app, you would load from AsyncStorage here
-        // For now, we'll just check if we have any items
-        if (items.length === 0) {
-          // Add default items if no items exist
-          addItems(defaultItems);
-        }
-        setIsInitialized(true);
-      } catch (error) {
-        console.error('Failed to load items', error);
+  // Fetch pantry items from backend
+  const fetchItems = useCallback(async () => {
+    try {
+      // Use default user_id 111 as specified
+      const pantryItems = await fetchPantryItems(111);
+      
+      // Transform the pantry items to match the Item type
+      const transformedItems = pantryItems.map(item => ({
+        ...item,
+        id: item.id?.toString() || Math.random().toString(36).substr(2, 9), // Ensure ID is a string
+        item_name: item.item_name || 'Unknown Item',
+        quantity_amount: item.quantity_amount || 1,
+        quantity_unit: item.quantity_unit || 'unit',
+        expected_expiration: item.expected_expiration || new Date().toISOString(),
+        addedDate: item.addedDate || new Date().toISOString()
+      }));
+      
+      setItems(transformedItems);
+      return transformedItems;
+    } catch (error) {
+      console.error('Failed to fetch pantry items:', error);
+      setItems([]); // Clear items on error to prevent showing stale data
+      throw error; // Re-throw to allow error handling in components
+    } finally {
+      if (!isInitialized) {
         setIsInitialized(true);
       }
-    };
-    
-    loadItems();
-  }, []);
+    }
+  }, [isInitialized]);
+
+  // Load items from backend on initial render
+  useEffect(() => {
+    if (!isInitialized) {
+      fetchItems().catch(console.error);
+    }
+  }, [fetchItems, isInitialized]);
 
   const addItems = (newItems: Item[]) => {
     setItems(prevItems => {
@@ -63,6 +82,9 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       
       return [...prevItems, ...uniqueNewItems];
     });
+    
+    // After adding items, refetch to ensure we have the latest data
+    fetchItems();
   };
 
   const removeItem = (id: string) => {
@@ -77,8 +99,17 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     );
   };
 
+  const contextValue = {
+    items,
+    addItems,
+    removeItem,
+    updateItem,
+    fetchItems,
+    isInitialized
+  };
+
   return (
-    <ItemsContext.Provider value={{ items, addItems, removeItem, updateItem }}>
+    <ItemsContext.Provider value={contextValue}>
       {children}
     </ItemsContext.Provider>
   );
@@ -90,4 +121,4 @@ export const useItems = (): ItemsContextType => {
     throw new Error('useItems must be used within an ItemsProvider');
   }
   return context;
-};
+}
