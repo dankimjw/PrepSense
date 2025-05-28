@@ -7,6 +7,7 @@ import { useItems } from '../../context/ItemsContext';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
+import { API_BASE_URL } from '../../constants/Config';
 
 // Helper functions for encoding/decoding data
 function enc(o: any): string {
@@ -130,6 +131,7 @@ const IndexScreen: React.FC = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortBy>('expiry');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
   
   // Context hooks after state - must be in consistent order
   const { items, isInitialized, fetchItems } = useItems();
@@ -320,6 +322,58 @@ const IndexScreen: React.FC = () => {
   const resetFilters = () => {
     setSearchQuery('');
     setSelectedCategories([]);
+  };
+  
+  // Function to cleanup recently added items from BigQuery
+  const cleanupRecentItems = async () => {
+    if (isCleaningUp) return;
+    
+    Alert.alert(
+      'Clean up recent items?',
+      'This will delete items added to the database in the last 24 hours. This action cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clean Up', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsCleaningUp(true);
+              
+              const response = await fetch(`${API_BASE_URL}/images/cleanup-detected-items`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  user_id: 111, // Default demo user ID
+                  hours_ago: 24  // Delete items from the last 24 hours
+                }),
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to clean up items');
+              }
+              
+              const result = await response.json();
+              console.log('Items cleaned up:', result);
+              
+              // Refresh items list after cleanup
+              fetchItems();
+              
+              Alert.alert('Success', 'Recent items have been cleaned up from the database');
+              
+            } catch (error: any) {
+              console.error('Error cleaning up items:', error);
+              Alert.alert('Error', `Failed to clean up items: ${error.message}`);
+            } finally {
+              setIsCleaningUp(false);
+            }
+          } 
+        },
+      ]
+    );
   };
 
   // Helper function to format expiration date
@@ -574,6 +628,20 @@ const IndexScreen: React.FC = () => {
           </View>
         </View>
       </ScrollView>
+      <TouchableOpacity 
+        style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]} 
+        onPress={cleanupRecentItems}
+        disabled={isCleaningUp}
+      >
+        {isCleaningUp ? (
+          <ActivityIndicator size="small" color="#FFFFFF" />
+        ) : (
+          <>
+            <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FFFFFF" />
+            <Text style={styles.cleanupButtonText}>Cleanup</Text>
+          </>
+        )}
+      </TouchableOpacity>
     </View>
   );
 };
@@ -850,8 +918,38 @@ const styles = StyleSheet.create({
   },
   itemAmount: {
     fontSize: 14,
-    color: '#6B7280',
-    textAlign: 'right',
+    color: '#1F2937',
+    fontWeight: '500',
+  },
+  itemUnit: {
+    fontSize: 14,
+    color: '#4B5563',
+  },
+  cleanupButton: {
+    position: 'absolute',
+    right: 16,
+    bottom: 100,
+    backgroundColor: '#EF4444',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    zIndex: 10,
+  },
+  cleanupButtonDisabled: {
+    backgroundColor: '#F87171',
+  },
+  cleanupButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 6,
   },
   itemName: {
     fontSize: 16,
