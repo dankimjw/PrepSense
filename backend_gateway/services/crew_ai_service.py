@@ -163,58 +163,151 @@ class CrewAIService:
     
     async def _search_recipes(self, pantry_items: List[Dict[str, Any]], message: str) -> List[Dict[str, Any]]:
         """Search for recipes based on pantry items and user message."""
-        # Extract ingredient names
-        ingredients = [item['product_name'] for item in pantry_items if item.get('product_name')]
+        # Extract ingredient names from pantry
+        available_ingredients = [item['product_name'].lower() for item in pantry_items if item.get('product_name')]
         
-        # Use the recipe service to search
-        # This is a placeholder - implement actual recipe search logic
-        recipes = []
+        # Create a comprehensive recipe database with varying ingredient requirements
+        all_recipes = [
+            # Breakfast recipes
+            {
+                'name': 'Banana Smoothie',
+                'ingredients': ['bananas', 'milk'],
+                'nutrition': {'calories': 200, 'protein': 8},
+                'time': 5,
+                'meal_type': 'breakfast'
+            },
+            {
+                'name': 'Chicken and Milk Scramble',
+                'ingredients': ['chicken breast', 'milk', 'eggs'],
+                'nutrition': {'calories': 350, 'protein': 30},
+                'time': 15,
+                'meal_type': 'breakfast'
+            },
+            # Lunch/Dinner recipes
+            {
+                'name': 'Simple Grilled Chicken',
+                'ingredients': ['chicken breast', 'salt', 'pepper'],
+                'nutrition': {'calories': 300, 'protein': 35},
+                'time': 20,
+                'meal_type': 'dinner'
+            },
+            {
+                'name': 'Chicken Milk Soup',
+                'ingredients': ['chicken breast', 'milk', 'onion'],
+                'nutrition': {'calories': 250, 'protein': 25},
+                'time': 25,
+                'meal_type': 'dinner'
+            },
+            {
+                'name': 'Banana Chicken Stir-fry',
+                'ingredients': ['chicken breast', 'bananas', 'soy sauce'],
+                'nutrition': {'calories': 400, 'protein': 30},
+                'time': 18,
+                'meal_type': 'dinner'
+            },
+            # More complex recipes
+            {
+                'name': 'Pasta with Tomato Sauce',
+                'ingredients': ['pasta', 'tomatoes', 'garlic', 'olive oil'],
+                'nutrition': {'calories': 450, 'protein': 15},
+                'time': 30,
+                'meal_type': 'dinner'
+            },
+            {
+                'name': 'Chicken Caesar Salad',
+                'ingredients': ['chicken breast', 'lettuce', 'parmesan', 'caesar dressing'],
+                'nutrition': {'calories': 350, 'protein': 28},
+                'time': 15,
+                'meal_type': 'lunch'
+            },
+            {
+                'name': 'Pancakes',
+                'ingredients': ['milk', 'flour', 'eggs', 'sugar'],
+                'nutrition': {'calories': 300, 'protein': 10},
+                'time': 20,
+                'meal_type': 'breakfast'
+            }
+        ]
         
-        # Simple mock implementation
-        if 'breakfast' in message.lower():
-            recipes = [
-                {
-                    'name': 'Scrambled Eggs with Toast',
-                    'ingredients': ['eggs', 'bread', 'butter'],
-                    'nutrition': {'calories': 350, 'protein': 20},
-                    'time': 15
-                }
-            ]
-        elif 'dinner' in message.lower():
-            recipes = [
-                {
-                    'name': 'Pasta with Tomato Sauce',
-                    'ingredients': ['pasta', 'tomatoes', 'garlic'],
-                    'nutrition': {'calories': 450, 'protein': 15},
-                    'time': 30
-                }
-            ]
+        # Filter recipes based on message context
+        filtered_recipes = []
+        message_lower = message.lower()
         
-        return recipes
+        if 'breakfast' in message_lower:
+            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'breakfast']
+        elif 'lunch' in message_lower:
+            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'lunch']
+        elif 'dinner' in message_lower:
+            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'dinner']
+        else:
+            # Return all recipes if no specific meal mentioned
+            filtered_recipes = all_recipes
+        
+        return filtered_recipes
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Rank recipes based on available ingredients and nutritional value."""
-        # Simple ranking based on ingredient availability
+        """Rank recipes based on available ingredients and calculate missing items."""
         pantry_names = {item['product_name'].lower() for item in pantry_items if item.get('product_name')}
         
         for recipe in recipes:
-            available_ingredients = sum(1 for ing in recipe.get('ingredients', []) 
-                                      if ing.lower() in pantry_names)
-            recipe['match_score'] = available_ingredients / len(recipe.get('ingredients', [1]))
+            recipe_ingredients = recipe.get('ingredients', [])
+            available_ingredients = []
+            missing_ingredients = []
+            
+            for ingredient in recipe_ingredients:
+                if ingredient.lower() in pantry_names:
+                    available_ingredients.append(ingredient)
+                else:
+                    missing_ingredients.append(ingredient)
+            
+            recipe['available_ingredients'] = available_ingredients
+            recipe['missing_ingredients'] = missing_ingredients
+            recipe['missing_count'] = len(missing_ingredients)
+            recipe['available_count'] = len(available_ingredients)
+            recipe['match_score'] = len(available_ingredients) / len(recipe_ingredients) if recipe_ingredients else 0
         
-        # Sort by match score
-        return sorted(recipes, key=lambda x: x.get('match_score', 0), reverse=True)
+        # Sort by fewest missing ingredients first, then by match score
+        return sorted(recipes, key=lambda x: (x.get('missing_count', 999), -x.get('match_score', 0)))
     
     def _format_response(self, recipes: List[Dict[str, Any]], items: List[Dict[str, Any]], message: str) -> str:
         """Format the final response message."""
         if not recipes:
             return "I couldn't find any recipes matching your request with your current pantry items. Would you like some shopping suggestions?"
         
-        response = f"Based on your pantry items, here are my recommendations:\n\n"
+        # Check if user wants recipes with only available ingredients
+        wants_available_only = any(phrase in message.lower() for phrase in [
+            'only ingredients i have', 'what i have', 'without shopping', 
+            'available ingredients', 'no missing', 'dont need to buy'
+        ])
         
-        for i, recipe in enumerate(recipes[:3], 1):
+        if wants_available_only:
+            # Filter for recipes with no missing ingredients
+            perfect_match_recipes = [r for r in recipes if r.get('missing_count', 0) == 0]
+            if perfect_match_recipes:
+                response = "Here are recipes you can make with only your current pantry items:\n\n"
+                target_recipes = perfect_match_recipes[:3]
+            else:
+                response = "No recipes can be made with only your current ingredients. Here are the recipes requiring the fewest additional items:\n\n"
+                target_recipes = recipes[:3]
+        else:
+            response = "Based on your pantry items, here are my recommendations:\n\n"
+            target_recipes = recipes[:3]
+        
+        for i, recipe in enumerate(target_recipes, 1):
             response += f"{i}. **{recipe['name']}**\n"
             response += f"   - Time: {recipe.get('time', 'N/A')} minutes\n"
-            response += f"   - Match: {recipe.get('match_score', 0)*100:.0f}% of ingredients available\n\n"
+            response += f"   - Available ingredients: {', '.join(recipe.get('available_ingredients', []))}\n"
+            
+            if recipe.get('missing_ingredients'):
+                response += f"   - Missing ingredients: {', '.join(recipe.get('missing_ingredients', []))}\n"
+                response += f"   - You need {recipe.get('missing_count', 0)} additional item(s)\n"
+            else:
+                response += f"   - ✅ You have all ingredients!\n"
+            
+            response += f"   - Match: {recipe.get('match_score', 0)*100:.0f}% complete\n\n"
+        
+        # Add helpful tip if there are missing ingredients
+        if any(r.get('missing_count', 0) > 0 for r in target_recipes):
+            response += "💡 Tip: Ask me for 'recipes with only ingredients I have' if you prefer not to shop for additional items!"
         
         return response
