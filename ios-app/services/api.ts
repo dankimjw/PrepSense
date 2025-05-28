@@ -39,6 +39,11 @@ export interface ChatResponse {
   pantry_items: PantryItem[];
 }
 
+export interface ImageGenerationResponse {
+  image_url: string;
+  recipe_name: string;
+}
+
 export const fetchPantryItems = async (userId: number): Promise<PantryItem[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/pantry/user/${userId}/items`);
@@ -76,6 +81,31 @@ export const sendChatMessage = async (message: string, userId: number = 111): Pr
     return await response.json();
   } catch (error) {
     console.error('Error sending chat message:', error);
+    throw error;
+  }
+};
+
+export const generateRecipeImage = async (recipeName: string, style: string = "professional food photography"): Promise<ImageGenerationResponse> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/chat/generate-recipe-image`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        recipe_name: recipeName,
+        style: style,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error generating recipe image: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error generating recipe image:', error);
     throw error;
   }
 };
