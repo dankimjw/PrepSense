@@ -38,9 +38,9 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const pantryItems = await fetchPantryItems(111);
       
       // Transform the pantry items to match the Item type
-      const transformedItems = pantryItems.map(item => ({
+      const transformedItems = pantryItems.map((item, index) => ({
         ...item,
-        id: item.pantry_item_id?.toString() || Math.random().toString(36).substr(2, 9), // Use pantry_item_id as the ID
+        id: item.pantry_item_id?.toString() || `temp-${index}-${Date.now()}`, // More unique fallback ID
         item_name: item.product_name || 'Unknown Item',
         quantity_amount: item.quantity || 1,
         quantity_unit: item.unit_of_measurement || 'unit',

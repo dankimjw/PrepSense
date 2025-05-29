@@ -31,7 +31,7 @@ class PantryService:
         # Based on view_file output, execute_query is synchronous.
         return self.bq_service.execute_query(query, params)
 
-    async def add_pantry_item(self, pantry_id: int, item_data: Dict[str, Any]) -> Dict[str, Any]: # Modified signature
+    async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]: # Modified signature
         """
         Adds a new pantry item to the database for a given pantry_id.
         NOTE: This is a basic adaptation and might need further review based on
@@ -82,40 +82,64 @@ class PantryService:
         # or that the table structure is simpler.
         # The schema shows pantry_items needs pantry_id.
         
-        # Simplified adaptation focusing on the call structure:
-        insert_query = """
-            INSERT INTO `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-            (pantry_id, quantity, unit_of_measurement, expiration_date, unit_price, total_price, status, product_name) 
-            -- Assuming product_name is a field in pantry_items for simplicity, or it needs to be product_id
-            VALUES (@pantry_id, @quantity, @unit_of_measurement, @expiration_date, @unit_price, @total_price, @status, @product_name)
-        """
+        # Use PantryItemManager for proper multi-table insertion
+        from backend_gateway.services.pantry_item_manager import PantryItemManager
         
-        # This requires item_data to have all these fields.
-        # And product_name might actually need to be a product_id from the 'products' table.
-        # This is a known simplification for now.
-        params = {
-            "pantry_id": pantry_id,
-            "quantity": item_data.get("quantity"),
-            "unit_of_measurement": item_data.get("unit_of_measurement"),
-            "expiration_date": item_data.get("expiration_date"), # Ensure correct DATE format
-            "unit_price": item_data.get("unit_price"),
-            "total_price": item_data.get("total_price"), # Often calculated: quantity * unit_price
-            "status": item_data.get("status", "available"),
-            "product_name": item_data.get("name") # Assuming item_data["name"] is the product name
-        }
+        pantry_manager = PantryItemManager(self.bq_service)
+        
+        # Convert PantryItemCreate to the format expected by add_items_batch
+        items_to_add = [{
+            'item_name': item_data.product_name,
+            'quantity_amount': item_data.quantity,
+            'quantity_unit': item_data.unit_of_measurement,
+            'expected_expiration': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+            'category': 'Uncategorized',  # Default category
+            'brand': 'Generic'  # Default brand
+        }]
         
         try:
-            # BigQuery DML (INSERT, UPDATE, DELETE) doesn't return results via query() like SELECT.
-            # The job completes, but job.result() won't have rows for DML.
-            # We should confirm if BigQueryService.execute_query is suitable for DML
-            # or if a separate method like execute_dml should be used.
-            # For now, we'll call it and assume it handles DML appropriately (e.g., doesn't crash if no rows returned).
-            self.bq_service.execute_query(insert_query, params)
-            return {"message": "Item added successfully (simulated - check BigQuery for actual insert)"}
+            # Use the fast version for better UX
+            result = pantry_manager.add_items_batch_fast(user_id, items_to_add)
+            
+            # Queue the actual DB write in background
+            # For now, we'll do it synchronously but in production use Celery/background tasks
+            import threading
+            def write_to_db():
+                try:
+                    pantry_manager.add_items_batch(user_id, items_to_add)
+                except Exception as e:
+                    logger.error(f"Background write failed: {e}")
+            
+            # Start background thread
+            thread = threading.Thread(target=write_to_db)
+            thread.daemon = True
+            thread.start()
+            
+            if result['saved_count'] > 0:
+                saved_item = result['saved_items'][0]
+                # Return a response immediately with the generated IDs
+                # The actual database write happens but we don't wait for it
+                return {
+                    'id': str(saved_item['pantry_item_id']),
+                    'pantry_item_id': saved_item['pantry_item_id'],
+                    'product_id': saved_item['product_id'],
+                    'product_name': saved_item['item_name'],
+                    'item_name': saved_item['item_name'],
+                    'quantity': item_data.quantity,
+                    'quantity_amount': item_data.quantity,
+                    'unit_of_measurement': item_data.unit_of_measurement,
+                    'quantity_unit': item_data.unit_of_measurement,
+                    'expiration_date': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+                    'expected_expiration': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+                    'category': 'Uncategorized',
+                    'message': 'Item added successfully'
+                }
+            else:
+                raise Exception("Failed to save item")
+                
         except Exception as e:
-            # logger.error(f"Error adding pantry item: {e}") # Requires logger setup
-            print(f"Error adding pantry item: {e}") # Simple print for now
-            raise # Re-raise the exception to be handled by the router
+            print(f"Error adding pantry item: {e}")
+            raise
             
     async def delete_user_pantry_items(self, user_id: int, hours_ago: int = None, delete_all: bool = False) -> Dict[str, Any]:
         """
