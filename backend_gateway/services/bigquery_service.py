@@ -167,21 +167,39 @@ class BigQueryService:
             if params:
                 query_parameters = []
                 for key, value in params.items():
-                    # Determine parameter type based on value type
-                    if isinstance(value, int):
-                        param_type = "INT64"
-                    elif isinstance(value, float):
-                        param_type = "FLOAT64"
-                    elif isinstance(value, bool):
-                        param_type = "BOOL"
-                    elif isinstance(value, (date, datetime)):
-                        param_type = "DATE" if isinstance(value, date) else "DATETIME"
+                    # Handle arrays/lists
+                    if isinstance(value, list):
+                        # Determine array element type from first element
+                        if not value:  # Empty array
+                            elem_type = "STRING"
+                        elif isinstance(value[0], int):
+                            elem_type = "INT64"
+                        elif isinstance(value[0], float):
+                            elem_type = "FLOAT64"
+                        elif isinstance(value[0], bool):
+                            elem_type = "BOOL"
+                        else:
+                            elem_type = "STRING"
+                        
+                        query_parameters.append(
+                            bigquery.ArrayQueryParameter(key, elem_type, value)
+                        )
                     else:
-                        param_type = "STRING"
-                    
-                    query_parameters.append(
-                        bigquery.ScalarQueryParameter(key, param_type, value)
-                    )
+                        # Handle scalar parameters
+                        if isinstance(value, int):
+                            param_type = "INT64"
+                        elif isinstance(value, float):
+                            param_type = "FLOAT64"
+                        elif isinstance(value, bool):
+                            param_type = "BOOL"
+                        elif isinstance(value, (date, datetime)):
+                            param_type = "DATE" if isinstance(value, date) else "DATETIME"
+                        else:
+                            param_type = "STRING"
+                        
+                        query_parameters.append(
+                            bigquery.ScalarQueryParameter(key, param_type, value)
+                        )
                 
                 job_config.query_parameters = query_parameters
             

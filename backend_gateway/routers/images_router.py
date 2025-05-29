@@ -126,11 +126,83 @@ async def cleanup_detected_items(
         A status message and count of deleted items
     """
     try:
+        print(f"Cleanup request received: user_id={request.user_id}, hours_ago={request.hours_ago}")
         result = pantry_manager.delete_recent_items(
             user_id=request.user_id,
             hours=request.hours_ago
         )
+        print(f"Cleanup result: {result}")
         return result
     except Exception as e:
         print(f"Error cleaning up detected items: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=f"Failed to clean up detected items: {str(e)}")
+
+@router.get("/debug-items/{user_id}", response_model=Dict[str, Any])
+async def debug_user_items(
+    user_id: int,
+    bq_service: BigQueryService = Depends(get_bigquery_service)
+):
+    """Debug endpoint to check items and their timestamps."""
+    try:
+        query = """
+            SELECT 
+                pi.pantry_item_id,
+                pi.pantry_id,
+                pi.created_at,
+                pi.quantity,
+                pi.unit_of_measurement,
+                p.product_name,
+                DATETIME_DIFF(CURRENT_DATETIME(), pi.created_at, MINUTE) as minutes_ago
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
+            LEFT JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+            ON pi.pantry_item_id = p.pantry_item_id
+            WHERE pi.pantry_id IN (
+                SELECT pantry_id 
+                FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
+                WHERE user_id = @user_id
+            )
+            ORDER BY pi.created_at DESC
+            LIMIT 20
+        """
+        
+        results = bq_service.execute_query(query, {"user_id": user_id})
+        
+        return {
+            "user_id": user_id,
+            "item_count": len(results),
+            "items": results,
+            "current_datetime": datetime.now().isoformat()
+        }
+    except Exception as e:
+        print(f"Error in debug endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/item/{pantry_item_id}", response_model=Dict[str, Any])
+async def delete_single_item(
+    pantry_item_id: int,
+    user_id: int = 111,
+    pantry_manager: PantryItemManager = Depends(get_pantry_item_manager)
+):
+    """
+    Delete a single pantry item by its ID.
+    
+    Args:
+        pantry_item_id: The ID of the pantry item to delete
+        user_id: The user ID for verification (defaults to 111)
+        pantry_manager: The pantry item manager service
+        
+    Returns:
+        A status message with deletion result
+    """
+    try:
+        result = pantry_manager.delete_item(user_id, pantry_item_id)
+        if not result["deleted"]:
+            raise HTTPException(status_code=404, detail=result["message"])
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting item: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete item: {str(e)}")

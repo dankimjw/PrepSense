@@ -66,27 +66,42 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
       
     const method = item.id ? 'PUT' : 'POST';
     
-    const response = await fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        product_name: item.item_name,
-        quantity: item.quantity_amount,
-        unit_of_measurement: item.quantity_unit,
-        expiration_date: item.expected_expiration,
-        food_category: item.category,
-        // Add any other fields needed by your API
-      }),
-    });
+    // Create an AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
     
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error saving pantry item: ${response.statusText}`);
+    try {
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          product_name: item.item_name,
+          quantity: item.quantity_amount,
+          unit_of_measurement: item.quantity_unit,
+          expiration_date: item.expected_expiration,
+          food_category: item.category,
+          // Add any other fields needed by your API
+        }),
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || `Error saving pantry item: ${response.statusText}`);
+      }
+      
+      return await response.json();
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out - server is taking too long to respond');
+      }
+      throw error;
     }
-    
-    return await response.json();
   } catch (error) {
     console.error('Error saving pantry item:', error);
     throw error;
