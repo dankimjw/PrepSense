@@ -231,7 +231,20 @@ export default function AdminScreen() {
               
               const result = await response.json();
               console.log('Items cleaned up:', result);
-              Alert.alert('Success', 'Vision-detected items have been cleaned up from the database');
+              
+              if (result.deleted_count > 0) {
+                Alert.alert(
+                  'Success', 
+                  `Successfully deleted ${result.deleted_count} item${result.deleted_count !== 1 ? 's' : ''} from the database`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                Alert.alert(
+                  'No Items Found', 
+                  `No items found to delete${hours ? ` from the last ${hours} hour${hours !== 1 ? 's' : ''}` : ''}`,
+                  [{ text: 'OK' }]
+                );
+              }
               
             } catch (error: any) {
               console.error('Error cleaning up items:', error);
@@ -260,27 +273,27 @@ export default function AdminScreen() {
         <Text style={[styles.settingValue, styles.activeMode]}>
           Live Mode
         </Text>
+      </View>
 
-        {/* Cleanup Button */}
-        <View style={styles.cleanupContainer}>
-          <TouchableOpacity
-            style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]}
-            onPress={cleanupRecentItems}
-            disabled={isCleaningUp}
-          >
-            {isCleaningUp ? (
-              <ActivityIndicator size="small" color="#FFFFFF" />
-            ) : (
-              <>
-                <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
-                <Text style={styles.cleanupButtonText}>Cleanup Vision Items</Text>
-              </>
-            )}
-          </TouchableOpacity>
-          <Text style={styles.cleanupDescription}>
-            Remove items added via vision detection in the last 24 hours
-          </Text>
-        </View>
+      {/* Cleanup Button - Moved outside settingRow */}
+      <View style={styles.bigQueryCleanupContainer}>
+        <Text style={styles.cleanupDescription}>
+          Remove items added via vision detection
+        </Text>
+        <TouchableOpacity
+          style={[styles.cleanupButton, isCleaningUp && styles.cleanupButtonDisabled]}
+          onPress={() => cleanupRecentItems(1)}
+          disabled={isCleaningUp}
+        >
+          {isCleaningUp ? (
+            <ActivityIndicator size="small" color="#FFFFFF" />
+          ) : (
+            <>
+              <MaterialCommunityIcons name="trash-can-outline" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+              <Text style={styles.cleanupButtonText}>Cleanup Last Hour</Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.sectionTitle}>Available Tables</Text>
@@ -781,5 +794,16 @@ const styles = StyleSheet.create({
     color: '#4b5563',
     lineHeight: 24,
     marginBottom: 8,
+  },
+  bigQueryCleanupContainer: {
+    marginBottom: 24,
+    padding: 16,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
 });

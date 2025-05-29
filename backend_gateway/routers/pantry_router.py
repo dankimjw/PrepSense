@@ -104,6 +104,32 @@ async def get_user_pantry_items(
             detail=f"Failed to retrieve pantry items: {str(e)}"
         )
 
+@router.post("/user/{user_id}/items", response_model=Dict[str, Any], status_code=201, summary="Add Item to Specific User's Pantry")
+async def add_pantry_item_for_specific_user(
+    user_id: int,
+    item_data: PantryItemCreate,
+    pantry_service: PantryService = Depends(get_pantry_service)
+):
+    """
+    Adds a new item to the pantry for a specific user.
+    
+    Args:
+        user_id: The ID of the user to add the item for
+        item_data: The pantry item data
+        pantry_service: The pantry service instance
+        
+    Returns:
+        The newly created pantry item
+    """
+    try:
+        new_item = await pantry_service.add_pantry_item(item_data=item_data, user_id=user_id)
+        return new_item 
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except Exception as e:
+        logger.error(f"Error adding pantry item for user {user_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
+
 @router.post("/items", response_model=Dict[str, Any], status_code=201, summary="Add Item to User's Pantry")
 async def add_pantry_item_for_user(
     item_data: PantryItemCreate,
