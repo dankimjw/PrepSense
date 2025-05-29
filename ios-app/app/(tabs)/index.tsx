@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx - Part of the PrepSense mobile app
-import React, { useMemo, useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator } from 'react-native';
-import { useRouter, Stack } from 'expo-router';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Alert, ActivityIndicator, RefreshControl } from 'react-native';
+import { useRouter, Stack, useFocusEffect } from 'expo-router';
 import { Buffer } from 'buffer';
 import { useItems } from '../../context/ItemsContext';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -134,6 +134,7 @@ const IndexScreen: React.FC = () => {
   const [sortBy, setSortBy] = useState<SortBy>('expiry');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Context hooks after state - must be in consistent order
   const { items, isInitialized, fetchItems } = useItems();
@@ -254,6 +255,29 @@ const IndexScreen: React.FC = () => {
       isMounted = false;
     };
   }, [fetchItems, isInitialized]);
+
+  // Refresh when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      // Don't refresh if we're already loading or if it's the initial load
+      if (!isLoading && isInitialized) {
+        fetchItems().catch(console.error);
+      }
+    }, [isLoading, isInitialized, fetchItems])
+  );
+
+  // Pull to refresh handler
+  const onRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      await fetchItems();
+    } catch (error) {
+      console.error('Error refreshing items:', error);
+      Alert.alert('Error', 'Failed to refresh items');
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [fetchItems]);
 
   // Quick action buttons with proper typing
   const quickActions = [
@@ -435,7 +459,18 @@ const IndexScreen: React.FC = () => {
         </View>
       )}
 
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={styles.scrollView} 
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#297A56']}
+            tintColor="#297A56"
+          />
+        }
+      >
         {/* Quick Actions */}
         <Text style={styles.sectionTitle}>Quick Actions</Text>
         <View style={styles.quickActions}>
@@ -468,9 +503,9 @@ const IndexScreen: React.FC = () => {
         </View>
         
         <View style={styles.recentItems}>
-          {recentItems.map((item) => (
+          {recentItems.map((item, index) => (
             <TouchableOpacity 
-              key={item.id} 
+              key={`item-${item.id}-${index}`} 
               style={styles.itemCard}
               onPress={() => {
                 // Navigate to edit screen with the item data
