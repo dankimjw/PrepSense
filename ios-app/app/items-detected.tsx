@@ -120,6 +120,16 @@ export default function ItemsDetected() {
     try {
       setIsSaving(true);
       
+      // Transform items to match backend expectations
+      const transformedItems = items.map(item => ({
+        item_name: item.item_name,
+        quantity_amount: item.quantity_amount,
+        quantity_unit: item.quantity_unit,
+        expected_expiration: item.expected_expiration,
+        category: item.category || 'Uncategorized',
+        brand: item.brand || 'Generic'
+      }));
+      
       // Call the backend API endpoint to save items to BigQuery
       const response = await fetch(`${API_BASE_URL}/images/save-detected-items`, {
         method: 'POST',
@@ -127,13 +137,14 @@ export default function ItemsDetected() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          items: items,
+          items: transformedItems,
           user_id: 111 // Default demo user ID
         }),
       });
       
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('API Error:', errorData);
         throw new Error(errorData.detail || 'Failed to save items');
       }
       
@@ -143,19 +154,23 @@ export default function ItemsDetected() {
       // Add to local context as well
       addItems(items);
       
-      // Show success message
+      // Show success message with more details
+      const errorInfo = result.error_count > 0 
+        ? `\n${result.error_count} items had errors.` 
+        : '';
+      
       Alert.alert(
         'Success', 
-        `${result.saved_count} items saved to database successfully!`,
+        `${result.saved_count} items saved to database successfully!${errorInfo}`,
         [{ text: 'OK', onPress: () => {
           setSavedToBigQuery(true);
           router.replace('/(tabs)');
         }}]
       );
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving items to BigQuery:', error);
-      Alert.alert('Error', `Failed to save items: ${error.message}`);
+      Alert.alert('Error', `Failed to save items: ${error.message || 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -209,7 +224,15 @@ export default function ItemsDetected() {
           ),
         }}
       />
-      <View style={{ flex: 1, paddingTop: 16, backgroundColor: '#F9F7F4' }}>
+      <View style={{ flex: 1, backgroundColor: '#F9F7F4' }}>
+        <View style={styles.summaryContainer}>
+          <Text style={styles.summaryText}>
+            {items.length} {items.length === 1 ? 'item' : 'items'} detected
+          </Text>
+          <Text style={styles.summarySubtext}>
+            Review and confirm before saving
+          </Text>
+        </View>
         <FlatList
           data={items}
           keyExtractor={(_, i) => i.toString()}
@@ -257,24 +280,29 @@ export default function ItemsDetected() {
               </View>
             </Pressable>
           )}
-          contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 120 }}
         />
       </View>
       <View style={styles.bottomBar}>
-        <Pressable 
-          style={[styles.saveToDb, { opacity: isSaving ? 0.7 : 1 }]} 
-          onPress={saveToDatabase}
-          disabled={isSaving}
-        >
-          {isSaving ? (
-            <ActivityIndicator color="#fff" size="small" />
-          ) : (
-            <Text style={styles.saveToBqTxt}>Save to Database</Text>
-          )}
-        </Pressable>
-        <Pressable style={styles.done} onPress={done}>
-          <Text style={styles.doneTxt}>Skip</Text>
-        </Pressable>
+        <View style={styles.buttonContainer}>
+          <Pressable style={styles.skipButton} onPress={done}>
+            <Text style={styles.skipButtonText}>Skip</Text>
+          </Pressable>
+          <Pressable 
+            style={[styles.confirmButton, { opacity: isSaving ? 0.7 : 1 }]} 
+            onPress={saveToDatabase}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <ActivityIndicator color="#fff" size="small" />
+            ) : (
+              <>
+                <Feather name="check" size={20} color="#fff" style={{ marginRight: 8 }} />
+                <Text style={styles.confirmButtonText}>Confirm & Save</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
       </View>
     </SafeAreaViewRN>
   );
@@ -292,6 +320,21 @@ const styles = StyleSheet.create({
     borderRadius: 12, 
     marginBottom: 16,
     backgroundColor: '#F9F7F4',
+  },
+  summaryContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  summaryText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  summarySubtext: {
+    fontSize: 14,
+    color: '#6B7280',
   },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },
   link: { color: '#007bff', textDecorationLine: 'underline' },
@@ -323,12 +366,6 @@ const styles = StyleSheet.create({
     color: '#4A4A4A',
     marginBottom: 4,
   },
-  metaContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: 4,
-  },
   expiry: { 
     fontSize: 13, 
     color: '#666666',
@@ -348,32 +385,43 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     overflow: 'hidden',
   },
-  done: { 
+  buttonContainer: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  skipButton: {
     flex: 1,
-    height: 56,
-    backgroundColor: '#6B7280',
+    height: 52,
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
-    marginLeft: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  doneTxt: { 
-    color: '#FFFFFF', 
-    fontSize: 16, 
-    fontWeight: '600' 
+  skipButtonText: {
+    color: '#6B7280',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  saveToDb: {
+  confirmButton: {
     flex: 2,
-    height: 56,
+    height: 52,
     backgroundColor: '#297A56',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: 12,
+    flexDirection: 'row',
+    shadowColor: '#297A56',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  saveToBqTxt: {
+  confirmButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600'
+    fontWeight: '600',
   },
   metaContainer: {
     flexDirection: 'row',
@@ -409,14 +457,16 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#fff',
-    padding: 16,
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingBottom: 32,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: '#F3F4F6',
     shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: -2 },
-    elevation: 8,
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: -4 },
+    elevation: 10,
   },
 });
