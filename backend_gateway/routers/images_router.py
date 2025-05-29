@@ -2,7 +2,8 @@
 
 # File: PrepSense/backend_gateway/routers/images_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
-from typing import Dict, Any, List # For type hinting
+from typing import Dict, Any, List, Optional # For type hinting
+from pydantic import BaseModel
 
 # Correct import for the centralized VisionService
 from backend_gateway.services.vision_service import VisionService
@@ -10,6 +11,7 @@ from backend_gateway.services.vision_service import VisionService
 # Import additional services
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.bigquery_service import BigQueryService
+from backend_gateway.services.pantry_item_manager import PantryItemManager
 
 # Dependency functions
 def get_vision_service():
@@ -20,6 +22,26 @@ def get_bigquery_service():
     
 def get_pantry_service(bq_service: BigQueryService = Depends(get_bigquery_service)):
     return PantryService(bq_service)
+
+def get_pantry_item_manager(bq_service: BigQueryService = Depends(get_bigquery_service)):
+    return PantryItemManager(bq_service)
+
+# Pydantic models for request validation
+class DetectedItem(BaseModel):
+    item_name: str
+    quantity_amount: float
+    quantity_unit: str
+    expected_expiration: str
+    category: Optional[str] = "Uncategorized"
+    brand: Optional[str] = "Generic"
+
+class SaveItemsRequest(BaseModel):
+    items: List[DetectedItem]
+    user_id: int = 111
+
+class CleanupRequest(BaseModel):
+    user_id: int = 111
+    hours_ago: Optional[float] = None
 
 router = APIRouter()
 
@@ -58,93 +80,30 @@ async def upload_image(
 
 @router.post("/save-detected-items", response_model=Dict[str, Any])
 async def save_detected_items(
-    items: List[Dict[str, Any]],
-    user_id: int = 111, # Default demo user ID
-    pantry_service: PantryService = Depends(get_pantry_service)
+    request: SaveItemsRequest,
+    pantry_manager: PantryItemManager = Depends(get_pantry_item_manager)
 ):
     """
     Save detected food items from vision service to the user's pantry in BigQuery.
     
+    This endpoint properly handles the relationship between pantry_items and products tables,
+    ensuring each item gets unique IDs that are properly incremented.
+    
     Args:
-        items: List of detected items with their details
-        user_id: The user ID to save items for (defaults to 111 for demo)
-        pantry_service: The pantry service instance
+        request: SaveItemsRequest containing items and user_id
+        pantry_manager: The pantry item manager service
         
     Returns:
-        A status message and count of saved items
+        A status message and details of saved items
     """
     try:
-        # Step 1: Get all pantry IDs for this user
-        pantry_query = """
-            SELECT pantry_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-            WHERE user_id = @user_id
-            ORDER BY created_at DESC
-            LIMIT 1
-        """
-        pantry_params = {"user_id": user_id}
-        pantry_results = pantry_service.bq_service.execute_query(pantry_query, pantry_params)
+        # Convert Pydantic models to dicts for the service
+        items_data = [item.dict() for item in request.items]
         
-        if not pantry_results:
-            # Create a new pantry for this user if none exists
-            create_pantry_query = """
-                INSERT INTO `adsp-34002-on02-prep-sense.Inventory.pantry` 
-                (user_id, pantry_name, created_at)
-                VALUES (@user_id, @pantry_name, CURRENT_TIMESTAMP())
-            """
-            create_params = {
-                "user_id": user_id,
-                "pantry_name": f"User {user_id} Primary Pantry"
-            }
-            pantry_service.bq_service.execute_query(create_pantry_query, create_params)
-            
-            # Get the newly created pantry ID
-            pantry_results = pantry_service.bq_service.execute_query(pantry_query, pantry_params)
-            
-            if not pantry_results:
-                raise HTTPException(status_code=500, detail="Failed to create or retrieve user pantry")
-                
-        # Use the first (most recent) pantry ID
-        pantry_id = pantry_results[0]["pantry_id"]
+        # Use the new manager to save items across all tables
+        result = pantry_manager.add_items_batch(request.user_id, items_data)
         
-        # Step 2: Add each item to the pantry
-        saved_items = []
-        for item in items:
-            try:
-                # Transform item to the format expected by add_pantry_item
-                item_data = {
-                    "name": item.get("item_name") or item.get("name"),
-                    "quantity": float(item.get("quantity_amount", 1)),
-                    "unit_of_measurement": item.get("quantity_unit", "unit"),
-                    "expiration_date": item.get("expiration_date") or item.get("expected_expiration"),
-                    "status": "available",
-                    "unit_price": 0.0,  # Default since vision can't detect price
-                    "total_price": 0.0,  # Default
-                    "source": "vision_detected",  # Tag items as detected by vision for safer cleanup
-                    "detection_timestamp": "CURRENT_TIMESTAMP()"  # Add timestamp for filtering during cleanup
-                }
-                
-                result = await pantry_service.add_pantry_item(pantry_id, item_data)
-                saved_items.append({
-                    "item_name": item_data["name"],
-                    "status": "saved"
-                })
-            except Exception as item_error:
-                print(f"Error saving item {item.get('item_name')}: {str(item_error)}")
-                # Continue with other items instead of failing the whole batch
-                saved_items.append({
-                    "item_name": item.get("item_name") or item.get("name"),
-                    "status": "error",
-                    "error": str(item_error)
-                })
-                
-        return {
-            "message": "Items saved to pantry",
-            "saved_count": len([i for i in saved_items if i["status"] == "saved"]), 
-            "error_count": len([i for i in saved_items if i["status"] == "error"]),
-            "pantry_id": pantry_id,
-            "saved_items": saved_items
-        }
+        return result
         
     except Exception as e:
         print(f"Error saving detected items: {str(e)}")
@@ -153,26 +112,23 @@ async def save_detected_items(
 
 @router.delete("/cleanup-detected-items", response_model=Dict[str, Any])
 async def cleanup_detected_items(
-    user_id: int = 111, # Default demo user ID
-    hours_ago: int = 24, # Default to last 24 hours
-    pantry_service: PantryService = Depends(get_pantry_service)
+    request: CleanupRequest,
+    pantry_manager: PantryItemManager = Depends(get_pantry_item_manager)
 ):
     """
-    Cleanup items that were specifically detected and added via vision detection.
-    Only removes items tagged with 'vision_detected' source, preserving manually added items.
+    Cleanup items that were recently added via vision detection.
     
     Args:
-        user_id: The user ID to clean up items for (defaults to 111 for demo)
-        hours_ago: Only delete items added within this many hours
-        pantry_service: The pantry service instance
+        request: CleanupRequest containing user_id and optional hours_ago
+        pantry_manager: The pantry item manager service
         
     Returns:
         A status message and count of deleted items
     """
     try:
-        result = await pantry_service.delete_detected_items(
-            user_id=user_id,
-            hours_ago=hours_ago
+        result = pantry_manager.delete_recent_items(
+            user_id=request.user_id,
+            hours=request.hours_ago
         )
         return result
     except Exception as e:
