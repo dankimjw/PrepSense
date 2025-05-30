@@ -1,1 +1,0 @@
-- Always ask before making large changes such as adding authentication
