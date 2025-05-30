@@ -1,10 +1,11 @@
 // app/components/CustomHeader.tsx - Part of the PrepSense mobile app
-import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { API_BASE_URL } from '../../constants/Config';
+import GradientText from './GradientText';
 
 type CustomHeaderProps = {
   title?: string;
@@ -70,19 +71,23 @@ export function CustomHeader({
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        {/* Back Button (only shown when showBackButton is true) */}
-        {showBackButton && (
-          <Pressable 
-            hitSlop={12} 
-            onPress={handleBack} 
-            style={styles.leftButton}
-          >
-            <Ionicons name="arrow-back" size={24} color="#1b6b45" />
-          </Pressable>
-        )}
+        {/* Left side - Back button or spacer */}
+        <View style={styles.leftContainer}>
+          {showBackButton && (
+            <Pressable 
+              hitSlop={12} 
+              onPress={handleBack} 
+              style={styles.leftButton}
+            >
+              <Ionicons name="arrow-back" size={24} color="#1b6b45" />
+            </Pressable>
+          )}
+        </View>
         
-        {/* Title - Always show 'PrepSense' */}
-        <Text style={styles.title}>{headerTitle}</Text>
+        {/* Title - Always centered */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>{headerTitle}</Text>
+        </View>
         
         <View style={styles.rightButtons}>
           {shouldShowDb && (
@@ -159,16 +164,30 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
+  },
+  leftContainer: {
+    width: 80,
+    alignItems: 'flex-start',
+  },
+  titleContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logo: {
+    width: 28,
+    height: 28,
+    marginRight: 8,
+  },
+  logoIcon: {
+    marginRight: 8,
   },
   title: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1b6b45',
-    flex: 1,
-    textAlign: 'center',
   },
   leftButton: {
     width: 40,
@@ -177,6 +196,8 @@ const styles = StyleSheet.create({
   rightButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    width: 80,
+    justifyContent: 'flex-end',
   },
   iconButton: {
     paddingHorizontal: 8,
