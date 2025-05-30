@@ -521,7 +521,8 @@ const IndexScreen: React.FC = () => {
                       quantity_amount: item.quantity_amount,
                       quantity_unit: item.quantity_unit,
                       expected_expiration: item.expirationDate.toISOString().split('T')[0],
-                      category: item.category
+                      category: item.category,
+                      count: item.count || 1  // Pass the actual count
                     }])
                   }
                 });

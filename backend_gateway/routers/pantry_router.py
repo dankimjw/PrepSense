@@ -31,6 +31,7 @@ class PantryItemCreate(BaseModel):
     expiration_date: Optional[date] = Field(None, description="Expiration date of the item.")
     purchase_date: Optional[date] = Field(None, description="Date the item was purchased.")
     unit_price: Optional[float] = Field(None, ge=0, example=3.50, description="Price per unit of the item.")
+    category: Optional[str] = Field(None, example="Dairy", description="Category of the product.")
     # product_id: Optional[str] = Field(None, description="Optional ID linking to a master products table.")
     # pantry_id: Optional[str] = Field(None, description="Optional ID if user has multiple pantries; service might handle default.")
 
@@ -179,6 +180,71 @@ async def get_user_pantry_full(user_id: int = 111, bq: BigQueryService = Depends
         logger.error(f"Error retrieving user pantry full view: {e}")
         raise HTTPException(status_code=500, detail=f"Error retrieving pantry items: {str(e)}")
 
+
+@router.put("/items/{item_id}", response_model=Dict[str, Any], summary="Update Pantry Item")
+async def update_pantry_item(
+    item_id: str,
+    item_data: PantryItemCreate,
+    pantry_service: PantryService = Depends(get_pantry_service)
+):
+    """
+    Update an existing pantry item.
+    
+    Args:
+        item_id: The ID of the pantry item to update
+        item_data: The updated pantry item data
+        pantry_service: The pantry service instance
+        
+    Returns:
+        The updated pantry item
+        
+    Raises:
+        HTTPException: If the item is not found or update fails
+    """
+    try:
+        updated_item = await pantry_service.update_pantry_item(
+            pantry_item_id=int(item_id),
+            item_data=item_data
+        )
+        if not updated_item:
+            raise HTTPException(status_code=404, detail=f"Pantry item {item_id} not found")
+        return updated_item
+    except ValueError as ve:
+        raise HTTPException(status_code=400, detail=str(ve))
+    except HTTPException:
+        raise  # Re-raise HTTPException as is
+    except Exception as e:
+        logger.error(f"Error updating pantry item {item_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update pantry item: {str(e)}")
+
+@router.delete("/items/{item_id}", response_model=Dict[str, Any], summary="Delete Single Pantry Item")
+async def delete_pantry_item(
+    item_id: str,
+    pantry_service: PantryService = Depends(get_pantry_service)
+):
+    """
+    Delete a single pantry item by ID.
+    
+    Args:
+        item_id: The ID of the pantry item to delete
+        pantry_service: The pantry service instance
+        
+    Returns:
+        A status message confirming deletion
+        
+    Raises:
+        HTTPException: If the item is not found or deletion fails
+    """
+    try:
+        result = await pantry_service.delete_single_pantry_item(pantry_item_id=int(item_id))
+        if not result:
+            raise HTTPException(status_code=404, detail=f"Pantry item {item_id} not found")
+        return {"message": f"Pantry item {item_id} deleted successfully", "id": item_id}
+    except HTTPException:
+        raise  # Re-raise HTTPException as is
+    except Exception as e:
+        logger.error(f"Error deleting pantry item {item_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete pantry item: {str(e)}")
 
 @router.delete("/user/{user_id}/items", response_model=Dict[str, Any])
 async def delete_user_pantry_items(
