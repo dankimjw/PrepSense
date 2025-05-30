@@ -1,7 +1,15 @@
 # PrepSense
 Capstone project for University of Chicago 
 
-MY CHANGE TO THE README
+## 📚 Getting Started Documentation
+
+For detailed setup instructions and comprehensive guides, please visit our **[Getting Started Documentation](./docs/README.md)**.
+
+### Quick Links:
+- **[Prerequisites & Tools Installation](./docs/getting-started/01-prerequisites.md)** - What you need before starting
+- **[Step-by-Step Setup Guide](./docs/getting-started/02-repository-setup.md)** - Clone and configure the project
+- **[Troubleshooting Guide](./docs/getting-started/06-troubleshooting.md)** - Common issues and solutions
+- **[Helpful Resources](./docs/getting-started/07-resources.md)** - Learning materials and references
 ```
 /backend-gateway
     ├── app.py                # Main FastAPI app (entry point)
