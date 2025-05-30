@@ -165,3 +165,6 @@ wheels/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude AI configuration
+CLAUDE.md
