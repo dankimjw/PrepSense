@@ -3,7 +3,7 @@ Capstone project for University of Chicago
 
 ## 📚 Getting Started Documentation
 
-For detailed setup instructions and comprehensive guides, please visit our **[Getting Started Documentation](./docs/README.md)**.
+⭐ For detailed setup instructions and comprehensive guides, please visit our **[Getting Started Documentation](./docs/README.md)**.
 
 ### Quick Links:
 - **[Prerequisites & Tools Installation](./docs/getting-started/01-prerequisites.md)** - What you need before starting
