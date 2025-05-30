@@ -1,10 +1,11 @@
 // app/(auth)/sign-in.tsx - Part of the PrepSense mobile app
-import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform, Alert, Image } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import GradientText from '../components/GradientText';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');
@@ -46,8 +47,12 @@ export default function SignInScreen() {
       
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <Ionicons name="leaf" size={64} color="#297A56" />
-          <Text style={styles.title}>Welcome Back</Text>
+          <GradientText 
+            style={styles.title}
+            colors={['#4ECDC4', '#7FE19E']}
+          >
+            Welcome Back
+          </GradientText>
           <Text style={styles.subtitle}>Sign in to continue</Text>
         </View>
 
@@ -123,6 +128,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 40,
     marginBottom: 48,
+  },
+  logo: {
+    width: 120,
+    height: 120,
+    marginBottom: 8,
   },
   title: {
     fontSize: 28,
