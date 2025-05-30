@@ -317,11 +317,11 @@ class PantryService:
             
             pantry_params = {
                 "pantry_item_id": pantry_item_id,
-                "quantity": item_data.quantity,
+                "quantity": float(item_data.quantity) if item_data.quantity is not None else 0.0,
                 "unit_of_measurement": item_data.unit_of_measurement,
                 "expiration_date": item_data.expiration_date.isoformat() if item_data.expiration_date else None,
-                "unit_price": item_data.unit_price,
-                "total_price": total_price
+                "unit_price": float(item_data.unit_price) if item_data.unit_price is not None else None,
+                "total_price": float(total_price) if total_price is not None else None
             }
             
             self.bq_service.execute_query(update_pantry_query, pantry_params)
