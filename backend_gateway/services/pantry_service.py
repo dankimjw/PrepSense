@@ -1,9 +1,12 @@
 # from database import get_db # No longer needed if using BigQueryService exclusively
 from typing import Dict, Any, List
 from backend_gateway.services.bigquery_service import BigQueryService # Added
+import logging
 # Assuming PantryItem is a Pydantic model or similar, define it or import it
 # For now, let's assume it's a Dict for add_pantry_item simplicity in this refactor step.
 # from ..models.pantry import PantryItem # Example if you have Pydantic models
+
+logger = logging.getLogger(__name__)
 
 class PantryService:
     def __init__(self, bq_service: BigQueryService): # Modified
@@ -266,3 +269,139 @@ class PantryService:
         except Exception as e:
             print(f"Error deleting vision detected items: {str(e)}")
             return {"message": f"Error deleting vision detected items: {str(e)}", "deleted_count": 0}
+            
+    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
+        """
+        Updates an existing pantry item and its associated product.
+        
+        Args:
+            pantry_item_id: The ID of the pantry item to update
+            item_data: The updated item data (PantryItemCreate)
+            
+        Returns:
+            Dict with the updated item information
+        """
+        try:
+            # First, check if the item exists and get its details
+            check_query = """
+                SELECT pi.*, p.product_id, p.product_name
+                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
+                LEFT JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+                ON pi.pantry_item_id = p.pantry_item_id
+                WHERE pi.pantry_item_id = @pantry_item_id
+            """
+            check_params = {"pantry_item_id": pantry_item_id}
+            existing_items = self.bq_service.execute_query(check_query, check_params)
+            
+            if not existing_items:
+                return None
+                
+            existing_item = existing_items[0]
+            
+            # Update the pantry_items table
+            update_pantry_query = """
+                UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                SET 
+                    quantity = @quantity,
+                    unit_of_measurement = @unit_of_measurement,
+                    expiration_date = @expiration_date,
+                    unit_price = @unit_price,
+                    total_price = @total_price
+                WHERE pantry_item_id = @pantry_item_id
+            """
+            
+            # Calculate total price if unit price is provided
+            total_price = None
+            if item_data.unit_price:
+                total_price = item_data.unit_price * item_data.quantity
+            
+            pantry_params = {
+                "pantry_item_id": pantry_item_id,
+                "quantity": item_data.quantity,
+                "unit_of_measurement": item_data.unit_of_measurement,
+                "expiration_date": item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+                "unit_price": item_data.unit_price,
+                "total_price": total_price
+            }
+            
+            self.bq_service.execute_query(update_pantry_query, pantry_params)
+            
+            # Update the products table if product exists
+            if existing_item.get('product_id'):
+                update_product_query = """
+                    UPDATE `adsp-34002-on02-prep-sense.Inventory.products`
+                    SET 
+                        product_name = @product_name,
+                        category = @category
+                    WHERE product_id = @product_id
+                """
+                
+                product_params = {
+                    "product_id": existing_item['product_id'],
+                    "product_name": item_data.product_name,
+                    "category": getattr(item_data, 'category', 'Uncategorized')
+                }
+                
+                self.bq_service.execute_query(update_product_query, product_params)
+            
+            # Return the updated item information
+            return {
+                'id': str(pantry_item_id),
+                'pantry_item_id': pantry_item_id,
+                'product_id': existing_item.get('product_id'),
+                'product_name': item_data.product_name,
+                'item_name': item_data.product_name,
+                'quantity': item_data.quantity,
+                'quantity_amount': item_data.quantity,
+                'unit_of_measurement': item_data.unit_of_measurement,
+                'quantity_unit': item_data.unit_of_measurement,
+                'expiration_date': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+                'expected_expiration': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
+                'category': getattr(item_data, 'category', 'Uncategorized'),
+                'message': 'Item updated successfully'
+            }
+            
+        except Exception as e:
+            print(f"Error updating pantry item: {str(e)}")
+            raise
+            
+    async def delete_single_pantry_item(self, pantry_item_id: int) -> bool:
+        """
+        Deletes a single pantry item by ID.
+        
+        Args:
+            pantry_item_id: The ID of the pantry item to delete
+            
+        Returns:
+            True if deleted successfully, False if not found
+        """
+        try:
+            # First check if the item exists
+            check_query = """
+                SELECT pantry_item_id
+                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_item_id = @pantry_item_id
+            """
+            check_params = {"pantry_item_id": pantry_item_id}
+            existing_items = self.bq_service.execute_query(check_query, check_params)
+            
+            if not existing_items:
+                return False
+            
+            # Delete the item
+            delete_query = """
+                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                WHERE pantry_item_id = @pantry_item_id
+            """
+            delete_params = {"pantry_item_id": pantry_item_id}
+            
+            self.bq_service.execute_query(delete_query, delete_params)
+            
+            # Note: We might also want to delete from products table if this was the only pantry_item
+            # referencing that product, but for now we'll leave products intact
+            
+            return True
+            
+        except Exception as e:
+            print(f"Error deleting single pantry item: {str(e)}")
+            raise
