@@ -129,24 +129,109 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       const itemToUpdate = items.find(item => item.id === id);
       if (!itemToUpdate) return;
       
-      const updatedItem = { ...itemToUpdate, ...updates };
-      const savedItem = await savePantryItem(111, updatedItem);
+      // Handle count changes by creating/deleting duplicate items
+      const oldCount = itemToUpdate.count || 1;
+      const newCount = updates.count || oldCount;
       
-      setItems(prevItems =>
-        prevItems.map(item =>
-          item.id === id ? {
-            ...savedItem,
-            id: savedItem.id.toString(),
-            item_name: savedItem.item_name,
-            quantity_amount: savedItem.quantity_amount,
-            quantity_unit: savedItem.quantity_unit,
-            expected_expiration: savedItem.expected_expiration,
-            category: savedItem.category,
-          } : item
-        )
-      );
-      
-      return savedItem;
+      if (newCount !== oldCount) {
+        // Find all items with the same name and unit
+        const similarItems = items.filter(item => 
+          item.item_name === itemToUpdate.item_name && 
+          item.quantity_unit === itemToUpdate.quantity_unit
+        );
+        
+        if (newCount > oldCount) {
+          // Need to create additional items
+          const itemsToAdd = newCount - oldCount;
+          const newItems = [];
+          
+          for (let i = 0; i < itemsToAdd; i++) {
+            const newItem = {
+              ...itemToUpdate,
+              ...updates,
+              id: undefined, // Let the server generate a new ID
+              count: 1,
+            };
+            delete newItem.id;
+            newItems.push(newItem);
+          }
+          
+          // Add the new items
+          await addItems(newItems);
+          
+          // Update the original item
+          const updatedItem = { ...itemToUpdate, ...updates, count: 1 };
+          const savedItem = await savePantryItem(111, updatedItem);
+          
+          setItems(prevItems =>
+            prevItems.map(item =>
+              item.id === id ? {
+                ...savedItem,
+                id: savedItem.id.toString(),
+                item_name: savedItem.item_name,
+                quantity_amount: savedItem.quantity_amount,
+                quantity_unit: savedItem.quantity_unit,
+                expected_expiration: savedItem.expected_expiration,
+                category: savedItem.category,
+              } : item
+            )
+          );
+          
+          return savedItem;
+        } else if (newCount < oldCount) {
+          // Need to delete some items
+          const itemsToDelete = oldCount - newCount;
+          let deleted = 0;
+          
+          // Delete extra items (but not the one being edited)
+          for (const item of similarItems) {
+            if (item.id !== id && deleted < itemsToDelete) {
+              await removeItem(item.id);
+              deleted++;
+            }
+          }
+          
+          // Update the original item
+          const updatedItem = { ...itemToUpdate, ...updates, count: 1 };
+          const savedItem = await savePantryItem(111, updatedItem);
+          
+          setItems(prevItems =>
+            prevItems.map(item =>
+              item.id === id ? {
+                ...savedItem,
+                id: savedItem.id.toString(),
+                item_name: savedItem.item_name,
+                quantity_amount: savedItem.quantity_amount,
+                quantity_unit: savedItem.quantity_unit,
+                expected_expiration: savedItem.expected_expiration,
+                category: savedItem.category,
+              } : item
+            )
+          );
+          
+          return savedItem;
+        }
+      } else {
+        // No count change, just update the item normally
+        const updatedItem = { ...itemToUpdate, ...updates };
+        const savedItem = await savePantryItem(111, updatedItem);
+        
+        setItems(prevItems =>
+          prevItems.map(item =>
+            item.id === id ? {
+              ...savedItem,
+              id: savedItem.id.toString(),
+              item_name: savedItem.item_name,
+              quantity_amount: savedItem.quantity_amount,
+              quantity_unit: savedItem.quantity_unit,
+              expected_expiration: savedItem.expected_expiration,
+              category: savedItem.category,
+            } : item
+          )
+        );
+        
+        return savedItem;
+      }
     } catch (error) {
       console.error('Error updating item:', error);
       Alert.alert('Error', 'Failed to update item on the server');

@@ -305,8 +305,8 @@ class PantryService:
                     quantity = @quantity,
                     unit_of_measurement = @unit_of_measurement,
                     expiration_date = @expiration_date,
-                    unit_price = @unit_price,
-                    total_price = @total_price
+                    unit_price = CASE WHEN @unit_price IS NULL THEN NULL ELSE CAST(@unit_price AS FLOAT64) END,
+                    total_price = CASE WHEN @total_price IS NULL THEN NULL ELSE CAST(@total_price AS FLOAT64) END
                 WHERE pantry_item_id = @pantry_item_id
             """
             
