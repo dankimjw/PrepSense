@@ -203,6 +203,6 @@ Remember: The best way to learn is by doing. Start coding, make mistakes, and ke
 
 ---
 
-[← Previous: Troubleshooting](./06-troubleshooting.md) | [Back to Main Guide](../README.md)
+[← Previous: Troubleshooting](./06-troubleshooting.md) | [Back to Main Guide](../README.md) | [Next: Gitignore Guide →](./08-gitignore-guide.md)
 
 🎉 **Congratulations on completing the getting started guide!** 🎉
