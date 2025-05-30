@@ -11,6 +11,7 @@ Welcome to the PrepSense documentation! This guide will help you set up and run 
 - **[Running the App](./getting-started/05-running-app.md)** - Launch everything together
 - **[Troubleshooting](./getting-started/06-troubleshooting.md)** - Common issues and solutions
 - **[Helpful Resources](./getting-started/07-resources.md)** - Links and learning materials
+- **[Gitignore Guide](./getting-started/08-gitignore-guide.md)** - What files to ignore and why
 
 ## 🎯 Quick Start Path
 
