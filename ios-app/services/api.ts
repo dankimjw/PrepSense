@@ -81,7 +81,7 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
           quantity: item.quantity_amount,
           unit_of_measurement: item.quantity_unit,
           expiration_date: item.expected_expiration,
-          food_category: item.category,
+          category: item.category || 'Uncategorized',
           // Add any other fields needed by your API
         }),
         signal: controller.signal
