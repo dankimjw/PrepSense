@@ -50,6 +50,7 @@ type Item = {
   expected_expiration: string;
   count?: number;
   category?: string;
+  quantity_amount_text?: string;
 };
 
 export default function EditItem() {
@@ -76,6 +77,7 @@ export default function EditItem() {
         ...item,
         item_name: item.item_name || '',
         quantity_amount: item.quantity_amount || 0,
+        quantity_amount_text: String(item.quantity_amount || 0),
         quantity_unit: item.quantity_unit || 'pcs',
         expected_expiration: item.expected_expiration || new Date().toISOString().split('T')[0],
         count: item.count || 1,
@@ -86,6 +88,7 @@ export default function EditItem() {
       return {
         item_name: '',
         quantity_amount: 0,
+        quantity_amount_text: '0',
         quantity_unit: 'pcs',
         expected_expiration: new Date().toISOString().split('T')[0],
         count: 1,
@@ -199,15 +202,19 @@ export default function EditItem() {
                 color: '#297A56' 
               }
             ]}
-            value={String(form.quantity_amount)}
-            keyboardType="decimal-pad"
+            value={form.quantity_amount_text}
+            keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
             onChangeText={(t) => {
               // Allow decimals and validate input
               const cleaned = t.replace(/[^0-9.]/g, '');
               const parts = cleaned.split('.');
               // Allow only one decimal point
               const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
-              setForm((f: Item) => ({ ...f, quantity_amount: Number(formatted) || 0 }));
+              setForm((f: Item) => ({ 
+                ...f, 
+                quantity_amount_text: formatted,
+                quantity_amount: Number(formatted) || 0 
+              }));
             }}
             onFocus={() => setFocusedInput('amount')}
           />
