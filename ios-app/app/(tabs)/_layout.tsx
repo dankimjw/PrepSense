@@ -1,7 +1,7 @@
 // app/(tabs)/_layout.tsx - Part of the PrepSense mobile app
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable, Alert } from 'react-native';
+import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable } from 'react-native';
 import React, { useState } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CustomHeader } from '../components/CustomHeader';
@@ -20,7 +20,7 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   };
   const handleAddFoodItem = () => {
     setModalVisible(false);
-    Alert.alert('Coming Soon', 'Add Food Item feature is a placeholder.');
+    navigation.navigate('add-item');
   };
 
   return (

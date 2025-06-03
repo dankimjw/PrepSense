@@ -175,6 +175,20 @@ function AppContent() {
                 presentation: 'modal',
               }} 
             />
+            <Stack.Screen 
+              name="add-item" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Add Item" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                ),
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }} 
+            />
           </Stack>
           <ChatButton />
         </View>
