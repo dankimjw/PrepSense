@@ -1,5 +1,14 @@
-# PrepSense
-Capstone project for University of Chicago 
+# PrepSense 🥗
+AI-powered smart pantry management system - Capstone project for University of Chicago
+
+## 🚀 Project Overview
+
+PrepSense is an intelligent pantry management application that helps users:
+- Track food inventory with AI-powered image recognition
+- Monitor expiration dates to reduce food waste
+- Get personalized recipe suggestions based on available ingredients
+- Manage dietary preferences and allergens
+- Generate shopping lists automatically
 
 ## 📚 Getting Started Documentation
 
@@ -10,34 +19,103 @@ Capstone project for University of Chicago
 - **[Step-by-Step Setup Guide](./docs/getting-started/02-repository-setup.md)** - Clone and configure the project
 - **[Troubleshooting Guide](./docs/getting-started/06-troubleshooting.md)** - Common issues and solutions
 - **[Helpful Resources](./docs/getting-started/07-resources.md)** - Learning materials and references
+- **[Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)** - Team collaboration guidelines
+
+## 🏗️ Project Architecture
+
+### Backend Gateway (`/backend_gateway`)
 ```
-/backend-gateway
-    ├── app.py                # Main FastAPI app (entry point)
-    ├── routers/              # Directory for route handlers
-    │   ├── images.py         # Routes for image upload and processing
-    │   ├── pantry.py         # Routes for pantry CRUD operations
-    │   ├── recipes.py        # Routes for recipe suggestions
-    ├── services/             # Directory for core business logic
-    │   ├── vision_service.py # Logic for calling OpenAI Vision API or CV microservice
-    │   ├── pantry_service.py # Logic for pantry database operations
-    │   ├── recipe_service.py # Logic for recipe generation
-    ├── models.py             # Pydantic models for request/response validation
-    ├── database.py           # Database connection and setup
-    ├── pubsub.py             # Pub/Sub integration (if asynchronous processing is used)
-    ├── requirements.txt      # Python dependencies
-    ├── .env                  # Environment variables (e.g., VISION_URL, DB credentials)
+backend_gateway/
+├── app.py                    # Main FastAPI application entry point
+├── routers/                  # API route handlers
+│   ├── auth.py              # Authentication endpoints
+│   ├── bigquery_router.py   # BigQuery integration routes
+│   ├── chat_router.py       # AI chat functionality
+│   ├── images_router.py     # Image upload and processing
+│   ├── pantry_router.py     # Pantry CRUD operations
+│   ├── recipes_router.py    # Recipe generation endpoints
+│   └── users.py             # User management
+├── services/                 # Core business logic
+│   ├── bigquery_service.py  # BigQuery database operations
+│   ├── crew_ai_service.py   # AI agent orchestration
+│   ├── pantry_service.py    # Pantry management logic
+│   ├── recipe_service.py    # Recipe generation service
+│   ├── user_service.py      # User management service
+│   └── vision_service.py    # OpenAI Vision API integration
+├── models/                   # Data models
+│   └── user.py              # User model definitions
+├── core/                     # Core utilities
+│   └── security.py          # Security and authentication
+├── database.py              # Database configuration
+├── pubsub.py               # Pub/Sub integration
+└── requirements.txt         # Python dependencies
+```
+
+### iOS Application (`/ios-app`)
+```
+ios-app/
+├── app/                     # Main application screens
+│   ├── (tabs)/             # Tab-based navigation screens
+│   │   ├── index.tsx       # Home screen (pantry items)
+│   │   ├── stats.tsx       # Statistics dashboard
+│   │   ├── recipes.tsx     # Recipe suggestions
+│   │   └── profile.tsx     # User profile
+│   ├── components/         # Screen-specific components
+│   └── utils/              # Utility functions
+├── components/              # Shared components
+│   ├── home/               # Home screen components
+│   │   ├── QuickActions.tsx    # Quick action buttons
+│   │   ├── PantryItem.tsx      # Item display component
+│   │   ├── PantryItemsList.tsx # Items list container
+│   │   └── TipCard.tsx         # Storage tips
+│   ├── SearchBar.tsx       # Search functionality
+│   └── FilterModal.tsx     # Filter and sort modal
+├── hooks/                   # Custom React hooks
+│   └── useItemsWithFilters.ts # Items filtering logic
+├── context/                 # Global state management
+│   ├── ItemsContext.tsx    # Pantry items state
+│   └── AuthContext.tsx     # Authentication state
+├── services/               # API integration
+│   └── api.ts             # Backend API client
+├── types/                  # TypeScript definitions
+│   └── index.ts           # Shared type interfaces
+└── utils/                  # Helper functions
+    ├── itemHelpers.ts     # Item formatting utilities
+    └── encoding.ts        # Navigation encoding
 ```
 
 
-## Prerequisites
+## 🛠️ Tech Stack
+
+### Backend
+- **FastAPI** - Modern Python web framework
+- **Google BigQuery** - Cloud data warehouse
+- **OpenAI Vision API** - Image recognition
+- **CrewAI** - AI agent orchestration
+- **Python 3.8+** - Backend language
+
+### Frontend (iOS)
+- **React Native** - Cross-platform mobile framework
+- **Expo** - React Native development platform
+- **TypeScript** - Type-safe JavaScript
+- **React Navigation** - Navigation library
+- **Context API** - State management
+
+### AI/ML
+- **OpenAI GPT-4** - Natural language processing
+- **OpenAI Vision** - Food item recognition
+- **CrewAI Agents** - Recipe generation and recommendations
+
+## 🔧 Prerequisites
 
 Before you begin, ensure you have the following installed:
-- Git
-- Python 3.8+
-- Node.js (LTS version recommended) and npm (comes with Node.js)
-- Expo CLI (you can install it globally via `npm install -g expo-cli` or use `npx` for commands)
+- **Git** - Version control
+- **Python 3.8+** - Backend runtime
+- **Node.js** (LTS version) and npm - Frontend runtime
+- **Expo CLI** - React Native development (`npm install -g expo-cli`)
+- **iOS Simulator** (Mac only) or **Expo Go** app on your device
 
-## Quick Start
+## 🚀 Quick Start
 
 To start the backend or iOS app, use the following commands from the project root:
 
@@ -45,232 +123,278 @@ To start the backend or iOS app, use the following commands from the project roo
 # Start the FastAPI backend server (runs on port 8001)
 python run_server.py
 
-# Start the iOS app
+# Start the iOS app (in a new terminal)
 python run_ios.py
 ```
 
-## Database Schema
+## 💾 Database Schema
 
-The application uses Google BigQuery with the dataset `adsp-34002-on02-prep-sense.Inventory`. Below is the detailed schema for all tables:
+The application uses Google BigQuery with the dataset `adsp-34002-on02-prep-sense.Inventory`.
 
-### 1. `pantry`
-- `pantry_id` (INTEGER, NULLABLE)
-- `user_id` (INTEGER, NULLABLE)
-- `pantry_name` (STRING, NULLABLE)
-- `created_at` (DATETIME, NULLABLE)
+### Core Tables
 
-### 2. `pantry_items`
-- `pantry_item_id` (INTEGER, NULLABLE)
-- `pantry_id` (INTEGER, NULLABLE)
-- `quantity` (FLOAT, NULLABLE)
-- `unit_of_measurement` (STRING, NULLABLE)
-- `expiration_date` (DATE, NULLABLE)
-- `unit_price` (FLOAT, NULLABLE)
-- `total_price` (FLOAT, NULLABLE)
-- `created_at` (DATETIME, NULLABLE)
-- `used_quantity` (INTEGER, NULLABLE)
-- `status` (STRING, NULLABLE)
+#### 🏠 `pantry` - User pantries
+| Column | Type | Description |
+|--------|------|-------------|
+| pantry_id | INTEGER | Unique pantry identifier |
+| user_id | INTEGER | Associated user ID |
+| pantry_name | STRING | Name of the pantry |
+| created_at | DATETIME | Creation timestamp |
 
-### 3. `products`
-- `product_id` (INTEGER, NULLABLE)
-- `pantry_item_id` (INTEGER, NULLABLE)
-- `product_name` (STRING, NULLABLE)
-- `brand_name` (STRING, NULLABLE)
-- `category` (STRING, NULLABLE)
-- `upc_code` (STRING, NULLABLE)
-- `created_at` (DATETIME, NULLABLE)
+#### 🥫 `pantry_items` - Inventory tracking
+| Column | Type | Description |
+|--------|------|-------------|
+| pantry_item_id | INTEGER | Unique item identifier |
+| pantry_id | INTEGER | Associated pantry ID |
+| quantity | FLOAT | Item quantity |
+| unit_of_measurement | STRING | Unit (kg, lb, count, etc.) |
+| expiration_date | DATE | Expiration date |
+| unit_price | FLOAT | Price per unit |
+| total_price | FLOAT | Total item cost |
+| created_at | DATETIME | Creation timestamp |
+| used_quantity | INTEGER | Amount used |
+| status | STRING | Item status |
 
-### 4. `recipies`
-- `recipe_id` (INTEGER, NULLABLE)
-- `product_id` (INTEGER, NULLABLE)
-- `recipe_name` (STRING, NULLABLE)
-- `quantity_needed` (FLOAT, NULLABLE)
-- `unit_of_measurement` (STRING, NULLABLE)
-- `instructions` (STRING, NULLABLE)
-- `created_at` (DATETIME, NULLABLE)
+#### 📦 `products` - Product information
+| Column | Type | Description |
+|--------|------|-------------|
+| product_id | INTEGER | Unique product identifier |
+| pantry_item_id | INTEGER | Associated pantry item |
+| product_name | STRING | Product name |
+| brand_name | STRING | Brand name |
+| category | STRING | Product category |
+| upc_code | STRING | Universal Product Code |
+| created_at | DATETIME | Creation timestamp |
 
-### 5. `user`
-- `user_id` (INTEGER, NULLABLE)
-- `user_name` (STRING, NULLABLE)
-- `first_name` (STRING, NULLABLE)
-- `last_name` (STRING, NULLABLE)
-- `email` (STRING, NULLABLE)
-- `password_hash` (STRING, NULLABLE)
-- `role` (STRING, NULLABLE)
-- `api_key_enc` (BYTES, NULLABLE)
-- `created_at` (DATETIME, NULLABLE)
+#### 🍳 `recipies` - Recipe database
+| Column | Type | Description |
+|--------|------|-------------|
+| recipe_id | INTEGER | Unique recipe identifier |
+| product_id | INTEGER | Required product |
+| recipe_name | STRING | Recipe name |
+| quantity_needed | FLOAT | Required quantity |
+| unit_of_measurement | STRING | Measurement unit |
+| instructions | STRING | Cooking instructions |
+| created_at | DATETIME | Creation timestamp |
 
-### 6. `user_preference`
-- `user_id` (INTEGER, NULLABLE)
-- `household_size` (INTEGER, NULLABLE)
-- `dietary_preference` (STRING, REPEATED)
-- `allergens` (STRING, REPEATED)
-- `cuisine_preference` (STRING, REPEATED)
-- `created_at` (DATETIME, NULLABLE)
+#### 👤 `user` - User accounts
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | INTEGER | Unique user identifier |
+| user_name | STRING | Username |
+| first_name | STRING | First name |
+| last_name | STRING | Last name |
+| email | STRING | Email address |
+| password_hash | STRING | Encrypted password |
+| role | STRING | User role |
+| api_key_enc | BYTES | Encrypted API key |
+| created_at | DATETIME | Creation timestamp |
 
-### Key Observations:
-1. The `pantry_items` table tracks inventory with details like quantity, expiration, and usage.
-2. The `products` table contains product information linked to pantry items.
-3. The `recipies` table stores recipe information, linked to products.
-4. User management is handled through the `user` and `user_preference` tables.
-5. The `user_preference` table uses REPEATED fields for multiple selections like dietary preferences and allergens.
+#### ⚙️ `user_preference` - User preferences
+| Column | Type | Description |
+|--------|------|-------------|
+| user_id | INTEGER | Associated user ID |
+| household_size | INTEGER | Number of people |
+| dietary_preference | STRING[] | Dietary restrictions (REPEATED) |
+| allergens | STRING[] | Food allergies (REPEATED) |
+| cuisine_preference | STRING[] | Preferred cuisines (REPEATED) |
+| created_at | DATETIME | Creation timestamp |
 
-## Getting Started
+## 📋 Getting Started
 
-Follow these steps to set up the project environment.
-
-### 1. Backend Setup (`backend-gateway`)
-
-These steps will guide you through setting up the backend service. The Python virtual environment (`venv`) will be created and activated from the project root (`PrepSense`).
-
-#### a. Create and activate a virtual environment (from the `PrepSense` root directory):
-It's recommended to use a virtual environment to manage Python dependencies.
+### 1. Clone the Repository
 ```bash
-python3 -m venv venv
-source venv/bin/activate
+git clone https://github.com/your-org/PrepSense.git
+cd PrepSense
 ```
 
-#### b. Install dependencies:
+### 2. Backend Setup
+
+#### Create Virtual Environment
+```bash
+# From the project root directory
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+```
+
+#### Install Dependencies
 ```bash
 pip install -r requirements.txt
 ```
 
-#### c. Set up environment variables:
-- Create a `.env` file in the `backend-gateway` directory.
-- Add the required variables (e.g., `VISION_URL`, `OPENAI_API_KEY`):
-```bash
+#### Configure Environment Variables
+Create a `.env` file in the `backend-gateway` directory:
+```env
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Server Configuration
 VISION_URL=http://localhost:8001/detect
-OPENAI_API_KEY=your_openai_api_key
+SERVER_HOST=0.0.0.0  # Allows mobile devices to connect
+
+# Google Cloud Configuration
+GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
 ```
 
-#### d. Run the FastAPI app:
+#### Start the Backend Server
 ```bash
-# Bind to all interfaces so mobile devices can reach the server
-SERVER_HOST=0.0.0.0 python run_server.py
+# From project root
+python run_server.py
 ```
+The API will be available at `http://localhost:8001` (or your machine's IP on port 8001).
 
-The backend will be available on your machine's IP address (e.g., `http://192.168.1.X:8001`).
+### 3. iOS App Setup
 
-`run_ios.py` will automatically detect this IP and configure the Expo app accordingly.
-
-### 2. iOS App Setup
-
-#### a. Install dependencies:
+#### Install Dependencies
 ```bash
 cd ios-app
 npm install
+cd ..  # Return to project root
 ```
 
-#### b. Start the app:
+#### Start the iOS App
 ```bash
-# From the project root
+# From project root
 python run_ios.py
 ```
 
-The app will start and provide a QR code that you can scan with the Expo Go app on your iOS device.
+#### Access the App
+- **iOS Simulator**: Automatically opens on Mac
+- **Physical Device**: Scan the QR code with Expo Go app
+- **Web Browser**: Press 'w' in the terminal
 
-### Testing image upload in the iOS simulator
+### 4. Testing Tips
 
-When running the app in the iOS simulator you can quickly add photos without
-using a real device:
+#### Using iOS Simulator
+1. **Add Test Images**: Drag image files onto the simulator to add them to Photos
+2. **Test Upload**: Use "Upload Image" in the app to test AI recognition
+3. **Manual Entry**: Use "Add Item" for quick testing without images
 
-1. Drag any image file from your Mac onto the simulator window. It will be
-   imported into the Photos app inside the simulator.
-2. In the PrepSense app tap **Upload Image** and choose the photo you just added.
-3. Tap **Confirm** on the next screen to send the image to the backend (and then
-   on to OpenAI).
+#### API Testing
+- FastAPI docs: `http://localhost:8001/docs`
+- Interactive API testing: `http://localhost:8001/redoc`
 
-This mirrors the flow on a physical device while keeping development entirely on
-your desktop.
+## 🤝 Collaboration Guidelines
 
-## Collaboration Guidelines
+### 🌳 Git Workflow
 
-### Branch Management
-1. **Main Branch (`main`)**
-   - This is the production-ready branch
-   - Never commit directly to `main`
-   - All changes must come through pull requests
+#### Branch Strategy
+```
+main
+├── feature/add-shopping-list
+├── feature/recipe-filters
+├── fix/expiration-date-bug
+└── refactor/modular-components
+```
 
-2. **Feature Branches**
-   - Create a new branch for each feature/fix
-   - Branch naming convention: `feature/feature-name` or `fix/issue-name`
-   - Example: `feature/loading-screen`, `fix/auth-bug`
+#### Development Process
+```bash
+# 1. Start from updated main
+git checkout main
+git pull origin main
 
-3. **Development Workflow**
-   ```bash
-   # 1. Always start from an up-to-date main branch
-   git checkout main
-   git pull origin main
+# 2. Create feature branch
+git checkout -b feature/your-feature
 
-   # 2. Create and switch to your feature branch
-   git checkout -b feature/your-feature-name
+# 3. Make changes and commit
+git add .
+git commit -m "feat: add ingredient search"
 
-   # 3. Make your changes and commit them
-   git add .
-   git commit -m "feat: your descriptive commit message"
+# 4. Push to remote
+git push -u origin feature/your-feature
 
-   # 4. Push your branch to remote
-   git push -u origin feature/your-feature-name
+# 5. Create Pull Request on GitHub
+```
 
-   # 5. Create a pull request on GitHub
-   # 6. After review and approval, merge into main
-   ```
+### 📝 Commit Convention
+| Type | Description | Example |
+|------|-------------|---------|
+| `feat:` | New feature | `feat: add recipe sharing` |
+| `fix:` | Bug fix | `fix: correct expiration calculation` |
+| `docs:` | Documentation | `docs: update API endpoints` |
+| `style:` | Formatting | `style: fix indentation` |
+| `refactor:` | Code restructuring | `refactor: modularize home screen` |
+| `test:` | Add tests | `test: add pantry service tests` |
+| `chore:` | Maintenance | `chore: update dependencies` |
 
-### Commit Message Guidelines
-- Use clear, descriptive messages
-- Start with a type: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
-- Example: `feat: add loading screen with facts`
+### 🏗️ Modular Architecture
 
-### Code Review Process
-1. Create a pull request for your changes
-2. Request review from at least one team member
-3. Address any feedback or requested changes
-4. Once approved, merge into main
+The codebase follows a modular architecture for better team collaboration:
 
-### Environment Setup
-1. **Virtual Environment**
-   - Always use the virtual environment
-   - Activate it using: `source venv/bin/activate`
-   - Keep `requirements.txt` updated
-   - Document any new dependencies
+- **Components are isolated** - Work on different features without conflicts
+- **Clear interfaces** - TypeScript ensures type safety
+- **Shared utilities** - Reusable functions in `utils/`
+- **Custom hooks** - Business logic separated from UI
 
-2. **Backend Setup**
-   - Navigate to project root directory
-   - Run: `python run_server.py`
-   - Server will be available at `http://127.0.0.1:8001`
+See the [Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md) for details.
 
-3. **iOS App Setup**
-   - Navigate to project root directory
-   - Run: `python run_ios.py`
-   - Use Expo Go app to test on your device
+### 👥 Team Guidelines
 
-4. **Security**
-   - Never commit sensitive data or API keys
-   - Keep `.env` files local and in `.gitignore`
+#### Code Review
+- All PRs require at least one review
+- Run tests before requesting review
+- Address feedback promptly
+- Keep PRs focused and small
 
-### Best Practices
-1. **Code Organization**
-   - Keep related files together
-   - Follow the existing project structure
-   - Document new components or functions
+#### Development Setup
+1. **Use virtual environment** for Python
+2. **Run linters** before committing
+3. **Test on iOS simulator** and devices
+4. **Update documentation** for new features
 
-2. **Testing**
-   - Write tests for new features
-   - Ensure all tests pass before merging
+#### Security Best Practices
+- Never commit `.env` files
+- Use environment variables for secrets
+- Rotate API keys regularly
+- Follow OWASP guidelines
 
-3. **Documentation**
-   - Update README for significant changes
-   - Document API changes
-   - Add comments for complex logic
+## 🐛 Troubleshooting
 
-4. **Regular Updates**
-   - Pull from main regularly to stay up to date
-   - Resolve conflicts early
-   - Keep your feature branch current
+### Common Issues
 
-### Getting Help
-- Check existing documentation first
-- Ask in team chat for quick questions
-- Schedule a meeting for complex issues
-- Document solutions for future reference
+#### Backend Won't Start
+```bash
+# Check Python version
+python --version  # Should be 3.8+
+
+# Reinstall dependencies
+pip install -r requirements.txt --force-reinstall
+
+# Check port availability
+lsof -i :8001  # Kill any process using the port
+```
+
+#### iOS App Connection Issues
+```bash
+# Ensure backend is running on all interfaces
+SERVER_HOST=0.0.0.0 python run_server.py
+
+# Check firewall settings
+# Update API_BASE_URL in constants/Config.ts
+```
+
+#### BigQuery Authentication
+```bash
+# Set credentials path
+export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+
+# Verify credentials
+gcloud auth application-default login
+```
+
+## 📚 Additional Resources
+
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Native Docs](https://reactnative.dev/)
+- [BigQuery Documentation](https://cloud.google.com/bigquery/docs)
+- [OpenAI API Reference](https://platform.openai.com/docs)
+
+## 📄 License
+
+This project is part of the University of Chicago Capstone program.
+
+---
+
+Built with ❤️ by the PrepSense Team
 
