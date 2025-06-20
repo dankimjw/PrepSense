@@ -10,6 +10,207 @@ PrepSense is an intelligent pantry management application that helps users:
 - Manage dietary preferences and allergens
 - Generate shopping lists automatically
 
+## 🏗️ Architecture Overview
+
+### Backend
+- **FastAPI** for RESTful API endpoints
+- **Google BigQuery** for data storage and analytics
+- **Google Cloud Service Account** for secure authentication
+- **OpenAI Vision API** for image recognition
+- **CrewAI** for AI agent orchestration
+
+### iOS App (React Native)
+- Built with **Expo** and **TypeScript**
+- **Context API** for state management
+- **React Navigation** for routing
+- **Expo Router** for file-based routing
+- **NativeWind** for styling
+
+## 🛠️ Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+### System Requirements
+- Python 3.8 or higher
+- Node.js (LTS version)
+- npm or yarn package manager
+- Git
+
+### Google Cloud Setup
+1. **Access Existing Project**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Select the existing project: `adsp-34002-on02-prep-sense`
+   - Ensure you have the necessary permissions to access BigQuery and IAM
+
+2. **Verify Required APIs**
+   - The following APIs should already be enabled:
+     - Google BigQuery API
+     - Google Cloud Storage API (if using image storage)
+   - If you need to verify, go to "APIs & Services" > "Library" and search for these APIs
+
+3. **Service Account Access**
+   - Contact your project administrator to get access to the service account credentials
+   - The service account should have the following roles:
+     - BigQuery Data Owner
+     - BigQuery Job User
+   - You'll receive a JSON key file for authentication
+
+### OpenAI Setup
+1. **Get API Key**
+   - Go to [OpenAI Platform](https://platform.openai.com/)
+   - Create an account if needed
+   - Navigate to API Keys
+   - Create a new secret key
+
+## ⚙️ Environment Setup
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/PrepSense.git
+   cd PrepSense
+   ```
+
+2. **Set up Python environment**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   ```
+
+3. **Set up iOS app dependencies**
+   ```bash
+   cd ios-app
+   npm install
+   cd ..
+   ```
+
+4. **Create .env file**
+   Create a new file named `.env` in the project root with the following content:
+
+   ```env
+   # ===================================
+   # Application Settings
+   # ===================================
+   DEBUG=true
+   DEVELOPMENT_MODE=false  # Set to true for local development without BigQuery
+
+   # ===================================
+   # API Settings
+   # ===================================
+   API_V1_STR=/api/v1
+   SECRET_KEY=your-secret-key-here-change-in-production
+   ALGORITHM=HS256
+   ACCESS_TOKEN_EXPIRE_MINUTES=11520  # 8 days in minutes
+
+   # ===================================
+   # Server Settings
+   # ===================================
+   HOST=0.0.0.0
+   PORT=8001
+   RELOAD=True
+
+   # ===================================
+   # Google Cloud Settings
+   # ===================================
+   # Path to your service account JSON key file
+   GOOGLE_APPLICATION_CREDENTIALS=/path/to/your/service-account.json
+   
+   # Your Google Cloud Project ID
+   BIGQUERY_PROJECT=your-project-id
+   
+   # BigQuery dataset name
+   BIGQUERY_DATASET=Inventory
+   
+   # BigQuery location
+   BIGQUERY_LOCATION=US
+
+   # ===================================
+   # OpenAI Configuration
+   # ===================================
+   OPENAI_API_KEY=your-openai-api-key
+
+   # ===================================
+   # Admin User Configuration
+   # ===================================
+   ADMIN_EMAIL=admin@example.com
+   ADMIN_PASSWORD=admin123  # Change this in production
+   ```
+
+5. **Configure CORS (Optional)**
+   Uncomment and modify the following in your `.env` if you need CORS:
+   ```env
+   # ===================================
+   # CORS Settings
+   # ===================================
+   BACKEND_CORS_ORIGINS=http://localhost:8082,http://127.0.0.1:8082,http://0.0.0.0:8082
+   ```
+
+## 🚀 Running the Application
+
+### Using the Unified Launcher
+
+PrepSense includes a unified launcher that handles both backend and frontend:
+
+```bash
+# Start both backend and iOS app (default)
+python run_app.py
+
+# Start backend server only
+python run_app.py --backend
+
+# Start iOS app only
+python run_app.py --ios
+
+# Custom port configuration
+python run_app.py --port 8002 --ios-port 8083
+
+# Show help
+python run_app.py --help
+```
+
+### Environment Variables Reference
+
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to Google Cloud service account JSON key | Yes | - |
+| `BIGQUERY_PROJECT` | Google Cloud Project ID | Yes | - |
+| `BIGQUERY_DATASET` | BigQuery dataset name | Yes | `Inventory` |
+| `BIGQUERY_LOCATION` | BigQuery location | Yes | `US` |
+| `OPENAI_API_KEY` | OpenAI API key for AI features | Yes | - |
+| `DEVELOPMENT_MODE` | Enable development mode (uses mock data) | No | `false` |
+| `DEBUG` | Enable debug logging | No | `false` |
+| `HOST` | Backend server host | No | `0.0.0.0` |
+| `PORT` | Backend server port | No | `8001` |
+
+## 🧹 Cleanup Scripts
+
+Use the provided cleanup scripts when encountering issues:
+
+```bash
+# Python version
+python cleanup.py
+
+# Or shell script version
+./cleanup.sh
+```
+
+## 📚 Documentation
+
+For more detailed information, see:
+- [API Documentation](http://localhost:8001/docs) (when backend is running)
+- [Expo Documentation](https://docs.expo.dev/)
+- [FastAPI Documentation](https://fastapi.tiangolo.com/)
+- [Google BigQuery Documentation](https://cloud.google.com/bigquery/docs)
+
+## 🚀 Project Overview
+
+PrepSense is an intelligent pantry management application that helps users:
+- Track food inventory with AI-powered image recognition
+- Monitor expiration dates to reduce food waste
+- Get personalized recipe suggestions based on available ingredients
+- Manage dietary preferences and allergens
+- Generate shopping lists automatically
+
 ## 📚 Getting Started Documentation
 
 ⭐ For detailed setup instructions and comprehensive guides, please visit our **[Getting Started Documentation](./docs/README.md)**.
@@ -21,7 +222,7 @@ PrepSense is an intelligent pantry management application that helps users:
 - **[Helpful Resources](./docs/getting-started/07-resources.md)** - Learning materials and references
 - **[Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)** - Team collaboration guidelines
 
-## 🏗️ Project Architecture
+## 🗃️ Project Architecture
 
 ### Backend Gateway (`/backend_gateway`)
 ```
