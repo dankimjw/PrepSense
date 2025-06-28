@@ -169,9 +169,10 @@ def setup_python_environment():
     
     # Install requirements
     print("Installing Python dependencies...")
+    print_info(f"Using virtual environment pip: {pip_path}")
     if not run_command([str(pip_path), "install", "-r", "requirements.txt"]):
         return False
-    print_success("Python dependencies installed")
+    print_success("Python dependencies installed in virtual environment")
     
     return True
 
@@ -274,10 +275,14 @@ def initial_setup():
         return False
     
     print_header("Initial Setup Complete! 🎉")
-    print(f"{Colors.BOLD}Next Steps:{Colors.END}")
+    print(f"{Colors.BOLD}Dependencies installed in virtual environment!{Colors.END}")
+    print(f"{Colors.GREEN}✓ Python packages installed in venv{Colors.END}")
+    print(f"{Colors.GREEN}✓ npm packages installed{Colors.END}")
+    print(f"{Colors.GREEN}✓ Directories and config files created{Colors.END}")
+    
+    print(f"\n{Colors.BOLD}Next Steps:{Colors.END}")
     print(f"  1. Run option 2 to configure your API keys")
-    print(f"  2. Place your Google Cloud credentials in the config/ directory")
-    print(f"  3. {Colors.YELLOW}Activate the virtual environment:{Colors.END}")
+    print(f"  2. {Colors.YELLOW}To run the application, activate the virtual environment:{Colors.END}")
     
     # Show platform-specific activation command
     if platform.system() == "Windows":
@@ -285,7 +290,7 @@ def initial_setup():
     else:
         print(f"     {Colors.CYAN}source venv/bin/activate{Colors.END}")
     
-    print(f"  4. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
+    print(f"  3. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
     
     return True
 
