@@ -284,11 +284,16 @@ cd ..
 
 #### Configure Environment Variables
 
-Edit the `.env` file with your credentials:
-```env
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
+Edit the `.env` file and config files with your credentials:
 
+**1. OpenAI Configuration:**
+- Edit `config/openai_key.txt` and add your OpenAI API key
+- The `.env` file is already configured to use this file
+
+**2. Google Cloud Configuration:**
+- Place your service account JSON file in the `config/` directory
+- Update the path in `.env`:
+```env
 # Google Cloud Configuration
 GOOGLE_APPLICATION_CREDENTIALS=config/your-service-account-key.json
 ```
