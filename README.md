@@ -112,16 +112,46 @@ Before you begin, ensure you have the following installed:
 - **Git** - Version control
 - **Python 3.8+** - Backend runtime
 - **Node.js** (LTS version) and npm - Frontend runtime
-- **Expo CLI** - React Native development (`npm install -g expo-cli`)
+- **Expo CLI** (optional) - React Native development (`npm install -g expo-cli`)
 - **iOS Simulator** (Mac only) or **Expo Go** app on your device
 
 ## 🚀 Quick Start
 
-To start the backend or iOS app, use the following commands from the project root:
+### 🎯 Automated Setup (Recommended)
+
+We provide automated setup scripts for different platforms:
+
+#### macOS/Linux:
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+#### Windows:
+```cmd
+setup.bat
+```
+
+#### Cross-platform (Python):
+```bash
+python setup.py
+```
+
+The setup script will:
+- ✅ Check all prerequisites
+- ✅ Create virtual environment
+- ✅ Install Python dependencies
+- ✅ Install npm packages
+- ✅ Create required directories
+- ✅ Set up environment configuration
+
+### 🏃 Running the Application
+
+After setup is complete:
 
 ```bash
 # Start the FastAPI backend server (runs on port 8001)
-python run_server.py
+python run_app.py
 
 # Start the iOS app (in a new terminal)
 python run_ios.py
@@ -208,59 +238,75 @@ git clone https://github.com/your-org/PrepSense.git
 cd PrepSense
 ```
 
-### 2. Backend Setup
+### 2. Automated Setup (Recommended)
 
-#### Create Virtual Environment
+Run the appropriate setup script for your platform:
+
 ```bash
-# From the project root directory
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# macOS/Linux
+./setup.sh
+
+# Windows
+setup.bat
+
+# Or use Python (cross-platform)
+python setup.py
 ```
 
-#### Install Dependencies
+### 3. Manual Setup (Alternative)
+
+If you prefer manual setup or the automated script fails:
+
+#### Backend Setup
+
 ```bash
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Copy environment template
+cp .env.template .env
+
+# Edit .env with your API keys
+```
+
+#### iOS App Setup
+
+```bash
+# Install dependencies
+cd ios-app
+npm install
+cd ..
 ```
 
 #### Configure Environment Variables
-Create a `.env` file in the `backend-gateway` directory:
+
+Edit the `.env` file with your credentials:
 ```env
 # OpenAI Configuration
 OPENAI_API_KEY=your_openai_api_key_here
 
-# Server Configuration
-VISION_URL=http://localhost:8001/detect
-SERVER_HOST=0.0.0.0  # Allows mobile devices to connect
-
 # Google Cloud Configuration
-GOOGLE_APPLICATION_CREDENTIALS=path/to/your/credentials.json
+GOOGLE_APPLICATION_CREDENTIALS=config/your-service-account-key.json
 ```
 
-#### Start the Backend Server
-```bash
-# From project root
-python run_server.py
-```
-The API will be available at `http://localhost:8001` (or your machine's IP on port 8001).
+### 4. Running the Application
 
-### 3. iOS App Setup
-
-#### Install Dependencies
 ```bash
-cd ios-app
-npm install
-cd ..  # Return to project root
-```
+# Start backend (from project root)
+python run_app.py
 
-#### Start the iOS App
-```bash
-# From project root
+# Start iOS app (in new terminal)
 python run_ios.py
 ```
 
-#### Access the App
+#### Access Points
+- **API Documentation**: `http://localhost:8001/docs`
 - **iOS Simulator**: Automatically opens on Mac
-- **Physical Device**: Scan the QR code with Expo Go app
+- **Physical Device**: Scan QR code with Expo Go app
 - **Web Browser**: Press 'w' in the terminal
 
 ### 4. Testing Tips
