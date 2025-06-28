@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import re
 import json
 from typing import Optional, Tuple, List, Dict, Any
+from ..core.config_utils import get_openai_api_key
 
 # Load environment variables.
 load_dotenv()

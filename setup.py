@@ -173,11 +173,16 @@ def setup_environment_file():
     shutil.copy2(env_template, env_file)
     print_success(".env file created from template")
     
-    print(f"\n{Colors.YELLOW}Please edit the .env file and add your API keys:{Colors.END}")
-    print(f"  1. Open {Colors.BOLD}.env{Colors.END} in your text editor")
-    print(f"  2. Add your OpenAI API key")
-    print(f"  3. Add your Google Cloud credentials path")
-    print(f"  4. Save the file")
+    # Create placeholder API key file
+    openai_key_file = Path("config/openai_key.txt")
+    if not openai_key_file.exists():
+        openai_key_file.write_text("your_openai_api_key_here\n")
+        print_success("Created config/openai_key.txt placeholder")
+    
+    print(f"\n{Colors.YELLOW}Please configure your API keys:{Colors.END}")
+    print(f"  1. Edit {Colors.BOLD}config/openai_key.txt{Colors.END} and add your OpenAI API key")
+    print(f"  2. Ensure your Google Cloud credentials are in {Colors.BOLD}config/{Colors.END}")
+    print(f"  3. The .env file is already configured to use these files")
     
     return True
 

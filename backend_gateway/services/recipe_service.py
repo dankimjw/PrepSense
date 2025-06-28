@@ -1,9 +1,11 @@
 """Logic for generating recipes using OpenAI based on pantry items."""
 
+import os
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel
 import openai  # Ensure OpenAI API is properly configured
+from ..core.config_utils import get_openai_api_key
 
 class RecipeService:
     """
@@ -12,10 +14,11 @@ class RecipeService:
 
     def __init__(self):
         # Initialize any required configurations, e.g., OpenAI API key
-        openai.api_key = os.getenv("OPENAI_API_KEY")
-        if not openai.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
-        print(f"Using OpenAI model: gpt-4")
+        try:
+            openai.api_key = get_openai_api_key()
+            print(f"Using OpenAI model: gpt-4")
+        except ValueError as e:
+            raise ValueError(f"OpenAI configuration error: {e}")
 
     def generate_recipe_from_pantry(self, pantry_db: pd.DataFrame) -> str:
         """
