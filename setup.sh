@@ -158,11 +158,16 @@ if [ -f ".env.template" ]; then
         print_success ".env file created from template"
     fi
     
-    echo -e "\n${YELLOW}Please edit the .env file and add your API keys:${NC}"
-    echo "  1. Open .env in your text editor"
-    echo "  2. Add your OpenAI API key"
-    echo "  3. Add your Google Cloud credentials path"
-    echo "  4. Save the file"
+    # Create placeholder OpenAI key file
+    if [ ! -f "config/openai_key.txt" ]; then
+        echo "your_openai_api_key_here" > config/openai_key.txt
+        print_success "Created config/openai_key.txt placeholder"
+    fi
+    
+    echo -e "\n${YELLOW}Please configure your API keys:${NC}"
+    echo "  1. Edit config/openai_key.txt and add your OpenAI API key"
+    echo "  2. Ensure your Google Cloud credentials are in config/"
+    echo "  3. The .env file is already configured to use these files"
 else
     print_error ".env.template not found"
 fi
