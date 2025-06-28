@@ -280,6 +280,81 @@ def initial_setup():
     
     return True
 
+def check_google_credentials():
+    """Check for Google Cloud credentials and update .env if needed"""
+    config_dir = Path("config")
+    env_file = Path(".env")
+    
+    # Find JSON files in config directory
+    json_files = list(config_dir.glob("*.json"))
+    
+    # Filter for Google Cloud service account files
+    service_account_files = []
+    for f in json_files:
+        name_lower = f.name.lower()
+        # Skip openai.json and other non-GCP files
+        if "openai" in name_lower:
+            continue
+        # Look for GCP-specific patterns
+        if any(pattern in name_lower for pattern in ["service", "gcp", "google", "bigquery", "prep-sense", "adsp"]):
+            service_account_files.append(f)
+        elif f.name.endswith("-key.json") or "credentials" in name_lower:
+            service_account_files.append(f)
+    
+    if not service_account_files and json_files:
+        # If no obvious service account files, show all JSON files and let user choose
+        print_warning("Multiple JSON files found. Please specify which is your Google Cloud service account:")
+        for i, f in enumerate(json_files, 1):
+            if "openai" not in f.name.lower():  # Skip openai.json
+                print(f"  {i}. {f.name}")
+        
+        try:
+            choice = input("Enter the number of your service account file (or 0 to skip): ").strip()
+            if choice == "0":
+                print("Skipping Google Cloud credentials setup")
+                return False
+            choice_idx = int(choice) - 1
+            if 0 <= choice_idx < len([f for f in json_files if "openai" not in f.name.lower()]):
+                non_openai_files = [f for f in json_files if "openai" not in f.name.lower()]
+                service_account_files = [non_openai_files[choice_idx]]
+            else:
+                print_error("Invalid choice")
+                return False
+        except (ValueError, KeyboardInterrupt):
+            print_error("Invalid input")
+            return False
+    
+    if service_account_files:
+        # Use the first service account file found
+        credentials_file = service_account_files[0]
+        print_success(f"Found Google Cloud credentials: {credentials_file.name}")
+        
+        # Read current .env content
+        env_content = env_file.read_text()
+        
+        # Update the GOOGLE_APPLICATION_CREDENTIALS line
+        new_path = f"config/{credentials_file.name}"
+        if "GOOGLE_APPLICATION_CREDENTIALS=" in env_content:
+            # Replace existing line
+            lines = env_content.split('\n')
+            for i, line in enumerate(lines):
+                if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
+                    lines[i] = f"GOOGLE_APPLICATION_CREDENTIALS={new_path}"
+                    break
+            env_content = '\n'.join(lines)
+        else:
+            # Add new line
+            env_content += f"\nGOOGLE_APPLICATION_CREDENTIALS={new_path}\n"
+        
+        # Write updated content
+        env_file.write_text(env_content)
+        print_success(f"Updated .env with Google Cloud credentials path")
+        return True
+    else:
+        print_warning("No Google Cloud service account JSON files found in config/")
+        print(f"  Place your service account key file in {Colors.CYAN}config/{Colors.END}")
+        return False
+
 def setup_api_keys():
     """Setup API keys"""
     print_header("API Key Configuration")
@@ -296,10 +371,9 @@ def setup_api_keys():
         print_error(".env file not found. Please run Initial Setup first.")
         return False
     
+    # Setup OpenAI API Key
+    print(f"{Colors.BOLD}1. OpenAI API Key Setup:{Colors.END}")
     openai_key_file = Path("config/openai_key.txt")
-    
-    print(f"{Colors.BOLD}OpenAI API Key Setup:{Colors.END}")
-    print(f"Current key file: {Colors.CYAN}{openai_key_file}{Colors.END}")
     
     # Check current key
     if openai_key_file.exists():
@@ -309,12 +383,31 @@ def setup_api_keys():
             response = input("Do you want to update it? (y/N): ").lower()
             if response != 'y':
                 print("Keeping existing OpenAI key")
-                return True
+            else:
+                setup_openai_key(openai_key_file)
         else:
             print_warning("OpenAI key is not configured (placeholder found)")
+            setup_openai_key(openai_key_file)
     else:
         print_warning("OpenAI key file not found, creating it")
         openai_key_file.touch()
+        setup_openai_key(openai_key_file)
+    
+    # Setup Google Cloud Credentials
+    print(f"\n{Colors.BOLD}2. Google Cloud Credentials Setup:{Colors.END}")
+    check_google_credentials()
+    
+    # Show next steps
+    print(f"\n{Colors.BOLD}Setup Complete! Next Steps:{Colors.END}")
+    print(f"  1. Start the backend: {Colors.GREEN}python run_app.py{Colors.END}")
+    print(f"  2. Start the iOS app: {Colors.GREEN}python run_ios.py{Colors.END}")
+    print(f"  3. Access API docs: {Colors.BLUE}http://localhost:8001/docs{Colors.END}")
+    
+    return True
+
+def setup_openai_key(openai_key_file):
+    """Setup OpenAI API key"""
+    print(f"Current key file: {Colors.CYAN}{openai_key_file}{Colors.END}")
     
     # Get new key from user
     print(f"\n{Colors.BOLD}Please enter your OpenAI API key:{Colors.END}")
@@ -345,12 +438,6 @@ def setup_api_keys():
         except Exception as e:
             print_error(f"Error saving API key: {e}")
             return False
-    
-    # Show next steps
-    print(f"\n{Colors.BOLD}Next Steps:{Colors.END}")
-    print(f"  1. Place your Google Cloud service account JSON file in {Colors.CYAN}config/{Colors.END}")
-    print(f"  2. Update GOOGLE_APPLICATION_CREDENTIALS in {Colors.CYAN}.env{Colors.END} if needed")
-    print(f"  3. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
     
     return True
 
