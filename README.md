@@ -117,33 +117,27 @@ Before you begin, ensure you have the following installed:
 
 ## 🚀 Quick Start
 
-### 🎯 Automated Setup (Recommended)
+### 🎯 Interactive Setup (Recommended)
 
-We provide automated setup scripts for different platforms:
+We provide an interactive Python setup script with menu options:
 
-#### macOS/Linux:
 ```bash
-chmod +x setup.sh
-./setup.sh
+python3 setup.py
 ```
 
-#### Windows:
-```cmd
-setup.bat
-```
-
-#### Cross-platform (Python):
-```bash
-python setup.py
-```
+**Menu Options:**
+1. **Initial Setup** - Install dependencies, create directories, set up environment
+2. **Setup API Keys** - Configure OpenAI and other API keys interactively
+3. **Exit**
 
 The setup script will:
-- ✅ Check all prerequisites
-- ✅ Create virtual environment
-- ✅ Install Python dependencies
-- ✅ Install npm packages
-- ✅ Create required directories
-- ✅ Set up environment configuration
+- ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git)
+- ✅ Create virtual environment and install Python dependencies
+- ✅ Install npm packages for iOS app
+- ✅ Create required directories (`config/`, `logs/`, `data/`)
+- ✅ Set up `.env` file from template
+- ✅ Create `config/openai_key.txt` placeholder
+- ✅ Interactive API key configuration
 
 ### 🏃 Running the Application
 
@@ -238,20 +232,15 @@ git clone https://github.com/your-org/PrepSense.git
 cd PrepSense
 ```
 
-### 2. Automated Setup (Recommended)
+### 2. Interactive Setup (Recommended)
 
-Run the appropriate setup script for your platform:
+Run the interactive Python setup script:
 
 ```bash
-# macOS/Linux
-./setup.sh
-
-# Windows
-setup.bat
-
-# Or use Python (cross-platform)
-python setup.py
+python3 setup.py
 ```
+
+Select option 1 for initial setup, then option 2 to configure API keys.
 
 ### 3. Manual Setup (Alternative)
 
