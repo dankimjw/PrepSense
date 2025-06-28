@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-PrepSense Automated Setup Script
-This script automates the setup process for the PrepSense application.
+PrepSense Setup Script
+This script provides setup options for the PrepSense application.
 """
 
 import os
@@ -17,6 +17,7 @@ class Colors:
     YELLOW = '\033[93m'
     RED = '\033[91m'
     BLUE = '\033[94m'
+    CYAN = '\033[96m'
     END = '\033[0m'
     BOLD = '\033[1m'
 
@@ -38,6 +39,10 @@ def print_error(message):
     """Print an error message"""
     print(f"{Colors.RED}✗ {message}{Colors.END}")
 
+def print_info(message):
+    """Print an info message"""
+    print(f"{Colors.CYAN}ℹ {message}{Colors.END}")
+
 def check_command(command):
     """Check if a command is available"""
     return shutil.which(command) is not None
@@ -54,6 +59,30 @@ def run_command(command, cwd=None, shell=False):
     except Exception as e:
         print_error(f"Failed to run command: {e}")
         return False
+
+def show_menu():
+    """Display the main menu"""
+    print_header("PrepSense Setup Script")
+    print(f"{Colors.BOLD}Please select an option:{Colors.END}\n")
+    print(f"{Colors.CYAN}1.{Colors.END} Initial Setup (Install dependencies, create directories)")
+    print(f"{Colors.CYAN}2.{Colors.END} Setup API Keys (Configure OpenAI and other API keys)")
+    print(f"{Colors.CYAN}3.{Colors.END} Exit")
+    print()
+
+def get_user_choice():
+    """Get user menu choice"""
+    while True:
+        try:
+            choice = input(f"{Colors.BOLD}Enter your choice (1-3): {Colors.END}").strip()
+            if choice in ['1', '2', '3']:
+                return int(choice)
+            else:
+                print_error("Please enter 1, 2, or 3")
+        except KeyboardInterrupt:
+            print("\n\nExiting...")
+            sys.exit(0)
+        except Exception:
+            print_error("Invalid input. Please enter 1, 2, or 3")
 
 def check_prerequisites():
     """Check if all required tools are installed"""
@@ -91,6 +120,26 @@ def check_prerequisites():
             print_warning("Could not verify Python version")
     
     return all_good
+
+def create_directories():
+    """Create necessary directories"""
+    print_header("Creating Required Directories")
+    
+    directories = [
+        "config",  # For API keys and credentials
+        "logs",    # For application logs
+        "data"     # For any local data storage
+    ]
+    
+    for dir_name in directories:
+        dir_path = Path(dir_name)
+        if not dir_path.exists():
+            dir_path.mkdir(parents=True)
+            print_success(f"Created {dir_name}/ directory")
+        else:
+            print_success(f"{dir_name}/ directory already exists")
+    
+    return True
 
 def setup_python_environment():
     """Set up Python virtual environment and install dependencies"""
@@ -153,7 +202,7 @@ def setup_ios_app():
 
 def setup_environment_file():
     """Set up .env file from template"""
-    print_header("Setting Up Environment Variables")
+    print_header("Setting Up Environment File")
     
     env_template = Path(".env.template")
     env_file = Path(".env")
@@ -173,65 +222,23 @@ def setup_environment_file():
     shutil.copy2(env_template, env_file)
     print_success(".env file created from template")
     
-    # Create placeholder API key file
+    return True
+
+def create_openai_key_file():
+    """Create OpenAI key file with placeholder"""
     openai_key_file = Path("config/openai_key.txt")
+    
     if not openai_key_file.exists():
         openai_key_file.write_text("your_openai_api_key_here\n")
         print_success("Created config/openai_key.txt placeholder")
-    
-    print(f"\n{Colors.YELLOW}Please configure your API keys:{Colors.END}")
-    print(f"  1. Edit {Colors.BOLD}config/openai_key.txt{Colors.END} and add your OpenAI API key")
-    print(f"  2. Ensure your Google Cloud credentials are in {Colors.BOLD}config/{Colors.END}")
-    print(f"  3. The .env file is already configured to use these files")
+    else:
+        print_success("config/openai_key.txt already exists")
     
     return True
 
-def create_directories():
-    """Create necessary directories"""
-    print_header("Creating Required Directories")
-    
-    directories = [
-        "config",  # For Google Cloud credentials
-        "logs",    # For application logs
-        "data"     # For any local data storage
-    ]
-    
-    for dir_name in directories:
-        dir_path = Path(dir_name)
-        if not dir_path.exists():
-            dir_path.mkdir(parents=True)
-            print_success(f"Created {dir_name}/ directory")
-        else:
-            print_success(f"{dir_name}/ directory already exists")
-    
-    return True
-
-def print_next_steps():
-    """Print next steps for the user"""
-    print_header("Setup Complete! 🎉")
-    
-    print(f"{Colors.BOLD}Next Steps:{Colors.END}")
-    print("\n1. Configure your environment variables:")
-    print(f"   {Colors.BLUE}Edit .env file with your API keys{Colors.END}")
-    
-    print("\n2. Add Google Cloud credentials:")
-    print(f"   {Colors.BLUE}Place your service account JSON file in the config/ directory{Colors.END}")
-    print(f"   {Colors.BLUE}Update GOOGLE_APPLICATION_CREDENTIALS path in .env{Colors.END}")
-    
-    print("\n3. Start the application:")
-    print(f"   {Colors.GREEN}Backend:{Colors.END} python run_app.py")
-    print(f"   {Colors.GREEN}iOS App:{Colors.END} python run_ios.py")
-    
-    print("\n4. Access the services:")
-    print(f"   {Colors.BLUE}API Documentation:{Colors.END} http://localhost:8001/docs")
-    print(f"   {Colors.BLUE}iOS App:{Colors.END} Scan QR code with Expo Go")
-    
-    print(f"\n{Colors.BOLD}For more help, see the documentation in docs/{Colors.END}")
-
-def main():
-    """Main setup function"""
-    print_header("PrepSense Automated Setup")
-    print("This script will set up your development environment for PrepSense\n")
+def initial_setup():
+    """Perform initial setup"""
+    print_header("Starting Initial Setup")
     
     # Change to script directory
     script_dir = Path(__file__).parent
@@ -240,31 +247,142 @@ def main():
     # Check prerequisites
     if not check_prerequisites():
         print_error("\nPlease install missing prerequisites and run setup again.")
-        return 1
+        return False
     
     # Create directories
     if not create_directories():
-        return 1
-    
-    # Setup Python environment
-    if not setup_python_environment():
-        print_error("\nPython environment setup failed.")
-        return 1
-    
-    # Setup iOS app
-    if not setup_ios_app():
-        print_error("\niOS app setup failed.")
-        return 1
+        return False
     
     # Setup environment file
     if not setup_environment_file():
         print_error("\nEnvironment file setup failed.")
-        return 1
+        return False
     
-    # Print next steps
-    print_next_steps()
+    # Create OpenAI key file
+    if not create_openai_key_file():
+        return False
     
-    return 0
+    # Setup Python environment
+    if not setup_python_environment():
+        print_error("\nPython environment setup failed.")
+        return False
+    
+    # Setup iOS app
+    if not setup_ios_app():
+        print_error("\niOS app setup failed.")
+        return False
+    
+    print_header("Initial Setup Complete! 🎉")
+    print(f"{Colors.BOLD}Next Steps:{Colors.END}")
+    print(f"  1. Run option 2 to configure your API keys")
+    print(f"  2. Place your Google Cloud credentials in the config/ directory")
+    print(f"  3. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
+    
+    return True
+
+def setup_api_keys():
+    """Setup API keys"""
+    print_header("API Key Configuration")
+    
+    # Check if config directory exists
+    config_dir = Path("config")
+    if not config_dir.exists():
+        print_error("Config directory not found. Please run Initial Setup first.")
+        return False
+    
+    # Check if .env exists
+    env_file = Path(".env")
+    if not env_file.exists():
+        print_error(".env file not found. Please run Initial Setup first.")
+        return False
+    
+    openai_key_file = Path("config/openai_key.txt")
+    
+    print(f"{Colors.BOLD}OpenAI API Key Setup:{Colors.END}")
+    print(f"Current key file: {Colors.CYAN}{openai_key_file}{Colors.END}")
+    
+    # Check current key
+    if openai_key_file.exists():
+        current_key = openai_key_file.read_text().strip()
+        if current_key and current_key != "your_openai_api_key_here":
+            print_success("OpenAI key is already configured")
+            response = input("Do you want to update it? (y/N): ").lower()
+            if response != 'y':
+                print("Keeping existing OpenAI key")
+                return True
+        else:
+            print_warning("OpenAI key is not configured (placeholder found)")
+    else:
+        print_warning("OpenAI key file not found, creating it")
+        openai_key_file.touch()
+    
+    # Get new key from user
+    print(f"\n{Colors.BOLD}Please enter your OpenAI API key:{Colors.END}")
+    print("(The key should start with 'sk-proj-' or 'sk-')")
+    
+    while True:
+        try:
+            api_key = input("OpenAI API Key: ").strip()
+            
+            if not api_key:
+                print_error("API key cannot be empty")
+                continue
+            
+            if not (api_key.startswith('sk-proj-') or api_key.startswith('sk-')):
+                print_warning("API key should start with 'sk-proj-' or 'sk-'")
+                response = input("Continue anyway? (y/N): ").lower()
+                if response != 'y':
+                    continue
+            
+            # Save the key
+            openai_key_file.write_text(api_key + '\n')
+            print_success("OpenAI API key saved successfully!")
+            break
+            
+        except KeyboardInterrupt:
+            print("\n\nCancelled API key setup")
+            return False
+        except Exception as e:
+            print_error(f"Error saving API key: {e}")
+            return False
+    
+    # Show next steps
+    print(f"\n{Colors.BOLD}Next Steps:{Colors.END}")
+    print(f"  1. Place your Google Cloud service account JSON file in {Colors.CYAN}config/{Colors.END}")
+    print(f"  2. Update GOOGLE_APPLICATION_CREDENTIALS in {Colors.CYAN}.env{Colors.END} if needed")
+    print(f"  3. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
+    
+    return True
+
+def main():
+    """Main function"""
+    while True:
+        show_menu()
+        choice = get_user_choice()
+        
+        if choice == 1:
+            success = initial_setup()
+            if success:
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+            else:
+                print_error("\nInitial setup failed!")
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+        
+        elif choice == 2:
+            success = setup_api_keys()
+            if success:
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+            else:
+                print_error("\nAPI key setup failed!")
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+        
+        elif choice == 3:
+            print("\nExiting setup script. Goodbye!")
+            sys.exit(0)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\nSetup interrupted. Goodbye!")
+        sys.exit(0)
