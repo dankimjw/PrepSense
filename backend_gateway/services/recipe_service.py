@@ -12,9 +12,9 @@ class RecipeService:
 
     def __init__(self):
         # Initialize any required configurations, e.g., OpenAI API key
-        openai.api_key = "your_openai_api_key"  # Replace with actual key or use environment variables
-        print(f"Using OpenAI API Key: {openai.api_key}")
-        print(f"Using OpenAI API Key: {openai.api_key}")
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        if not openai.api_key:
+            raise ValueError("OPENAI_API_KEY environment variable not set")
         print(f"Using OpenAI model: gpt-4")
 
     def generate_recipe_from_pantry(self, pantry_db: pd.DataFrame) -> str:
@@ -84,8 +84,7 @@ class RecipeService:
 
     async def process_image(self, file):
         try:
-            openai.api_key = "your_actual_api_key"
-
+            # API key is already set in __init__
             response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
