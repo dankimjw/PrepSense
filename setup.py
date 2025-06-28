@@ -66,23 +66,24 @@ def show_menu():
     print(f"{Colors.BOLD}Please select an option:{Colors.END}\n")
     print(f"{Colors.CYAN}1.{Colors.END} Initial Setup (Install dependencies, create directories)")
     print(f"{Colors.CYAN}2.{Colors.END} Setup API Keys (Configure OpenAI and other API keys)")
-    print(f"{Colors.CYAN}3.{Colors.END} Exit")
+    print(f"{Colors.CYAN}3.{Colors.END} Show Virtual Environment Activation")
+    print(f"{Colors.CYAN}4.{Colors.END} Exit")
     print()
 
 def get_user_choice():
     """Get user menu choice"""
     while True:
         try:
-            choice = input(f"{Colors.BOLD}Enter your choice (1-3): {Colors.END}").strip()
-            if choice in ['1', '2', '3']:
+            choice = input(f"{Colors.BOLD}Enter your choice (1-4): {Colors.END}").strip()
+            if choice in ['1', '2', '3', '4']:
                 return int(choice)
             else:
-                print_error("Please enter 1, 2, or 3")
+                print_error("Please enter 1, 2, 3, or 4")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
         except Exception:
-            print_error("Invalid input. Please enter 1, 2, or 3")
+            print_error("Invalid input. Please enter 1, 2, 3, or 4")
 
 def check_prerequisites():
     """Check if all required tools are installed"""
@@ -276,7 +277,54 @@ def initial_setup():
     print(f"{Colors.BOLD}Next Steps:{Colors.END}")
     print(f"  1. Run option 2 to configure your API keys")
     print(f"  2. Place your Google Cloud credentials in the config/ directory")
-    print(f"  3. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
+    print(f"  3. {Colors.YELLOW}Activate the virtual environment:{Colors.END}")
+    
+    # Show platform-specific activation command
+    if platform.system() == "Windows":
+        print(f"     {Colors.CYAN}venv\\Scripts\\activate{Colors.END}")
+    else:
+        print(f"     {Colors.CYAN}source venv/bin/activate{Colors.END}")
+    
+    print(f"  4. Start the application with: {Colors.GREEN}python run_app.py{Colors.END}")
+    
+    return True
+
+def show_activation_instructions():
+    """Show virtual environment activation instructions"""
+    print_header("Virtual Environment Activation")
+    
+    venv_path = Path("venv")
+    if not venv_path.exists():
+        print_error("Virtual environment not found!")
+        print(f"Please run {Colors.CYAN}option 1 (Initial Setup){Colors.END} first to create the virtual environment.")
+        return False
+    
+    print_success("Virtual environment found!")
+    print(f"\n{Colors.BOLD}To activate the virtual environment:{Colors.END}")
+    
+    if platform.system() == "Windows":
+        activation_cmd = "venv\\Scripts\\activate"
+        deactivation_cmd = "deactivate"
+        print(f"  {Colors.CYAN}{activation_cmd}{Colors.END}")
+        print(f"\n{Colors.BOLD}To deactivate later:{Colors.END}")
+        print(f"  {Colors.CYAN}{deactivation_cmd}{Colors.END}")
+        print(f"\n{Colors.BOLD}Full workflow:{Colors.END}")
+        print(f"  1. {Colors.CYAN}{activation_cmd}{Colors.END}")
+        print(f"  2. {Colors.GREEN}python run_app.py{Colors.END}")
+        print(f"  3. {Colors.CYAN}{deactivation_cmd}{Colors.END} (when done)")
+    else:
+        activation_cmd = "source venv/bin/activate"
+        deactivation_cmd = "deactivate"
+        print(f"  {Colors.CYAN}{activation_cmd}{Colors.END}")
+        print(f"\n{Colors.BOLD}To deactivate later:{Colors.END}")
+        print(f"  {Colors.CYAN}{deactivation_cmd}{Colors.END}")
+        print(f"\n{Colors.BOLD}Full workflow:{Colors.END}")
+        print(f"  1. {Colors.CYAN}{activation_cmd}{Colors.END}")
+        print(f"  2. {Colors.GREEN}python run_app.py{Colors.END}")
+        print(f"  3. {Colors.CYAN}{deactivation_cmd}{Colors.END} (when done)")
+    
+    print(f"\n{Colors.YELLOW}Note:{Colors.END} You need to activate the virtual environment")
+    print("each time you open a new terminal to run the application.")
     
     return True
 
@@ -399,9 +447,17 @@ def setup_api_keys():
     
     # Show next steps
     print(f"\n{Colors.BOLD}Setup Complete! Next Steps:{Colors.END}")
-    print(f"  1. Start the backend: {Colors.GREEN}python run_app.py{Colors.END}")
-    print(f"  2. Start the iOS app: {Colors.GREEN}python run_ios.py{Colors.END}")
-    print(f"  3. Access API docs: {Colors.BLUE}http://localhost:8001/docs{Colors.END}")
+    print(f"  1. {Colors.YELLOW}Activate the virtual environment:{Colors.END}")
+    
+    # Show platform-specific activation command
+    if platform.system() == "Windows":
+        print(f"     {Colors.CYAN}venv\\Scripts\\activate{Colors.END}")
+    else:
+        print(f"     {Colors.CYAN}source venv/bin/activate{Colors.END}")
+    
+    print(f"  2. Start the backend: {Colors.GREEN}python run_app.py{Colors.END}")
+    print(f"  3. Start the iOS app: {Colors.GREEN}python run_ios.py{Colors.END}")
+    print(f"  4. Access API docs: {Colors.BLUE}http://localhost:8001/docs{Colors.END}")
     
     return True
 
@@ -464,6 +520,13 @@ def main():
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
         
         elif choice == 3:
+            success = show_activation_instructions()
+            if success:
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+            else:
+                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
+        
+        elif choice == 4:
             print("\nExiting setup script. Goodbye!")
             sys.exit(0)
 
