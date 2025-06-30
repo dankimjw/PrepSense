@@ -399,11 +399,19 @@ def update_gcp_credentials_in_env():
     return True
 
 def check_google_credentials():
-    """Check for Google Cloud credentials and update .env if needed"""
+    """Check for Google Cloud credentials and update .env if needed.
+    
+    This function will:
+    1. Look for GCP credentials in common locations and copy to config/ if found
+    2. Always update .env with the path to any existing GCP credentials in config/
+    """
     config_dir = Path("config")
     env_file = Path(".env")
     
-    # First, look for GCP credentials in common locations and copy if found
+    # First, update .env with any existing GCP credentials in config/
+    update_gcp_credentials_in_env()
+    
+    # Look for GCP credentials in common locations and copy if found
     search_locations = [
         Path.home() / "Downloads",
         Path.home() / "Desktop",
@@ -432,25 +440,8 @@ def check_google_credentials():
                             print_success(f"Copied {json_file.name} to config/")
                             copied_file = dest_path
                             
-                            # Immediately update .env with the new credentials path
-                            if env_file.exists():
-                                env_content = env_file.read_text()
-                                new_path = f"config/{dest_path.name}"
-                                
-                                # Update or add the GOOGLE_APPLICATION_CREDENTIALS line
-                                if "GOOGLE_APPLICATION_CREDENTIALS=" in env_content:
-                                    lines = env_content.split('\n')
-                                    for i, line in enumerate(lines):
-                                        if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
-                                            lines[i] = f"GOOGLE_APPLICATION_CREDENTIALS={new_path}"
-                                            break
-                                    env_content = '\n'.join(lines)
-                                else:
-                                    env_content += f"\nGOOGLE_APPLICATION_CREDENTIALS={new_path}\n"
-                                
-                                # Write updated content back to .env
-                                env_file.write_text(env_content)
-                                print_success(f"Updated .env with GOOGLE_APPLICATION_CREDENTIALS={new_path}")
+                            # Update .env with the new credentials path
+                            update_gcp_credentials_in_env()
                             
                             # Add the copied file to json_files since we'll process it next
                             json_files = [dest_path]
