@@ -13,7 +13,7 @@ import { Feather } from '@expo/vector-icons';
 import { CustomHeader } from './components/CustomHeader';
 import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 import { useItems, type Item } from '../context/ItemsContext';
-import { API_BASE_URL } from '../constants/Config';
+import { Config } from '../config';
 
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
@@ -131,7 +131,7 @@ export default function ItemsDetected() {
       }));
       
       // Call the backend API endpoint to save items to BigQuery
-      const response = await fetch(`${API_BASE_URL}/images/save-detected-items`, {
+      const response = await fetch(`${Config.API_BASE_URL}/images/save-detected-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
