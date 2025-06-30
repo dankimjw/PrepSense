@@ -4,6 +4,14 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
 
+# Configuration and validation
+pydantic-settings>=2.0.0  # For configuration management
+email-validator>=2.0.0    # For email validation in Pydantic
+PyJWT>=2.8.0             # For JWT authentication
+
+# Data manipulation
+pandas>=2.0.0            # For data manipulation
+
 # CrewAI and LangChain - pinned to known working versions
 crewai==0.5.0
 langchain==0.1.0
@@ -42,15 +50,3 @@ requests>=2.31.0
 # Other utilities
 tqdm==4.67.1
 sniffio==1.3.1
-fastapi
-python-dotenv
-uvicorn
-fastapi
-python-dotenv
-uvicorn
-fastapi
-python-dotenv
-uvicorn
-fastapi
-python-dotenv
-uvicorn
