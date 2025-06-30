@@ -379,12 +379,15 @@ def check_google_credentials():
                         shutil.copy2(json_file, dest_path)
                         print_success(f"Copied {json_file.name} to config/")
                         copied_file = dest_path
+                        # Add the copied file to json_files since we'll process it next
+                        json_files = [dest_path]
                         break
             if copied_file:
                 break
     
-    # Find JSON files in config directory
-    json_files = list(config_dir.glob("*.json"))
+    # Find JSON files in config directory if we haven't found any yet
+    if not copied_file:
+        json_files = list(config_dir.glob("*.json"))
     print_info(f"Found {len(json_files)} JSON files in config/")
     
     # Filter for Google Cloud service account files
