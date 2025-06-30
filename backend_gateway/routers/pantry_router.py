@@ -39,6 +39,14 @@ class PantryItemCreate(BaseModel):
         from_attributes = True
 
 
+class PantryItemConsumption(BaseModel):
+    quantity_amount: float = Field(..., ge=0, description="New quantity amount after consumption")
+    used_quantity: Optional[float] = Field(None, description="Total amount that has been used")
+    
+    class Config:
+        from_attributes = True
+
+
 class UserPantryItem(BaseModel):
     user_id: int
     user_name: str
