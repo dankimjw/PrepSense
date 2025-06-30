@@ -352,6 +352,37 @@ def check_google_credentials():
     config_dir = Path("config")
     env_file = Path(".env")
     
+    # First, look for GCP credentials in common locations and copy if found
+    search_locations = [
+        Path.home() / "Downloads",
+        Path.home() / "Desktop",
+        Path.home() / "Documents",
+    ]
+    
+    # Only add current directory if it's different from the project directory
+    if Path.cwd() != Path(__file__).parent:
+        search_locations.append(Path.cwd())
+    
+    gcp_patterns = ["service", "gcp", "google", "bigquery", "prep-sense", "adsp", "credentials"]
+    copied_file = None
+    
+    for location in search_locations:
+        if location.exists() and location != config_dir:
+            # Look for JSON files that might be GCP credentials
+            for json_file in location.glob("*.json"):
+                name_lower = json_file.name.lower()
+                if any(pattern in name_lower for pattern in gcp_patterns) or name_lower.endswith("-key.json"):
+                    print_info(f"Found potential GCP credentials file: {json_file}")
+                    response = input(f"Copy {json_file.name} to config directory? (y/N): ").lower()
+                    if response == 'y':
+                        dest_path = config_dir / json_file.name
+                        shutil.copy2(json_file, dest_path)
+                        print_success(f"Copied {json_file.name} to config/")
+                        copied_file = dest_path
+                        break
+            if copied_file:
+                break
+    
     # Find JSON files in config directory
     json_files = list(config_dir.glob("*.json"))
     print_info(f"Found {len(json_files)} JSON files in config/")
@@ -421,8 +452,17 @@ def check_google_credentials():
         print_success(f"Updated .env with Google Cloud credentials path")
         return True
     else:
-        print_warning("No Google Cloud service account JSON files found in config/")
-        print(f"  Place your service account key file in {Colors.CYAN}config/{Colors.END}")
+        # Check if we have any JSON files at all (excluding openai.json)
+        non_openai_json = [f for f in json_files if "openai" not in f.name.lower()]
+        if non_openai_json:
+            print_warning("Found JSON files in config/ but none match Google Cloud service account patterns")
+            print_info("Google Cloud service account files typically contain: 'service', 'gcp', 'google', or end with '-key.json'")
+            print(f"  Place your service account key file in {Colors.CYAN}config/{Colors.END}")
+        elif not copied_file:  # Only show this message if we didn't find any files anywhere
+            print_warning("No Google Cloud service account JSON files found")
+            print_info("Searched in: Downloads, Desktop, Documents, and current directory")
+            print(f"  Download your service account key from Google Cloud Console")
+            print(f"  Place it in {Colors.CYAN}config/{Colors.END} or in Downloads/Desktop for auto-detection")
         return False
 
 def setup_api_keys():
