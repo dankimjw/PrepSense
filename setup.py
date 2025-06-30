@@ -347,6 +347,57 @@ def show_activation_instructions():
     
     return True
 
+def update_gcp_credentials_in_env():
+    """Automatically update GCP credentials in .env without user interaction"""
+    # Define paths
+    config_dir = Path("config")
+    env_file = Path(".env")
+    
+    # Find all JSON files in config directory
+    json_files = list(config_dir.glob("*.json"))
+    
+    # Filter out non-GCP files (like openai.json)
+    gcp_files = [
+        f for f in json_files 
+        if not f.name.lower().startswith("openai") and 
+           any(pattern in f.name.lower() for pattern in 
+               ["service", "gcp", "google", "bigquery", "prep-sense", "adsp", "credentials", "-key.json"])
+    ]
+    
+    if not gcp_files:
+        print_warning("No GCP credential files found in config/")
+        return False
+    
+    # Use the first matching file
+    gcp_file = gcp_files[0]
+    relative_path = f"config/{gcp_file.name}"
+    print_success(f"Found GCP credentials file: {gcp_file.name}")
+    
+    # Read current .env content
+    if not env_file.exists():
+        print_error("Error: .env file not found")
+        return False
+    
+    env_content = env_file.read_text()
+    
+    # Update or add GOOGLE_APPLICATION_CREDENTIALS line
+    if "GOOGLE_APPLICATION_CREDENTIALS=" in env_content:
+        # Update existing line
+        lines = env_content.split('\n')
+        for i, line in enumerate(lines):
+            if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
+                lines[i] = f"GOOGLE_APPLICATION_CREDENTIALS={relative_path}"
+                break
+        env_content = '\n'.join(lines)
+    else:
+        # Add new line
+        env_content += f"\nGOOGLE_APPLICATION_CREDENTIALS={relative_path}\n"
+    
+    # Write updated content back to .env
+    env_file.write_text(env_content)
+    print_success(f"Updated .env with: GOOGLE_APPLICATION_CREDENTIALS={relative_path}")
+    return True
+
 def check_google_credentials():
     """Check for Google Cloud credentials and update .env if needed"""
     config_dir = Path("config")
