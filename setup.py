@@ -264,6 +264,13 @@ def initial_setup():
     if not create_openai_key_file():
         return False
     
+    # Check for Google Cloud credentials after creating config directory
+    print(f"\n{Colors.BOLD}Checking for Google Cloud Credentials:{Colors.END}")
+    print_info("Looking for service account JSON files...")
+    gcp_configured = check_google_credentials()
+    if not gcp_configured:
+        print_info("You can add Google Cloud credentials later by placing the JSON file in config/ and running setup again")
+    
     # Setup Python environment
     if not setup_python_environment():
         print_error("\nPython environment setup failed.")
@@ -428,6 +435,7 @@ def setup_api_keys():
     # Setup OpenAI API Key
     print(f"{Colors.BOLD}1. OpenAI API Key Setup:{Colors.END}")
     openai_key_file = Path("config/openai_key.txt")
+    openai_key_updated = False
     
     # Check current key
     if openai_key_file.exists():
@@ -438,17 +446,18 @@ def setup_api_keys():
             if response != 'y':
                 print("Keeping existing OpenAI key")
             else:
-                setup_openai_key(openai_key_file)
+                openai_key_updated = setup_openai_key(openai_key_file)
         else:
             print_warning("OpenAI key is not configured (placeholder found)")
-            setup_openai_key(openai_key_file)
+            openai_key_updated = setup_openai_key(openai_key_file)
     else:
         print_warning("OpenAI key file not found, creating it")
         openai_key_file.touch()
-        setup_openai_key(openai_key_file)
+        openai_key_updated = setup_openai_key(openai_key_file)
     
-    # Setup Google Cloud Credentials
+    # Always check for Google Cloud Credentials after OpenAI setup
     print(f"\n{Colors.BOLD}2. Google Cloud Credentials Setup:{Colors.END}")
+    print_info("Checking for Google Cloud service account files...")
     gcp_updated = check_google_credentials()
     
     if not gcp_updated:
