@@ -393,7 +393,7 @@ def check_google_credentials():
         # Read current .env content
         env_content = env_file.read_text()
         
-        # Update the GOOGLE_APPLICATION_CREDENTIALS line
+        # Update the GOOGLE_APPLICATION_CREDENTIALS line with actual filename
         new_path = f"config/{credentials_file.name}"
         if "GOOGLE_APPLICATION_CREDENTIALS=" in env_content:
             # Replace existing line
@@ -401,11 +401,13 @@ def check_google_credentials():
             for i, line in enumerate(lines):
                 if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
                     lines[i] = f"GOOGLE_APPLICATION_CREDENTIALS={new_path}"
+                    print_info(f"Updating existing GOOGLE_APPLICATION_CREDENTIALS to: {new_path}")
                     break
             env_content = '\n'.join(lines)
         else:
             # Add new line
             env_content += f"\nGOOGLE_APPLICATION_CREDENTIALS={new_path}\n"
+            print_info(f"Adding GOOGLE_APPLICATION_CREDENTIALS: {new_path}")
         
         # Write updated content
         env_file.write_text(env_content)
