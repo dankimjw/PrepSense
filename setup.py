@@ -340,6 +340,7 @@ def check_google_credentials():
     
     # Find JSON files in config directory
     json_files = list(config_dir.glob("*.json"))
+    print_info(f"Found {len(json_files)} JSON files in config/")
     
     # Filter for Google Cloud service account files
     service_account_files = []
@@ -448,7 +449,13 @@ def setup_api_keys():
     
     # Setup Google Cloud Credentials
     print(f"\n{Colors.BOLD}2. Google Cloud Credentials Setup:{Colors.END}")
-    check_google_credentials()
+    gcp_updated = check_google_credentials()
+    
+    if not gcp_updated:
+        print_info("To add Google Cloud credentials later:")
+        print(f"  1. Download your service account JSON from Google Cloud Console")
+        print(f"  2. Place it in the {Colors.CYAN}config/{Colors.END} directory")
+        print(f"  3. Run this setup again to auto-detect and configure it")
     
     # Show next steps
     print(f"\n{Colors.BOLD}Setup Complete! Next Steps:{Colors.END}")
