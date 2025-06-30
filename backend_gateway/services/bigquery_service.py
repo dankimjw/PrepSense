@@ -107,7 +107,7 @@ class BigQueryService:
         # Load environment variables from .env file
         load_dotenv()
         
-        self.project_id = project_id or os.getenv('BIGQUERY_PROJECT')
+        self.project_id = project_id or os.getenv('GCP_PROJECT_ID')
         self.dataset_id = dataset_id or os.getenv('BIGQUERY_DATASET')
         self.credentials_path = credentials_path or os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
         
