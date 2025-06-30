@@ -4,7 +4,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
-import { API_BASE_URL } from '../../constants/Config';
+import { Config } from '../../config';
 import GradientText from './GradientText';
 
 type CustomHeaderProps = {
