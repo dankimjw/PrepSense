@@ -7,6 +7,7 @@ interface PantryItemsListProps {
   title?: string;
   showSeeAll?: boolean;
   onItemPress: (item: PantryItemData) => void;
+  onEditPress?: (item: PantryItemData) => void;
   onSeeAllPress?: () => void;
 }
 
@@ -15,6 +16,7 @@ export const PantryItemsList: React.FC<PantryItemsListProps> = ({
   title = 'Expiring Soon',
   showSeeAll = true,
   onItemPress,
+  onEditPress,
   onSeeAllPress,
 }) => {
   return (
@@ -34,6 +36,7 @@ export const PantryItemsList: React.FC<PantryItemsListProps> = ({
             key={`item-${item.id}-${index}`}
             item={item}
             onPress={onItemPress}
+            onEditPress={onEditPress}
           />
         ))}
       </View>
