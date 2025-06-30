@@ -227,6 +227,16 @@ def start_backend_server(host: str, port: int, reload: bool = True):
             reload=reload,
             log_level="info"
         )
+    except ImportError as e:
+        if "pydantic_settings" in str(e):
+            print(f"\n❌ Error: {e}")
+            print("\n⚠️  It seems the virtual environment is not activated.")
+            print("Please run the following commands:")
+            print("  source venv/bin/activate")
+            print("  python3 run_app.py")
+            sys.exit(1)
+        else:
+            raise
     except Exception as e:
         print(f"Backend server error: {e}")
         raise
@@ -339,7 +349,12 @@ def main():
     # Check if we're in a virtual environment
     in_venv = sys.prefix != sys.base_prefix
     if not in_venv:
-        print("⚠️  Warning: Not running in a virtual environment. It's recommended to use one.")
+        print("❌ Error: Not running in a virtual environment!")
+        print("\nPlease activate the virtual environment first:")
+        print("  source venv/bin/activate")
+        print("\nThen run the app:")
+        print("  python3 run_app.py")
+        sys.exit(1)
     
     # Parse command line arguments
     args = parse_arguments()
