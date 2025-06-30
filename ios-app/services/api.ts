@@ -195,3 +195,72 @@ export const generateRecipeImage = async (
     throw error;
   }
 };
+
+// Spoonacular Recipe APIs
+export const searchRecipesByIngredients = async (ingredients: string[]): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/recipes/search/by-ingredients`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ingredients,
+        number: 20,
+        ranking: 1,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error searching recipes: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching recipes by ingredients:', error);
+    throw error;
+  }
+};
+
+export const searchRecipesFromPantry = async (userId: number): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/recipes/search/from-pantry`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        max_missing_ingredients: 5,
+        use_expiring_first: true,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error searching recipes from pantry: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error searching recipes from pantry:', error);
+    throw error;
+  }
+};
+
+export const getRecipeDetails = async (recipeId: number): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/recipes/recipe/${recipeId}?include_nutrition=true`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error fetching recipe details: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching recipe details:', error);
+    throw error;
+  }
+};
