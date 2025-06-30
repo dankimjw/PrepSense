@@ -203,7 +203,7 @@ def setup_ios_app():
     return True
 
 def setup_environment_file():
-    """Set up .env file from template"""
+    """Set up .env file from template and update with GCP credentials if found"""
     print_header("Setting Up Environment File")
     
     env_template = Path(".env.template")
@@ -213,16 +213,23 @@ def setup_environment_file():
         print_error(".env.template not found")
         return False
     
+    # Determine if we need to create a new .env file
+    create_new_env = True
     if env_file.exists():
         print_warning(".env file already exists")
         response = input("Do you want to overwrite it? (y/N): ").lower()
         if response != 'y':
             print("Keeping existing .env file")
-            return True
+            create_new_env = False
     
-    # Copy template to .env
-    shutil.copy2(env_template, env_file)
-    print_success(".env file created from template")
+    # Create or update .env file
+    if create_new_env:
+        # Copy template to .env
+        shutil.copy2(env_template, env_file)
+        print_success(".env file created from template")
+    
+    # Always check for GCP credentials and update .env if found
+    check_google_credentials()
     
     return True
 
