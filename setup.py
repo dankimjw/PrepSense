@@ -427,12 +427,37 @@ def check_google_credentials():
                     response = input(f"Copy {json_file.name} to config directory? (y/N): ").lower()
                     if response == 'y':
                         dest_path = config_dir / json_file.name
-                        shutil.copy2(json_file, dest_path)
-                        print_success(f"Copied {json_file.name} to config/")
-                        copied_file = dest_path
-                        # Add the copied file to json_files since we'll process it next
-                        json_files = [dest_path]
-                        break
+                        try:
+                            shutil.copy2(json_file, dest_path)
+                            print_success(f"Copied {json_file.name} to config/")
+                            copied_file = dest_path
+                            
+                            # Immediately update .env with the new credentials path
+                            if env_file.exists():
+                                env_content = env_file.read_text()
+                                new_path = f"config/{dest_path.name}"
+                                
+                                # Update or add the GOOGLE_APPLICATION_CREDENTIALS line
+                                if "GOOGLE_APPLICATION_CREDENTIALS=" in env_content:
+                                    lines = env_content.split('\n')
+                                    for i, line in enumerate(lines):
+                                        if line.startswith("GOOGLE_APPLICATION_CREDENTIALS="):
+                                            lines[i] = f"GOOGLE_APPLICATION_CREDENTIALS={new_path}"
+                                            break
+                                    env_content = '\n'.join(lines)
+                                else:
+                                    env_content += f"\nGOOGLE_APPLICATION_CREDENTIALS={new_path}\n"
+                                
+                                # Write updated content back to .env
+                                env_file.write_text(env_content)
+                                print_success(f"Updated .env with GOOGLE_APPLICATION_CREDENTIALS={new_path}")
+                            
+                            # Add the copied file to json_files since we'll process it next
+                            json_files = [dest_path]
+                            break
+                        except Exception as e:
+                            print_error(f"Failed to copy or update: {e}")
+                            continue
             if copied_file:
                 break
     
