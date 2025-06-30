@@ -19,6 +19,7 @@ import {
 } from '../../utils/itemHelpers';
 import { enc } from '../../utils/encoding';
 import type { PantryItemData } from '../../components/home/PantryItem';
+import ConsumptionModal from '../../components/modals/ConsumptionModal';
 
 const IndexScreen: React.FC = () => {
   // State management
@@ -26,6 +27,8 @@ const IndexScreen: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [consumptionModalVisible, setConsumptionModalVisible] = useState(false);
+  const [selectedItemForConsumption, setSelectedItemForConsumption] = useState<PantryItemData | null>(null);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
@@ -134,8 +137,14 @@ const IndexScreen: React.FC = () => {
     setIsFilterModalVisible(false);
   };
 
-  // Handle item press
+  // Handle item press - now opens consumption modal
   const handleItemPress = (item: PantryItemData) => {
+    setSelectedItemForConsumption(item);
+    setConsumptionModalVisible(true);
+  };
+
+  // Handle edit item
+  const handleEditItem = (item: PantryItemData) => {
     router.push({
       pathname: '/edit-item',
       params: { 
@@ -260,6 +269,7 @@ const IndexScreen: React.FC = () => {
         <PantryItemsList
           items={recentItems}
           onItemPress={handleItemPress}
+          onEditPress={handleEditItem}
         />
 
         {/* Tips Section */}
@@ -267,6 +277,18 @@ const IndexScreen: React.FC = () => {
           text="Store bananas separately from other fruits to prevent them from ripening too quickly."
         />
       </ScrollView>
+
+      {/* Consumption Modal */}
+      <ConsumptionModal
+        visible={consumptionModalVisible}
+        item={selectedItemForConsumption}
+        onClose={() => {
+          setConsumptionModalVisible(false);
+          setSelectedItemForConsumption(null);
+          // Refresh items after consumption
+          fetchItems();
+        }}
+      />
     </View>
   );
 };

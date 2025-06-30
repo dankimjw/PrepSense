@@ -25,9 +25,10 @@ export interface PantryItemData {
 interface PantryItemProps {
   item: PantryItemData;
   onPress: (item: PantryItemData) => void;
+  onEditPress?: (item: PantryItemData) => void;
 }
 
-export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress }) => {
+export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPress }) => {
   return (
     <TouchableOpacity 
       style={styles.itemCard}
@@ -98,9 +99,17 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress }) => {
           </Text>
         </View>
       </View>
-      <View style={styles.moreButton}>
+      <TouchableOpacity 
+        style={styles.moreButton}
+        onPress={(e) => {
+          e.stopPropagation();
+          if (onEditPress) {
+            onEditPress(item);
+          }
+        }}
+      >
         <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
-      </View>
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 };
