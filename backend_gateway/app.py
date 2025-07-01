@@ -62,6 +62,10 @@ app.include_router(pantry_router, prefix=f"{settings.API_V1_STR}", tags=["Pantry
 from backend_gateway.routers.chat_router import router as chat_router
 app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 
+# Import spoonacular router
+from backend_gateway.routers.spoonacular_router import router as spoonacular_router
+app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["Spoonacular Recipes"])
+
 @app.get("/", tags=["Root"])
 async def root():
     return {"message": "Welcome to the PrepSense Gateway API. Visit /docs for API documentation."}
