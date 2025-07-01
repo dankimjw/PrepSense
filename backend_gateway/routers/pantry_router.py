@@ -225,6 +225,69 @@ async def update_pantry_item(
         logger.error(f"Error updating pantry item {item_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update pantry item: {str(e)}")
 
+@router.patch("/items/{item_id}/consume", response_model=Dict[str, Any], summary="Update Item Consumption")
+async def consume_pantry_item(
+    item_id: str,
+    consumption_data: PantryItemConsumption,
+    pantry_service: PantryService = Depends(get_pantry_service),
+    bq_service: BigQueryService = Depends(get_bigquery_service)
+):
+    """
+    Update the consumption of a pantry item.
+    
+    Args:
+        item_id: The ID of the pantry item to update
+        consumption_data: The consumption data (new quantity and used quantity)
+        pantry_service: The pantry service instance
+        
+    Returns:
+        Success message with updated quantities
+        
+    Raises:
+        HTTPException: If the item is not found or update fails
+    """
+    try:
+        # Update the pantry_items table with new quantity
+        query = """
+        UPDATE `pantry_items`
+        SET 
+            quantity = @quantity_amount,
+            used_quantity = @used_quantity
+        WHERE pantry_item_id = @item_id
+        """
+        
+        params = {
+            "quantity_amount": consumption_data.quantity_amount,
+            "used_quantity": consumption_data.used_quantity or 0,
+            "item_id": int(item_id)
+        }
+        
+        # Execute the update
+        rows_updated = bq_service.update_rows(
+            "pantry_items",
+            {
+                "quantity": consumption_data.quantity_amount,
+                "used_quantity": consumption_data.used_quantity or 0
+            },
+            {"pantry_item_id": int(item_id)}
+        )
+        
+        if rows_updated == 0:
+            raise HTTPException(status_code=404, detail=f"Pantry item {item_id} not found")
+        
+        return {
+            "message": "Item consumption updated successfully",
+            "item_id": item_id,
+            "new_quantity": consumption_data.quantity_amount,
+            "total_used": consumption_data.used_quantity
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating item consumption {item_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update item consumption: {str(e)}")
+
 @router.delete("/items/{item_id}", response_model=Dict[str, Any], summary="Delete Single Pantry Item")
 async def delete_pantry_item(
     item_id: str,

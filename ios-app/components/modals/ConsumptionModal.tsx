@@ -33,7 +33,16 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
   const { updateItem } = useItems();
   const animatedValue = React.useRef(new Animated.Value(50)).current;
 
-  const quickPercentages = [25, 50, 75, 100];
+  // For single unit items (quantity = 1), show different percentages
+  const isSingleUnit = item?.quantity_amount === 1;
+  const quickPercentages = isSingleUnit ? [100] : [25, 50, 75, 100];
+
+  React.useEffect(() => {
+    // Set default percentage based on item type
+    if (item && isSingleUnit) {
+      setPercentage(100);
+    }
+  }, [item, isSingleUnit]);
 
   React.useEffect(() => {
     Animated.timing(animatedValue, {
@@ -60,9 +69,9 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
       const consumedAmount = calculateConsumedAmount();
       const remainingAmount = calculateRemainingAmount();
 
-      // Update the item in the database
-      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}`, {
-        method: 'PUT',
+      // Update the item in the database using the new consumption endpoint
+      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}/consume`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -121,6 +130,12 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
             </Text>
           </View>
 
+          {isSingleUnit && (
+            <Text style={styles.singleUnitNote}>
+              This is a single unit item. You can only consume it completely.
+            </Text>
+          )}
+
           <View style={styles.gaugeContainer}>
             <View style={styles.gaugeWrapper}>
               <Svg width={200} height={200} viewBox="0 0 200 200">
@@ -154,17 +169,19 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
               </View>
             </View>
             
-            <Slider
-              style={styles.slider}
-              minimumValue={0}
-              maximumValue={100}
-              value={percentage}
-              onValueChange={setPercentage}
-              step={5}
-              minimumTrackTintColor="transparent"
-              maximumTrackTintColor="transparent"
-              thumbTintColor="#297A56"
-            />
+            {!isSingleUnit && (
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={100}
+                value={percentage}
+                onValueChange={setPercentage}
+                step={5}
+                minimumTrackTintColor="transparent"
+                maximumTrackTintColor="transparent"
+                thumbTintColor="#297A56"
+              />
+            )}
           </View>
 
           <View style={styles.quickButtons}>
@@ -272,6 +289,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  singleUnitNote: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: -10,
+    fontStyle: 'italic',
   },
   gaugeContainer: {
     width: '100%',
