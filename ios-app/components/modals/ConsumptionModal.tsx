@@ -33,7 +33,14 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
   const { updateItem } = useItems();
   const animatedValue = React.useRef(new Animated.Value(50)).current;
 
+  // For single unit items (quantity = 1), we still allow partial consumption
+  const isSingleUnit = item?.quantity_amount === 1;
   const quickPercentages = [25, 50, 75, 100];
+
+  React.useEffect(() => {
+    // Reset to default percentage when item changes
+    setPercentage(50);
+  }, [item]);
 
   React.useEffect(() => {
     Animated.timing(animatedValue, {
@@ -60,9 +67,9 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
       const consumedAmount = calculateConsumedAmount();
       const remainingAmount = calculateRemainingAmount();
 
-      // Update the item in the database
-      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}`, {
-        method: 'PUT',
+      // Update the item in the database using the new consumption endpoint
+      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}/consume`, {
+        method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -120,6 +127,12 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
               {item.quantity_amount} {item.quantity_unit}
             </Text>
           </View>
+
+          {isSingleUnit && (
+            <Text style={styles.singleUnitNote}>
+              This is a single unit item. Consuming will reduce the count.
+            </Text>
+          )}
 
           <View style={styles.gaugeContainer}>
             <View style={styles.gaugeWrapper}>
@@ -193,13 +206,19 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Consuming:</Text>
               <Text style={styles.infoValueConsuming}>
-                {calculateConsumedAmount().toFixed(1)} {item.quantity_unit}
+                {isSingleUnit 
+                  ? `${percentage}% of item`
+                  : `${calculateConsumedAmount().toFixed(1)} ${item.quantity_unit}`
+                }
               </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Remaining:</Text>
               <Text style={styles.infoValueRemaining}>
-                {calculateRemainingAmount().toFixed(1)} {item.quantity_unit}
+                {isSingleUnit
+                  ? `${calculateRemainingAmount() > 0 ? 'Partial item' : 'None'}`
+                  : `${calculateRemainingAmount().toFixed(1)} ${item.quantity_unit}`
+                }
               </Text>
             </View>
           </View>
@@ -272,6 +291,14 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  singleUnitNote: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: -10,
+    fontStyle: 'italic',
   },
   gaugeContainer: {
     width: '100%',
