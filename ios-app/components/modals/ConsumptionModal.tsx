@@ -33,16 +33,14 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
   const { updateItem } = useItems();
   const animatedValue = React.useRef(new Animated.Value(50)).current;
 
-  // For single unit items (quantity = 1), show different percentages
+  // For single unit items (quantity = 1), we still allow partial consumption
   const isSingleUnit = item?.quantity_amount === 1;
-  const quickPercentages = isSingleUnit ? [100] : [25, 50, 75, 100];
+  const quickPercentages = [25, 50, 75, 100];
 
   React.useEffect(() => {
-    // Set default percentage based on item type
-    if (item && isSingleUnit) {
-      setPercentage(100);
-    }
-  }, [item, isSingleUnit]);
+    // Reset to default percentage when item changes
+    setPercentage(50);
+  }, [item]);
 
   React.useEffect(() => {
     Animated.timing(animatedValue, {
@@ -132,7 +130,7 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
 
           {isSingleUnit && (
             <Text style={styles.singleUnitNote}>
-              This is a single unit item. You can only consume it completely.
+              This is a single unit item. Consuming will reduce the count.
             </Text>
           )}
 
@@ -169,19 +167,17 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
               </View>
             </View>
             
-            {!isSingleUnit && (
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={100}
-                value={percentage}
-                onValueChange={setPercentage}
-                step={5}
-                minimumTrackTintColor="transparent"
-                maximumTrackTintColor="transparent"
-                thumbTintColor="#297A56"
-              />
-            )}
+            <Slider
+              style={styles.slider}
+              minimumValue={0}
+              maximumValue={100}
+              value={percentage}
+              onValueChange={setPercentage}
+              step={5}
+              minimumTrackTintColor="transparent"
+              maximumTrackTintColor="transparent"
+              thumbTintColor="#297A56"
+            />
           </View>
 
           <View style={styles.quickButtons}>
@@ -210,13 +206,19 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Consuming:</Text>
               <Text style={styles.infoValueConsuming}>
-                {calculateConsumedAmount().toFixed(1)} {item.quantity_unit}
+                {isSingleUnit 
+                  ? `${percentage}% of item`
+                  : `${calculateConsumedAmount().toFixed(1)} ${item.quantity_unit}`
+                }
               </Text>
             </View>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Remaining:</Text>
               <Text style={styles.infoValueRemaining}>
-                {calculateRemainingAmount().toFixed(1)} {item.quantity_unit}
+                {isSingleUnit
+                  ? `${calculateRemainingAmount() > 0 ? 'Partial item' : 'None'}`
+                  : `${calculateRemainingAmount().toFixed(1)} ${item.quantity_unit}`
+                }
               </Text>
             </View>
           </View>
