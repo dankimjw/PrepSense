@@ -14,6 +14,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Recipe, completeRecipe, RecipeIngredient } from '../services/api';
+import { parseIngredientsList } from '../utils/ingredientParser';
 
 const { width } = Dimensions.get('window');
 
@@ -75,15 +76,16 @@ export default function CookingModeScreen() {
           onPress: async () => {
             setIsCompleting(true);
             try {
+              // Parse ingredients to extract quantities
+              const parsedIngredients = parseIngredientsList(recipe.ingredients);
+              
               // Convert recipe ingredients to the format needed by the API
-              const ingredients: RecipeIngredient[] = recipe.ingredients.map(ingredient => {
-                // Parse ingredient strings to extract quantity if possible
-                // For now, we'll just use the ingredient name
-                return {
-                  ingredient_name: ingredient,
-                  // TODO: Parse quantity and unit from ingredient string
-                };
-              });
+              // For cooking mode, we assume all ingredients are available since they started cooking
+              const ingredients: RecipeIngredient[] = parsedIngredients.map(parsed => ({
+                ingredient_name: parsed.name,
+                quantity: parsed.quantity,
+                unit: parsed.unit,
+              }));
 
               const result = await completeRecipe({
                 user_id: 111, // TODO: Get actual user ID
@@ -91,9 +93,16 @@ export default function CookingModeScreen() {
                 ingredients: ingredients,
               });
               
+              // Handle response
+              let message = `${result.summary}\n\nEnjoy your meal!`;
+              
+              if (result.insufficient_items && result.insufficient_items.length > 0) {
+                message = `Some items had insufficient quantity but we've updated what was available.\n\n${result.summary}\n\nEnjoy your meal!`;
+              }
+              
               Alert.alert(
                 'Recipe Completed! 🎉',
-                `The ingredients have been removed from your pantry. ${result.summary}\n\nEnjoy your meal!`,
+                message,
                 [
                   {
                     text: 'OK',
