@@ -20,6 +20,7 @@ from backend_gateway.services.pantry_service import PantryService
 # Model for creating a pantry item
 from pydantic import BaseModel, Field
 from datetime import date, datetime
+from typing import List
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -45,6 +46,18 @@ class PantryItemConsumption(BaseModel):
     
     class Config:
         from_attributes = True
+
+
+class RecipeIngredient(BaseModel):
+    ingredient_name: str = Field(..., description="Name of the ingredient")
+    quantity: Optional[float] = Field(None, description="Quantity to subtract (if not provided, subtract all)")
+    unit: Optional[str] = Field(None, description="Unit of measurement")
+
+
+class RecipeCompletionRequest(BaseModel):
+    user_id: int = Field(..., description="ID of the user")
+    recipe_name: str = Field(..., description="Name of the completed recipe")
+    ingredients: List[RecipeIngredient] = Field(..., description="List of ingredients to subtract")
 
 
 class UserPantryItem(BaseModel):
@@ -351,3 +364,92 @@ async def delete_user_pantry_items(
     except Exception as e:
         logger.error(f"Error deleting user pantry items: {e}")
         raise HTTPException(status_code=500, detail=f"Error deleting pantry items: {str(e)}")
+
+@router.post("/recipe/complete", response_model=Dict[str, Any], summary="Complete Recipe and Subtract Ingredients")
+async def complete_recipe(
+    request: RecipeCompletionRequest,
+    pantry_service: PantryService = Depends(get_pantry_service),
+    bq_service: BigQueryService = Depends(get_bigquery_service)
+):
+    """
+    Complete a recipe and subtract the used ingredients from the user's pantry.
+    
+    Args:
+        request: The recipe completion request with user ID, recipe name, and ingredients
+        pantry_service: The pantry service instance
+        bq_service: The BigQuery service instance
+        
+    Returns:
+        Success message with details about updated items
+        
+    Raises:
+        HTTPException: If there's an error updating the pantry
+    """
+    try:
+        # Get the user's current pantry items
+        user_items = await pantry_service.get_user_pantry_items(request.user_id)
+        
+        updated_items = []
+        missing_items = []
+        
+        for ingredient in request.ingredients:
+            # Find matching items in the user's pantry
+            matching_items = [
+                item for item in user_items 
+                if ingredient.ingredient_name.lower() in item.product_name.lower() 
+                or item.product_name.lower() in ingredient.ingredient_name.lower()
+            ]
+            
+            if not matching_items:
+                missing_items.append(ingredient.ingredient_name)
+                continue
+            
+            # Use the first matching item
+            pantry_item = matching_items[0]
+            
+            # Calculate new quantity
+            current_quantity = pantry_item.quantity
+            
+            if ingredient.quantity is None:
+                # If no quantity specified, deplete the item
+                new_quantity = 0
+                used_quantity = current_quantity
+            else:
+                # Subtract the specified quantity
+                new_quantity = max(0, current_quantity - ingredient.quantity)
+                used_quantity = min(ingredient.quantity, current_quantity)
+            
+            # Update the item in the database
+            if new_quantity < current_quantity:
+                rows_updated = bq_service.update_rows(
+                    "pantry_items",
+                    {
+                        "quantity": new_quantity,
+                        "used_quantity": (pantry_item.used_quantity or 0) + used_quantity
+                    },
+                    {"pantry_item_id": pantry_item.pantry_item_id}
+                )
+                
+                if rows_updated > 0:
+                    updated_items.append({
+                        "item_name": pantry_item.product_name,
+                        "previous_quantity": current_quantity,
+                        "new_quantity": new_quantity,
+                        "used_quantity": used_quantity
+                    })
+        
+        # Log the recipe completion
+        logger.info(f"Recipe '{request.recipe_name}' completed for user {request.user_id}")
+        logger.info(f"Updated {len(updated_items)} items, {len(missing_items)} items not found")
+        
+        return {
+            "message": "Recipe completed successfully",
+            "recipe_name": request.recipe_name,
+            "updated_items": updated_items,
+            "missing_items": missing_items,
+            "summary": f"Updated {len(updated_items)} pantry items"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error completing recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}")

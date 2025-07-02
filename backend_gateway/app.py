@@ -74,6 +74,10 @@ app.include_router(recipe_consumption_router, prefix=f"{settings.API_V1_STR}", t
 from backend_gateway.routers.user_recipes_router import router as user_recipes_router
 app.include_router(user_recipes_router, prefix=f"{settings.API_V1_STR}", tags=["User Recipes"])
 
+# Import shopping list router
+from backend_gateway.routers.shopping_list_router import router as shopping_list_router
+app.include_router(shopping_list_router, prefix=f"{settings.API_V1_STR}", tags=["Shopping List"])
+
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router
 # app.include_router(recipe_image_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Images"])

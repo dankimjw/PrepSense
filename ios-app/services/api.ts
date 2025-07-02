@@ -265,3 +265,88 @@ export const getRecipeDetails = async (recipeId: number): Promise<any> => {
     throw error;
   }
 };
+
+export interface RecipeIngredient {
+  ingredient_name: string;
+  quantity?: number;
+  unit?: string;
+}
+
+export interface RecipeCompletionRequest {
+  user_id: number;
+  recipe_name: string;
+  ingredients: RecipeIngredient[];
+}
+
+export const completeRecipe = async (request: RecipeCompletionRequest): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pantry/recipe/complete`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error completing recipe: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error completing recipe:', error);
+    throw error;
+  }
+};
+
+// Shopping List APIs
+export interface ShoppingListItem {
+  item_name: string;
+  quantity?: number;
+  unit?: string;
+  category?: string;
+  recipe_name?: string;
+  added_date?: string;
+}
+
+export const addToShoppingList = async (userId: number, items: ShoppingListItem[]): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/shopping-list/add-items`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        items: items,
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error adding to shopping list: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error adding to shopping list:', error);
+    throw error;
+  }
+};
+
+export const getShoppingList = async (userId: number): Promise<ShoppingListItem[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/shopping-list/user/${userId}/items`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error fetching shopping list: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching shopping list:', error);
+    throw error;
+  }
+};

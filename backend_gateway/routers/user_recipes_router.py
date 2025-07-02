@@ -20,11 +20,17 @@ class SaveRecipeRequest(BaseModel):
     recipe_data: Dict[str, Any] = Field(..., description="Complete recipe data")
     source: str = Field(..., description="Recipe source: 'spoonacular', 'generated', 'custom'")
     rating: str = Field("neutral", description="Initial rating: 'thumbs_up', 'thumbs_down', 'neutral'")
+    is_favorite: bool = Field(False, description="Whether this recipe is marked as favorite")
 
 
 class UpdateRatingRequest(BaseModel):
     """Request model for updating recipe rating"""
     rating: str = Field(..., description="New rating: 'thumbs_up', 'thumbs_down', 'neutral'")
+
+
+class UpdateFavoriteRequest(BaseModel):
+    """Request model for updating favorite status"""
+    is_favorite: bool = Field(..., description="Whether this recipe is marked as favorite")
 
 
 router = APIRouter(
@@ -74,7 +80,8 @@ async def save_recipe(
             recipe_image=request.recipe_image,
             recipe_data=request.recipe_data,
             source=request.source,
-            rating=request.rating
+            rating=request.rating,
+            is_favorite=request.is_favorite
         )
         
         return result
@@ -89,6 +96,7 @@ async def save_recipe(
 @router.get("", summary="Get user's saved recipes")
 async def get_user_recipes(
     rating_filter: Optional[str] = Query(None, description="Filter by rating: 'thumbs_up' or 'thumbs_down'"),
+    is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
     limit: int = Query(50, ge=1, le=100, description="Number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
     current_user: Dict = Depends(get_current_user),
@@ -107,6 +115,7 @@ async def get_user_recipes(
         recipes = await service.get_user_recipes(
             user_id=user_id,
             rating_filter=rating_filter,
+            is_favorite=is_favorite,
             limit=limit,
             offset=offset
         )
@@ -160,6 +169,41 @@ async def update_recipe_rating(
     except Exception as e:
         logger.error(f"Error updating recipe rating: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update rating: {str(e)}")
+
+
+@router.put("/{recipe_id}/favorite", summary="Update recipe favorite status")
+async def update_recipe_favorite(
+    recipe_id: str,
+    request: UpdateFavoriteRequest,
+    current_user: Dict = Depends(get_current_user),
+    service: UserRecipesService = Depends(get_user_recipes_service)
+) -> Dict[str, Any]:
+    """
+    Update the favorite status of a saved recipe
+    
+    This is used to mark recipes as favorites for better recommendations
+    """
+    try:
+        user_id = current_user.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User ID not found")
+            
+        result = await service.update_recipe_favorite(
+            user_id=user_id,
+            recipe_id=recipe_id,
+            is_favorite=request.is_favorite
+        )
+        
+        if not result["success"]:
+            raise HTTPException(status_code=404, detail=result["message"])
+            
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating recipe favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update favorite: {str(e)}")
 
 
 @router.delete("/{recipe_id}", summary="Delete a saved recipe")
