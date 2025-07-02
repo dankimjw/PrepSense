@@ -37,7 +37,6 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       console.log('Fetching pantry items for user 111...');
       // Use default user_id 111 as specified
       const pantryItems = await fetchPantryItems(111);
-      console.log('Received pantry items:', pantryItems);
       
       // Transform the pantry items to match the Item type
       const transformedItems = pantryItems.map((item, index) => ({

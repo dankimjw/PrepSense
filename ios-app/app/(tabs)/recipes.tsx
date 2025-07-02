@@ -53,6 +53,7 @@ interface SavedRecipe {
   recipe_image: string;
   recipe_data: any;
   rating: 'thumbs_up' | 'thumbs_down' | 'neutral';
+  is_favorite?: boolean;
   source: string;
   created_at: string;
   updated_at: string;
@@ -66,7 +67,7 @@ export default function RecipesScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'pantry' | 'search' | 'random' | 'my-recipes'>('pantry');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down'>('all');
+  const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down' | 'favorites'>('all');
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -199,7 +200,12 @@ export default function RecipesScreen() {
         return;
       }
 
-      const filterParam = myRecipesFilter !== 'all' ? `?rating_filter=${myRecipesFilter}` : '';
+      let filterParam = '';
+      if (myRecipesFilter === 'favorites') {
+        filterParam = '?is_favorite=true';
+      } else if (myRecipesFilter !== 'all') {
+        filterParam = `?rating_filter=${myRecipesFilter}`;
+      }
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -288,6 +294,43 @@ export default function RecipesScreen() {
     }
   };
 
+  const toggleFavorite = async (recipeId: string, isFavorite: boolean) => {
+    try {
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to favorite recipes.');
+        return;
+      }
+
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_favorite: isFavorite }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+      
+      // Update local state
+      setSavedRecipes(prevRecipes => 
+        prevRecipes.map(recipe => 
+          recipe.id === recipeId ? { ...recipe, is_favorite: isFavorite } : recipe
+        )
+      );
+      
+      // Show feedback
+      if (isFavorite) {
+        Alert.alert('Added to Favorites', 'This recipe will be used to improve your recommendations.');
+      }
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+    }
+  };
+
   const deleteRecipe = async (recipeId: string) => {
     try {
       if (!token || !isAuthenticated) {
@@ -356,12 +399,21 @@ export default function RecipesScreen() {
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      router.push({
-        pathname: '/recipe-spoonacular-detail',
-        params: { recipeId: recipe.recipe_id.toString() },
-      });
+      if (recipe.source === 'chat') {
+        // Chat-generated recipes should go to recipe-details
+        router.push({
+          pathname: '/recipe-details',
+          params: { recipe: JSON.stringify(recipe.recipe_data) },
+        });
+      } else {
+        // Spoonacular recipes go to recipe-spoonacular-detail
+        router.push({
+          pathname: '/recipe-spoonacular-detail',
+          params: { recipeId: recipe.recipe_id.toString() },
+        });
+      }
     } else {
-      // This is a regular recipe
+      // This is a regular recipe from search/discovery
       router.push({
         pathname: '/recipe-spoonacular-detail',
         params: { recipeId: recipe.id.toString() },
@@ -461,12 +513,24 @@ export default function RecipesScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={() => deleteRecipe(savedRecipe.id)}
-        >
-          <Ionicons name="trash-outline" size={18} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <TouchableOpacity 
+            style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
+            onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
+          >
+            <Ionicons 
+              name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
+              size={18} 
+              color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => deleteRecipe(savedRecipe.id)}
+          >
+            <Ionicons name="trash-outline" size={18} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -536,6 +600,21 @@ export default function RecipesScreen() {
                 myRecipesFilter === 'all' && styles.filterTextActive
               ]}>
                 All
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                myRecipesFilter === 'favorites' && styles.filterButtonActive
+              ]}
+              onPress={() => setMyRecipesFilter('favorites')}
+            >
+              <Text style={styles.filterIcon}>❤️</Text>
+              <Text style={[
+                styles.filterText,
+                myRecipesFilter === 'favorites' && styles.filterTextActive
+              ]}>
+                Favorites
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -643,6 +722,8 @@ export default function RecipesScreen() {
                 <Text style={styles.emptyText}>
                   {myRecipesFilter === 'all' 
                     ? 'No saved recipes yet. Save recipes from other tabs to see them here!'
+                    : myRecipesFilter === 'favorites'
+                    ? 'No favorite recipes yet. Tap the heart icon on recipes you love!'
                     : `No ${myRecipesFilter === 'thumbs_up' ? 'liked' : 'disliked'} recipes found`}
                 </Text>
               </View>
@@ -909,6 +990,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   ratingButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  cardActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  favoriteButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  favoriteButtonActive: {
     backgroundColor: 'rgba(255,255,255,0.9)',
   },
 });
