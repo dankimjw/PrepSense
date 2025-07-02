@@ -12,9 +12,10 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem } from '../services/api';
+import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem, completeRecipe, RecipeIngredient } from '../services/api';
 import { Config } from '../config';
 import { useAuth } from '../context/AuthContext';
+import { parseIngredientsList } from '../utils/ingredientParser';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -207,6 +208,97 @@ export default function RecipeDetailsScreen() {
     } catch (error) {
       console.error('Error adding to shopping list:', error);
       Alert.alert('Error', 'Failed to add items to shopping list. Please try again.');
+    }
+  };
+
+  const handleQuickComplete = () => {
+    if (recipe.missing_ingredients.length > 0) {
+      Alert.alert(
+        'Missing Ingredients',
+        `You are missing ${recipe.missing_ingredients.length} ingredient${recipe.missing_ingredients.length > 1 ? 's' : ''}. Are you sure you want to mark this recipe as completed? This will subtract available ingredients from your pantry.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Add to Shopping List',
+            onPress: () => handleAddToShoppingList()
+          },
+          {
+            text: 'Complete Anyway',
+            style: 'destructive',
+            onPress: () => performQuickComplete()
+          }
+        ]
+      );
+    } else {
+      Alert.alert(
+        'Complete Recipe',
+        'This will subtract the ingredients from your pantry. Are you sure?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Complete',
+            onPress: () => performQuickComplete()
+          }
+        ]
+      );
+    }
+  };
+
+  const performQuickComplete = async () => {
+    try {
+      // Parse ingredients to extract quantities
+      const parsedIngredients = parseIngredientsList(recipe.ingredients);
+      
+      // Convert recipe ingredients to the format needed by the API
+      // Only include available ingredients (not missing ones)
+      const ingredients: RecipeIngredient[] = parsedIngredients
+        .filter(parsed => recipe.available_ingredients.some(
+          avail => avail.toLowerCase().includes(parsed.name.toLowerCase()) ||
+                   parsed.name.toLowerCase().includes(avail.toLowerCase())
+        ))
+        .map(parsed => ({
+          ingredient_name: parsed.name,
+          quantity: parsed.quantity,
+          unit: parsed.unit,
+        }));
+
+      const result = await completeRecipe({
+        user_id: 111, // TODO: Get actual user ID
+        recipe_name: recipe.name,
+        ingredients: ingredients,
+      });
+
+      // Handle different response scenarios
+      let alertTitle = 'Recipe Completed! ✅';
+      let alertMessage = result.summary;
+      
+      if (result.insufficient_items && result.insufficient_items.length > 0) {
+        alertTitle = 'Recipe Completed with Warnings ⚠️';
+        const insufficientList = result.insufficient_items.map(
+          item => `• ${item.ingredient}: needed ${item.needed} ${item.unit}, had ${item.available}`
+        ).join('\n');
+        alertMessage += `\n\nInsufficient quantities:\n${insufficientList}`;
+      }
+      
+      if (result.errors && result.errors.length > 0) {
+        alertMessage += `\n\nErrors:\n${result.errors.join('\n')}`;
+      }
+
+      Alert.alert(
+        alertTitle,
+        alertMessage,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Optionally navigate back or refresh
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error completing recipe:', error);
+      Alert.alert('Error', 'Failed to update pantry. Please try again.');
     }
   };
 
@@ -420,12 +512,20 @@ export default function RecipeDetailsScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity 
-              style={styles.addToListButton}
-              onPress={() => handleAddToShoppingList()}
+              style={styles.quickCompleteButton}
+              onPress={() => handleQuickComplete()}
             >
-              <Text style={styles.addToListText}>+ Shopping List</Text>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
+              <Text style={styles.quickCompleteText}>Quick Complete</Text>
             </TouchableOpacity>
           </View>
+
+          <TouchableOpacity 
+            style={styles.addToListButton}
+            onPress={() => handleAddToShoppingList()}
+          >
+            <Text style={styles.addToListText}>+ Shopping List</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -626,7 +726,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  addToListButton: {
+  quickCompleteButton: {
     flex: 1,
     flexDirection: 'row',
     backgroundColor: '#f0f7f4',
@@ -637,6 +737,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#297A56',
+  },
+  quickCompleteText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+    marginTop: 12,
   },
   addToListText: {
     color: '#297A56',
