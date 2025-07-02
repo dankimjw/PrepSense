@@ -405,3 +405,61 @@ class PantryService:
         except Exception as e:
             print(f"Error deleting single pantry item: {str(e)}")
             raise
+    
+    async def get_pantry_item_by_id(self, pantry_item_id: int) -> Dict[str, Any]:
+        """
+        Get a specific pantry item by its ID
+        
+        Args:
+            pantry_item_id: The pantry item ID
+            
+        Returns:
+            Dict with pantry item details or None if not found
+        """
+        query = """
+            SELECT *
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+            WHERE pantry_item_id = @pantry_item_id
+        """
+        params = {"pantry_item_id": pantry_item_id}
+        
+        try:
+            results = self.bq_service.execute_query(query, params)
+            return results[0] if results else None
+        except Exception as e:
+            logger.error(f"Error getting pantry item {pantry_item_id}: {str(e)}")
+            raise
+    
+    async def update_pantry_item_quantity(self, pantry_item_id: int, new_quantity: float) -> Dict[str, Any]:
+        """
+        Update the quantity of a pantry item
+        
+        Args:
+            pantry_item_id: The pantry item ID
+            new_quantity: The new quantity value
+            
+        Returns:
+            Dict with update status
+        """
+        update_query = """
+            UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+            SET quantity = @new_quantity,
+                updated_at = CURRENT_TIMESTAMP()
+            WHERE pantry_item_id = @pantry_item_id
+        """
+        params = {
+            "pantry_item_id": pantry_item_id,
+            "new_quantity": new_quantity
+        }
+        
+        try:
+            result = self.bq_service.execute_query(update_query, params)
+            return {
+                "success": True,
+                "pantry_item_id": pantry_item_id,
+                "new_quantity": new_quantity,
+                "message": "Quantity updated successfully"
+            }
+        except Exception as e:
+            logger.error(f"Error updating pantry item quantity: {str(e)}")
+            raise
