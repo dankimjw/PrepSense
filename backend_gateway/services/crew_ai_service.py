@@ -518,20 +518,16 @@ class CrewAIService:
                 for pantry_item in pantry_names:
                     # Use cleaned ingredient name for matching
                     if ingredient_name == pantry_item:
-                        # Get the original pantry item name and clean it
-                        original_name = pantry_map[pantry_item]
-                        cleaned_name = self._clean_ingredient_name(original_name)
-                        available_ingredients.append(cleaned_name)
+                        # Keep the original ingredient with quantity for available items
+                        available_ingredients.append(ingredient)
                         found = True
                         break
                     # Then check if ingredient is in pantry item name or vice versa
                     elif (ingredient_name in pantry_item or 
                           pantry_item in ingredient_name or
                           self._is_similar_ingredient(ingredient_name, pantry_item)):
-                        # Get the original pantry item name and clean it
-                        original_name = pantry_map[pantry_item]
-                        cleaned_name = self._clean_ingredient_name(original_name)
-                        available_ingredients.append(cleaned_name)
+                        # Keep the original ingredient with quantity for available items
+                        available_ingredients.append(ingredient)
                         found = True
                         break
                 

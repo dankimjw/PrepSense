@@ -212,25 +212,35 @@ export default function RecipeDetailsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Ingredients</Text>
             
-            {recipe.available_ingredients.length > 0 && (
-              <View style={styles.ingredientGroup}>
-                <Text style={styles.ingredientGroupTitle}>✅ You have:</Text>
-                {recipe.available_ingredients.map((ingredient, index) => (
+            {/* Complete ingredients list */}
+            <View style={styles.ingredientGroup}>
+              <Text style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
+              {recipe.ingredients.map((ingredient, index) => {
+                const isAvailable = recipe.available_ingredients.includes(ingredient);
+                return (
                   <View key={index} style={styles.ingredientItem}>
-                    <Ionicons name="checkmark-circle" size={16} color="#297A56" />
-                    <Text style={styles.availableIngredient}>{ingredient}</Text>
+                    <Ionicons 
+                      name={isAvailable ? "checkmark-circle" : "add-circle-outline"} 
+                      size={16} 
+                      color={isAvailable ? "#297A56" : "#DC2626"} 
+                    />
+                    <Text style={isAvailable ? styles.availableIngredient : styles.missingIngredient}>
+                      {ingredient}
+                    </Text>
                   </View>
-                ))}
-              </View>
-            )}
-
+                );
+              })}
+            </View>
+            
+            {/* Summary of what's missing */}
             {recipe.missing_ingredients.length > 0 && (
-              <View style={styles.ingredientGroup}>
-                <Text style={styles.ingredientGroupTitle}>🛒 Need to buy:</Text>
+              <View style={[styles.ingredientGroup, styles.missingSummary]}>
+                <Text style={styles.ingredientGroupTitle}>
+                  🛒 Shopping list ({recipe.missing_ingredients.length} items):
+                </Text>
                 {recipe.missing_ingredients.map((ingredient, index) => (
                   <View key={index} style={styles.ingredientItem}>
-                    <Ionicons name="add-circle-outline" size={16} color="#DC2626" />
-                    <Text style={styles.missingIngredient}>{ingredient}</Text>
+                    <Text style={styles.missingIngredient}>• {ingredient}</Text>
                   </View>
                 ))}
               </View>
@@ -383,6 +393,13 @@ const styles = StyleSheet.create({
   },
   ingredientGroup: {
     marginBottom: 16,
+  },
+  missingSummary: {
+    backgroundColor: '#FEF2F2',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
   },
   ingredientGroupTitle: {
     fontSize: 16,
