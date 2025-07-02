@@ -2,7 +2,6 @@
 Configuration settings for PrepSense backend application.
 """
 
-import os
 from typing import List, Optional
 from pydantic_settings import BaseSettings
 
@@ -14,7 +13,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Security Configuration
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
+    SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
@@ -29,24 +28,27 @@ class Settings(BaseSettings):
     ]
     
     # Server Configuration
-    SERVER_HOST: str = os.getenv("SERVER_HOST", "0.0.0.0")
-    SERVER_PORT: int = int(os.getenv("SERVER_PORT", "8001"))
-    VISION_URL: str = os.getenv("VISION_URL", "http://localhost:8001/detect")
+    SERVER_HOST: str = "0.0.0.0"
+    SERVER_PORT: int = 8001
+    VISION_URL: str = "http://localhost:8001/detect"
     
     # Database Configuration
-    GCP_PROJECT_ID: str = os.getenv("GCP_PROJECT_ID", "adsp-34002-on02-prep-sense")
-    BIGQUERY_PROJECT: str = os.getenv("BIGQUERY_PROJECT", os.getenv("GCP_PROJECT_ID", "adsp-34002-on02-prep-sense"))
-    BIGQUERY_DATASET: str = os.getenv("BIGQUERY_DATASET", "Inventory")
+    GCP_PROJECT_ID: str = "adsp-34002-on02-prep-sense"
+    BIGQUERY_PROJECT: str = "adsp-34002-on02-prep-sense"
+    BIGQUERY_DATASET: str = "Inventory"
     
     # Google Cloud Configuration
-    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     
     # OpenAI Configuration
-    OPENAI_API_KEY_FILE: str = os.getenv("OPENAI_API_KEY_FILE", "config/openai_key.txt")
+    OPENAI_API_KEY_FILE: str = "config/openai_key.txt"
+    
+    # Spoonacular Configuration
+    SPOONACULAR_API_KEY: Optional[str] = None
     
     # Development Settings
-    DEBUG: bool = os.getenv("DEBUG", "False").lower() == "true"
-    LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
+    DEBUG: bool = False
+    LOG_LEVEL: str = "INFO"
     
     class Config:
         """Pydantic configuration."""

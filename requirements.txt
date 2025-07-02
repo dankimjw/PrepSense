@@ -30,6 +30,7 @@ uvicorn>=0.22.0
 
 # Google Cloud
 google-cloud-bigquery==3.17.2
+google-cloud-storage==2.10.0
 google-auth==2.29.0
 google-auth-oauthlib==1.2.0
 
