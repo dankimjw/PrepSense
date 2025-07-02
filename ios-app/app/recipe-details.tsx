@@ -268,8 +268,7 @@ export default function RecipeDetailsScreen() {
             </TouchableOpacity>
             
             <TouchableOpacity style={styles.addToListButton}>
-              <Ionicons name="list" size={20} color="#297A56" />
-              <Text style={styles.addToListText}>Add to Shopping List</Text>
+              <Text style={styles.addToListText}>+ Shopping List</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -488,7 +487,6 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
   },
   imagePlaceholder: {
     width: '100%',
