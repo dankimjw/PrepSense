@@ -91,8 +91,21 @@ async def startup_event():
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
-    """Perform a health check."""
-    return {"status": "healthy"}
+    """Perform a health check and return environment status."""
+    env_status = {
+        "status": "healthy",
+        "environment": {
+            "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "google_cloud_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
+        }
+    }
+    
+    # Check if Google Cloud credentials file exists
+    gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if gcp_path:
+        env_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
+    
+    return env_status
 
 # To run (from the directory containing the PrepSense folder, or if PrepSense is the root):
 # If PrepSense is the root directory: uvicorn app:app --reload
