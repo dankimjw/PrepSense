@@ -151,10 +151,9 @@ After setup is complete:
 ```bash
 # Start the FastAPI backend server (runs on port 8001)
 python run_app.py
-
-# Start the iOS app (in a new terminal)
-python run_ios.py
 ```
+
+
 
 ## 💾 Database Schema
 
