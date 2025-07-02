@@ -244,13 +244,19 @@ class CrewAIService:
         
         Return a JSON array of recipes. Each recipe should have:
         - name: string (creative recipe name)
-        - ingredients: array of strings (ONLY use exact ingredients from the available list, or clearly specify additional needed items)
+        - ingredients: array of strings with quantities (e.g., "2 cups rice", "1 lb chicken breast", "3 cloves garlic")
         - instructions: array of strings (5-8 detailed step-by-step cooking instructions)
         - nutrition: object with calories (number) and protein (number in grams)
         - time: number (cooking time in minutes)
         - meal_type: string (breakfast, lunch, dinner, or snack)
         - cuisine_type: string (e.g., italian, mexican, asian, american)
         - dietary_tags: array of strings (e.g., vegetarian, vegan, gluten-free)
+        
+        IMPORTANT for ingredients:
+        - Include realistic quantities/amounts for each ingredient
+        - Use standard measurements (cups, tablespoons, pounds, ounces, etc.)
+        - For items from pantry, estimate reasonable amounts
+        - Example: "2 chicken breasts", "1 can (14 oz) diced tomatoes", "2 tablespoons olive oil"
         
         IMPORTANT: Instructions should be:
         - Specific with temperatures, times, and techniques
@@ -318,7 +324,7 @@ class CrewAIService:
             # Breakfast recipes
             {
                 'name': 'Banana Smoothie',
-                'ingredients': ['bananas', 'milk'],
+                'ingredients': ['2 ripe bananas', '1 cup milk', '1 tablespoon honey (optional)', 'pinch of cinnamon (optional)'],
                 'instructions': [
                     "Peel 2 ripe bananas and break into chunks",
                     "Add banana chunks to blender with 1 cup of cold milk",
@@ -333,7 +339,7 @@ class CrewAIService:
             },
             {
                 'name': 'Chicken and Milk Scramble',
-                'ingredients': ['chicken breast', 'milk', 'eggs'],
+                'ingredients': ['4 oz chicken breast', '2 tablespoons milk', '3 large eggs', '1 tablespoon oil', 'salt and pepper to taste'],
                 'instructions': [
                     "Dice chicken breast into small, bite-sized pieces",
                     "Beat 3 eggs with 2 tablespoons of milk in a bowl",
@@ -350,7 +356,7 @@ class CrewAIService:
             # Lunch/Dinner recipes
             {
                 'name': 'Simple Grilled Chicken',
-                'ingredients': ['chicken breast', 'salt', 'pepper'],
+                'ingredients': ['2 chicken breasts (6 oz each)', '1 teaspoon salt', '1/2 teaspoon black pepper', '1 tablespoon olive oil'],
                 'instructions': [
                     "Remove chicken breasts from refrigerator 15 minutes before cooking",
                     "Pat chicken dry with paper towels and season both sides with salt and pepper",
@@ -487,18 +493,32 @@ class CrewAIService:
             for ingredient in recipe_ingredients:
                 ingredient_lower = ingredient.lower()
                 
+                # Extract the ingredient name from quantity string (e.g., "2 cups rice" -> "rice")
+                # Remove common measurements
+                ingredient_name = ingredient_lower
+                for measure in ['cups', 'cup', 'tablespoons', 'tablespoon', 'tbsp', 'teaspoons', 'teaspoon', 'tsp', 
+                               'pounds', 'pound', 'lbs', 'lb', 'ounces', 'ounce', 'oz', 'cloves', 'clove',
+                               'cans', 'can', 'bunch', 'bunches', 'piece', 'pieces', 'large', 'medium', 'small']:
+                    ingredient_name = ingredient_name.replace(measure, '')
+                
+                # Remove numbers and parentheses content
+                import re
+                ingredient_name = re.sub(r'\([^)]*\)', '', ingredient_name)  # Remove (6 oz each) etc
+                ingredient_name = re.sub(r'\d+', '', ingredient_name)  # Remove numbers
+                ingredient_name = ingredient_name.strip()
+                
                 # Check for exact match or partial match
                 found = False
                 for pantry_item in pantry_names:
-                    # First check for exact match (case-insensitive)
-                    if ingredient_lower == pantry_item:
+                    # Use cleaned ingredient name for matching
+                    if ingredient_name == pantry_item:
                         available_ingredients.append(ingredient)
                         found = True
                         break
                     # Then check if ingredient is in pantry item name or vice versa
-                    elif (ingredient_lower in pantry_item or 
-                          pantry_item in ingredient_lower or
-                          self._is_similar_ingredient(ingredient_lower, pantry_item)):
+                    elif (ingredient_name in pantry_item or 
+                          pantry_item in ingredient_name or
+                          self._is_similar_ingredient(ingredient_name, pantry_item)):
                         available_ingredients.append(ingredient)
                         found = True
                         break
