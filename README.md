@@ -151,6 +151,8 @@ After setup is complete:
 ```bash
 # Start the FastAPI backend server (runs on port 8001)
 python run_app.py
+
+# Press "i" for ios app simulator
 ```
 
 
