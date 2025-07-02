@@ -2,12 +2,10 @@
 
 import os
 import logging
+import asyncio
 from typing import List, Dict, Any, Optional
 import httpx
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
+from backend_gateway.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,9 +14,9 @@ class SpoonacularService:
     """Service for interacting with Spoonacular API"""
     
     def __init__(self):
-        self.api_key = os.getenv('SPOONACULAR_API_KEY')
+        self.api_key = settings.SPOONACULAR_API_KEY
         if not self.api_key:
-            # Try to read from file
+            # Try to read from file as fallback
             try:
                 with open('config/spoonacular_key.txt', 'r') as f:
                     self.api_key = f.read().strip()
@@ -26,7 +24,8 @@ class SpoonacularService:
                 logger.warning("Spoonacular API key not found in environment or config file")
         
         self.base_url = "https://api.spoonacular.com"
-        self.timeout = 30.0
+        self.timeout = httpx.Timeout(120.0, connect=60.0)  # 2 minute timeout with 1 minute connect timeout
+        self.max_retries = 3
     
     async def search_recipes_by_ingredients(
         self, 
@@ -58,16 +57,33 @@ class SpoonacularService:
             "ignorePantry": ignore_pantry
         }
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        for attempt in range(self.max_retries):
             try:
-                response = await client.get(
-                    f"{self.base_url}/recipes/findByIngredients",
-                    params=params
-                )
-                response.raise_for_status()
-                return response.json()
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    if attempt > 0:
+                        logger.info(f"Retry attempt {attempt + 1}/{self.max_retries} for ingredient search")
+                    
+                    response = await client.get(
+                        f"{self.base_url}/recipes/findByIngredients",
+                        params=params
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                    
+            except httpx.ReadTimeout:
+                logger.warning(f"Timeout on attempt {attempt + 1}/{self.max_retries} for ingredient search")
+                if attempt == self.max_retries - 1:
+                    raise
+                await asyncio.sleep(2 ** attempt)
+                
             except httpx.HTTPError as e:
                 logger.error(f"Error searching recipes: {str(e)}")
+                if hasattr(e, 'response') and e.response:
+                    logger.error(f"Response status: {e.response.status_code}")
+                    logger.error(f"Response body: {e.response.text}")
+                raise
+            except Exception as e:
+                logger.error(f"Unexpected error searching recipes: {type(e).__name__}: {str(e)}")
                 raise
     
     async def get_recipe_information(
@@ -88,21 +104,44 @@ class SpoonacularService:
         if not self.api_key:
             raise ValueError("Spoonacular API key not configured")
         
+        logger.info(f"Getting recipe info for ID {recipe_id}, API key present: {bool(self.api_key)}")
+        
         params = {
             "apiKey": self.api_key,
             "includeNutrition": include_nutrition
         }
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
+        # Add retry logic for timeouts
+        for attempt in range(self.max_retries):
             try:
-                response = await client.get(
-                    f"{self.base_url}/recipes/{recipe_id}/information",
-                    params=params
-                )
-                response.raise_for_status()
-                return response.json()
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    if attempt > 0:
+                        logger.info(f"Retry attempt {attempt + 1}/{self.max_retries} for recipe {recipe_id}")
+                    
+                    response = await client.get(
+                        f"{self.base_url}/recipes/{recipe_id}/information",
+                        params=params
+                    )
+                    response.raise_for_status()
+                    return response.json()
+                    
+            except httpx.ReadTimeout:
+                logger.warning(f"Timeout on attempt {attempt + 1}/{self.max_retries} for recipe {recipe_id}")
+                if attempt == self.max_retries - 1:
+                    logger.error(f"All retry attempts failed for recipe {recipe_id}")
+                    raise
+                # Exponential backoff: 1s, 2s, 4s
+                await asyncio.sleep(2 ** attempt)
+                
             except httpx.HTTPError as e:
                 logger.error(f"Error getting recipe info: {str(e)}")
+                if hasattr(e, 'response') and e.response:
+                    logger.error(f"Response status: {e.response.status_code}")
+                    logger.error(f"Response body: {e.response.text}")
+                raise
+                
+            except Exception as e:
+                logger.error(f"Unexpected error getting recipe info: {type(e).__name__}: {str(e)}")
                 raise
     
     async def search_recipes_complex(
@@ -209,3 +248,4 @@ class SpoonacularService:
             except httpx.HTTPError as e:
                 logger.error(f"Error getting random recipes: {str(e)}")
                 raise
+    

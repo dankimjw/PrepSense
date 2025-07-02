@@ -56,22 +56,40 @@ oauth2_scheme_optional = OAuth2PasswordBearerOptional()
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer()),
-) -> str:
+) -> dict:
     """Get current user from token"""
     token = credentials.credentials
+    
+    # Development mode: accept mock token
+    if token == "mock-admin-token-for-prototype":
+        return {
+            "user_id": 111,  # Samantha Smith's user ID in BigQuery
+            "email": "samantha.smith@prepsense.com",
+            "first_name": "Samantha",
+            "last_name": "Smith",
+            "is_admin": True
+        }
+    
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         user_email: str = payload.get("sub")
+        user_id: int = payload.get("user_id", 111)  # Default to Samantha's ID
         if user_email is None:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Could not validate credentials",
             )
+        return {
+            "user_id": user_id,
+            "email": user_email,
+            "first_name": payload.get("first_name", "User"),
+            "last_name": payload.get("last_name", ""),
+            "is_admin": payload.get("is_admin", False)
+        }
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",
         )
-    return user_email

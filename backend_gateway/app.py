@@ -66,6 +66,18 @@ app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
 app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["Spoonacular Recipes"])
 
+# Import recipe consumption router
+from backend_gateway.routers.recipe_consumption_router import router as recipe_consumption_router
+app.include_router(recipe_consumption_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Consumption"])
+
+# Import user recipes router
+from backend_gateway.routers.user_recipes_router import router as user_recipes_router
+app.include_router(user_recipes_router, prefix=f"{settings.API_V1_STR}", tags=["User Recipes"])
+
+# Import recipe image router (disabled until google-cloud-storage is installed)
+# from backend_gateway.routers.recipe_image_router import router as recipe_image_router
+# app.include_router(recipe_image_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Images"])
+
 @app.get("/", tags=["Root"])
 async def root():
     return {"message": "Welcome to the PrepSense Gateway API. Visit /docs for API documentation."}

@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.bigquery_service import BigQueryService
+from backend_gateway.services.recipe_image_service import RecipeImageService
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +48,9 @@ router = APIRouter(
 # Dependencies
 def get_spoonacular_service() -> SpoonacularService:
     return SpoonacularService()
+
+def get_recipe_image_service() -> RecipeImageService:
+    return RecipeImageService()
 
 
 def get_bigquery_service() -> BigQueryService:
@@ -112,21 +116,63 @@ async def search_recipes_complex(
 async def get_recipe_information(
     recipe_id: int,
     include_nutrition: bool = Query(True, description="Include nutrition information"),
-    spoonacular_service: SpoonacularService = Depends(get_spoonacular_service)
+    spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
+    recipe_image_service: RecipeImageService = Depends(get_recipe_image_service)
 ) -> Dict[str, Any]:
     """
-    Get detailed information about a specific recipe
+    Get detailed information about a specific recipe.
+    This endpoint also checks for stored recipe images in GCS and generates new ones using OpenAI if needed.
     """
     try:
+        # Get recipe information from Spoonacular
         recipe = await spoonacular_service.get_recipe_information(
             recipe_id=recipe_id,
             include_nutrition=include_nutrition
         )
+        
+        # Check if we have a stored image or generate a new one
+        try:
+            # Extract recipe details for image generation
+            recipe_title = recipe.get('title', '')
+            ingredients = []
+            
+            # Extract ingredient names from the recipe
+            if 'extendedIngredients' in recipe:
+                ingredients = [ing.get('name', '') for ing in recipe['extendedIngredients'] if ing.get('name')]
+            
+            # Get cuisine type if available
+            cuisine = None
+            if 'cuisines' in recipe and recipe['cuisines']:
+                cuisine = recipe['cuisines'][0]
+            
+            # Generate or retrieve image from GCS
+            stored_image_url = await recipe_image_service.generate_and_store_recipe_image(
+                recipe_id=str(recipe_id),
+                recipe_title=recipe_title,
+                ingredients=ingredients[:5],  # Use top 5 ingredients
+                cuisine=cuisine,
+                force_regenerate=False
+            )
+            
+            # Replace Spoonacular image with our stored/generated image
+            if stored_image_url:
+                recipe['image'] = stored_image_url
+                logger.info(f"Using stored/generated image for recipe {recipe_id}: {stored_image_url}")
+            else:
+                logger.warning(f"Could not generate/retrieve image for recipe {recipe_id}, using Spoonacular image")
+                
+        except Exception as img_error:
+            logger.error(f"Error handling recipe image for ID {recipe_id}: {str(img_error)}")
+            # Continue with Spoonacular image if image generation fails
+        
         return recipe
     except ValueError as e:
+        logger.error(f"ValueError getting recipe {recipe_id}: {str(e)}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error getting recipe information: {str(e)}")
+        logger.error(f"Error getting recipe information for ID {recipe_id}: {type(e).__name__}: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to get recipe information")
 
 
@@ -172,32 +218,81 @@ async def search_recipes_from_pantry(
                 "message": "No items found in pantry"
             }
         
-        # Extract ingredient names
-        ingredients = []
+        # Extract and aggregate ingredients with quantities
+        from collections import defaultdict
+        ingredient_quantities = defaultdict(float)  # ingredient_name -> total_quantity
+        ingredient_units = {}  # ingredient_name -> unit
+        ingredient_items = defaultdict(list)  # ingredient_name -> list of pantry items
         expiring_soon = []
         
+        logger.info(f"Processing {len(pantry_items)} pantry items")
+        
         for item in pantry_items:
-            ingredient_name = item.product_name or item.food_category
+            ingredient_name = item.get('product_name') or item.get('food_category')
             if ingredient_name:
-                ingredients.append(ingredient_name)
+                # Normalize ingredient name (lowercase, strip)
+                normalized_name = ingredient_name.lower().strip()
+                
+                # Aggregate quantities
+                quantity = item.get('quantity', 0)
+                ingredient_quantities[normalized_name] += quantity
+                
+                # Store unit (assuming same ingredient has same unit)
+                if normalized_name not in ingredient_units:
+                    ingredient_units[normalized_name] = item.get('unit_of_measurement', 'unit')
+                
+                # Store the item reference for later use
+                ingredient_items[normalized_name].append(item)
                 
                 # Check if expiring soon (within 3 days)
-                if item.expiration_date:
+                if item.get('expiration_date'):
                     from datetime import datetime, timedelta
-                    expiry = datetime.fromisoformat(str(item.expiration_date))
+                    expiry = datetime.fromisoformat(str(item['expiration_date']))
                     if expiry <= datetime.now() + timedelta(days=3):
-                        expiring_soon.append(ingredient_name)
+                        if normalized_name not in expiring_soon:
+                            expiring_soon.append(normalized_name)
+        
+        # Get unique ingredient names
+        ingredients = list(ingredient_quantities.keys())
+        logger.info(f"Found {len(ingredients)} unique ingredients from pantry")
+        
+        if not ingredients:
+            return {
+                "recipes": [],
+                "message": "No valid ingredients found in pantry",
+                "total_pantry_items": 0
+            }
         
         # Prioritize expiring items if requested
         if request.use_expiring_first and expiring_soon:
             # Search with expiring items first
-            search_ingredients = expiring_soon[:10]  # Limit to 10 ingredients
+            search_ingredients = expiring_soon[:5]  # Limit to 5 ingredients to avoid timeouts
         else:
-            search_ingredients = ingredients[:20]  # Limit to 20 ingredients
+            # For better results, prioritize ingredients by quantity (more quantity = more to use)
+            sorted_ingredients = sorted(
+                ingredients, 
+                key=lambda x: ingredient_quantities.get(x, 0), 
+                reverse=True
+            )
+            search_ingredients = sorted_ingredients[:5]  # Limit to 5 ingredients to avoid timeouts
+        
+        # Clean ingredient names (remove brand names, keep only food item)
+        cleaned_ingredients = []
+        for ingredient in search_ingredients:
+            # Simple cleaning: take last part after brand names
+            parts = ingredient.split()
+            if len(parts) > 2:
+                # Likely has brand name, take last 1-2 words
+                cleaned = ' '.join(parts[-2:]) if len(parts) > 3 else ' '.join(parts[-1:])
+            else:
+                cleaned = ingredient
+            cleaned_ingredients.append(cleaned)
+        
+        logger.info(f"Searching recipes with {len(cleaned_ingredients)} ingredients: {cleaned_ingredients}")
         
         # Search for recipes
         recipes = await spoonacular_service.search_recipes_by_ingredients(
-            ingredients=search_ingredients,
+            ingredients=cleaned_ingredients,  # Use cleaned ingredients without brand names
             number=20,
             ranking=1,  # Minimize missing ingredients
             ignore_pantry=True
@@ -209,13 +304,33 @@ async def search_recipes_from_pantry(
             if recipe.get('missedIngredientCount', 0) <= request.max_missing_ingredients
         ]
         
+        # Add pantry quantities to response for frontend use
+        pantry_ingredients = [
+            {
+                "name": name,
+                "quantity": ingredient_quantities[name],
+                "unit": ingredient_units[name],
+                "items": ingredient_items[name]  # Include item details for consumption tracking
+            }
+            for name in ingredients
+        ]
+        
         return {
             "recipes": filtered_recipes,
             "total_pantry_items": len(ingredients),
+            "pantry_ingredients": pantry_ingredients,
+            "ingredient_quantities": dict(ingredient_quantities),
+            "ingredient_units": dict(ingredient_units),
             "expiring_items": expiring_soon,
-            "searched_with": search_ingredients
+            "searched_with": cleaned_ingredients,
+            "original_ingredients": search_ingredients
         }
         
+    except ValueError as e:
+        logger.error(f"ValueError in search recipes from pantry: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error searching recipes from pantry: {str(e)}")
+        logger.error(f"Error searching recipes from pantry: {type(e).__name__}: {str(e)}")
+        import traceback
+        logger.error(f"Traceback: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail="Failed to search recipes from pantry")
