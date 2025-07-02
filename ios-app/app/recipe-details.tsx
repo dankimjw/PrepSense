@@ -7,20 +7,25 @@ import {
   ScrollView, 
   Image, 
   TouchableOpacity,
-  ActivityIndicator
+  ActivityIndicator,
+  Alert
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Recipe, generateRecipeImage } from '../services/api';
+import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem } from '../services/api';
+import { Config } from '../config';
+import { useAuth } from '../context/AuthContext';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
+  const { token, isAuthenticated } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [useGenerated, setUseGenerated] = useState(true); // Default to AI generated images
+  const [isFavorite, setIsFavorite] = useState(false);
 
   useEffect(() => {
     if (params.recipe) {
@@ -128,6 +133,143 @@ export default function RecipeDetailsScreen() {
 
   const instructions = getInstructions(recipe);
 
+  // Simple hash function to generate consistent ID from recipe name
+  const generateRecipeId = (name: string): number => {
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      const char = name.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash);
+  };
+
+  const handleStartCooking = () => {
+    if (recipe.missing_ingredients.length > 0) {
+      Alert.alert(
+        'Missing Ingredients',
+        `You are missing ${recipe.missing_ingredients.length} ingredient${recipe.missing_ingredients.length > 1 ? 's' : ''}:\n\n${recipe.missing_ingredients.join('\n')}\n\nDo you want to continue anyway?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Add to Shopping List',
+            onPress: () => {
+              handleAddToShoppingList();
+            }
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              navigateToCookingMode();
+            }
+          }
+        ]
+      );
+    } else {
+      navigateToCookingMode();
+    }
+  };
+
+  const navigateToCookingMode = () => {
+    router.push({
+      pathname: '/cooking-mode',
+      params: {
+        recipe: JSON.stringify(recipe)
+      }
+    });
+  };
+
+  const handleAddToShoppingList = async () => {
+    if (recipe.missing_ingredients.length === 0) {
+      Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
+      return;
+    }
+
+    try {
+      // Convert missing ingredients to shopping list items
+      const shoppingItems: ShoppingListItem[] = recipe.missing_ingredients.map(ingredient => ({
+        item_name: ingredient,
+        recipe_name: recipe.name,
+      }));
+
+      await addToShoppingList(111, shoppingItems); // TODO: Get actual user ID
+
+      Alert.alert(
+        'Added to Shopping List',
+        `${recipe.missing_ingredients.length} item${recipe.missing_ingredients.length > 1 ? 's' : ''} added to your shopping list.`,
+        [
+          { text: 'OK' }
+        ]
+      );
+    } catch (error) {
+      console.error('Error adding to shopping list:', error);
+      Alert.alert('Error', 'Failed to add items to shopping list. Please try again.');
+    }
+  };
+
+  const handleToggleFavorite = async () => {
+    if (!isAuthenticated || !token) {
+      Alert.alert('Sign In Required', 'Please sign in to save favorite recipes.', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Sign In', onPress: () => router.push('/sign-in') }
+      ]);
+      return;
+    }
+
+    try {
+      if (!isFavorite) {
+        // First save the recipe to user's collection
+        const saveResponse = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            recipe_id: generateRecipeId(recipe.name), // Generate consistent ID from name
+            recipe_title: recipe.name,
+            recipe_image: generatedImageUrl || '',
+            recipe_data: recipe,
+            source: 'chat',
+            rating: 'neutral',
+            is_favorite: true,
+          }),
+        });
+
+        if (!saveResponse.ok) {
+          const error = await saveResponse.json();
+          if (error.detail?.includes('already saved')) {
+            // Recipe already saved, just update favorite status
+            // TODO: Update favorite status for existing recipe
+          } else {
+            throw new Error('Failed to save recipe');
+          }
+        }
+
+        setIsFavorite(true);
+        Alert.alert(
+          'Added to Favorites',
+          'This recipe has been saved to your favorites and will be used to improve future recommendations.',
+          [{ text: 'Great!' }]
+        );
+      } else {
+        // TODO: Remove from favorites (need recipe ID from saved recipes)
+        setIsFavorite(false);
+        Alert.alert(
+          'Removed from Favorites',
+          'This recipe has been removed from your favorites.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -139,8 +281,12 @@ export default function RecipeDetailsScreen() {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recipe Details</Text>
-        <TouchableOpacity style={styles.favoriteButton}>
-          <Ionicons name="heart-outline" size={24} color="#333" />
+        <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
+          <Ionicons 
+            name={isFavorite ? "heart" : "heart-outline"} 
+            size={24} 
+            color={isFavorite ? "#FF4444" : "#333"} 
+          />
         </TouchableOpacity>
       </View>
 
@@ -262,12 +408,21 @@ export default function RecipeDetailsScreen() {
 
           {/* Action Buttons */}
           <View style={styles.actionButtons}>
-            <TouchableOpacity style={styles.startCookingButton}>
+            <TouchableOpacity 
+              style={[
+                styles.startCookingButton,
+                recipe.missing_ingredients.length > 0 && styles.startCookingButtonDisabled
+              ]}
+              onPress={() => handleStartCooking()}
+            >
               <Ionicons name="play" size={20} color="#fff" />
               <Text style={styles.startCookingText}>Start Cooking</Text>
             </TouchableOpacity>
             
-            <TouchableOpacity style={styles.addToListButton}>
+            <TouchableOpacity 
+              style={styles.addToListButton}
+              onPress={() => handleAddToShoppingList()}
+            >
               <Text style={styles.addToListText}>+ Shopping List</Text>
             </TouchableOpacity>
           </View>
@@ -487,6 +642,9 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontSize: 16,
     fontWeight: '600',
+  },
+  startCookingButtonDisabled: {
+    backgroundColor: '#A0A0A0',
   },
   imagePlaceholder: {
     width: '100%',
