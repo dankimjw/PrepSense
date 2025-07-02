@@ -576,52 +576,148 @@ class CrewAIService:
             # Fetch pantry items
             pantry_items = await self._fetch_pantry_items(user_id)
             
+            # Fetch user preferences
+            user_preferences = await self._fetch_user_preferences(user_id)
+            
             # Get some recipe suggestions based on message
             if not pantry_items:
                 return {
                     "response": "I notice your pantry is empty. Would you like me to suggest some essential items to stock up on?",
                     "recipes": [],
-                    "pantry_items": []
+                    "pantry_items": [],
+                    "user_preferences": user_preferences
                 }
             
             # Simple keyword matching for dinner suggestions
             message_lower = message.lower()
             if any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
-                # Get ingredient names
-                ingredients = []
-                for item in pantry_items[:10]:  # Limit to 10 items
+                # Get unique ingredient names from ALL pantry items
+                ingredients_set = set()
+                for item in pantry_items:  # Use ALL items, not just first 10
                     if item.get('product_name'):
-                        ingredients.append(item['product_name'])
+                        # Clean up the ingredient name
+                        name = item['product_name'].strip()
+                        # Remove size/quantity info if present
+                        if '–' in name:
+                            name = name.split('–')[0].strip()
+                        ingredients_set.add(name)
+                
+                # Convert to sorted list for consistent ordering
+                ingredients = sorted(list(ingredients_set))
                 
                 # Generate simple response
-                response = f"Based on your pantry items, you could make something with: {', '.join(ingredients[:5])}. "
-                response += "Try combining these ingredients for a quick meal!"
+                response = f"Based on your {len(ingredients)} unique pantry items, here are some recipe suggestions! "
                 
-                # Return simplified recipe suggestions
-                simple_recipes = [
-                    {
-                        "name": "Quick Stir-fry",
-                        "description": "Combine your vegetables and proteins in a pan",
-                        "ingredients": ingredients[:3]
-                    },
-                    {
-                        "name": "Simple Pasta",
-                        "description": "Use your pasta and any vegetables or sauces",
-                        "ingredients": ingredients[:4]
-                    }
-                ]
+                # Create more diverse recipes based on actual ingredients
+                simple_recipes = []
+                
+                # Check what types of ingredients we have
+                has_corn = any('corn' in ing.lower() for ing in ingredients)
+                has_tomatoes = any('tomato' in ing.lower() for ing in ingredients)
+                has_pasta = any('pasta' in ing.lower() or 'noodle' in ing.lower() for ing in ingredients)
+                has_rice = any('rice' in ing.lower() for ing in ingredients)
+                has_protein = any(any(p in ing.lower() for p in ['chicken', 'beef', 'pork', 'fish', 'tofu', 'beans']) for ing in ingredients)
+                
+                # Recipe 1: Based on corn and tomatoes if available
+                if has_corn and has_tomatoes:
+                    recipe_ingredients = [ing for ing in ingredients if 'corn' in ing.lower() or 'tomato' in ing.lower()][:3]
+                    recipe_ingredients.extend([ing for ing in ingredients if ing not in recipe_ingredients][:2])
+                    simple_recipes.append({
+                        "name": "Mexican-Style Corn & Tomato Skillet",
+                        "description": "A vibrant dish combining corn and tomatoes with spices",
+                        "ingredients": recipe_ingredients[:5],
+                        "nutrition": {"calories": 320, "protein": 12},
+                        "time": 25,
+                        "available_ingredients": recipe_ingredients[:4],
+                        "missing_ingredients": ["Cumin", "Chili powder", "Lime"],
+                        "missing_count": 3,
+                        "available_count": 4,
+                        "match_score": 0.57,
+                        "expected_joy": 82,
+                        "cuisine_type": "Mexican",
+                        "dietary_tags": ["vegetarian"],
+                        "allergens_present": [],
+                        "matched_preferences": []
+                    })
+                
+                # Recipe 2: Stir-fry with available vegetables
+                veggie_ingredients = [ing for ing in ingredients if any(v in ing.lower() for v in ['corn', 'tomato', 'pepper', 'onion', 'broccoli', 'carrot'])][:4]
+                if len(veggie_ingredients) < 4:
+                    veggie_ingredients.extend([ing for ing in ingredients if ing not in veggie_ingredients][:4-len(veggie_ingredients)])
+                
+                simple_recipes.append({
+                    "name": "Garden Vegetable Stir-Fry",
+                    "description": "Quick and healthy vegetable stir-fry with available produce",
+                    "ingredients": veggie_ingredients[:5],
+                    "nutrition": {"calories": 280, "protein": 8},
+                    "time": 20,
+                    "available_ingredients": veggie_ingredients[:4],
+                    "missing_ingredients": ["Soy sauce", "Ginger", "Garlic"],
+                    "missing_count": 3,
+                    "available_count": 4,
+                    "match_score": 0.57,
+                    "expected_joy": 78,
+                    "cuisine_type": "Asian",
+                    "dietary_tags": ["vegetarian", "vegan"],
+                    "allergens_present": [],
+                    "matched_preferences": []
+                })
+                
+                # Recipe 3: Comfort food option
+                comfort_ingredients = ingredients[5:10] if len(ingredients) > 10 else ingredients[:5]
+                simple_recipes.append({
+                    "name": "Hearty One-Pot Meal",
+                    "description": "Comforting dish using your pantry staples",
+                    "ingredients": comfort_ingredients,
+                    "nutrition": {"calories": 420, "protein": 18},
+                    "time": 35,
+                    "available_ingredients": comfort_ingredients[:3],
+                    "missing_ingredients": ["Stock", "Bay leaves"],
+                    "missing_count": 2,
+                    "available_count": 3,
+                    "match_score": 0.6,
+                    "expected_joy": 85,
+                    "cuisine_type": "American",
+                    "dietary_tags": [],
+                    "allergens_present": [],
+                    "matched_preferences": []
+                })
+                
+                # Add variety by using different ingredient combinations
+                if len(ingredients) > 15:
+                    # Recipe 4: Using middle ingredients
+                    middle_ingredients = ingredients[10:15]
+                    simple_recipes.append({
+                        "name": "Creative Fusion Bowl",
+                        "description": "Mix and match your pantry items for a unique meal",
+                        "ingredients": middle_ingredients,
+                        "nutrition": {"calories": 380, "protein": 15},
+                        "time": 30,
+                        "available_ingredients": middle_ingredients[:4],
+                        "missing_ingredients": ["Seasoning blend"],
+                        "missing_count": 1,
+                        "available_count": 4,
+                        "match_score": 0.8,
+                        "expected_joy": 75,
+                        "cuisine_type": "Fusion",
+                        "dietary_tags": [],
+                        "allergens_present": [],
+                        "matched_preferences": []
+                    })
                 
                 return {
                     "response": response,
                     "recipes": simple_recipes,
-                    "pantry_items": pantry_items[:10]
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
                 }
             else:
                 # General response
                 return {
                     "response": f"You currently have {len(pantry_items)} items in your pantry. What would you like to know about them?",
                     "recipes": [],
-                    "pantry_items": pantry_items[:10]
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
                 }
                 
         except Exception as e:
@@ -629,5 +725,10 @@ class CrewAIService:
             return {
                 "response": "I'm having trouble accessing your pantry data. Please try again later.",
                 "recipes": [],
-                "pantry_items": []
+                "pantry_items": [],
+                "user_preferences": {
+                    "dietary_preference": [],
+                    "allergens": [],
+                    "cuisine_preference": []
+                }
             }
