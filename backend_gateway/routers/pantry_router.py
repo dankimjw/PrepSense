@@ -104,7 +104,9 @@ async def get_user_pantry_items(
         HTTPException: If there's an error retrieving items
     """
     try:
+        logger.info(f"Fetching pantry items for user {user_id}")
         items = await pantry_service.get_user_pantry_items(user_id)
+        logger.info(f"Found {len(items)} pantry items for user {user_id}")
         return items
     except Exception as e:
         logger.error(f"Error retrieving pantry items for user {user_id}: {str(e)}")
