@@ -475,7 +475,13 @@ class CrewAIService:
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rank recipes based on available ingredients, preferences, and calculate enjoyment score."""
-        pantry_names = {item['product_name'].lower() for item in pantry_items if item.get('product_name')}
+        # Create a mapping of lowercase names to original pantry items for cleaning
+        pantry_map = {}
+        for item in pantry_items:
+            if item.get('product_name'):
+                pantry_map[item['product_name'].lower()] = item['product_name']
+        
+        pantry_names = set(pantry_map.keys())
         
         # Get user preferences
         dietary_prefs = set(p.lower() for p in user_preferences.get('dietary_preference', []))
@@ -512,14 +518,20 @@ class CrewAIService:
                 for pantry_item in pantry_names:
                     # Use cleaned ingredient name for matching
                     if ingredient_name == pantry_item:
-                        available_ingredients.append(ingredient)
+                        # Get the original pantry item name and clean it
+                        original_name = pantry_map[pantry_item]
+                        cleaned_name = self._clean_ingredient_name(original_name)
+                        available_ingredients.append(cleaned_name)
                         found = True
                         break
                     # Then check if ingredient is in pantry item name or vice versa
                     elif (ingredient_name in pantry_item or 
                           pantry_item in ingredient_name or
                           self._is_similar_ingredient(ingredient_name, pantry_item)):
-                        available_ingredients.append(ingredient)
+                        # Get the original pantry item name and clean it
+                        original_name = pantry_map[pantry_item]
+                        cleaned_name = self._clean_ingredient_name(original_name)
+                        available_ingredients.append(cleaned_name)
                         found = True
                         break
                 
@@ -579,6 +591,29 @@ class CrewAIService:
         
         # Sort by joy score first, then by missing ingredients
         return sorted(recipes, key=lambda x: (-x.get('expected_joy', 0), x.get('missing_count', 999)))
+    
+    def _clean_ingredient_name(self, ingredient: str) -> str:
+        """Clean ingredient name by removing brand names and simplifying."""
+        # Remove size/weight info after dash
+        clean_name = ingredient.split('–')[0].strip() if '–' in ingredient else ingredient
+        
+        # Common brand names to remove
+        brand_patterns = [
+            'Muir Glen', 'Ancient Harvest', 'Trader Joe\'s', 'Kirkland', 'Great Value',
+            'Nature\'s Own', 'Kraft', 'Heinz', 'Campbell\'s', 'Del Monte', 'Hunt\'s',
+            'Barilla', 'Ronzoni', 'Progresso', 'Swanson', 'Ocean Spray', 'Minute Maid',
+            'Tropicana', 'Simply', 'Organic', 'Natural', 'Premium', 'Select', 'Choice'
+        ]
+        
+        # Remove brand names
+        for brand in brand_patterns:
+            clean_name = clean_name.replace(brand, '').strip()
+        
+        # Remove extra spaces
+        clean_name = ' '.join(clean_name.split())
+        
+        # Capitalize properly
+        return clean_name.title()
     
     def _is_allergen_in_ingredient(self, allergen: str, ingredient: str) -> bool:
         """Check if an allergen is present in an ingredient."""
