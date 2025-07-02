@@ -389,65 +389,127 @@ async def complete_recipe(
         # Get the user's current pantry items
         user_items = await pantry_service.get_user_pantry_items(request.user_id)
         
+        if not user_items:
+            logger.warning(f"No pantry items found for user {request.user_id}")
+            return {
+                "message": "No pantry items to update",
+                "recipe_name": request.recipe_name,
+                "updated_items": [],
+                "missing_items": [ing.ingredient_name for ing in request.ingredients],
+                "insufficient_items": [],
+                "summary": "No pantry items found"
+            }
+        
         updated_items = []
         missing_items = []
+        insufficient_items = []
+        errors = []
         
         for ingredient in request.ingredients:
-            # Find matching items in the user's pantry
-            matching_items = [
-                item for item in user_items 
-                if ingredient.ingredient_name.lower() in item.product_name.lower() 
-                or item.product_name.lower() in ingredient.ingredient_name.lower()
-            ]
-            
-            if not matching_items:
-                missing_items.append(ingredient.ingredient_name)
-                continue
-            
-            # Use the first matching item
-            pantry_item = matching_items[0]
-            
-            # Calculate new quantity
-            current_quantity = pantry_item.quantity
-            
-            if ingredient.quantity is None:
-                # If no quantity specified, deplete the item
-                new_quantity = 0
-                used_quantity = current_quantity
-            else:
-                # Subtract the specified quantity
-                new_quantity = max(0, current_quantity - ingredient.quantity)
-                used_quantity = min(ingredient.quantity, current_quantity)
-            
-            # Update the item in the database
-            if new_quantity < current_quantity:
-                rows_updated = bq_service.update_rows(
-                    "pantry_items",
-                    {
-                        "quantity": new_quantity,
-                        "used_quantity": (pantry_item.used_quantity or 0) + used_quantity
-                    },
-                    {"pantry_item_id": pantry_item.pantry_item_id}
-                )
+            try:
+                # Find matching items in the user's pantry (case-insensitive)
+                matching_items = []
+                for item in user_items:
+                    # More sophisticated matching
+                    item_name_lower = item.product_name.lower()
+                    ingredient_name_lower = ingredient.ingredient_name.lower()
+                    
+                    # Check for exact match
+                    if item_name_lower == ingredient_name_lower:
+                        matching_items.append(item)
+                    # Check if ingredient is in item name or vice versa
+                    elif ingredient_name_lower in item_name_lower or item_name_lower in ingredient_name_lower:
+                        matching_items.append(item)
+                    # Check for common variations (e.g., "tomato" vs "tomatoes")
+                    elif (ingredient_name_lower.rstrip('s') == item_name_lower.rstrip('s') or
+                          ingredient_name_lower.rstrip('es') == item_name_lower.rstrip('es')):
+                        matching_items.append(item)
                 
-                if rows_updated > 0:
-                    updated_items.append({
-                        "item_name": pantry_item.product_name,
-                        "previous_quantity": current_quantity,
-                        "new_quantity": new_quantity,
-                        "used_quantity": used_quantity
+                if not matching_items:
+                    missing_items.append({
+                        "ingredient": ingredient.ingredient_name,
+                        "reason": "Not found in pantry"
                     })
+                    continue
+                
+                # Sort by quantity to use items with less quantity first (FIFO-like behavior)
+                matching_items.sort(key=lambda x: x.quantity)
+                
+                # Handle multiple matching items
+                total_available = sum(item.quantity for item in matching_items)
+                needed_quantity = ingredient.quantity if ingredient.quantity else total_available
+                
+                if total_available < needed_quantity:
+                    insufficient_items.append({
+                        "ingredient": ingredient.ingredient_name,
+                        "needed": needed_quantity,
+                        "available": total_available,
+                        "unit": ingredient.unit or matching_items[0].unit_of_measurement
+                    })
+                
+                # Subtract from available items
+                remaining_to_subtract = min(needed_quantity, total_available)
+                
+                for pantry_item in matching_items:
+                    if remaining_to_subtract <= 0:
+                        break
+                    
+                    current_quantity = pantry_item.quantity
+                    if current_quantity <= 0:
+                        continue
+                    
+                    # Calculate how much to subtract from this item
+                    subtract_amount = min(remaining_to_subtract, current_quantity)
+                    new_quantity = current_quantity - subtract_amount
+                    
+                    # Update the item in the database
+                    rows_updated = bq_service.update_rows(
+                        "pantry_items",
+                        {
+                            "quantity": new_quantity,
+                            "used_quantity": (pantry_item.used_quantity or 0) + subtract_amount
+                        },
+                        {"pantry_item_id": pantry_item.pantry_item_id}
+                    )
+                    
+                    if rows_updated > 0:
+                        updated_items.append({
+                            "item_name": pantry_item.product_name,
+                            "pantry_item_id": pantry_item.pantry_item_id,
+                            "previous_quantity": current_quantity,
+                            "new_quantity": new_quantity,
+                            "used_quantity": subtract_amount,
+                            "unit": pantry_item.unit_of_measurement
+                        })
+                        remaining_to_subtract -= subtract_amount
+                    else:
+                        errors.append(f"Failed to update {pantry_item.product_name}")
+                        
+            except Exception as e:
+                logger.error(f"Error processing ingredient {ingredient.ingredient_name}: {str(e)}")
+                errors.append(f"Error with {ingredient.ingredient_name}: {str(e)}")
         
         # Log the recipe completion
         logger.info(f"Recipe '{request.recipe_name}' completed for user {request.user_id}")
-        logger.info(f"Updated {len(updated_items)} items, {len(missing_items)} items not found")
+        logger.info(f"Updated {len(updated_items)} items, {len(missing_items)} missing, {len(insufficient_items)} insufficient")
+        
+        # Create summary message
+        summary_parts = []
+        if updated_items:
+            summary_parts.append(f"Updated {len(updated_items)} items")
+        if insufficient_items:
+            summary_parts.append(f"{len(insufficient_items)} items had insufficient quantity")
+        if missing_items:
+            summary_parts.append(f"{len(missing_items)} items not found")
         
         return {
-            "message": "Recipe completed successfully",
+            "message": "Recipe completed successfully" if updated_items else "Recipe completed with warnings",
             "recipe_name": request.recipe_name,
             "updated_items": updated_items,
             "missing_items": missing_items,
-            "summary": f"Updated {len(updated_items)} pantry items"
+            "insufficient_items": insufficient_items,
+            "errors": errors,
+            "summary": ". ".join(summary_parts) if summary_parts else "No items were updated"
         }
         
     except Exception as e:
