@@ -189,6 +189,19 @@ function AppContent() {
                 animation: 'slide_from_bottom',
               }} 
             />
+            <Stack.Screen 
+              name="recipe-spoonacular-detail" 
+              options={{ 
+                header: ({ navigation }) => (
+                  <CustomHeader 
+                    title="Recipe Details" 
+                    showBackButton={true}
+                    onBackPress={() => navigation.goBack()}
+                  />
+                ),
+                animation: 'slide_from_right',
+              }} 
+            />
           </Stack>
           <ChatButton />
         </View>

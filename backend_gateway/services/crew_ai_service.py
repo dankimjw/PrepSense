@@ -101,12 +101,9 @@ class CrewAIService:
             Dict containing response, recipes, and pantry items
         """
         if not CREWAI_AVAILABLE:
-            # Provide a fallback response if CrewAI is not installed
-            return {
-                "response": "The AI chat service is currently unavailable. Please install the required dependencies.",
-                "recipes": [],
-                "pantry_items": []
-            }
+            # Use simplified fallback implementation
+            logger.info("Using fallback chat implementation")
+            return await self._fallback_process_message(user_id, message)
             
         try:
             # Step 1: Fetch pantry items and user preferences
@@ -572,3 +569,65 @@ class CrewAIService:
             response = f"Based on your pantry items, here are my recommendations!{pref_text}"
         
         return response
+    
+    async def _fallback_process_message(self, user_id: int, message: str) -> Dict[str, Any]:
+        """Fallback implementation when CrewAI is not available."""
+        try:
+            # Fetch pantry items
+            pantry_items = await self._fetch_pantry_items(user_id)
+            
+            # Get some recipe suggestions based on message
+            if not pantry_items:
+                return {
+                    "response": "I notice your pantry is empty. Would you like me to suggest some essential items to stock up on?",
+                    "recipes": [],
+                    "pantry_items": []
+                }
+            
+            # Simple keyword matching for dinner suggestions
+            message_lower = message.lower()
+            if any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
+                # Get ingredient names
+                ingredients = []
+                for item in pantry_items[:10]:  # Limit to 10 items
+                    if item.get('product_name'):
+                        ingredients.append(item['product_name'])
+                
+                # Generate simple response
+                response = f"Based on your pantry items, you could make something with: {', '.join(ingredients[:5])}. "
+                response += "Try combining these ingredients for a quick meal!"
+                
+                # Return simplified recipe suggestions
+                simple_recipes = [
+                    {
+                        "name": "Quick Stir-fry",
+                        "description": "Combine your vegetables and proteins in a pan",
+                        "ingredients": ingredients[:3]
+                    },
+                    {
+                        "name": "Simple Pasta",
+                        "description": "Use your pasta and any vegetables or sauces",
+                        "ingredients": ingredients[:4]
+                    }
+                ]
+                
+                return {
+                    "response": response,
+                    "recipes": simple_recipes,
+                    "pantry_items": pantry_items[:10]
+                }
+            else:
+                # General response
+                return {
+                    "response": f"You currently have {len(pantry_items)} items in your pantry. What would you like to know about them?",
+                    "recipes": [],
+                    "pantry_items": pantry_items[:10]
+                }
+                
+        except Exception as e:
+            logger.error(f"Error in fallback chat: {str(e)}")
+            return {
+                "response": "I'm having trouble accessing your pantry data. Please try again later.",
+                "recipes": [],
+                "pantry_items": []
+            }

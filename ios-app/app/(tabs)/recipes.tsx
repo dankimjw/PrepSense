@@ -18,6 +18,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
+import { useAuth } from '../../context/AuthContext';
 
 const { width } = Dimensions.get('window');
 
@@ -45,16 +46,48 @@ interface Recipe {
   likes: number;
 }
 
+interface SavedRecipe {
+  id: string;
+  recipe_id: number;
+  recipe_title: string;
+  recipe_image: string;
+  recipe_data: any;
+  rating: 'thumbs_up' | 'thumbs_down' | 'neutral';
+  source: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
+  const [savedRecipes, setSavedRecipes] = useState<SavedRecipe[]>([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'pantry' | 'search' | 'random'>('pantry');
+  const [activeTab, setActiveTab] = useState<'pantry' | 'search' | 'random' | 'my-recipes'>('pantry');
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down'>('all');
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { items } = useItems();
+  const { user, token, isAuthenticated } = useAuth();
+
+  const dietaryFilters = [
+    { id: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
+    { id: 'vegan', label: 'Vegan', icon: '🌱' },
+    { id: 'gluten-free', label: 'Gluten-Free', icon: '🌾' },
+    { id: 'dairy-free', label: 'Dairy-Free', icon: '🥛' },
+    { id: 'low-carb', label: 'Low Carb', icon: '🥖' },
+  ];
+
+  const toggleFilter = (filterId: string) => {
+    setSelectedFilters(prev => 
+      prev.includes(filterId) 
+        ? prev.filter(f => f !== filterId)
+        : [...prev, filterId]
+    );
+  };
 
   const fetchRecipesFromPantry = useCallback(async () => {
     try {
@@ -69,7 +102,18 @@ export default function RecipesScreen() {
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to fetch recipes');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 400 && errorData.detail?.includes('API key')) {
+          Alert.alert(
+            'Spoonacular API Key Required',
+            'To use recipe features, you need to add a Spoonacular API key.\n\n1. Get your free API key at:\nhttps://spoonacular.com/food-api\n\n2. Add it to your .env file:\nSPOONACULAR_API_KEY=your_key_here',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        throw new Error('Failed to fetch recipes');
+      }
       
       const data = await response.json();
       setRecipes(data.recipes || []);
@@ -92,10 +136,22 @@ export default function RecipesScreen() {
         body: JSON.stringify({
           query: searchQuery,
           number: 20,
+          diet: selectedFilters.length > 0 ? selectedFilters.join(',') : undefined,
         }),
       });
 
-      if (!response.ok) throw new Error('Failed to search recipes');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 400 && errorData.detail?.includes('API key')) {
+          Alert.alert(
+            'Spoonacular API Key Required',
+            'To use recipe features, you need to add a Spoonacular API key.\n\n1. Get your free API key at:\nhttps://spoonacular.com/food-api\n\n2. Add it to your .env file:\nSPOONACULAR_API_KEY=your_key_here',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        throw new Error('Failed to search recipes');
+      }
       
       const data = await response.json();
       setRecipes(data.results || []);
@@ -112,7 +168,18 @@ export default function RecipesScreen() {
       setLoading(true);
       const response = await fetch(`${Config.API_BASE_URL}/recipes/random?number=20`);
 
-      if (!response.ok) throw new Error('Failed to fetch random recipes');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 400 && errorData.detail?.includes('API key')) {
+          Alert.alert(
+            'Spoonacular API Key Required',
+            'To use recipe features, you need to add a Spoonacular API key.\n\n1. Get your free API key at:\nhttps://spoonacular.com/food-api\n\n2. Add it to your .env file:\nSPOONACULAR_API_KEY=your_key_here',
+            [{ text: 'OK' }]
+          );
+          return;
+        }
+        throw new Error('Failed to fetch random recipes');
+      }
       
       const data = await response.json();
       setRecipes(data.recipes || []);
@@ -124,13 +191,153 @@ export default function RecipesScreen() {
     }
   };
 
+  const fetchMyRecipes = async () => {
+    try {
+      setLoading(true);
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to view your saved recipes.');
+        return;
+      }
+
+      const filterParam = myRecipesFilter !== 'all' ? `?rating_filter=${myRecipesFilter}` : '';
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch saved recipes');
+      }
+      
+      const data = await response.json();
+      setSavedRecipes(data.recipes || []);
+    } catch (error) {
+      console.error('Error fetching saved recipes:', error);
+      Alert.alert('Error', 'Failed to load saved recipes. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveRecipe = async (recipe: Recipe) => {
+    try {
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to save recipes.');
+        return;
+      }
+
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          recipe_title: recipe.title,
+          recipe_image: recipe.image,
+          recipe_data: recipe,
+          source: 'spoonacular',
+          rating: 'neutral',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.detail?.includes('already saved')) {
+          Alert.alert('Info', 'Recipe is already in your collection.');
+          return;
+        }
+        throw new Error('Failed to save recipe');
+      }
+      
+      Alert.alert('Success', 'Recipe saved to your collection!');
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
+  };
+
+  const updateRecipeRating = async (recipeId: string, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
+    try {
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to rate recipes.');
+        return;
+      }
+
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+      
+      // Refresh the list
+      await fetchMyRecipes();
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      Alert.alert('Error', 'Failed to update rating. Please try again.');
+    }
+  };
+
+  const deleteRecipe = async (recipeId: string) => {
+    try {
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to delete recipes.');
+        return;
+      }
+
+      Alert.alert(
+        'Delete Recipe',
+        'Are you sure you want to remove this recipe from your collection?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                },
+              });
+
+              if (!response.ok) {
+                throw new Error('Failed to delete recipe');
+              }
+              
+              Alert.alert('Success', 'Recipe removed from your collection.');
+              await fetchMyRecipes();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting recipe:', error);
+      Alert.alert('Error', 'Failed to delete recipe. Please try again.');
+    }
+  };
+
   useEffect(() => {
     if (activeTab === 'pantry') {
       fetchRecipesFromPantry();
     } else if (activeTab === 'random') {
       fetchRandomRecipes();
+    } else if (activeTab === 'search' && searchQuery) {
+      searchRecipes();
+    } else if (activeTab === 'my-recipes') {
+      fetchMyRecipes();
     }
-  }, [activeTab, fetchRecipesFromPantry]);
+  }, [activeTab, fetchRecipesFromPantry, selectedFilters, myRecipesFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -140,23 +347,34 @@ export default function RecipesScreen() {
       await fetchRandomRecipes();
     } else if (activeTab === 'search' && searchQuery) {
       await searchRecipes();
+    } else if (activeTab === 'my-recipes') {
+      await fetchMyRecipes();
     }
     setRefreshing(false);
   }, [activeTab, searchQuery, fetchRecipesFromPantry]);
 
-  const navigateToRecipeDetail = (recipe: Recipe) => {
-    router.push({
-      pathname: '/recipe-spoonacular-detail',
-      params: { recipeId: recipe.id.toString() },
-    });
+  const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
+    if ('recipe_data' in recipe) {
+      // This is a saved recipe
+      router.push({
+        pathname: '/recipe-spoonacular-detail',
+        params: { recipeId: recipe.recipe_id.toString() },
+      });
+    } else {
+      // This is a regular recipe
+      router.push({
+        pathname: '/recipe-spoonacular-detail',
+        params: { recipeId: recipe.id.toString() },
+      });
+    }
   };
 
-  const renderRecipeCard = (recipe: Recipe) => (
-    <TouchableOpacity
-      key={recipe.id}
-      style={styles.recipeCard}
-      onPress={() => navigateToRecipeDetail(recipe)}
-    >
+  const renderRecipeCard = (recipe: Recipe, index: number) => (
+    <View key={recipe.id} style={styles.recipeCardWrapper}>
+      <TouchableOpacity
+        style={styles.recipeCard}
+        onPress={() => navigateToRecipeDetail(recipe)}
+      >
       <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
       <LinearGradient
         colors={['transparent', 'rgba(0,0,0,0.8)']}
@@ -183,7 +401,74 @@ export default function RecipesScreen() {
           )}
         </View>
       </View>
-    </TouchableOpacity>
+      <TouchableOpacity 
+        style={styles.saveButton}
+        onPress={() => saveRecipe(recipe)}
+      >
+        <Ionicons name="bookmark-outline" size={20} color="#fff" />
+      </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
+  );
+
+  const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => (
+    <View key={savedRecipe.id} style={styles.recipeCardWrapper}>
+      <TouchableOpacity
+        style={styles.recipeCard}
+        onPress={() => navigateToRecipeDetail(savedRecipe)}
+      >
+        <Image source={{ uri: savedRecipe.recipe_image }} style={styles.recipeImage} />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.gradient}
+        />
+        <View style={styles.recipeInfo}>
+          <Text style={styles.recipeTitle} numberOfLines={2}>
+            {savedRecipe.recipe_title}
+          </Text>
+          <View style={styles.ratingButtons}>
+            <TouchableOpacity 
+              style={[
+                styles.ratingButton,
+                savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
+              ]}
+              onPress={() => updateRecipeRating(
+                savedRecipe.id, 
+                savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
+              )}
+            >
+              <Ionicons 
+                name="thumbs-up" 
+                size={16} 
+                color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[
+                styles.ratingButton,
+                savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
+              ]}
+              onPress={() => updateRecipeRating(
+                savedRecipe.id, 
+                savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
+              )}
+            >
+              <Ionicons 
+                name="thumbs-down" 
+                size={16} 
+                color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+        <TouchableOpacity 
+          style={styles.deleteButton}
+          onPress={() => deleteRecipe(savedRecipe.id)}
+        >
+          <Ionicons name="trash-outline" size={18} color="#fff" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 
   return (
@@ -220,7 +505,91 @@ export default function RecipesScreen() {
             Discover
           </Text>
         </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'my-recipes' && styles.activeTab]}
+          onPress={() => setActiveTab('my-recipes')}
+        >
+          <Text style={[styles.tabText, activeTab === 'my-recipes' && styles.activeTabText]}>
+            My Recipes
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      <ScrollView 
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        style={styles.filterContainer}
+        contentContainerStyle={styles.filterContent}
+      >
+        {activeTab === 'my-recipes' ? (
+          <>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                myRecipesFilter === 'all' && styles.filterButtonActive
+              ]}
+              onPress={() => setMyRecipesFilter('all')}
+            >
+              <Text style={styles.filterIcon}>📋</Text>
+              <Text style={[
+                styles.filterText,
+                myRecipesFilter === 'all' && styles.filterTextActive
+              ]}>
+                All
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
+              ]}
+              onPress={() => setMyRecipesFilter('thumbs_up')}
+            >
+              <Text style={styles.filterIcon}>👍</Text>
+              <Text style={[
+                styles.filterText,
+                myRecipesFilter === 'thumbs_up' && styles.filterTextActive
+              ]}>
+                Liked
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
+                myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
+              ]}
+              onPress={() => setMyRecipesFilter('thumbs_down')}
+            >
+              <Text style={styles.filterIcon}>👎</Text>
+              <Text style={[
+                styles.filterText,
+                myRecipesFilter === 'thumbs_down' && styles.filterTextActive
+              ]}>
+                Disliked
+              </Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          dietaryFilters.map(filter => (
+            <TouchableOpacity
+              key={filter.id}
+              style={[
+                styles.filterButton,
+                selectedFilters.includes(filter.id) && styles.filterButtonActive
+              ]}
+              onPress={() => toggleFilter(filter.id)}
+            >
+              <Text style={styles.filterIcon}>{filter.icon}</Text>
+              <Text style={[
+                styles.filterText,
+                selectedFilters.includes(filter.id) && styles.filterTextActive
+              ]}>
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))
+        )}
+      </ScrollView>
 
       {activeTab === 'search' && (
         <View style={styles.searchContainer}>
@@ -249,7 +618,9 @@ export default function RecipesScreen() {
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#297A56" />
-          <Text style={styles.loadingText}>Finding delicious recipes...</Text>
+          <Text style={styles.loadingText}>
+            {activeTab === 'my-recipes' ? 'Loading your saved recipes...' : 'Finding delicious recipes...'}
+          </Text>
         </View>
       ) : (
         <ScrollView
@@ -265,21 +636,38 @@ export default function RecipesScreen() {
           }
           showsVerticalScrollIndicator={false}
         >
-          {recipes.length === 0 ? (
-            <View style={styles.emptyContainer}>
-              <MaterialCommunityIcons name="food-off" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>
-                {activeTab === 'pantry'
-                  ? 'No recipes found with your pantry items'
-                  : activeTab === 'search'
-                  ? 'Search for recipes by name or ingredient'
-                  : 'Pull to refresh for new recipes'}
-              </Text>
-            </View>
+          {activeTab === 'my-recipes' ? (
+            savedRecipes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" />
+                <Text style={styles.emptyText}>
+                  {myRecipesFilter === 'all' 
+                    ? 'No saved recipes yet. Save recipes from other tabs to see them here!'
+                    : `No ${myRecipesFilter === 'thumbs_up' ? 'liked' : 'disliked'} recipes found`}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.recipesGrid}>
+                {savedRecipes.map((recipe, index) => renderSavedRecipeCard(recipe, index))}
+              </View>
+            )
           ) : (
-            <View style={styles.recipesGrid}>
-              {recipes.map(renderRecipeCard)}
-            </View>
+            recipes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="food-off" size={64} color="#ccc" />
+                <Text style={styles.emptyText}>
+                  {activeTab === 'pantry'
+                    ? 'No recipes found with your pantry items'
+                    : activeTab === 'search'
+                    ? 'Search for recipes by name or ingredient'
+                    : 'Pull to refresh for new recipes'}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.recipesGrid}>
+                {recipes.map((recipe, index) => renderRecipeCard(recipe, index))}
+              </View>
+            )
           )}
         </ScrollView>
       )}
@@ -324,13 +712,50 @@ const styles = StyleSheet.create({
     borderBottomColor: '#297A56',
   },
   tabText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#666',
     fontWeight: '500',
   },
   activeTabText: {
     color: '#297A56',
     fontWeight: '600',
+  },
+  filterContainer: {
+    backgroundColor: '#fff',
+    maxHeight: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  filterContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: '#E6F7F0',
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  filterIcon: {
+    fontSize: 16,
+    marginRight: 6,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: '#297A56',
   },
   searchContainer: {
     flexDirection: 'row',
@@ -397,13 +822,17 @@ const styles = StyleSheet.create({
   recipesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 8,
+    paddingHorizontal: 16,
     paddingTop: 16,
   },
+  recipeCardWrapper: {
+    width: '50%',
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
   recipeCard: {
-    width: (width - 32) / 2,
+    width: '100%',
     height: 220,
-    margin: 8,
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#fff',
@@ -451,5 +880,35 @@ const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     color: '#fff',
+  },
+  saveButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+    borderRadius: 20,
+    padding: 8,
+  },
+  ratingButtons: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 4,
+  },
+  ratingButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    padding: 6,
+    paddingHorizontal: 10,
+  },
+  ratingButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
   },
 });
