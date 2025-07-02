@@ -125,10 +125,30 @@ async def generate_recipe_image(
         unsplash_access_key = os.getenv("UNSPLASH_ACCESS_KEY")
         
         if not unsplash_access_key:
-            # Fallback to a default food image if no API key
-            logger.warning("Unsplash API key not configured, using fallback image")
+            # Fallback to varied food images based on recipe name hash
+            logger.warning("Unsplash API key not configured, using fallback images")
+            
+            # Create a variety of food images
+            fallback_images = [
+                "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",  # General food
+                "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",  # Pizza
+                "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",  # Burger
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",  # Salad
+                "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",  # Pasta
+                "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=800",  # Sandwich
+                "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800",  # Healthy bowl
+                "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800",  # Stir fry
+                "https://images.unsplash.com/photo-1529042410759-befb1204b468?w=800",  # Asian food
+                "https://images.unsplash.com/photo-1499028344343-cd173ffc68a9?w=800",  # Burger meal
+            ]
+            
+            # Use recipe name hash to consistently select an image
+            import hashlib
+            recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+            image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+            
             return ImageGenerationResponse(
-                image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+                image_url=fallback_images[image_index],
                 recipe_name=request.recipe_name
             )
         
@@ -165,16 +185,36 @@ async def generate_recipe_image(
                     recipe_name=request.recipe_name
                 )
         
-        # Final fallback to a nice food photo
+        # Final fallback to varied food images
+        fallback_images = [
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",
+            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
+        ]
+        import hashlib
+        recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+        image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+        
         return ImageGenerationResponse(
-            image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            image_url=fallback_images[image_index],
             recipe_name=request.recipe_name
         )
         
     except Exception as e:
         logger.error(f"Error getting recipe image: {str(e)}")
-        # Fallback to a nice food photo
+        # Fallback to varied food images
+        fallback_images = [
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+        ]
+        import hashlib
+        recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+        image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+        
         return ImageGenerationResponse(
-            image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            image_url=fallback_images[image_index],
             recipe_name=request.recipe_name
         )

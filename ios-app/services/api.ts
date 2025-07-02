@@ -22,6 +22,7 @@ export interface ChatMessage {
 export interface Recipe {
   name: string;
   ingredients: string[];
+  instructions?: string[];
   nutrition: {
     calories: number;
     protein: number;

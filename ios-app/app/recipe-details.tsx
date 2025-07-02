@@ -65,11 +65,16 @@ export default function RecipeDetailsScreen() {
   }
 
 
-  // Generate step-by-step instructions based on recipe
-  const generateInstructions = (recipe: Recipe) => {
+  // Get instructions from recipe data or generate basic ones
+  const getInstructions = (recipe: Recipe) => {
+    // Use recipe instructions if available
+    if (recipe.instructions && recipe.instructions.length > 0) {
+      return recipe.instructions;
+    }
+    
+    // Otherwise generate basic instructions based on recipe name
     const recipeName = recipe.name.toLowerCase();
     
-    // Basic instruction templates based on recipe type
     if (recipeName.includes('smoothie')) {
       return [
         "Add all ingredients to a blender",
@@ -121,7 +126,7 @@ export default function RecipeDetailsScreen() {
     }
   };
 
-  const instructions = generateInstructions(recipe);
+  const instructions = getInstructions(recipe);
 
   return (
     <View style={styles.container}>
