@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 
 const { width } = Dimensions.get('window');
@@ -199,6 +200,108 @@ export default function RecipeSpoonacularDetail() {
       console.error('Error adding to shopping list:', error);
       Alert.alert('Error', 'Failed to add items to shopping list. Please try again.');
     }
+  };
+
+  const handleStartCooking = () => {
+    if (!recipe) return;
+    
+    if (missingIngredients.size > 0) {
+      Alert.alert(
+        'Missing Ingredients',
+        `You are missing ${missingIngredients.size} ingredient${missingIngredients.size > 1 ? 's' : ''}. Do you want to continue anyway?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Add to Shopping List',
+            onPress: () => {
+              handleAddToShoppingList();
+            }
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              navigateToCookingMode();
+            }
+          }
+        ]
+      );
+    } else {
+      navigateToCookingMode();
+    }
+  };
+
+  const navigateToCookingMode = () => {
+    if (!recipe) return;
+    
+    // Convert Spoonacular recipe to our Recipe format for cooking mode
+    const recipeForCooking = {
+      name: recipe.title,
+      ingredients: recipe.extendedIngredients.map(ing => ing.original),
+      instructions: recipe.analyzedInstructions[0]?.steps.map(step => step.step) || [],
+      nutrition: {
+        calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
+        protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
+      },
+      time: recipe.readyInMinutes,
+      available_ingredients: [],
+      missing_ingredients: [],
+      missing_count: 0,
+      available_count: 0,
+      match_score: 0,
+      expected_joy: 0,
+    };
+    
+    router.push({
+      pathname: '/cooking-mode',
+      params: {
+        recipe: JSON.stringify(recipeForCooking)
+      }
+    });
+  };
+
+  const handleQuickComplete = async () => {
+    if (!recipe) return;
+    
+    Alert.alert(
+      'Complete Recipe',
+      'This will subtract the available ingredients from your pantry. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+              // Convert ingredients for completion
+              const ingredientsToUse = recipe.extendedIngredients
+                .filter(ing => availableIngredients.has(ing.id))
+                .map(ing => ({
+                  ingredient_name: ing.name,
+                  quantity: ing.amount,
+                  unit: ing.unit,
+                }));
+
+              const result = await completeRecipe({
+                user_id: 111,
+                recipe_name: recipe.title,
+                ingredients: ingredientsToUse,
+              });
+
+              Alert.alert(
+                'Recipe Completed! ✅',
+                result.summary || 'Ingredients have been subtracted from your pantry.',
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              console.error('Error completing recipe:', error);
+              Alert.alert('Error', 'Failed to update pantry. Please try again.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const cleanHtml = (html: string) => {
@@ -392,6 +495,62 @@ export default function RecipeSpoonacularDetail() {
           </View>
         )}
       </View>
+
+      {/* Action Buttons */}
+      {availableIngredients.size > 0 ? (
+        <>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.startCookingButton,
+                missingIngredients.size > 0 && styles.startCookingButtonDisabled
+              ]}
+              onPress={() => handleStartCooking()}
+            >
+              <Ionicons name="play" size={20} color="#fff" />
+              <Text style={styles.startCookingText}>Start Cooking</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickCompleteButton}
+              onPress={() => handleQuickComplete()}
+            >
+              <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
+              <Text style={styles.quickCompleteText}>Quick Complete</Text>
+            </TouchableOpacity>
+          </View>
+
+          {missingIngredients.size > 0 && (
+            <TouchableOpacity 
+              style={styles.addToListButton}
+              onPress={handleAddToShoppingList}
+            >
+              <Ionicons name="cart" size={20} color="#297A56" />
+              <Text style={styles.addToListText}>
+                Add {missingIngredients.size} missing item{missingIngredients.size > 1 ? 's' : ''} to Shopping List
+              </Text>
+            </TouchableOpacity>
+          )}
+        </>
+      ) : (
+        /* All ingredients are missing */
+        <View style={styles.allMissingContainer}>
+          <Ionicons name="alert-circle" size={48} color="#F59E0B" style={styles.allMissingIcon} />
+          <Text style={styles.allMissingTitle}>No ingredients available</Text>
+          <Text style={styles.allMissingSubtitle}>
+            You'll need to shop for all {missingIngredients.size} ingredients first
+          </Text>
+          <TouchableOpacity 
+            style={styles.addAllToListButton}
+            onPress={handleAddToShoppingList}
+          >
+            <Ionicons name="cart" size={20} color="#fff" />
+            <Text style={styles.addAllToListText}>
+              Add All to Shopping List
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -603,6 +762,112 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 50,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    gap: 12,
+  },
+  startCookingButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  startCookingButtonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
+  startCookingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  quickCompleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  quickCompleteText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  addToListText: {
+    color: '#92400E',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  allMissingContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    backgroundColor: '#FEF3C7',
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  allMissingIcon: {
+    marginBottom: 16,
+  },
+  allMissingTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 8,
+  },
+  allMissingSubtitle: {
+    fontSize: 16,
+    color: '#92400E',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  addAllToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#F59E0B',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addAllToListText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   missingBadge: {
     backgroundColor: '#EF4444',

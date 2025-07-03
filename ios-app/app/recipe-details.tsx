@@ -525,33 +525,55 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.startCookingButton,
-                recipe.missing_ingredients.length > 0 && styles.startCookingButtonDisabled
-              ]}
-              onPress={() => handleStartCooking()}
-            >
-              <Ionicons name="play" size={20} color="#fff" />
-              <Text style={styles.startCookingText}>Start Cooking</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickCompleteButton}
-              onPress={() => handleQuickComplete()}
-            >
-              <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
-              <Text style={styles.quickCompleteText}>Quick Complete</Text>
-            </TouchableOpacity>
-          </View>
+          {recipe.available_ingredients.length > 0 ? (
+            <>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity 
+                  style={[
+                    styles.startCookingButton,
+                    recipe.missing_ingredients.length > 0 && styles.startCookingButtonDisabled
+                  ]}
+                  onPress={() => handleStartCooking()}
+                >
+                  <Ionicons name="play" size={20} color="#fff" />
+                  <Text style={styles.startCookingText}>Start Cooking</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickCompleteButton}
+                  onPress={() => handleQuickComplete()}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
+                  <Text style={styles.quickCompleteText}>Quick Complete</Text>
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity 
-            style={styles.addToListButton}
-            onPress={() => handleAddToShoppingList()}
-          >
-            <Text style={styles.addToListText}>+ Shopping List</Text>
-          </TouchableOpacity>
+              {recipe.missing_ingredients.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.addToListButton}
+                  onPress={() => handleAddToShoppingList()}
+                >
+                  <Text style={styles.addToListText}>+ Shopping List</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            /* All ingredients are missing */
+            <View style={styles.allMissingContainer}>
+              <Ionicons name="alert-circle" size={48} color="#F59E0B" />
+              <Text style={styles.allMissingTitle}>No ingredients available</Text>
+              <Text style={styles.allMissingSubtitle}>
+                You'll need to shop for all {recipe.missing_ingredients.length} ingredients first
+              </Text>
+              <TouchableOpacity 
+                style={styles.addAllToListButton}
+                onPress={() => handleAddToShoppingList()}
+              >
+                <Ionicons name="cart" size={20} color="#fff" />
+                <Text style={styles.addAllToListText}>Add All to Shopping List</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -789,6 +811,45 @@ const styles = StyleSheet.create({
   },
   startCookingButtonDisabled: {
     backgroundColor: '#A0A0A0',
+  },
+  allMissingContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    backgroundColor: '#FEF3C7',
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+  },
+  allMissingTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#92400E',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  allMissingSubtitle: {
+    fontSize: 16,
+    color: '#92400E',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  addAllToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#F59E0B',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addAllToListText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   imagePlaceholder: {
     width: '100%',
