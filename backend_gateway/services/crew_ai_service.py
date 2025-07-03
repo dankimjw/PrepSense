@@ -803,9 +803,20 @@ class CrewAIService:
                     "user_preferences": user_preferences
                 }
             
-            # Simple keyword matching for dinner suggestions
+            # Simple keyword matching for different queries
             message_lower = message.lower()
-            if any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
+            
+            # Check for expiring items query first
+            if any(phrase in message_lower for phrase in ['expiring', 'expire', 'going bad', 'use soon', 'about to expire']):
+                # Use the same format_response method which handles expiring queries
+                response = self._format_response([], pantry_items, message, user_preferences)
+                return {
+                    "response": response,
+                    "recipes": [],  # We could generate recipes for expiring items here
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
+                }
+            elif any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
                 # Get unique ingredient names from ALL pantry items
                 ingredients_set = set()
                 for item in pantry_items:  # Use ALL items, not just first 10
