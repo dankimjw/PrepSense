@@ -109,6 +109,28 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
   }
 };
 
+export const updatePantryItem = async (itemId: string, data: PantryItemCreate): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/pantry/items/${itemId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error updating pantry item: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating pantry item:', error);
+    throw error;
+  }
+};
+
 export const deletePantryItem = async (itemId: string): Promise<void> => {
   try {
     const response = await fetch(`${API_BASE_URL}/pantry/items/${itemId}`, {
