@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -76,6 +77,7 @@ export default function RecipesScreen() {
   const [showSortModal, setShowSortModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -520,6 +522,24 @@ export default function RecipesScreen() {
     }
   };
 
+  const handleScroll = (event: any) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const scrollDiff = currentOffset - scrollOffset;
+    
+    // Collapse filters when scrolling down after 50px
+    if (activeTab === 'discover') {
+      if (currentOffset > 50 && scrollDiff > 0) {
+        // Scrolling down
+        setFiltersCollapsed(true);
+      } else if (scrollDiff < -10) {
+        // Scrolling up
+        setFiltersCollapsed(false);
+      }
+    }
+    
+    setScrollOffset(currentOffset);
+  };
+
   const renderRecipeCard = (recipe: Recipe, index: number) => (
     <View key={recipe.id} style={styles.recipeCardWrapper}>
       <TouchableOpacity
@@ -776,7 +796,19 @@ export default function RecipesScreen() {
           </ScrollView>
         </View>
       ) : activeTab === 'discover' ? (
-        <View style={styles.discoverFiltersContainer}>
+        <View style={[styles.discoverFiltersContainer, filtersCollapsed && styles.discoverFiltersCollapsed]}>
+          {filtersCollapsed ? (
+            <TouchableOpacity 
+              style={styles.collapsedFilterBar}
+              onPress={() => setFiltersCollapsed(false)}
+            >
+              <Text style={styles.collapsedFilterText}>
+                {selectedFilters.length > 0 ? `${selectedFilters.length} filters active` : 'Tap to show filters'}
+              </Text>
+              <Ionicons name="chevron-down" size={20} color="#666" />
+            </TouchableOpacity>
+          ) : (
+            <>
           {/* Dietary Filters Row */}
           <View style={styles.filterRow}>
             <Text style={styles.filterRowTitle}>Dietary</Text>
@@ -863,6 +895,8 @@ export default function RecipesScreen() {
               ))}
             </ScrollView>
           </View>
+          </>
+          )}
         </View>
       ) : activeTab === 'pantry' ? (
         <View style={styles.filterContainer}>
@@ -905,6 +939,8 @@ export default function RecipesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -1099,6 +1135,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  discoverFiltersCollapsed: {
+    height: 50,
+  },
+  collapsedFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 15,
+  },
+  collapsedFilterText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    marginRight: 8,
   },
   filterRow: {
     borderBottomWidth: 1,
