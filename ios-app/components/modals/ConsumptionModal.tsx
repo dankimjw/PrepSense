@@ -11,7 +11,7 @@ import {
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
@@ -24,11 +24,12 @@ interface ConsumptionModalProps {
   item: any;
   onClose: () => void;
   onExpirationPress?: () => void;
+  onEditPress?: () => void;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export default function ConsumptionModal({ visible, item, onClose, onExpirationPress }: ConsumptionModalProps) {
+export default function ConsumptionModal({ visible, item, onClose, onExpirationPress, onEditPress }: ConsumptionModalProps) {
   const [percentage, setPercentage] = useState(50);
   const [loading, setLoading] = useState(false);
   const { updateItem } = useItems();
@@ -120,9 +121,16 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <MaterialCommunityIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            {onEditPress && (
+              <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
+                <Feather name="edit-2" size={20} color="#297A56" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <MaterialCommunityIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.title}>Consume Item</Text>
           <Text style={styles.itemName}>{item.name}</Text>
@@ -296,11 +304,19 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignItems: 'center',
   },
-  closeButton: {
+  headerButtons: {
     position: 'absolute',
     top: 15,
     right: 15,
+    flexDirection: 'row',
+    gap: 12,
     zIndex: 1,
+  },
+  editButton: {
+    padding: 4,
+  },
+  closeButton: {
+    padding: 4,
   },
   title: {
     fontSize: 24,

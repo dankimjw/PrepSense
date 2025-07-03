@@ -354,6 +354,14 @@ const IndexScreen: React.FC = () => {
             }, 300);
           }
         }}
+        onEditPress={() => {
+          if (selectedItemForConsumption) {
+            router.push({
+              pathname: '/edit-pantry-item',
+              params: { id: selectedItemForConsumption.id }
+            });
+          }
+        }}
       />
 
       {/* Action Sheet */}
