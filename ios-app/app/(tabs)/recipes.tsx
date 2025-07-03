@@ -75,6 +75,7 @@ export default function RecipesScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showSortModal, setShowSortModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -702,13 +703,30 @@ export default function RecipesScreen() {
       </View>
 
       {/* Filter Grid */}
-      <ScrollView 
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-        horizontal={activeTab !== 'discover'}
-        showsHorizontalScrollIndicator={false}
-      >
-        {activeTab === 'my-recipes' ? (
+      <View style={[styles.filterContainer, activeTab === 'discover' && filtersCollapsed && styles.filterContainerCollapsed]}>
+        {activeTab === 'discover' && (
+          <TouchableOpacity 
+            style={styles.filterToggle}
+            onPress={() => setFiltersCollapsed(!filtersCollapsed)}
+          >
+            <Text style={styles.filterToggleText}>
+              {filtersCollapsed ? 'Show Filters' : 'Hide Filters'}
+            </Text>
+            <Ionicons 
+              name={filtersCollapsed ? "chevron-down" : "chevron-up"} 
+              size={20} 
+              color="#666" 
+            />
+          </TouchableOpacity>
+        )}
+        {!filtersCollapsed && (
+          <ScrollView 
+            style={styles.filterScrollView}
+            contentContainerStyle={styles.filterContent}
+            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
+          >
+          {activeTab === 'my-recipes' ? (
           <View style={[styles.filterGrid, { paddingHorizontal: 16, marginHorizontal: 0 }]}>
             <TouchableOpacity
               style={[
@@ -870,7 +888,9 @@ export default function RecipesScreen() {
             ))}
           </View>
         ) : null}
-      </ScrollView>
+        </ScrollView>
+        )}
+      </View>
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
@@ -1072,7 +1092,26 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    maxHeight: 180,
+  },
+  filterContainerCollapsed: {
+    maxHeight: 50,
+  },
+  filterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  filterToggleText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  filterScrollView: {
+    maxHeight: 150,
   },
   filterContent: {
     paddingVertical: 10,
