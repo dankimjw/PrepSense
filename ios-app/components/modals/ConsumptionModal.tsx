@@ -23,11 +23,12 @@ interface ConsumptionModalProps {
   visible: boolean;
   item: any;
   onClose: () => void;
+  onExpirationPress?: () => void;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export default function ConsumptionModal({ visible, item, onClose }: ConsumptionModalProps) {
+export default function ConsumptionModal({ visible, item, onClose, onExpirationPress }: ConsumptionModalProps) {
   const [percentage, setPercentage] = useState(50);
   const [loading, setLoading] = useState(false);
   const { updateItem } = useItems();
@@ -127,6 +128,32 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
               {item.quantity_amount} {item.quantity_unit}
             </Text>
           </View>
+
+          {/* Expiration Date Section */}
+          <TouchableOpacity 
+            style={styles.expirationSection} 
+            onPress={onExpirationPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.expirationLeft}>
+              <Text style={styles.expirationLabel}>Expires:</Text>
+              <Text style={[
+                styles.expirationValue,
+                item.daysUntilExpiry <= 0 && styles.expiredText,
+                item.daysUntilExpiry > 0 && item.daysUntilExpiry <= 3 && styles.expiringSoonText
+              ]}>
+                {item.expiry || 'No expiration date'}
+              </Text>
+            </View>
+            <View style={styles.expirationRight}>
+              <MaterialCommunityIcons 
+                name="calendar-edit" 
+                size={20} 
+                color="#297A56" 
+              />
+              <Text style={styles.updateText}>Update</Text>
+            </View>
+          </TouchableOpacity>
 
           {isSingleUnit && (
             <Text style={styles.singleUnitNote}>
@@ -280,7 +307,7 @@ const styles = StyleSheet.create({
   currentQuantity: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 15,
   },
   quantityLabel: {
     fontSize: 16,
@@ -291,6 +318,46 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  expirationSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  expirationLeft: {
+    flex: 1,
+  },
+  expirationLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  expirationValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  expiredText: {
+    color: '#DC2626',
+  },
+  expiringSoonText: {
+    color: '#D97706',
+  },
+  expirationRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  updateText: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '500',
   },
   singleUnitNote: {
     fontSize: 14,
