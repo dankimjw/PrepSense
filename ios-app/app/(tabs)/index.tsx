@@ -352,7 +352,7 @@ const IndexScreen: React.FC = () => {
             setConsumptionModalVisible(false); // Close consumption modal first
             setTimeout(() => {
               setExpirationModalVisible(true); // Then open expiration modal
-            }, 300); // Small delay for smooth transition
+            }, 100); // Reduced delay for snappier transition
           }
         }}
       />
@@ -381,7 +381,7 @@ const IndexScreen: React.FC = () => {
           if (selectedItemForConsumption) {
             setTimeout(() => {
               setConsumptionModalVisible(true);
-            }, 300);
+            }, 100);
           }
           setSelectedItemForExpiration(null);
         }}
@@ -392,7 +392,7 @@ const IndexScreen: React.FC = () => {
           if (selectedItemForConsumption) {
             setTimeout(() => {
               setConsumptionModalVisible(true);
-            }, 300);
+            }, 100);
           }
           setSelectedItemForExpiration(null);
         }}
