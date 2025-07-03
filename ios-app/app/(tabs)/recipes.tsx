@@ -1073,20 +1073,21 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   filterSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   filterSectionTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#666',
     marginBottom: 8,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+    paddingHorizontal: 0,
   },
   filterGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    marginHorizontal: -4,
   },
   filterButton: {
     flexDirection: 'row',
@@ -1095,6 +1096,8 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
+    marginHorizontal: 4,
+    marginBottom: 8,
     minWidth: 90,
     justifyContent: 'center',
   },
