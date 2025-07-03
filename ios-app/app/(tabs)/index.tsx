@@ -144,10 +144,10 @@ const IndexScreen: React.FC = () => {
     setIsFilterModalVisible(false);
   };
 
-  // Handle item press - now opens action sheet
+  // Handle item press - now opens consumption modal directly
   const handleItemPress = (item: PantryItemData) => {
-    setSelectedItemForAction(item);
-    setActionSheetVisible(true);
+    setSelectedItemForConsumption(item);
+    setConsumptionModalVisible(true);
   };
 
   // Handle edit item
@@ -156,7 +156,13 @@ const IndexScreen: React.FC = () => {
     setActionSheetVisible(true);
   };
 
-  // Handle update expiration date
+  // Handle update expiration date - direct access
+  const handleExpirationPress = (item: PantryItemData) => {
+    setSelectedItemForExpiration(item);
+    setExpirationModalVisible(true);
+  };
+
+  // Handle update expiration date from action sheet
   const handleUpdateExpiration = () => {
     if (selectedItemForAction) {
       setSelectedItemForExpiration(selectedItemForAction);
@@ -328,6 +334,7 @@ const IndexScreen: React.FC = () => {
           items={recentItems}
           onItemPress={handleItemPress}
           onEditPress={handleEditItem}
+          onExpirationPress={handleExpirationPress}
         />
 
         {/* Tips Section */}
