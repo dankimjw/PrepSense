@@ -2,11 +2,12 @@
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme, View, StyleSheet, ActivityIndicator } from 'react-native';
-import { ChatButton } from './components/ChatButton';
 import { CustomHeader } from './components/CustomHeader';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
+import { ConfigurationError } from './components/ConfigurationError';
 
 const styles = StyleSheet.create({
   container: {
@@ -27,9 +28,34 @@ function AppContent() {
   const segments = useSegments();
   const pathname = usePathname();
   const router = useRouter();
+  const [envStatus, setEnvStatus] = useState<EnvironmentStatus | null>(null);
+  const [isValidatingEnv, setIsValidatingEnv] = useState(true);
 
   // Check if the current route is in the auth group
   const isAuthRoute = segments[0] === '(auth)';
+
+  // Validate environment on app start
+  useEffect(() => {
+    const validateEnv = async () => {
+      try {
+        const status = await envValidator.validateEnvironment();
+        setEnvStatus(status);
+      } catch (error) {
+        console.error('Environment validation error:', error);
+      } finally {
+        setIsValidatingEnv(false);
+      }
+    };
+
+    validateEnv();
+  }, []);
+
+  // Log screen changes
+  useEffect(() => {
+    if (pathname) {
+      envValidator.displayScreenLoad(pathname);
+    }
+  }, [pathname]);
 
   // Auto sign in with default credentials on initial load
   useEffect(() => {
@@ -60,13 +86,31 @@ function AppContent() {
     }
   }, [isLoading, isAuthenticated, isAuthRoute, pathname]);
 
-  // Show a loading indicator while checking auth state
-  if (isLoading) {
+  // Show a loading indicator while checking environment or auth state
+  if (isValidatingEnv || isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />
       </View>
     );
+  }
+
+  // Show configuration error screen if there are critical errors
+  if (envStatus && !envStatus.allValid) {
+    const hasErrors = Object.values(envStatus.checks).some(check => check.status === 'ERROR');
+    if (hasErrors) {
+      return (
+        <ConfigurationError 
+          status={envStatus} 
+          onRetry={async () => {
+            setIsValidatingEnv(true);
+            const newStatus = await envValidator.validateEnvironment();
+            setEnvStatus(newStatus);
+            setIsValidatingEnv(false);
+          }}
+        />
+      );
+    }
   }
 
   return (
@@ -203,7 +247,6 @@ function AppContent() {
               }} 
             />
           </Stack>
-          <ChatButton />
         </View>
       </ItemsProvider>
     </ThemeProvider>

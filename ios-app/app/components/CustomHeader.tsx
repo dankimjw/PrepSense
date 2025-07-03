@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { Config } from '../../config';
 import GradientText from './GradientText';
+import { useAuth } from '../../context/AuthContext';
 
 type CustomHeaderProps = {
   title?: string;
@@ -29,8 +30,11 @@ export function CustomHeader({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [isCleaningUp, setIsCleaningUp] = useState(false);
+  
+  const isAdmin = user?.is_admin;
   
   // Always show 'PrepSense' as the title
   const headerTitle = 'PrepSense';
@@ -41,13 +45,14 @@ export function CustomHeader({
     '/(tabs)/index',
     '/(tabs)/stats',
     '/(tabs)/recipes',
+    '/(tabs)/shopping-list',
     '/(tabs)/profile',
   ].some(path => pathname.startsWith(path));
   
   // Show buttons based on props and current route
-  const shouldShowChat = isMainTab && showChatButton !== false;
-  const shouldShowAdmin = isMainTab && showAdminButton !== false;
-  const shouldShowDb = isMainTab && showDbButton !== false;
+  const shouldShowChat = showChatButton !== false;
+  const shouldShowAdmin = showAdminButton !== false && isAdmin; // Re-added admin check
+  const shouldShowDb = showDbButton !== false;
   
   // Cleanup functionality has been moved to the Admin screen
 
@@ -96,7 +101,7 @@ export function CustomHeader({
               onPress={() => router.push('/bigquery-tester')}
               style={styles.iconButton}
             >
-              <Ionicons name="server-outline" size={24} color="#1b6b45" />
+              <Ionicons name="server-outline" size={22} color="#1b6b45" />
             </Pressable>
           )}
           {shouldShowChat && (
@@ -105,7 +110,7 @@ export function CustomHeader({
               onPress={() => router.push('/chat')}
               style={styles.iconButton}
             >
-              <Ionicons name="chatbubble-ellipses-outline" size={24} color="#1b6b45" />
+              <Ionicons name="chatbubble-ellipses-outline" size={22} color="#1b6b45" />
             </Pressable>
           )}
           {shouldShowAdmin && (
@@ -115,7 +120,7 @@ export function CustomHeader({
                 onPress={() => setShowAdminMenu(!showAdminMenu)}
                 style={styles.iconButton}
               >
-                <Ionicons name="shield-outline" size={24} color="#1b6b45" />
+                <Ionicons name="shield-outline" size={22} color="#1b6b45" />
               </Pressable>
               
               {/* Popup admin menu */}
@@ -145,7 +150,7 @@ export function CustomHeader({
             onPress={toggleMenu} 
             style={styles.iconButton}
           >
-            <Ionicons name="menu" size={24} color="#1b6b45" />
+            <Ionicons name="menu" size={22} color="#1b6b45" />
           </Pressable>
         </View>
       </View>
@@ -168,13 +173,14 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   leftContainer: {
-    width: 80,
+    width: 60,
     alignItems: 'flex-start',
   },
   titleContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 8,
   },
   logo: {
     width: 28,
@@ -185,7 +191,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1b6b45',
   },
@@ -196,11 +202,12 @@ const styles = StyleSheet.create({
   rightButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 80,
     justifyContent: 'flex-end',
+    gap: 6,
+    width: 120,
   },
   iconButton: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   adminMenuContainer: {
     position: 'absolute',
