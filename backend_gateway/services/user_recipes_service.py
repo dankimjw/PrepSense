@@ -28,6 +28,7 @@ class UserRecipesService:
         recipe_data: Dict[str, Any],
         source: str,
         rating: str = "neutral",
+        is_favorite: bool = False,
         notes: Optional[str] = None,
         tags: Optional[List[str]] = None
     ) -> Dict[str, Any]:
@@ -65,7 +66,7 @@ class UserRecipesService:
                 "recipe_data": recipe_data,  # This will be stored as JSON
                 "source": source,
                 "rating": rating,
-                "is_favorite": rating == "thumbs_up",
+                "is_favorite": is_favorite,
                 "notes": notes,
                 "prep_time": prep_time,
                 "cook_time": cook_time,
@@ -105,7 +106,7 @@ class UserRecipesService:
                     bigquery.ScalarQueryParameter("recipe_data", "STRING", json.dumps(recipe_data)),
                     bigquery.ScalarQueryParameter("source", "STRING", source),
                     bigquery.ScalarQueryParameter("rating", "STRING", rating),
-                    bigquery.ScalarQueryParameter("is_favorite", "BOOL", rating == "thumbs_up"),
+                    bigquery.ScalarQueryParameter("is_favorite", "BOOL", is_favorite),
                     bigquery.ScalarQueryParameter("notes", "STRING", notes),
                     bigquery.ScalarQueryParameter("prep_time", "INTEGER", prep_time),
                     bigquery.ScalarQueryParameter("cook_time", "INTEGER", cook_time),
@@ -123,11 +124,13 @@ class UserRecipesService:
             
             self.bq_service.client.query(query, job_config=job_config).result()
             
-            logger.info(f"Recipe saved successfully for user {user_id}: {recipe_title}")
+            logger.info(f"Recipe saved successfully for user {user_id}: {recipe_title} (source: {source}, favorite: {is_favorite})")
             return {
                 "id": recipe_uuid,
                 "message": "Recipe saved successfully",
-                "recipe_title": recipe_title
+                "recipe_title": recipe_title,
+                "source": source,
+                "is_favorite": is_favorite
             }
             
         except Exception as e:
@@ -138,6 +141,7 @@ class UserRecipesService:
         self,
         user_id: int,
         rating_filter: Optional[str] = None,
+        is_favorite: Optional[bool] = None,
         limit: int = 50,
         offset: int = 0
     ) -> List[Dict[str, Any]]:
@@ -178,6 +182,12 @@ class UserRecipesService:
                 query += " AND rating = @rating"
                 query_params.append(
                     bigquery.ScalarQueryParameter("rating", "STRING", rating_filter)
+                )
+            
+            if is_favorite is not None:
+                query += " AND is_favorite = @is_favorite"
+                query_params.append(
+                    bigquery.ScalarQueryParameter("is_favorite", "BOOL", is_favorite)
                 )
                 
             query += " ORDER BY created_at DESC"
@@ -247,6 +257,47 @@ class UserRecipesService:
                 
         except Exception as e:
             logger.error(f"Error updating recipe rating: {str(e)}")
+            raise
+            
+    async def update_recipe_favorite(
+        self,
+        user_id: int,
+        recipe_id: str,
+        is_favorite: bool
+    ) -> Dict[str, Any]:
+        """Update the favorite status of a recipe"""
+        try:
+            query = f"""
+            UPDATE `{self.table_name}`
+            SET 
+                is_favorite = @is_favorite,
+                updated_at = CURRENT_TIMESTAMP()
+            WHERE id = @id AND user_id = @user_id
+            """
+            
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("id", "STRING", recipe_id),
+                    bigquery.ScalarQueryParameter("user_id", "INTEGER", user_id),
+                    bigquery.ScalarQueryParameter("is_favorite", "BOOL", is_favorite),
+                ]
+            )
+            
+            result = self.bq_service.client.query(query, job_config=job_config).result()
+            
+            if result.num_dml_affected_rows > 0:
+                return {
+                    "success": True,
+                    "message": f"Recipe {'added to' if is_favorite else 'removed from'} favorites"
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Recipe not found or unauthorized"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error updating recipe favorite: {str(e)}")
             raise
             
     async def delete_user_recipe(

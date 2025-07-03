@@ -1,11 +1,11 @@
 // app/chat.tsx - Part of the PrepSense mobile app
-import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { CustomHeader } from './components/CustomHeader';
-import { sendChatMessage, Recipe } from '../services/api';
+import { CustomHeader } from '../components/CustomHeader';
+import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
 
 type Message = {
   id: string;
@@ -22,6 +22,88 @@ const suggestedMessages = [
   "Quick meals under 20 minutes",
   "What should I cook tonight?",
 ];
+
+// Extended Recipe type with image URL
+interface RecipeWithImage extends Recipe {
+  imageUrl?: string;
+}
+
+// Recipe Card Component
+function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () => void }) {
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageLoading, setImageLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch image for the recipe
+    const fetchImage = async () => {
+      try {
+        const response = await generateRecipeImage(
+          recipe.name,
+          "professional food photography",
+          false // Use Unsplash for speed
+        );
+        setImageUrl(response.image_url);
+      } catch (error) {
+        console.error('Error fetching recipe image:', error);
+      } finally {
+        setImageLoading(false);
+      }
+    };
+
+    fetchImage();
+  }, [recipe.name]);
+
+  return (
+    <TouchableOpacity style={styles.recipeCard} onPress={onPress}>
+      {/* Recipe Image */}
+      <View style={styles.recipeImageContainer}>
+        {imageLoading ? (
+          <View style={styles.imagePlaceholder}>
+            <ActivityIndicator size="small" color="#297A56" />
+          </View>
+        ) : imageUrl ? (
+          <Image source={{ uri: imageUrl }} style={styles.recipeImage} />
+        ) : (
+          <View style={styles.imagePlaceholder}>
+            <Ionicons name="image-outline" size={30} color="#ccc" />
+          </View>
+        )}
+      </View>
+
+      {/* Recipe Content */}
+      <View style={styles.recipeContent}>
+        <Text style={styles.recipeTitle}>{recipe.name}</Text>
+        <View style={styles.recipeMetrics}>
+          <Text style={styles.recipeTime}>⏱️ {recipe.time} min</Text>
+          <Text style={styles.recipeMatch}>
+            📊 {Math.round(recipe.match_score * 100)}% match
+          </Text>
+          <Text style={styles.recipeEnjoyment}>
+            ⭐ {recipe.expected_joy || 75}% joy
+          </Text>
+        </View>
+        
+        {recipe.available_ingredients.length > 0 && (
+          <View style={styles.ingredientSection}>
+            <Text style={styles.ingredientTitle}>✅ Available:</Text>
+            <Text style={styles.availableIngredients} numberOfLines={2}>
+              {recipe.available_ingredients.join(', ')}
+            </Text>
+          </View>
+        )}
+        
+        {recipe.missing_ingredients.length > 0 && (
+          <View style={styles.ingredientSection}>
+            <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
+            <Text style={styles.missingIngredients} numberOfLines={2}>
+              {recipe.missing_ingredients.join(', ')}
+            </Text>
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+}
 
 export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -148,17 +230,17 @@ export default function ChatScreen() {
                     <Text style={styles.preferenceTitle}>Your Saved Preferences:</Text>
                     {userPreferences && (
                       <>
-                        {userPreferences.dietary_preference.length > 0 && (
+                        {userPreferences.dietary_preference && userPreferences.dietary_preference.length > 0 && (
                           <Text style={styles.preferenceItem}>
                             🥗 Dietary: {userPreferences.dietary_preference.join(', ')}
                           </Text>
                         )}
-                        {userPreferences.allergens.length > 0 && (
+                        {userPreferences.allergens && userPreferences.allergens.length > 0 && (
                           <Text style={styles.preferenceItem}>
                             ⚠️ Allergens: {userPreferences.allergens.join(', ')}
                           </Text>
                         )}
-                        {userPreferences.cuisine_preference.length > 0 && (
+                        {userPreferences.cuisine_preference && userPreferences.cuisine_preference.length > 0 && (
                           <Text style={styles.preferenceItem}>
                             🌍 Cuisines: {userPreferences.cuisine_preference.join(', ')}
                           </Text>
@@ -200,74 +282,16 @@ export default function ChatScreen() {
                 {message.sender === 'ai' && message.recipes && message.recipes.length > 0 && (
                   <View style={styles.recipesContainer}>
                     {message.recipes.map((recipe, index) => (
-                      <TouchableOpacity 
-                        key={index} 
-                        style={styles.recipeCard}
+                      <RecipeCard
+                        key={index}
+                        recipe={recipe}
                         onPress={() => {
                           router.push({
                             pathname: '/recipe-details',
                             params: { recipe: JSON.stringify(recipe) }
                           });
                         }}
-                      >
-                        <Text style={styles.recipeTitle}>{recipe.name}</Text>
-                        <View style={styles.recipeMetrics}>
-                          <Text style={styles.recipeTime}>⏱️ {recipe.time} min</Text>
-                          <Text style={styles.recipeMatch}>
-                            📊 {Math.round(recipe.match_score * 100)}% match
-                          </Text>
-                          <Text style={styles.recipeEnjoyment}>
-                            ⭐ {recipe.expected_joy || 75}% joy
-                          </Text>
-                        </View>
-                        
-                        {recipe.available_ingredients.length > 0 && (
-                          <View style={styles.ingredientSection}>
-                            <Text style={styles.ingredientTitle}>✅ Available:</Text>
-                            <Text style={styles.availableIngredients}>
-                              {recipe.available_ingredients.join(', ')}
-                            </Text>
-                          </View>
-                        )}
-                        
-                        {recipe.missing_ingredients.length > 0 && (
-                          <View style={styles.ingredientSection}>
-                            <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
-                            <Text style={styles.missingIngredients}>
-                              {recipe.missing_ingredients.join(', ')}
-                            </Text>
-                          </View>
-                        )}
-                        
-                        <View style={styles.nutritionRow}>
-                          <Text style={styles.nutritionText}>
-                            🔥 {recipe.nutrition.calories} cal
-                          </Text>
-                          <Text style={styles.nutritionText}>
-                            💪 {recipe.nutrition.protein}g protein
-                          </Text>
-                        </View>
-                        
-                        {recipe.allergens_present && recipe.allergens_present.length > 0 && (
-                          <View style={styles.warningSection}>
-                            <Text style={styles.warningText}>
-                              ⚠️ Contains: {recipe.allergens_present.join(', ')}
-                            </Text>
-                          </View>
-                        )}
-                        
-                        {recipe.matched_preferences && recipe.matched_preferences.length > 0 && (
-                          <View style={styles.preferencesSection}>
-                            <Text style={styles.preferencesText}>
-                              ✅ Preference Matches: {recipe.matched_preferences.join(', ')}
-                            </Text>
-                          </View>
-                        )}
-                        
-                        <View style={styles.tapHintContainer}>
-                          <Text style={styles.tapHint}>Tap for full recipe →</Text>
-                        </View>
-                      </TouchableOpacity>
+                      />
                     ))}
                   </View>
                 )}
@@ -426,8 +450,7 @@ const styles = StyleSheet.create({
   recipeCard: {
     backgroundColor: '#fff',
     borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#e0e0e0',
     shadowColor: '#000',
@@ -435,51 +458,74 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3,
     elevation: 2,
+    flexDirection: 'row',
+    overflow: 'hidden',
+  },
+  recipeImageContainer: {
+    width: 120,
+    height: 120,
+  },
+  recipeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recipeContent: {
+    flex: 1,
+    padding: 12,
   },
   recipeTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   recipeMetrics: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
+    justifyContent: 'flex-start',
+    marginBottom: 8,
     flexWrap: 'wrap',
+    gap: 8,
   },
   recipeTime: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#666',
   },
   recipeMatch: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#297A56',
     fontWeight: '600',
   },
   recipeEnjoyment: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#F59E0B',
     fontWeight: '600',
   },
   ingredientSection: {
-    marginBottom: 8,
+    marginBottom: 6,
   },
   ingredientTitle: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   availableIngredients: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#297A56',
-    lineHeight: 20,
+    lineHeight: 16,
   },
   missingIngredients: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#DC2626',
-    lineHeight: 20,
+    lineHeight: 16,
   },
   nutritionRow: {
     flexDirection: 'row',
