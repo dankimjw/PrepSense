@@ -27,10 +27,9 @@ interface PantryItemProps {
   item: PantryItemData;
   onPress: (item: PantryItemData) => void;
   onEditPress?: (item: PantryItemData) => void;
-  onExpirationPress?: (item: PantryItemData) => void;
 }
 
-export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPress, onExpirationPress }) => {
+export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPress }) => {
   return (
     <TouchableOpacity 
       style={styles.itemCard}
@@ -92,33 +91,13 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
           }]}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
-          <TouchableOpacity 
-            onPress={(e) => {
-              e.stopPropagation();
-              if (onExpirationPress) {
-                onExpirationPress(item);
-              }
-            }}
-            style={styles.expiryButton}
-          >
-            <Text style={[
-              styles.itemExpiry,
-              item.daysUntilExpiry <= 0 ? styles.expired : null,
-              item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
-            ]}>
-              {item.expiry}
-            </Text>
-            <Ionicons 
-              name="calendar-outline" 
-              size={14} 
-              color={
-                item.daysUntilExpiry <= 0 ? '#DC2626' : 
-                item.daysUntilExpiry <= 3 ? '#D97706' : 
-                '#6B7280'
-              } 
-              style={styles.calendarIcon}
-            />
-          </TouchableOpacity>
+          <Text style={[
+            styles.itemExpiry,
+            item.daysUntilExpiry <= 0 ? styles.expired : null,
+            item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
+          ]}>
+            {item.expiry}
+          </Text>
         </View>
       </View>
       <TouchableOpacity 
@@ -214,6 +193,7 @@ const styles = StyleSheet.create({
   itemExpiry: {
     fontSize: 14,
     color: '#6B7280',
+    marginLeft: 8,
   },
   expiringSoon: {
     color: '#D97706',
@@ -235,19 +215,5 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     padding: 8,
-  },
-  expiryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    marginLeft: 8,
-    borderRadius: 12,
-    backgroundColor: '#F3F4F6',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  calendarIcon: {
-    marginLeft: 4,
   },
 });

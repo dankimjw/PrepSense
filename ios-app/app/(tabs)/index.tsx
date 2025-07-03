@@ -156,12 +156,6 @@ const IndexScreen: React.FC = () => {
     setActionSheetVisible(true);
   };
 
-  // Handle update expiration date - direct access
-  const handleExpirationPress = (item: PantryItemData) => {
-    setSelectedItemForExpiration(item);
-    setExpirationModalVisible(true);
-  };
-
   // Handle update expiration date from action sheet
   const handleUpdateExpiration = () => {
     if (selectedItemForAction) {
@@ -334,7 +328,6 @@ const IndexScreen: React.FC = () => {
           items={recentItems}
           onItemPress={handleItemPress}
           onEditPress={handleEditItem}
-          onExpirationPress={handleExpirationPress}
         />
 
         {/* Tips Section */}
@@ -352,6 +345,12 @@ const IndexScreen: React.FC = () => {
           setSelectedItemForConsumption(null);
           // Refresh items after consumption
           fetchItems();
+        }}
+        onExpirationPress={() => {
+          if (selectedItemForConsumption) {
+            setSelectedItemForExpiration(selectedItemForConsumption);
+            setExpirationModalVisible(true);
+          }
         }}
       />
 
