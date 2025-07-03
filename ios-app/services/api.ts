@@ -1,6 +1,9 @@
 // services/api.ts - API service for PrepSense
 
-const API_BASE_URL = 'http://localhost:8001/api/v1';
+import { apiClient, ApiError } from './apiClient';
+import { Config } from '../config';
+
+const API_BASE_URL = Config.API_BASE_URL;
 
 export interface PantryItem {
   id: string;
@@ -61,65 +64,52 @@ export interface ImageGenerationResponse {
 
 export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'> & { id?: string }): Promise<PantryItem> => {
   try {
-    const url = item.id 
-      ? `${API_BASE_URL}/pantry/items/${item.id}`
-      : `${API_BASE_URL}/pantry/user/${userId}/items`;
-      
-    const method = item.id ? 'PUT' : 'POST';
+    const endpoint = item.id 
+      ? `/pantry/items/${item.id}`
+      : `/pantry/user/${userId}/items`;
     
-    // Create an AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+    const requestBody = {
+      product_name: item.item_name,
+      quantity: item.quantity_amount,
+      unit_of_measurement: item.quantity_unit,
+      expiration_date: item.expected_expiration,
+      category: item.category || 'Uncategorized',
+    };
     
-    try {
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_name: item.item_name,
-          quantity: item.quantity_amount,
-          unit_of_measurement: item.quantity_unit,
-          expiration_date: item.expected_expiration,
-          category: item.category || 'Uncategorized',
-          // Add any other fields needed by your API
-        }),
-        signal: controller.signal
-      });
+    const response = item.id 
+      ? await apiClient.put(endpoint, requestBody, 8000) // 8 second timeout
+      : await apiClient.post(endpoint, requestBody, 8000);
       
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Error saving pantry item: ${response.statusText}`);
-      }
-      
-      return await response.json();
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error('Request timed out - server is taking too long to respond');
-      }
-      throw error;
+    return response.data;
+  } catch (error: any) {
+    if (error instanceof ApiError && error.isTimeout) {
+      throw new Error('Request timed out - server is taking too long to respond');
     }
-  } catch (error) {
     console.error('Error saving pantry item:', error);
+    throw error;
+  }
+};
+
+export const updatePantryItem = async (itemId: string, data: any): Promise<any> => {
+  try {
+    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 15000); // 15 second timeout
+    return response.data;
+  } catch (error: any) {
+    if (error instanceof ApiError && error.isTimeout) {
+      throw new Error('Update timed out - please try again');
+    }
+    console.error('Error updating pantry item:', error);
     throw error;
   }
 };
 
 export const deletePantryItem = async (itemId: string): Promise<void> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/pantry/items/${itemId}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error deleting pantry item: ${response.statusText}`);
+    await apiClient.delete(`/pantry/items/${itemId}`, 4000); // 4 second timeout for delete
+  } catch (error: any) {
+    if (error instanceof ApiError && error.isTimeout) {
+      throw new Error('Delete timed out - please try again');
     }
-  } catch (error) {
     console.error('Error deleting pantry item:', error);
     throw error;
   }
@@ -347,6 +337,31 @@ export const getShoppingList = async (userId: number): Promise<ShoppingListItem[
     return await response.json();
   } catch (error) {
     console.error('Error fetching shopping list:', error);
+    throw error;
+  }
+};
+
+export interface AIBulkEditRequest {
+  item_ids: string[];
+  options: {
+    correct_units: boolean;
+    update_categories: boolean;
+    estimate_expirations: boolean;
+    enable_recurring: boolean;
+    recurring_options?: {
+      add_to_shopping_list: boolean;
+      days_before_expiry: number;
+    };
+  };
+  user_id: number;
+}
+
+export const applyAIBulkCorrections = async (request: AIBulkEditRequest): Promise<any> => {
+  try {
+    const response = await apiClient.post('/ai/bulk-correct-items', request, 30000); // 30 second timeout
+    return response.data;
+  } catch (error: any) {
+    console.error('Error applying AI bulk corrections:', error);
     throw error;
   }
 };

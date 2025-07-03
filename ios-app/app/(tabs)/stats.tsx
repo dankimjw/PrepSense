@@ -1,16 +1,1034 @@
 // app/(tabs)/stats.tsx - Part of the PrepSense mobile app
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
+import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { fetchPantryItems } from '../../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '../../context/AuthContext';
+import { LineChart, BarChart } from 'react-native-chart-kit';
+import { Config } from '../../config';
+
+const { width: screenWidth } = Dimensions.get('window');
+
+interface StatsData {
+  pantry: {
+    totalItems: number;
+    expiringItems: number;
+    recentlyAdded: number;
+    totalValue: number;
+    wastedItems: number;
+    mostUsedIngredients: { name: string; count: number }[];
+  };
+  recipes: {
+    cookedThisWeek: number;
+    cookedThisMonth: number;
+    totalCooked: number;
+    favoriteRecipes: { name: string; count: number }[];
+    avgPrepTime: number;
+    cookingStreak: number;
+    successRate: number;
+    avgCalories: number;
+    avgProtein: number;
+  };
+  shopping: {
+    frequency: string;
+    avgSpend: number;
+    mostPurchased: { name: string; count: number }[];
+    completionRate: number;
+    savings: number;
+  };
+  achievements: {
+    milestones: string[];
+    wasteReductionScore: number;
+    pantryOptimizationScore: number;
+    cookingStreakDays: number;
+  };
+}
 
 export default function StatsScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.text}>Stats Screen</Text>
+  const { token, isAuthenticated } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [stats, setStats] = useState<StatsData | null>(null);
+  const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+
+  useEffect(() => {
+    loadStats();
+  }, []);
+
+  const loadStats = async () => {
+    try {
+      setIsLoading(true);
+      
+      // Fetch pantry items
+      const pantryItems = await fetchPantryItems(111); // Demo user ID
+      
+      // Fetch user recipes
+      let recipes = [];
+      try {
+        if (token && isAuthenticated) {
+          const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            recipes = data.recipes || [];
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching user recipes:', error);
+        // Continue with empty recipes array
+      }
+      
+      // Get shopping list data from AsyncStorage
+      const shoppingListData = await AsyncStorage.getItem('@PrepSense_ShoppingList');
+      const shoppingList = shoppingListData ? JSON.parse(shoppingListData) : [];
+      
+      // Calculate stats
+      const now = new Date();
+      const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Pantry stats
+      const expiringItems = pantryItems.filter(item => {
+        if (!item.expiration_date) return false;
+        const expDate = new Date(item.expiration_date);
+        return expDate <= oneWeekFromNow && expDate >= now;
+      }).length;
+      
+      const recentlyAdded = pantryItems.filter(item => {
+        const addedDate = new Date(item.created_at || item.updated_at);
+        return addedDate >= oneWeekAgo;
+      }).length;
+      
+      // Calculate most used ingredients (mock data for now)
+      const ingredientCounts: { [key: string]: number } = {};
+      pantryItems.forEach(item => {
+        const category = item.category || 'Other';
+        ingredientCounts[category] = (ingredientCounts[category] || 0) + 1;
+      });
+      
+      const mostUsedIngredients = Object.entries(ingredientCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      
+      // Recipe stats
+      const cookedThisWeek = recipes.filter(recipe => {
+        const cookedDate = new Date(recipe.created_at);
+        return cookedDate >= oneWeekAgo;
+      }).length;
+      
+      const cookedThisMonth = recipes.filter(recipe => {
+        const cookedDate = new Date(recipe.created_at);
+        return cookedDate >= oneMonthAgo;
+      }).length;
+      
+      // Calculate favorite recipes
+      const recipeCounts: { [key: string]: number } = {};
+      recipes.forEach(recipe => {
+        const title = recipe.recipe_title || 'Unknown Recipe';
+        recipeCounts[title] = (recipeCounts[title] || 0) + 1;
+      });
+      
+      const favoriteRecipes = Object.entries(recipeCounts)
+        .map(([name, count]) => ({ name, count }))
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 5);
+      
+      // Shopping stats
+      const completedItems = shoppingList.filter((item: any) => item.checked).length;
+      const completionRate = shoppingList.length > 0 ? (completedItems / shoppingList.length) * 100 : 0;
+      
+      // Mock data for some stats that require more backend support
+      const statsData: StatsData = {
+        pantry: {
+          totalItems: pantryItems.length,
+          expiringItems,
+          recentlyAdded,
+          totalValue: pantryItems.length * 3.5, // Mock: $3.50 avg per item
+          wastedItems: 0, // Would need waste tracking
+          mostUsedIngredients,
+        },
+        recipes: {
+          cookedThisWeek,
+          cookedThisMonth,
+          totalCooked: recipes.length,
+          favoriteRecipes,
+          avgPrepTime: 35, // Mock data
+          cookingStreak: calculateCookingStreak(recipes),
+          successRate: 95, // Mock data
+          avgCalories: 420, // Mock data
+          avgProtein: 25, // Mock data
+        },
+        shopping: {
+          frequency: 'Weekly',
+          avgSpend: 85.50, // Mock data
+          mostPurchased: [
+            { name: 'Milk', count: 12 },
+            { name: 'Eggs', count: 10 },
+            { name: 'Bread', count: 8 },
+            { name: 'Chicken', count: 7 },
+            { name: 'Vegetables', count: 15 },
+          ],
+          completionRate,
+          savings: pantryItems.length * 1.2, // Mock: saved $1.20 per item used
+        },
+        achievements: {
+          milestones: calculateMilestones(recipes.length, pantryItems.length),
+          wasteReductionScore: 85, // Mock data
+          pantryOptimizationScore: 78, // Mock data
+          cookingStreakDays: calculateCookingStreak(recipes),
+        },
+      };
+      
+      setStats(statsData);
+    } catch (error) {
+      console.error('Error loading stats:', error);
+    } finally {
+      setIsLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  const calculateCookingStreak = (recipes: any[]): number => {
+    if (recipes.length === 0) return 0;
+    
+    const sortedRecipes = [...recipes].sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    
+    let streak = 0;
+    let currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+    
+    for (const recipe of sortedRecipes) {
+      const recipeDate = new Date(recipe.created_at);
+      recipeDate.setHours(0, 0, 0, 0);
+      
+      const dayDiff = Math.floor((currentDate.getTime() - recipeDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (dayDiff === streak) {
+        streak++;
+      } else if (dayDiff > streak) {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
+  const calculateMilestones = (recipeCount: number, pantryCount: number): string[] => {
+    const milestones = [];
+    
+    if (recipeCount >= 1) milestones.push('First Recipe! 🎉');
+    if (recipeCount >= 10) milestones.push('10 Recipes Cooked 🍳');
+    if (recipeCount >= 50) milestones.push('Master Chef 👨‍🍳');
+    if (pantryCount >= 20) milestones.push('Well-Stocked Pantry 🏪');
+    if (pantryCount >= 50) milestones.push('Pantry Pro 📦');
+    
+    return milestones;
+  };
+
+  const renderStatCard = (title: string, value: string | number, icon: any, color: string, subtitle?: string, trend?: { value: number; isPositive: boolean }) => (
+    <View style={[styles.statCard, { borderLeftColor: color }]}>
+      <View style={styles.statCardHeader}>
+        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+          {icon}
+        </View>
+        <View style={styles.statCardTitleContainer}>
+          <Text style={styles.statCardTitle}>{title}</Text>
+          {trend && (
+            <View style={styles.trendContainer}>
+              <Ionicons 
+                name={trend.isPositive ? "trending-up" : "trending-down"} 
+                size={16} 
+                color={trend.isPositive ? "#10B981" : "#EF4444"} 
+              />
+              <Text style={[styles.trendText, { color: trend.isPositive ? "#10B981" : "#EF4444" }]}>
+                {trend.value}%
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <Text style={[styles.statCardValue, { color }]}>{value}</Text>
+      {subtitle && <Text style={styles.statCardSubtitle}>{subtitle}</Text>}
     </View>
+  );
+
+  const renderMiniStat = (label: string, value: string | number, color: string) => (
+    <View style={styles.miniStat}>
+      <Text style={styles.miniStatLabel}>{label}</Text>
+      <Text style={[styles.miniStatValue, { color }]}>{value}</Text>
+    </View>
+  );
+
+  const renderAchievement = (achievement: string, index: number) => (
+    <View key={index} style={styles.achievementBadge}>
+      <Text style={styles.achievementText}>{achievement}</Text>
+    </View>
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadStats();
+  };
+
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#297A56" />
+        <Text style={styles.loadingText}>Loading your stats...</Text>
+      </View>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle" size={64} color="#DC2626" />
+        <Text style={styles.errorText}>Failed to load stats</Text>
+      </View>
+    );
+  }
+
+  // Mock data for charts
+  const cookingFrequencyData = {
+    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    datasets: [{
+      data: [2, 1, 3, 2, 4, 3, 5],
+    }],
+  };
+
+  const nutritionData = {
+    labels: ['Calories', 'Protein', 'Carbs', 'Fat'],
+    datasets: [{
+      data: [420, 25, 45, 15],
+    }],
+  };
+
+  return (
+    <ScrollView 
+      style={styles.container}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#297A56"
+        />
+      }
+    >
+      {/* Header with gradient */}
+      <LinearGradient
+        colors={['#297A56', '#1F5A40']}
+        style={styles.headerGradient}
+      >
+        <Text style={styles.headerTitle}>Your PrepSense Stats</Text>
+        <Text style={styles.headerSubtitle}>Track your meal prep journey</Text>
+        
+        {/* Time Period Tabs */}
+        <View style={styles.periodTabs}>
+          <TouchableOpacity 
+            style={[styles.periodTab, timeRange === 'week' && styles.periodTabActive]}
+            onPress={() => setTimeRange('week')}
+          >
+            <Text style={[styles.periodTabText, timeRange === 'week' && styles.periodTabTextActive]}>
+              Week
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.periodTab, timeRange === 'month' && styles.periodTabActive]}
+            onPress={() => setTimeRange('month')}
+          >
+            <Text style={[styles.periodTabText, timeRange === 'month' && styles.periodTabTextActive]}>
+              Month
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.periodTab, timeRange === 'year' && styles.periodTabActive]}
+            onPress={() => setTimeRange('year')}
+          >
+            <Text style={[styles.periodTabText, timeRange === 'year' && styles.periodTabTextActive]}>
+              Year
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </LinearGradient>
+
+      {/* Quick Stats Overview */}
+      <View style={styles.quickStatsContainer}>
+        {renderMiniStat('Total Items', stats.pantry.totalItems, '#297A56')}
+        {renderMiniStat('Recipes Made', stats.recipes.totalCooked, '#3B82F6')}
+        {renderMiniStat('Streak', `${stats.recipes.cookingStreak}d`, '#F59E0B')}
+        {renderMiniStat('Saved', `$${stats.shopping.savings.toFixed(0)}`, '#10B981')}
+      </View>
+
+      {/* Hot This Week Section */}
+      <View style={styles.hotThisWeekContainer}>
+        <LinearGradient
+          colors={['#F59E0B', '#EF4444']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={styles.hotThisWeekGradient}
+        >
+          <View style={styles.hotThisWeekContent}>
+            <View>
+              <Text style={styles.hotThisWeekTitle}>🔥 Hot This Week!</Text>
+              <Text style={styles.hotThisWeekSubtitle}>You've cooked {stats.recipes.cookedThisWeek} recipes</Text>
+            </View>
+            <View style={styles.hotThisWeekBadge}>
+              <Text style={styles.hotThisWeekBadgeText}>+{Math.round(stats.shopping.savings)}pts</Text>
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+
+      {/* Pantry Analytics Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🏪 Pantry Analytics</Text>
+        <View style={styles.statsGrid}>
+          {renderStatCard(
+            'Total Items',
+            stats.pantry.totalItems,
+            <MaterialCommunityIcons name="package-variant" size={24} color="#297A56" />,
+            '#297A56',
+            undefined,
+            { value: 12, isPositive: true }
+          )}
+          {renderStatCard(
+            'Expiring Soon',
+            stats.pantry.expiringItems,
+            <Ionicons name="warning" size={24} color="#F59E0B" />,
+            '#F59E0B',
+            'Next 7 days',
+            { value: 5, isPositive: false }
+          )}
+          {renderStatCard(
+            'Recently Added',
+            stats.pantry.recentlyAdded,
+            <Ionicons name="add-circle" size={24} color="#3B82F6" />,
+            '#3B82F6',
+            'Last 7 days'
+          )}
+          {renderStatCard(
+            'Pantry Value',
+            `$${stats.pantry.totalValue.toFixed(2)}`,
+            <FontAwesome5 name="dollar-sign" size={24} color="#10B981" />,
+            '#10B981',
+            undefined,
+            { value: 8, isPositive: true }
+          )}
+        </View>
+
+        {/* Most Used Ingredients */}
+        <View style={styles.subSection}>
+          <Text style={styles.subSectionTitle}>Most Common Categories</Text>
+          {stats.pantry.mostUsedIngredients.map((item, index) => (
+            <View key={index} style={styles.listItem}>
+              <Text style={styles.listItemName}>{item.name}</Text>
+              <View style={styles.listItemRight}>
+                <Text style={styles.listItemCount}>{item.count} items</Text>
+                <View style={[styles.progressBar, { width: `${(item.count / stats.pantry.totalItems) * 100}%` }]} />
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Recipe & Cooking Stats Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>👨‍🍳 Recipe & Cooking Stats</Text>
+        <View style={styles.statsGrid}>
+          {renderStatCard(
+            'This Week',
+            stats.recipes.cookedThisWeek,
+            <Ionicons name="calendar" size={24} color="#3B82F6" />,
+            '#3B82F6',
+            'Recipes cooked'
+          )}
+          {renderStatCard(
+            'Cooking Streak',
+            `${stats.recipes.cookingStreak} days`,
+            <Ionicons name="flame" size={24} color="#F59E0B" />,
+            '#F59E0B'
+          )}
+          {renderStatCard(
+            'Avg Prep Time',
+            `${stats.recipes.avgPrepTime} min`,
+            <Ionicons name="time" size={24} color="#8B5CF6" />,
+            '#8B5CF6'
+          )}
+          {renderStatCard(
+            'Success Rate',
+            `${stats.recipes.successRate}%`,
+            <Ionicons name="checkmark-circle" size={24} color="#10B981" />,
+            '#10B981'
+          )}
+        </View>
+
+        {/* Favorite Recipes */}
+        {stats.recipes.favoriteRecipes.length > 0 && (
+          <View style={styles.subSection}>
+            <View style={styles.subSectionHeader}>
+              <Text style={styles.subSectionTitle}>Top Recipes</Text>
+              <TouchableOpacity>
+                <Text style={styles.seeMoreText}>See More ›</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeCardsScroll}>
+              {stats.recipes.favoriteRecipes.map((recipe, index) => (
+                <TouchableOpacity key={index} style={styles.recipeCard}>
+                  <View style={styles.recipeImageContainer}>
+                    <LinearGradient
+                      colors={['#297A56', '#1F5A40']}
+                      style={styles.recipeImagePlaceholder}
+                    >
+                      <Ionicons name="restaurant" size={40} color="#fff" />
+                    </LinearGradient>
+                    <TouchableOpacity style={styles.bookmarkButton}>
+                      <Ionicons name="bookmark" size={20} color="#F59E0B" />
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.recipeCardContent}>
+                    <Text style={styles.recipeCardTitle} numberOfLines={2}>{recipe.name}</Text>
+                    <View style={styles.recipeCardStats}>
+                      <View style={styles.recipeCardStat}>
+                        <Ionicons name="time-outline" size={14} color="#666" />
+                        <Text style={styles.recipeCardStatText}>35 min</Text>
+                      </View>
+                      <View style={styles.recipeCardStat}>
+                        <Ionicons name="flame-outline" size={14} color="#666" />
+                        <Text style={styles.recipeCardStatText}>{recipe.count}x</Text>
+                      </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
+        {/* Nutrition Overview */}
+        <View style={styles.subSection}>
+          <Text style={styles.subSectionTitle}>Average Nutrition per Recipe</Text>
+          <View style={styles.nutritionGrid}>
+            {renderMiniStat('Calories', stats.recipes.avgCalories, '#F59E0B')}
+            {renderMiniStat('Protein', `${stats.recipes.avgProtein}g`, '#3B82F6')}
+            {renderMiniStat('Carbs', '45g', '#10B981')}
+            {renderMiniStat('Fat', '15g', '#8B5CF6')}
+          </View>
+        </View>
+      </View>
+
+      {/* Shopping Insights Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🛒 Shopping Insights</Text>
+        <View style={styles.statsGrid}>
+          {renderStatCard(
+            'Avg Spend',
+            `$${stats.shopping.avgSpend.toFixed(2)}`,
+            <FontAwesome5 name="receipt" size={24} color="#10B981" />,
+            '#10B981',
+            stats.shopping.frequency
+          )}
+          {renderStatCard(
+            'List Completion',
+            `${stats.shopping.completionRate.toFixed(0)}%`,
+            <Ionicons name="checkbox" size={24} color="#3B82F6" />,
+            '#3B82F6'
+          )}
+          {renderStatCard(
+            'Items Saved',
+            `$${stats.shopping.savings.toFixed(2)}`,
+            <MaterialCommunityIcons name="piggy-bank" size={24} color="#F59E0B" />,
+            '#F59E0B',
+            'From pantry use'
+          )}
+        </View>
+
+        {/* Most Purchased Items */}
+        <View style={styles.subSection}>
+          <Text style={styles.subSectionTitle}>Frequently Purchased</Text>
+          {stats.shopping.mostPurchased.slice(0, 3).map((item, index) => (
+            <View key={index} style={styles.listItem}>
+              <Text style={styles.listItemName}>{item.name}</Text>
+              <Text style={styles.listItemCount}>{item.count} times</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Time-based Trends */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>📊 Cooking Trends</Text>
+        <Text style={styles.chartTitle}>Weekly Cooking Frequency</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          <LineChart
+            data={cookingFrequencyData}
+            width={screenWidth - 40}
+            height={200}
+            yAxisSuffix=" recipes"
+            chartConfig={{
+              backgroundColor: '#ffffff',
+              backgroundGradientFrom: '#ffffff',
+              backgroundGradientTo: '#ffffff',
+              decimalPlaces: 0,
+              color: (opacity = 1) => `rgba(41, 122, 86, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+              style: {
+                borderRadius: 16,
+              },
+              propsForDots: {
+                r: '6',
+                strokeWidth: '2',
+                stroke: '#297A56',
+              },
+            }}
+            bezier
+            style={styles.chart}
+          />
+        </ScrollView>
+      </View>
+
+      {/* Achievements Section */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>🏆 Achievements & Scores</Text>
+        
+        {/* Score Cards */}
+        <View style={styles.scoresContainer}>
+          <View style={styles.scoreCard}>
+            <Text style={styles.scoreLabel}>Waste Reduction</Text>
+            <View style={styles.scoreCircle}>
+              <Text style={styles.scoreValue}>{stats.achievements.wasteReductionScore}</Text>
+              <Text style={styles.scorePercent}>%</Text>
+            </View>
+          </View>
+          <View style={styles.scoreCard}>
+            <Text style={styles.scoreLabel}>Pantry Optimization</Text>
+            <View style={styles.scoreCircle}>
+              <Text style={styles.scoreValue}>{stats.achievements.pantryOptimizationScore}</Text>
+              <Text style={styles.scorePercent}>%</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Milestones */}
+        <View style={styles.subSection}>
+          <Text style={styles.subSectionTitle}>Milestones Achieved</Text>
+          <View style={styles.achievementsContainer}>
+            {stats.achievements.milestones.map((milestone, index) => 
+              renderAchievement(milestone, index)
+            )}
+          </View>
+        </View>
+      </View>
+
+      <View style={{ height: 100 }} />
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' },
-  text: { fontSize: 24, color: '#297A56', fontWeight: 'bold' },
-}); 
+  container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 18,
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    marginBottom: -20,
+  },
+  headerTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: '#E6F4EA',
+    opacity: 0.9,
+  },
+  quickStatsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 20,
+    paddingVertical: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  miniStat: {
+    alignItems: 'center',
+  },
+  miniStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  miniStatValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 30,
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    width: '48%',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  statCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  statCardTitle: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  statCardTitleContainer: {
+    flex: 1,
+    marginRight: 8,
+  },
+  trendContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  trendText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  statCardValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  statCardSubtitle: {
+    fontSize: 12,
+    color: '#999',
+  },
+  subSection: {
+    marginTop: 20,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  subSectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 12,
+  },
+  listItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  listItemName: {
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  listItemRight: {
+    alignItems: 'flex-end',
+  },
+  listItemCount: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#297A56',
+    borderRadius: 2,
+    minWidth: 50,
+  },
+  nutritionGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 8,
+  },
+  chartTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 12,
+    marginLeft: 4,
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+  },
+  scoresContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+  },
+  scoreCard: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  scoreLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 12,
+    fontWeight: '500',
+  },
+  scoreCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E6F4EA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#297A56',
+    flexDirection: 'row',
+  },
+  scoreValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#297A56',
+  },
+  scorePercent: {
+    fontSize: 16,
+    color: '#297A56',
+    fontWeight: '600',
+  },
+  achievementsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  achievementBadge: {
+    backgroundColor: '#F59E0B',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  achievementText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  periodTabs: {
+    flexDirection: 'row',
+    marginTop: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 25,
+    padding: 4,
+    alignSelf: 'center',
+  },
+  periodTab: {
+    paddingHorizontal: 24,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginHorizontal: 4,
+  },
+  periodTabActive: {
+    backgroundColor: '#fff',
+  },
+  periodTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  periodTabTextActive: {
+    color: '#297A56',
+  },
+  subSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  seeMoreText: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '600',
+  },
+  recipeCardsScroll: {
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+  },
+  recipeCard: {
+    width: 160,
+    marginRight: 12,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recipeImageContainer: {
+    position: 'relative',
+    height: 120,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    overflow: 'hidden',
+  },
+  recipeImagePlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recipeCardContent: {
+    padding: 12,
+  },
+  recipeCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  recipeCardStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recipeCardStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  recipeCardStatText: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+  },
+  hotThisWeekContainer: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+  },
+  hotThisWeekGradient: {
+    borderRadius: 16,
+    padding: 20,
+  },
+  hotThisWeekContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  hotThisWeekTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  hotThisWeekSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+  },
+  hotThisWeekBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  hotThisWeekBadgeText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+});

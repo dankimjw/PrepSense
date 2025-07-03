@@ -57,15 +57,11 @@ export function parseIngredient(ingredientString: string): ParsedIngredient {
   // "Salt to taste"
   // "Olive oil"
   
-  // Remove common phrases
+  // Remove common phrases but keep the ingredient name intact
   let cleaned = original
     .replace(/\s+of\s+/gi, ' ')
     .replace(/\s+to taste/gi, '')
-    .replace(/\s+fresh/gi, '')
-    .replace(/\s+dried/gi, '')
-    .replace(/\s+chopped/gi, '')
-    .replace(/\s+sliced/gi, '')
-    .replace(/\s+diced/gi, '')
+    .replace(/,.*$/, '') // Remove everything after comma
     .trim();
   
   // Try to extract quantity and unit

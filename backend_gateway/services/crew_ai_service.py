@@ -207,8 +207,35 @@ class CrewAIService:
     
     async def _search_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Generate recipes dynamically using OpenAI based on pantry items, user message, and preferences."""
-        # Extract ingredient names from pantry
-        available_ingredients = [item['product_name'] for item in pantry_items if item.get('product_name')]
+        # Check if this is an expiring items query
+        is_expiring_query = any(phrase in message.lower() for phrase in [
+            'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
+        ])
+        
+        # If asking about expiring items, prioritize those
+        if is_expiring_query:
+            from datetime import datetime, timedelta
+            today = datetime.now().date()
+            expiring_items = []
+            other_items = []
+            
+            for item in pantry_items:
+                if item.get('expiration_date') and item.get('product_name'):
+                    exp_date = datetime.strptime(str(item['expiration_date']), '%Y-%m-%d').date()
+                    days_until_expiry = (exp_date - today).days
+                    if 0 <= days_until_expiry <= 7:
+                        expiring_items.append(item['product_name'])
+                    else:
+                        other_items.append(item['product_name'])
+                elif item.get('product_name'):
+                    other_items.append(item['product_name'])
+            
+            # Put expiring items first
+            available_ingredients = expiring_items + other_items
+            logger.info(f"Expiring items to use: {expiring_items}")
+        else:
+            # Extract ingredient names from pantry
+            available_ingredients = [item['product_name'] for item in pantry_items if item.get('product_name')]
         
         logger.info(f"Available ingredients in pantry: {available_ingredients}")
         
@@ -225,11 +252,21 @@ class CrewAIService:
         cuisine_prefs = user_preferences.get('cuisine_preference', [])
         
         # Create a prompt for OpenAI to generate recipes
+        expiring_instruction = ""
+        if is_expiring_query and expiring_items:
+            expiring_instruction = f"""
+        URGENT: These ingredients are EXPIRING SOON and should be used first:
+        {', '.join(expiring_items[:10])}
+        
+        Please prioritize recipes that use these expiring ingredients!
+        """
+        
         prompt = f"""
         You are a creative chef. Generate 5-8 recipes based on ONLY these available ingredients:
         {', '.join(available_ingredients)}
         
         User request: {message}
+        {expiring_instruction}
         
         IMPORTANT User Preferences:
         - Dietary restrictions: {', '.join(dietary_prefs) if dietary_prefs else 'None'}
@@ -241,6 +278,7 @@ class CrewAIService:
         2. Create 3-4 recipes that need 1-3 additional common ingredients (specify exactly what's needed)
         3. DO NOT assume common pantry items are available unless they're in the list
         4. For recipes needing extra ingredients, be specific (e.g., "eggs", "flour", "garlic cloves")
+        5. If there are expiring items mentioned above, prioritize using them in your recipes
         
         Return a JSON array of recipes. Each recipe should have:
         - name: string (creative recipe name)
@@ -665,6 +703,58 @@ class CrewAIService:
     
     def _format_response(self, recipes: List[Dict[str, Any]], items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any]) -> str:
         """Format the final response message with preference info."""
+        
+        # Check if user is asking about expiring items
+        is_expiring_query = any(phrase in message.lower() for phrase in [
+            'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
+        ])
+        
+        if is_expiring_query:
+            # Get items expiring soon (within 7 days)
+            from datetime import datetime, timedelta
+            today = datetime.now().date()
+            expiring_soon = []
+            
+            for item in items:
+                if item.get('expiration_date'):
+                    exp_date = datetime.strptime(str(item['expiration_date']), '%Y-%m-%d').date()
+                    days_until_expiry = (exp_date - today).days
+                    if 0 <= days_until_expiry <= 7:
+                        expiring_soon.append({
+                            'name': item.get('product_name', 'Unknown item'),
+                            'days': days_until_expiry,
+                            'date': exp_date.strftime('%B %d')
+                        })
+            
+            if expiring_soon:
+                # Sort by days until expiry
+                expiring_soon.sort(key=lambda x: x['days'])
+                
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_expiring = []
+                for item in expiring_soon:
+                    if item['name'] not in seen:
+                        seen.add(item['name'])
+                        unique_expiring.append(item)
+                
+                response = f"🚨 You have {len(unique_expiring)} items expiring soon:\n\n"
+                for item in unique_expiring[:10]:  # Show top 10
+                    if item['days'] == 0:
+                        response += f"• {item['name']} - Expires TODAY!\n"
+                    elif item['days'] == 1:
+                        response += f"• {item['name']} - Expires tomorrow\n"
+                    else:
+                        response += f"• {item['name']} - Expires in {item['days']} days ({item['date']})\n"
+                
+                if len(unique_expiring) > 10:
+                    response += f"\n...and {len(unique_expiring) - 10} more items.\n"
+                
+                response += "\n💡 Here are recipes to use these items before they expire:"
+                return response
+            else:
+                return "Great news! 🎉 You don't have any items expiring in the next 7 days. Your pantry is well-managed!"
+        
         if not recipes:
             return "I couldn't find any recipes matching your request with your current pantry items. Would you like some shopping suggestions?"
         
@@ -721,9 +811,20 @@ class CrewAIService:
                     "user_preferences": user_preferences
                 }
             
-            # Simple keyword matching for dinner suggestions
+            # Simple keyword matching for different queries
             message_lower = message.lower()
-            if any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
+            
+            # Check for expiring items query first
+            if any(phrase in message_lower for phrase in ['expiring', 'expire', 'going bad', 'use soon', 'about to expire']):
+                # Use the same format_response method which handles expiring queries
+                response = self._format_response([], pantry_items, message, user_preferences)
+                return {
+                    "response": response,
+                    "recipes": [],  # We could generate recipes for expiring items here
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
+                }
+            elif any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
                 # Get unique ingredient names from ALL pantry items
                 ingredients_set = set()
                 for item in pantry_items:  # Use ALL items, not just first 10
