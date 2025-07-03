@@ -349,7 +349,7 @@ const IndexScreen: React.FC = () => {
         onExpirationPress={() => {
           if (selectedItemForConsumption) {
             setSelectedItemForExpiration(selectedItemForConsumption);
-            setExpirationModalVisible(true); // Open expiration modal on top
+            setExpirationModalVisible(true);
           }
         }}
       />
