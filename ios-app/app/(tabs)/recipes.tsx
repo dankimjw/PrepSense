@@ -815,7 +815,7 @@ export default function RecipesScreen() {
             {
               maxHeight: filterHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [50, 200],
+                outputRange: [50, 150],
               }),
             }
           ]}
@@ -834,9 +834,11 @@ export default function RecipesScreen() {
             }}
             activeOpacity={filtersCollapsed ? 0.7 : 1}
           >
-            <Text style={styles.collapsedFilterText}>
-              {selectedFilters.length > 0 ? `${selectedFilters.length} filters active` : 'Tap to show filters'}
-            </Text>
+            {selectedFilters.length > 0 && (
+              <Text style={styles.collapsedFilterText}>
+                {selectedFilters.length} filters active
+              </Text>
+            )}
             <Animated.View
               style={{
                 transform: [{
@@ -863,7 +865,6 @@ export default function RecipesScreen() {
           >
           {/* Dietary Filters Row */}
           <View style={styles.filterRow}>
-            <Text style={styles.filterRowTitle}>Dietary</Text>
             <ScrollView 
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -892,7 +893,6 @@ export default function RecipesScreen() {
 
           {/* Cuisine Filters Row */}
           <View style={styles.filterRow}>
-            <Text style={styles.filterRowTitle}>Cuisine</Text>
             <ScrollView 
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -921,7 +921,6 @@ export default function RecipesScreen() {
 
           {/* Meal Type Filters Row */}
           <View style={styles.filterRow}>
-            <Text style={styles.filterRowTitle}>Meal Type</Text>
             <ScrollView 
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -1217,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   filterRowContent: {
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingVertical: 8,
   },
   filterScrollView: {
     flexGrow: 0,
