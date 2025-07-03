@@ -36,6 +36,9 @@ export function AddButton() {
   
   // Check if we're on the chat screen
   const isOnChatScreen = pathname === '/(tabs)/chat';
+  
+  console.log('AddButton - Current pathname:', pathname);
+  console.log('AddButton - Is on chat screen:', isOnChatScreen);
 
   const handleAddImage = () => {
     setModalVisible(false);
@@ -101,17 +104,19 @@ export function AddButton() {
       {/* Lightbulb Button - Only show on chat screen */}
       {isOnChatScreen && (
         <>
-          <TouchableOpacity
-            style={styles.lightbulbFab}
-            onPress={toggleSuggestions}
-            activeOpacity={0.8}
-          >
-            <Ionicons 
-              name={showSuggestions ? "bulb" : "bulb-outline"} 
-              size={24} 
-              color="#fff" 
-            />
-          </TouchableOpacity>
+          <View style={styles.lightbulbFab}>
+            <TouchableOpacity
+              onPress={toggleSuggestions}
+              activeOpacity={0.8}
+              style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+            >
+              <Ionicons 
+                name={showSuggestions ? "bulb" : "bulb-outline"} 
+                size={24} 
+                color="#fff" 
+              />
+            </TouchableOpacity>
+          </View>
           
           {/* Floating Suggestions */}
           {showSuggestions && (
