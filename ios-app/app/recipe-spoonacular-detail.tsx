@@ -17,6 +17,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
+import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 
 const { width } = Dimensions.get('window');
@@ -67,6 +68,7 @@ export default function RecipeSpoonacularDetail() {
   const [availableIngredients, setAvailableIngredients] = useState<Set<number>>(new Set());
   const [missingIngredients, setMissingIngredients] = useState<Set<number>>(new Set());
   const [pantryItems, setPantryItems] = useState<any[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -144,7 +146,17 @@ export default function RecipeSpoonacularDetail() {
   };
 
   const handleAddToShoppingList = async () => {
-    if (!recipe || missingIngredients.size === 0) {
+    if (!recipe) {
+      Alert.alert('Error', 'Recipe data not loaded');
+      return;
+    }
+    
+    // When all ingredients are missing, use all ingredients
+    const ingredientsToAdd = missingIngredients.size > 0 
+      ? recipe.extendedIngredients.filter(ing => missingIngredients.has(ing.id))
+      : (availableIngredients.size === 0 ? recipe.extendedIngredients : []);
+    
+    if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
       return;
     }
@@ -159,20 +171,41 @@ export default function RecipeSpoonacularDetail() {
         existingItems = JSON.parse(savedList);
       }
 
-      // Get missing ingredients from the recipe
-      const missingIngredientsList = recipe.extendedIngredients.filter(ing => 
-        missingIngredients.has(ing.id)
-      );
-
-      // Convert missing ingredients to shopping list items
-      const newItems = missingIngredientsList.map(ingredient => {
-        // Parse the original ingredient string to extract quantity and unit
-        const parsed = parseIngredientsList([ingredient.original])[0];
+      // Convert ingredients to shopping list items
+      const newItems = ingredientsToAdd.map((ingredient, index) => {
+        // For Spoonacular, we have both original string and parsed name
+        const cleanedOriginal = ingredient.original.trim();
+        const fallbackName = ingredient.name.trim();
+        
+        // Try to parse the original ingredient string
+        const parsed = parseIngredientsList([cleanedOriginal])[0];
+        
+        // Use a cleaner approach for the shopping list
+        let displayName = '';
+        let displayQuantity = '';
+        
+        if (parsed && parsed.name && parsed.name.trim()) {
+          // If we successfully parsed the ingredient
+          displayName = parsed.name;
+          if (parsed.quantity && parsed.unit) {
+            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity) {
+            displayQuantity = `${parsed.quantity}`;
+          }
+        } else {
+          // If parsing failed, use the ingredient name from Spoonacular
+          displayName = fallbackName;
+          // Try to extract just the amount and unit from the original string
+          const amountMatch = cleanedOriginal.match(/^([\d.\/\s]+)\s*([a-zA-Z]+)?/);
+          if (amountMatch && amountMatch[1]) {
+            displayQuantity = amountMatch[0].trim();
+          }
+        }
         
         return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: parsed?.name || ingredient.name,
-          quantity: parsed?.quantity ? `${parsed.quantity} ${parsed.unit || ''}`.trim() : ingredient.original,
+          id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          name: displayName,
+          quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
         };
@@ -186,7 +219,7 @@ export default function RecipeSpoonacularDetail() {
 
       Alert.alert(
         'Added to Shopping List',
-        `${missingIngredients.size} item${missingIngredients.size > 1 ? 's' : ''} added to your shopping list.`,
+        `${ingredientsToAdd.length} item${ingredientsToAdd.length > 1 ? 's' : ''} added to your shopping list.`,
         [
           { 
             text: 'View List', 
@@ -201,6 +234,108 @@ export default function RecipeSpoonacularDetail() {
     }
   };
 
+  const handleStartCooking = () => {
+    if (!recipe) return;
+    
+    if (missingIngredients.size > 0) {
+      Alert.alert(
+        'Missing Ingredients',
+        `You are missing ${missingIngredients.size} ingredient${missingIngredients.size > 1 ? 's' : ''}. Do you want to continue anyway?`,
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Add to Shopping List',
+            onPress: () => {
+              handleAddToShoppingList();
+            }
+          },
+          {
+            text: 'Continue',
+            onPress: () => {
+              navigateToCookingMode();
+            }
+          }
+        ]
+      );
+    } else {
+      navigateToCookingMode();
+    }
+  };
+
+  const navigateToCookingMode = () => {
+    if (!recipe) return;
+    
+    // Convert Spoonacular recipe to our Recipe format for cooking mode
+    const recipeForCooking = {
+      name: recipe.title,
+      ingredients: recipe.extendedIngredients.map(ing => ing.original),
+      instructions: recipe.analyzedInstructions[0]?.steps.map(step => step.step) || [],
+      nutrition: {
+        calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
+        protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
+      },
+      time: recipe.readyInMinutes,
+      available_ingredients: [],
+      missing_ingredients: [],
+      missing_count: 0,
+      available_count: 0,
+      match_score: 0,
+      expected_joy: 0,
+    };
+    
+    router.push({
+      pathname: '/cooking-mode',
+      params: {
+        recipe: JSON.stringify(recipeForCooking)
+      }
+    });
+  };
+
+  const handleQuickComplete = async () => {
+    if (!recipe) return;
+    
+    Alert.alert(
+      'Complete Recipe',
+      'This will subtract the available ingredients from your pantry. Are you sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Complete',
+          onPress: async () => {
+            try {
+              // Convert ingredients for completion
+              const ingredientsToUse = recipe.extendedIngredients
+                .filter(ing => availableIngredients.has(ing.id))
+                .map(ing => ({
+                  ingredient_name: ing.name,
+                  quantity: ing.amount,
+                  unit: ing.unit,
+                }));
+
+              const result = await completeRecipe({
+                user_id: 111,
+                recipe_name: recipe.title,
+                ingredients: ingredientsToUse,
+              });
+
+              Alert.alert(
+                'Recipe Completed! ✅',
+                result.summary || 'Ingredients have been subtracted from your pantry.',
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              console.error('Error completing recipe:', error);
+              Alert.alert('Error', 'Failed to update pantry. Please try again.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const cleanHtml = (html: string) => {
     return html
       .replace(/<[^>]*>?/gm, '')
@@ -209,6 +344,42 @@ export default function RecipeSpoonacularDetail() {
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
       .replace(/&quot;/g, '"');
+  };
+
+  const handleSaveRecipe = async () => {
+    if (!recipe) return;
+    
+    try {
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          recipe_title: recipe.title,
+          recipe_image: recipe.image,
+          recipe_data: recipe,
+          source: 'spoonacular',
+          rating: 'neutral',
+        }),
+      });
+
+      if (response.ok) {
+        setIsSaved(true);
+        Alert.alert('Success', 'Recipe saved to your collection!');
+      } else {
+        const error = await response.json();
+        if (error.detail?.includes('already saved')) {
+          setIsSaved(true);
+        } else {
+          Alert.alert('Error', 'Failed to save recipe. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
   };
 
   if (loading) {
@@ -239,6 +410,16 @@ export default function RecipeSpoonacularDetail() {
           onPress={() => router.back()}
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bookmarkButton}
+          onPress={handleSaveRecipe}
+        >
+          <Ionicons 
+            name={isSaved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color="#fff" 
+          />
         </TouchableOpacity>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeTitle}>{recipe.title}</Text>
@@ -334,10 +515,10 @@ export default function RecipeSpoonacularDetail() {
                 </Text>
               </TouchableOpacity>
             )}
-            {recipe.extendedIngredients.map((ingredient) => {
+            {recipe.extendedIngredients.map((ingredient, index) => {
               const isAvailable = availableIngredients.has(ingredient.id);
               return (
-                <View key={ingredient.id} style={styles.ingredientItem}>
+                <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
                   {isAvailable ? (
                     <Ionicons name="checkmark-circle" size={20} color="#297A56" />
                   ) : (
@@ -358,8 +539,8 @@ export default function RecipeSpoonacularDetail() {
         {activeTab === 'instructions' && (
           <View style={styles.instructionsContainer}>
             {recipe.analyzedInstructions.length > 0 ? (
-              recipe.analyzedInstructions[0].steps.map((step) => (
-                <View key={step.number} style={styles.instructionStep}>
+              recipe.analyzedInstructions[0].steps.map((step, index) => (
+                <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
                   <View style={styles.stepNumber}>
                     <Text style={styles.stepNumberText}>{step.number}</Text>
                   </View>
@@ -376,8 +557,8 @@ export default function RecipeSpoonacularDetail() {
 
         {activeTab === 'nutrition' && recipe.nutrition && (
           <View style={styles.nutritionContainer}>
-            {recipe.nutrition.nutrients.slice(0, 10).map((nutrient) => (
-              <View key={nutrient.name} style={styles.nutrientItem}>
+            {recipe.nutrition.nutrients.slice(0, 10).map((nutrient, index) => (
+              <View key={`nutrient-${nutrient.name}-${index}`} style={styles.nutrientItem}>
                 <Text style={styles.nutrientName}>{nutrient.name}</Text>
                 <View style={styles.nutrientValue}>
                   <Text style={styles.nutrientAmount}>
@@ -392,6 +573,82 @@ export default function RecipeSpoonacularDetail() {
           </View>
         )}
       </View>
+
+      {/* Action Buttons */}
+      {availableIngredients.size > 0 ? (
+        <>
+          <View style={styles.actionButtonsContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.startCookingButton,
+                missingIngredients.size > 0 && styles.startCookingButtonDisabled
+              ]}
+              onPress={() => handleStartCooking()}
+            >
+              <Ionicons name="play" size={20} color="#fff" />
+              <Text style={styles.startCookingText}>Start Cooking</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={styles.quickCompleteButton}
+              onPress={() => handleQuickComplete()}
+            >
+              <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
+              <Text style={styles.quickCompleteText}>Quick Complete</Text>
+            </TouchableOpacity>
+          </View>
+
+          {missingIngredients.size > 0 && (
+            <TouchableOpacity 
+              style={styles.addToListButton}
+              onPress={() => {
+                const missingList = recipe.extendedIngredients
+                  .filter(ing => missingIngredients.has(ing.id))
+                  .map(ing => ing.original);
+                router.push({
+                  pathname: '/select-ingredients',
+                  params: { 
+                    ingredients: JSON.stringify(missingList),
+                    recipeName: recipe.title
+                  }
+                });
+              }}
+            >
+              <Ionicons name="cart" size={20} color="#297A56" />
+              <Text style={styles.addToListText}>
+                Add {missingIngredients.size} to Shopping List
+              </Text>
+            </TouchableOpacity>
+          )}
+        </>
+      ) : (
+        /* All ingredients are missing */
+        <View style={styles.allMissingContainer}>
+          <Ionicons name="alert-circle" size={48} color="#297A56" style={styles.allMissingIcon} />
+          <Text style={styles.allMissingTitle}>No ingredients available</Text>
+          <Text style={styles.allMissingSubtitle}>
+            You'll need to shop for all {missingIngredients.size} ingredients first
+          </Text>
+          <TouchableOpacity 
+            style={styles.addAllToListButton}
+            onPress={() => {
+              const allIngredients = recipe.extendedIngredients.map(ing => ing.original);
+              router.push({
+                pathname: '/select-ingredients',
+                params: { 
+                  ingredients: JSON.stringify(allIngredients),
+                  recipeName: recipe.title
+                }
+              });
+            }}
+          >
+            <Ionicons name="cart" size={20} color="#fff" />
+            <Text style={styles.addAllToListText}>
+              Add to Shopping List
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
@@ -434,6 +691,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    top: 10,
+    right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
@@ -603,6 +871,112 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 50,
+  },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 20,
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    gap: 12,
+  },
+  startCookingButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  startCookingButtonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
+  startCookingText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  quickCompleteButton: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  quickCompleteText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+    marginHorizontal: 16,
+    marginBottom: 20,
+    gap: 8,
+  },
+  addToListText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  allMissingContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    backgroundColor: '#f0f7f4',
+    marginHorizontal: 16,
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  allMissingIcon: {
+    marginBottom: 16,
+  },
+  allMissingTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  allMissingSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  addAllToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addAllToListText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
   missingBadge: {
     backgroundColor: '#EF4444',

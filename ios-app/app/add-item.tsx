@@ -11,8 +11,9 @@ import { useState, useRef } from 'react';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useItems } from '../context/ItemsContext';
-
-const units = ['pcs', 'bag', 'kg', 'g', 'L', 'ml', 'pack', 'bottle', 'can'];
+import { UnitSelector } from '../components/UnitSelector';
+import { DEFAULT_UNIT } from '../constants/units';
+import { validateQuantity, formatQuantityInput, getQuantityRules } from '../constants/quantityRules';
 
 const categories = [
   'Dairy',
@@ -55,7 +56,7 @@ export default function AddItem() {
     item_name: '',
     quantity_amount: 0,
     quantity_amount_text: '',
-    quantity_unit: 'pcs',
+    quantity_unit: DEFAULT_UNIT,
     expected_expiration: new Date().toISOString().split('T')[0],
     count: 1,
     category: 'Other'
@@ -86,9 +87,10 @@ export default function AddItem() {
       return false;
     }
 
-    // Validate quantity amount
-    if (form.quantity_amount <= 0) {
-      Alert.alert('Validation Error', 'Quantity must be greater than 0.');
+    // Validate quantity using rules
+    const quantityValidation = validateQuantity(form.quantity_amount, form.item_name, form.quantity_unit);
+    if (!quantityValidation.isValid) {
+      Alert.alert('Validation Error', quantityValidation.error || 'Invalid quantity.');
       return false;
     }
 
@@ -160,7 +162,12 @@ export default function AddItem() {
         placeholderTextColor="#9CA3AF"
       />
 
-      <Text style={styles.label}>Amount *</Text>
+      <View style={styles.amountLabelContainer}>
+        <Text style={styles.label}>Amount *</Text>
+        {!getQuantityRules(form.item_name, form.quantity_unit).allowDecimals && (
+          <Text style={styles.wholeNumberHint}>Whole numbers only</Text>
+        )}
+      </View>
       <View 
         style={[
           styles.amountOuterContainer,
@@ -181,13 +188,12 @@ export default function AddItem() {
               }
             ]}
             value={form.quantity_amount_text}
-            keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
+            keyboardType={getQuantityRules(form.item_name, form.quantity_unit).allowDecimals 
+              ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric')
+              : 'number-pad'
+            }
             onChangeText={(t) => {
-              // Allow decimals and validate input
-              const cleaned = t.replace(/[^0-9.]/g, '');
-              const parts = cleaned.split('.');
-              // Allow only one decimal point
-              const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+              const formatted = formatQuantityInput(t, form.item_name, form.quantity_unit);
               
               setForm((f: Item) => ({ 
                 ...f, 
@@ -199,35 +205,22 @@ export default function AddItem() {
             placeholder="0"
             placeholderTextColor="#9CA3AF"
           />
-          <View style={styles.unitButtonContainer}>
+          <View style={styles.unitSelectorContainer}>
             <View style={[
               styles.divider,
               (focusedInput === 'amount' || focusedInput === 'unit') && styles.dividerFocused
             ]} />
-            <Pressable 
-              style={({ pressed }) => ({
-                ...styles.unitButton,
-                ...(pressed && styles.unitButtonPressed),
-                ...((focusedInput === 'amount' || focusedInput === 'unit') && { borderColor: 'transparent' })
-              })}
-              onPress={() => {
-                setFocusedInput('unit');
-                setShow(true);
+            <UnitSelector
+              value={form.quantity_unit}
+              onValueChange={(unit) => {
+                setForm((f: Item) => ({ ...f, quantity_unit: unit }));
+                setFocusedInput(null);
               }}
-            >
-              {({ pressed }) => (
-                <Text style={[
-                  styles.unitText,
-                  (pressed || focusedInput === 'amount' || focusedInput === 'unit') && styles.unitTextPressed
-                ]}>
-                  {form.quantity_unit}
-                  <Text style={[
-                    styles.unitCaret,
-                    (pressed || focusedInput === 'amount' || focusedInput === 'unit') && { color: '#297A56' }
-                  ]}> ▼</Text>
-                </Text>
-              )}
-            </Pressable>
+              style={[
+                styles.unitSelector,
+                (focusedInput === 'amount' || focusedInput === 'unit') && styles.unitSelectorFocused
+              ]}
+            />
           </View>
         </View>
       </View>
@@ -357,33 +350,6 @@ export default function AddItem() {
         </View>
       </Modal>
 
-      <Modal visible={show} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { padding: 0 }]}>
-            <View style={styles.datePickerHeader}>
-              <Text style={styles.datePickerTitle}>Select Unit</Text>
-            </View>
-            <Picker
-              selectedValue={form.quantity_unit}
-              onValueChange={(u) => {
-                setForm((f: Item) => ({ ...f, quantity_unit: u }));
-                setShow(false);
-              }}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {units.map(unit => (
-                <Picker.Item label={unit} value={unit} key={unit} />
-              ))}
-            </Picker>
-            <View style={{ padding: 20, paddingTop: 0, alignItems: 'center' }}>
-              <Pressable onPress={() => setShow(false)} style={styles.pickerDone}>
-                <Text style={styles.pickerDoneTxt}>Done</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <Modal visible={showCategoryPicker} transparent animationType="slide">
         <View style={styles.modalOverlay}>
@@ -437,6 +403,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   label: { fontSize: 15, color: '#222', fontWeight: '600', marginBottom: 2 },
+  amountLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  wholeNumberHint: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#e2e8f0',
@@ -636,5 +614,19 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     alignSelf: 'center',
     marginTop: -8,
+  },
+  unitSelectorContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  unitSelector: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 0,
+    height: 48,
+    paddingVertical: 0,
+  },
+  unitSelectorFocused: {
+    backgroundColor: '#F0F7F4',
   },
 });
