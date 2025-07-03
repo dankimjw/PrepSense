@@ -1,11 +1,10 @@
-// app/chat.tsx - Part of the PrepSense mobile app
+// app/chat-modal.tsx - Part of the PrepSense mobile app
 import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CustomHeader } from '../components/CustomHeader';
-import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
+import { sendChatMessage, Recipe, generateRecipeImage } from '../services/api';
 import Markdown from 'react-native-markdown-display';
 
 type Message = {
@@ -188,19 +187,32 @@ export default function ChatScreen() {
   };
 
   return (
-    <>
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <View style={[styles.content, { paddingBottom: insets.bottom }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" />
+      
+      {/* Modal Header */}
+      <View style={styles.modalHeader}>
+        <View style={styles.modalHeaderContent}>
+          <Text style={styles.modalTitle}>Chat with AI Chef</Text>
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="close" size={28} color="#333" />
+          </TouchableOpacity>
+        </View>
+      </View>
+      
+      <View style={[styles.content, { paddingBottom: insets.bottom }]}>
         <ScrollView 
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
-          contentInset={{ top: 60 }} // Add padding to account for the header
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="chatbubble-ellipses" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>Ask me anything about your pantry!</Text>
+              <Text style={styles.emptyStateText}>Ask me anything about cooking!</Text>
+              <Text style={styles.emptyStateSubtext}>I can help with recipes, meal planning, and pantry management</Text>
               
               {showSuggestions && (
                 <View style={styles.suggestionsContainer}>
@@ -381,8 +393,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </View>
-      </View>
-    </>
+    </View>
   );
 }
 
@@ -390,6 +401,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
+  },
+  modalHeader: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    paddingTop: Platform.OS === 'ios' ? 60 : 20,
+    paddingBottom: 16,
+  },
+  modalHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  closeButton: {
+    position: 'absolute',
+    right: 20,
+    padding: 4,
   },
   content: {
     flex: 1,
@@ -414,6 +448,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     color: '#999',
     fontSize: 16,
+  },
+  emptyStateSubtext: {
+    fontSize: 14,
+    color: '#bbb',
+    marginTop: 4,
+    textAlign: 'center',
+    paddingHorizontal: 40,
   },
   messageBubble: {
     maxWidth: '80%',

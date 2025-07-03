@@ -11,6 +11,7 @@ export interface PantryItemData {
   category: string;
   expiry: string;
   daysUntilExpiry: number;
+  expirationDate: Date;
   count?: number;
   icon: string;
   color?: string;

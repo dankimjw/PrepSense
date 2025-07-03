@@ -1,7 +1,7 @@
 // app/(tabs)/index.tsx - Part of the PrepSense mobile app
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
-import { useRouter, Stack, useFocusEffect } from 'expo-router';
+import { useRouter, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { CustomHeader } from '../components/CustomHeader';
@@ -20,6 +20,12 @@ import {
 import { enc } from '../../utils/encoding';
 import type { PantryItemData } from '../../components/home/PantryItem';
 import ConsumptionModal from '../../components/modals/ConsumptionModal';
+import { ExpirationDateModal } from '../../components/modals/ExpirationDateModal';
+import { PantryItemActionSheet } from '../../components/modals/PantryItemActionSheet';
+import EditItemModal from '../../components/modals/EditItemModal';
+import { AIBulkEditModal } from '../../components/modals/AIBulkEditModal';
+import { deletePantryItem, applyAIBulkCorrections, AIBulkEditRequest } from '../../services/api';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const IndexScreen: React.FC = () => {
   // State management
@@ -29,10 +35,18 @@ const IndexScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [consumptionModalVisible, setConsumptionModalVisible] = useState(false);
   const [selectedItemForConsumption, setSelectedItemForConsumption] = useState<PantryItemData | null>(null);
+  const [expirationModalVisible, setExpirationModalVisible] = useState(false);
+  const [selectedItemForExpiration, setSelectedItemForExpiration] = useState<PantryItemData | null>(null);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [selectedItemForAction, setSelectedItemForAction] = useState<PantryItemData | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedItemForEdit, setSelectedItemForEdit] = useState<PantryItemData | null>(null);
+  const [aiBulkEditModalVisible, setAIBulkEditModalVisible] = useState(false);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
   const router = useRouter();
+  const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
 
   // Transform items for display
@@ -110,6 +124,16 @@ const IndexScreen: React.FC = () => {
     }, [isLoading, isInitialized, fetchItems])
   );
 
+  // Handle opening AI bulk edit modal from navigation params
+  useEffect(() => {
+    if (params.openAIBulkEdit === 'true') {
+      setAIBulkEditModalVisible(true);
+      // Clear the param to prevent reopening
+      router.setParams({ openAIBulkEdit: undefined });
+    }
+  }, [params.openAIBulkEdit]);
+
+
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -137,7 +161,7 @@ const IndexScreen: React.FC = () => {
     setIsFilterModalVisible(false);
   };
 
-  // Handle item press - now opens consumption modal
+  // Handle item press - now opens consumption modal directly
   const handleItemPress = (item: PantryItemData) => {
     setSelectedItemForConsumption(item);
     setConsumptionModalVisible(true);
@@ -145,22 +169,124 @@ const IndexScreen: React.FC = () => {
 
   // Handle edit item
   const handleEditItem = (item: PantryItemData) => {
-    router.push({
-      pathname: '/edit-item',
-      params: { 
-        index: '0',
-        data: enc([{
-          ...item,
-          id: item.id,
-          item_name: item.name,
-          quantity_amount: item.quantity_amount,
-          quantity_unit: item.quantity_unit,
-          expected_expiration: item.expirationDate.toISOString().split('T')[0],
-          category: item.category,
-          count: item.count || 1
-        }])
-      }
-    });
+    setSelectedItemForAction(item);
+    setActionSheetVisible(true);
+  };
+
+  // Handle update expiration date from action sheet
+  const handleUpdateExpiration = () => {
+    if (selectedItemForAction) {
+      setSelectedItemForExpiration(selectedItemForAction);
+      setExpirationModalVisible(true);
+    }
+  };
+
+  // Handle consume item
+  const handleConsumeItem = () => {
+    if (selectedItemForAction) {
+      setSelectedItemForConsumption(selectedItemForAction);
+      setConsumptionModalVisible(true);
+    }
+  };
+
+  // Handle edit item details
+  const handleEditItemDetails = () => {
+    if (selectedItemForAction) {
+      router.push({
+        pathname: '/edit-item',
+        params: { 
+          index: '0',
+          data: enc([{
+            ...selectedItemForAction,
+            id: selectedItemForAction.id,
+            item_name: selectedItemForAction.name,
+            quantity_amount: selectedItemForAction.quantity_amount,
+            quantity_unit: selectedItemForAction.quantity_unit,
+            expected_expiration: selectedItemForAction.expirationDate.toISOString().split('T')[0],
+            category: selectedItemForAction.category,
+            count: selectedItemForAction.count || 1
+          }])
+        }
+      });
+    }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = async () => {
+    if (selectedItemForAction) {
+      Alert.alert(
+        'Delete Item',
+        `Are you sure you want to delete ${selectedItemForAction.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deletePantryItem(selectedItemForAction.id);
+                Alert.alert('Success', 'Item deleted successfully');
+                fetchItems();
+              } catch (error) {
+                console.error('Error deleting item:', error);
+                Alert.alert('Error', 'Failed to delete item');
+              }
+            },
+          },
+        ]
+      );
+    }
+  };
+
+  // Handle AI bulk corrections
+  const handleAIBulkCorrections = async (selectedItemIds: string[], options: any) => {
+    try {
+      // Show loading state
+      Alert.alert(
+        'Processing',
+        `Applying AI corrections to ${selectedItemIds.length} items...`,
+        [],
+        { cancelable: false }
+      );
+
+      const request: AIBulkEditRequest = {
+        item_ids: selectedItemIds,
+        options: {
+          correct_units: options.correctUnits,
+          update_categories: options.updateCategories,
+          estimate_expirations: options.estimateExpirations,
+          enable_recurring: options.enableRecurring,
+          recurring_options: options.recurringOptions,
+        },
+        user_id: 111, // TODO: Get from auth context
+      };
+
+      // TODO: Uncomment when backend endpoint is ready
+      // await applyAIBulkCorrections(request);
+      
+      // Mock implementation for now
+      console.log('AI Bulk Corrections Request:', request);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      Alert.alert(
+        'Coming Soon!', 
+        'The AI bulk correction feature is being implemented on the backend. Selected options:\n\n' +
+        `✓ Items selected: ${selectedItemIds.length}\n` +
+        `${options.correctUnits ? '✓ Correct units\n' : ''}` +
+        `${options.updateCategories ? '✓ Update categories\n' : ''}` +
+        `${options.estimateExpirations ? '✓ Estimate expirations\n' : ''}` +
+        `${options.enableRecurring ? '✓ Enable recurring shopping list\n' : ''}`,
+        [{ text: 'OK' }]
+      );
+      
+      setAIBulkEditModalVisible(false);
+      // fetchItems(); // Refresh when backend is ready
+    } catch (error) {
+      console.error('Error applying AI corrections:', error);
+      Alert.alert('Error', 'This feature is coming soon!');
+    }
   };
 
   // Reset filters function
@@ -177,9 +303,9 @@ const IndexScreen: React.FC = () => {
         options={{
           header: () => (
             <CustomHeader 
-              title="Home"
+              title="PrepSense"
               showBackButton={false}
-              showChatButton={true}
+              showAIBulkEditButton={true}
               showAdminButton={true}
             />
           )
@@ -285,9 +411,119 @@ const IndexScreen: React.FC = () => {
         onClose={() => {
           setConsumptionModalVisible(false);
           setSelectedItemForConsumption(null);
-          // Refresh items after consumption
+        }}
+        onExpirationPress={() => {
+          if (selectedItemForConsumption) {
+            setSelectedItemForExpiration(selectedItemForConsumption);
+            setConsumptionModalVisible(false); // Close consumption modal first
+            setTimeout(() => {
+              setExpirationModalVisible(true); // Then open expiration modal
+            }, 300);
+          }
+        }}
+        onEditPress={() => {
+          if (selectedItemForConsumption) {
+            setSelectedItemForEdit(selectedItemForConsumption);
+            setConsumptionModalVisible(false);
+            setTimeout(() => {
+              setEditModalVisible(true);
+            }, 300);
+          }
+        }}
+      />
+
+      {/* Action Sheet */}
+      <PantryItemActionSheet
+        visible={actionSheetVisible}
+        item={selectedItemForAction}
+        onClose={() => {
+          setActionSheetVisible(false);
+          setSelectedItemForAction(null);
+        }}
+        onUpdateExpiration={handleUpdateExpiration}
+        onEditItem={handleEditItemDetails}
+        onConsumeItem={handleConsumeItem}
+        onDeleteItem={handleDeleteItem}
+      />
+
+      {/* Expiration Date Modal */}
+      <ExpirationDateModal
+        visible={expirationModalVisible}
+        item={selectedItemForExpiration}
+        onClose={() => {
+          setExpirationModalVisible(false);
+          setSelectedItemForExpiration(null);
+          // Reopen consumption modal if we came from it
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+        onUpdate={(newDate: Date) => {
+          // Optimistically update the local state
+          if (selectedItemForConsumption) {
+            const updatedExpiry = formatExpirationDate(newDate.toISOString());
+            const updatedDaysUntilExpiry = calculateDaysUntilExpiry(newDate.toISOString());
+            
+            // Update the consumption modal item with new expiration data
+            setSelectedItemForConsumption({
+              ...selectedItemForConsumption,
+              expirationDate: newDate,
+              expected_expiration: newDate.toISOString(),
+              expiry: updatedExpiry,
+              daysUntilExpiry: updatedDaysUntilExpiry
+            });
+          }
+          
+          // Fetch items in the background to sync with server
+          fetchItems();
+          setExpirationModalVisible(false);
+          setSelectedItemForExpiration(null);
+          
+          // Reopen consumption modal after update
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+      />
+
+      {/* Edit Item Modal */}
+      <EditItemModal
+        visible={editModalVisible}
+        item={selectedItemForEdit}
+        onClose={() => {
+          setEditModalVisible(false);
+          setSelectedItemForEdit(null);
+          // Reopen consumption modal if we came from it
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+        onUpdate={(updatedItem) => {
+          // Update the consumption modal item with new data
+          if (selectedItemForConsumption) {
+            setSelectedItemForConsumption({
+              ...selectedItemForConsumption,
+              ...updatedItem,
+              name: updatedItem.item_name || updatedItem.name,
+            });
+          }
+          // Fetch items in the background to sync with server
           fetchItems();
         }}
+      />
+
+      {/* AI Bulk Edit Modal */}
+      <AIBulkEditModal
+        visible={aiBulkEditModalVisible}
+        items={recentItems}
+        onClose={() => setAIBulkEditModalVisible(false)}
+        onApplyChanges={handleAIBulkCorrections}
       />
     </View>
   );
