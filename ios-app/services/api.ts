@@ -92,7 +92,7 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
 
 export const updatePantryItem = async (itemId: string, data: any): Promise<any> => {
   try {
-    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 6000); // 6 second timeout
+    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 15000); // 15 second timeout
     return response.data;
   } catch (error: any) {
     if (error instanceof ApiError && error.isTimeout) {
@@ -337,6 +337,31 @@ export const getShoppingList = async (userId: number): Promise<ShoppingListItem[
     return await response.json();
   } catch (error) {
     console.error('Error fetching shopping list:', error);
+    throw error;
+  }
+};
+
+export interface AIBulkEditRequest {
+  item_ids: string[];
+  options: {
+    correct_units: boolean;
+    update_categories: boolean;
+    estimate_expirations: boolean;
+    enable_recurring: boolean;
+    recurring_options?: {
+      add_to_shopping_list: boolean;
+      days_before_expiry: number;
+    };
+  };
+  user_id: number;
+}
+
+export const applyAIBulkCorrections = async (request: AIBulkEditRequest): Promise<any> => {
+  try {
+    const response = await apiClient.post('/ai/bulk-correct-items', request, 30000); // 30 second timeout
+    return response.data;
+  } catch (error: any) {
+    console.error('Error applying AI bulk corrections:', error);
     throw error;
   }
 };

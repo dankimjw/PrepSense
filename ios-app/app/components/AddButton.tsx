@@ -48,7 +48,7 @@ export function AddButton() {
   }
 
   // Don't render the buttons on certain screens
-  if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin')) {
+  if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin' || pathname === '/chat-modal')) {
     return null;
   }
 
@@ -64,6 +64,15 @@ export function AddButton() {
   
   const toggleModal = () => {
     const newState = !modalVisible;
+    
+    // Close lightbulb suggestions if open
+    if (newState && showSuggestions) {
+      setShowSuggestions(false);
+      fadeAnim.setValue(0);
+      slideAnims.forEach(anim => {
+        if (anim) anim.setValue(-50);
+      });
+    }
     
     if (newState) {
       setModalVisible(true);
@@ -89,6 +98,12 @@ export function AddButton() {
     setShowSuggestions(newState);
     
     if (!fadeAnim || !slideAnims) return;
+    
+    // Close add modal if open
+    if (newState && modalVisible) {
+      setModalVisible(false);
+      modalFadeAnim.setValue(0);
+    }
     
     if (newState) {
       // Reset slide animations to starting position
@@ -141,12 +156,12 @@ export function AddButton() {
     setShowSuggestions(false);
     
     if (suggestion === "Go to chat") {
-      // Navigate to chat without a suggestion
-      router.push('/(tabs)/chat');
+      // Navigate to chat modal without a suggestion
+      router.push('/chat-modal');
     } else {
-      // Navigate to chat with the suggestion
+      // Navigate to chat modal with the suggestion
       router.push({
-        pathname: '/(tabs)/chat',
+        pathname: '/chat-modal',
         params: { suggestion }
       });
     }
