@@ -23,6 +23,12 @@ export default function SettingsScreen() {
 
   const menuItems: MenuItem[] = [
     {
+      title: 'My Profile',
+      icon: 'person-outline',
+      onPress: () => router.push('/(tabs)/profile'),
+      showChevron: true,
+    },
+    {
       title: 'Account',
       icon: 'person-circle-outline',
       onPress: () => console.log('Navigate to Account'),
@@ -79,21 +85,28 @@ export default function SettingsScreen() {
       />
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferences</Text>
-          {menuItems.slice(0, 3).map((item, index) => (
+          <Text style={styles.sectionTitle}>Account</Text>
+          {menuItems.slice(0, 2).map((item, index) => (
             <MenuItem key={index} {...item} />
           ))}
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Support</Text>
-          {menuItems.slice(3, 5).map((item, index) => (
-            <MenuItem key={index + 3} {...item} />
+          <Text style={styles.sectionTitle}>Preferences</Text>
+          {menuItems.slice(2, 4).map((item, index) => (
+            <MenuItem key={index + 2} {...item} />
           ))}
         </View>
 
         <View style={styles.section}>
-          <MenuItem {...menuItems[5]} />
+          <Text style={styles.sectionTitle}>Support</Text>
+          {menuItems.slice(4, 6).map((item, index) => (
+            <MenuItem key={index + 4} {...item} />
+          ))}
+        </View>
+
+        <View style={styles.section}>
+          <MenuItem {...menuItems[6]} />
         </View>
       </ScrollView>
     </View>
