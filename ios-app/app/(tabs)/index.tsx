@@ -338,13 +338,15 @@ const IndexScreen: React.FC = () => {
 
       {/* Consumption Modal */}
       <ConsumptionModal
+        key={selectedItemForConsumption?.id || 'consumption-modal'}
         visible={consumptionModalVisible}
         item={selectedItemForConsumption}
         onClose={() => {
           setConsumptionModalVisible(false);
-          setSelectedItemForConsumption(null);
-          // Refresh items after consumption
-          fetchItems();
+          // Clear the selected item after modal animation completes
+          setTimeout(() => {
+            setSelectedItemForConsumption(null);
+          }, 300);
         }}
         onExpirationPress={() => {
           if (selectedItemForConsumption) {
