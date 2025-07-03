@@ -20,6 +20,7 @@ import { UnitSelector } from '../UnitSelector';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
 import { validateQuantity, formatQuantityInput, getQuantityRules } from '../../constants/quantityRules';
+import { apiClient, ApiError } from '../../services/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -123,23 +124,15 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
       setSaving(true);
       
       // Update via API
-      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          product_name: form.item_name.trim(),
-          quantity: form.quantity_amount,
-          unit_of_measurement: form.quantity_unit,
-          expiration_date: form.expected_expiration,
-          category: form.category || 'Other',
-        }),
-      });
+      const requestBody = {
+        product_name: form.item_name.trim(),
+        quantity: form.quantity_amount,
+        unit_of_measurement: form.quantity_unit,
+        expiration_date: form.expected_expiration,
+        category: form.category || 'Other',
+      };
 
-      if (!response.ok) {
-        throw new Error('Failed to update item');
-      }
+      await apiClient.put(`/pantry/items/${item.id}`, requestBody, 6000); // 6 second timeout
 
       // Update local state
       const updatedItem = {
@@ -162,9 +155,13 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
       Alert.alert('Success', 'Item updated successfully', [
         { text: 'OK', onPress: onClose }
       ]);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating item:', error);
-      Alert.alert('Error', 'Failed to update item. Please try again.');
+      if (error instanceof ApiError && error.isTimeout) {
+        Alert.alert('Timeout', 'Update is taking too long. Please check your connection and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to update item. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
@@ -182,20 +179,18 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
           onPress: async () => {
             try {
               setSaving(true);
-              const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}`, {
-                method: 'DELETE',
-              });
-
-              if (!response.ok) {
-                throw new Error('Failed to delete item');
-              }
+              await apiClient.delete(`/pantry/items/${item.id}`, 4000); // 4 second timeout
 
               Alert.alert('Success', 'Item deleted successfully', [
                 { text: 'OK', onPress: onClose }
               ]);
-            } catch (error) {
+            } catch (error: any) {
               console.error('Error deleting item:', error);
-              Alert.alert('Error', 'Failed to delete item. Please try again.');
+              if (error instanceof ApiError && error.isTimeout) {
+                Alert.alert('Timeout', 'Delete is taking too long. Please check your connection and try again.');
+              } else {
+                Alert.alert('Error', 'Failed to delete item. Please try again.');
+              }
             } finally {
               setSaving(false);
             }
