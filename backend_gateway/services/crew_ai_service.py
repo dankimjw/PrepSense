@@ -244,19 +244,41 @@ class CrewAIService:
         
         Return a JSON array of recipes. Each recipe should have:
         - name: string (creative recipe name)
-        - ingredients: array of strings (ONLY use exact ingredients from the available list, or clearly specify additional needed items)
+        - ingredients: array of strings with quantities (e.g., "2 cups rice", "1 lb chicken breast", "3 cloves garlic")
+        - instructions: array of strings (5-8 detailed step-by-step cooking instructions)
         - nutrition: object with calories (number) and protein (number in grams)
         - time: number (cooking time in minutes)
         - meal_type: string (breakfast, lunch, dinner, or snack)
         - cuisine_type: string (e.g., italian, mexican, asian, american)
         - dietary_tags: array of strings (e.g., vegetarian, vegan, gluten-free)
         
+        IMPORTANT for ingredients:
+        - Include realistic quantities/amounts for each ingredient
+        - Use standard measurements (cups, tablespoons, pounds, ounces, etc.)
+        - For items from pantry, estimate reasonable amounts
+        - Example: "2 chicken breasts", "1 can (14 oz) diced tomatoes", "2 tablespoons olive oil"
+        
+        IMPORTANT: Instructions should be:
+        - Specific with temperatures, times, and techniques
+        - Include prep steps (chopping, measuring, etc.)
+        - Mention cooking vessels and tools needed
+        - Include visual/sensory cues (e.g., "until golden brown", "until fragrant")
+        - Be actionable and easy to follow
+        
         Example format:
         - For available ingredient: "Chicken Breast" (exactly as shown in list)
         - For missing ingredient: "eggs" (specific item needed)
         
-        CRITICAL: Exclude any recipes containing allergens the user must avoid.
-        Focus on recipes that match dietary preferences and favorite cuisines when possible.
+        CRITICAL ALLERGEN RULES:
+        - You MUST exclude ANY recipe that contains the allergens listed above
+        - If allergens include "nuts", exclude ALL tree nuts and peanuts
+        - If allergens include "dairy", exclude milk, cheese, yogurt, butter, cream
+        - If allergens include "gluten", exclude wheat, bread, pasta, flour
+        - Double-check every ingredient against the allergen list
+        
+        PREFERENCE RULES:
+        - Prioritize recipes that match the user's favorite cuisines
+        - Ensure recipes comply with dietary restrictions (e.g., if vegetarian, no meat)
         
         Return ONLY the JSON array, no other text.
         """
@@ -287,6 +309,14 @@ class CrewAIService:
             all_recipes = json.loads(recipes_text)
             logger.info(f"Generated {len(all_recipes)} recipes using OpenAI")
             
+            # Log first recipe to check if instructions are included
+            if all_recipes:
+                first_recipe = all_recipes[0]
+                logger.info(f"First recipe sample: {first_recipe.get('name', 'Unknown')}")
+                logger.info(f"Has instructions: {'instructions' in first_recipe}")
+                if 'instructions' in first_recipe:
+                    logger.info(f"Instructions count: {len(first_recipe['instructions'])}")
+            
         except Exception as e:
             logger.error(f"Error generating recipes with OpenAI: {str(e)}")
             # Fallback to some basic recipes if OpenAI fails
@@ -294,14 +324,31 @@ class CrewAIService:
             # Breakfast recipes
             {
                 'name': 'Banana Smoothie',
-                'ingredients': ['bananas', 'milk'],
+                'ingredients': ['2 ripe bananas', '1 cup milk', '1 tablespoon honey (optional)', 'pinch of cinnamon (optional)'],
+                'instructions': [
+                    "Peel 2 ripe bananas and break into chunks",
+                    "Add banana chunks to blender with 1 cup of cold milk",
+                    "Add 1 tablespoon honey and a pinch of cinnamon (optional)",
+                    "Blend on high speed for 60-90 seconds until smooth and creamy",
+                    "Pour into glasses and serve immediately",
+                    "Optional: garnish with banana slices or a sprinkle of cinnamon"
+                ],
                 'nutrition': {'calories': 200, 'protein': 8},
                 'time': 5,
                 'meal_type': 'breakfast'
             },
             {
                 'name': 'Chicken and Milk Scramble',
-                'ingredients': ['chicken breast', 'milk', 'eggs'],
+                'ingredients': ['4 oz chicken breast', '2 tablespoons milk', '3 large eggs', '1 tablespoon oil', 'salt and pepper to taste'],
+                'instructions': [
+                    "Dice chicken breast into small, bite-sized pieces",
+                    "Beat 3 eggs with 2 tablespoons of milk in a bowl",
+                    "Heat 1 tablespoon oil in a non-stick pan over medium heat",
+                    "Cook chicken pieces for 4-5 minutes until fully cooked",
+                    "Pour egg mixture over chicken and let sit for 30 seconds",
+                    "Gently scramble with a spatula until eggs are just set",
+                    "Season with salt and pepper, serve immediately"
+                ],
                 'nutrition': {'calories': 350, 'protein': 30},
                 'time': 15,
                 'meal_type': 'breakfast'
@@ -309,7 +356,17 @@ class CrewAIService:
             # Lunch/Dinner recipes
             {
                 'name': 'Simple Grilled Chicken',
-                'ingredients': ['chicken breast', 'salt', 'pepper'],
+                'ingredients': ['2 chicken breasts (6 oz each)', '1 teaspoon salt', '1/2 teaspoon black pepper', '1 tablespoon olive oil'],
+                'instructions': [
+                    "Remove chicken breasts from refrigerator 15 minutes before cooking",
+                    "Pat chicken dry with paper towels and season both sides with salt and pepper",
+                    "Preheat grill or grill pan to medium-high heat (about 375-400°F)",
+                    "Lightly oil the grill grates to prevent sticking",
+                    "Place chicken on grill and cook for 6-7 minutes without moving",
+                    "Flip chicken and cook for another 6-7 minutes until internal temp reaches 165°F",
+                    "Remove from heat and let rest for 5 minutes before slicing",
+                    "Serve with your favorite sides"
+                ],
                 'nutrition': {'calories': 300, 'protein': 35},
                 'time': 20,
                 'meal_type': 'dinner'
@@ -418,7 +475,13 @@ class CrewAIService:
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rank recipes based on available ingredients, preferences, and calculate enjoyment score."""
-        pantry_names = {item['product_name'].lower() for item in pantry_items if item.get('product_name')}
+        # Create a mapping of lowercase names to original pantry items for cleaning
+        pantry_map = {}
+        for item in pantry_items:
+            if item.get('product_name'):
+                pantry_map[item['product_name'].lower()] = item['product_name']
+        
+        pantry_names = set(pantry_map.keys())
         
         # Get user preferences
         dietary_prefs = set(p.lower() for p in user_preferences.get('dietary_preference', []))
@@ -436,18 +499,34 @@ class CrewAIService:
             for ingredient in recipe_ingredients:
                 ingredient_lower = ingredient.lower()
                 
+                # Extract the ingredient name from quantity string (e.g., "2 cups rice" -> "rice")
+                # Remove common measurements
+                ingredient_name = ingredient_lower
+                for measure in ['cups', 'cup', 'tablespoons', 'tablespoon', 'tbsp', 'teaspoons', 'teaspoon', 'tsp', 
+                               'pounds', 'pound', 'lbs', 'lb', 'ounces', 'ounce', 'oz', 'cloves', 'clove',
+                               'cans', 'can', 'bunch', 'bunches', 'piece', 'pieces', 'large', 'medium', 'small']:
+                    ingredient_name = ingredient_name.replace(measure, '')
+                
+                # Remove numbers and parentheses content
+                import re
+                ingredient_name = re.sub(r'\([^)]*\)', '', ingredient_name)  # Remove (6 oz each) etc
+                ingredient_name = re.sub(r'\d+', '', ingredient_name)  # Remove numbers
+                ingredient_name = ingredient_name.strip()
+                
                 # Check for exact match or partial match
                 found = False
                 for pantry_item in pantry_names:
-                    # First check for exact match (case-insensitive)
-                    if ingredient_lower == pantry_item:
+                    # Use cleaned ingredient name for matching
+                    if ingredient_name == pantry_item:
+                        # Keep the original ingredient with quantity for available items
                         available_ingredients.append(ingredient)
                         found = True
                         break
                     # Then check if ingredient is in pantry item name or vice versa
-                    elif (ingredient_lower in pantry_item or 
-                          pantry_item in ingredient_lower or
-                          self._is_similar_ingredient(ingredient_lower, pantry_item)):
+                    elif (ingredient_name in pantry_item or 
+                          pantry_item in ingredient_name or
+                          self._is_similar_ingredient(ingredient_name, pantry_item)):
+                        # Keep the original ingredient with quantity for available items
                         available_ingredients.append(ingredient)
                         found = True
                         break
@@ -476,7 +555,17 @@ class CrewAIService:
             
             # Penalty if it contains allergens
             recipe_ingredients_lower = set(ing.lower() for ing in recipe_ingredients)
-            contains_allergens = [allergen for allergen in allergens if any(allergen in ing for ing in recipe_ingredients_lower)]
+            contains_allergens = []
+            
+            # More comprehensive allergen checking
+            for allergen in allergens:
+                allergen_lower = allergen.lower()
+                for ingredient in recipe_ingredients_lower:
+                    # Check for exact match or if allergen is contained in ingredient
+                    if allergen_lower in ingredient or self._is_allergen_in_ingredient(allergen_lower, ingredient):
+                        contains_allergens.append(allergen)
+                        break
+            
             if contains_allergens:
                 joy_score -= 50  # Major penalty for allergens
                 recipe['allergens_present'] = contains_allergens
@@ -498,6 +587,50 @@ class CrewAIService:
         
         # Sort by joy score first, then by missing ingredients
         return sorted(recipes, key=lambda x: (-x.get('expected_joy', 0), x.get('missing_count', 999)))
+    
+    def _clean_ingredient_name(self, ingredient: str) -> str:
+        """Clean ingredient name by removing brand names and simplifying."""
+        # Remove size/weight info after dash
+        clean_name = ingredient.split('–')[0].strip() if '–' in ingredient else ingredient
+        
+        # Common brand names to remove
+        brand_patterns = [
+            'Muir Glen', 'Ancient Harvest', 'Trader Joe\'s', 'Kirkland', 'Great Value',
+            'Nature\'s Own', 'Kraft', 'Heinz', 'Campbell\'s', 'Del Monte', 'Hunt\'s',
+            'Barilla', 'Ronzoni', 'Progresso', 'Swanson', 'Ocean Spray', 'Minute Maid',
+            'Tropicana', 'Simply', 'Organic', 'Natural', 'Premium', 'Select', 'Choice'
+        ]
+        
+        # Remove brand names
+        for brand in brand_patterns:
+            clean_name = clean_name.replace(brand, '').strip()
+        
+        # Remove extra spaces
+        clean_name = ' '.join(clean_name.split())
+        
+        # Capitalize properly
+        return clean_name.title()
+    
+    def _is_allergen_in_ingredient(self, allergen: str, ingredient: str) -> bool:
+        """Check if an allergen is present in an ingredient."""
+        # Common allergen mappings
+        allergen_mappings = {
+            'nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut'],
+            'dairy': ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'whey', 'casein', 'lactose'],
+            'eggs': ['egg', 'eggs', 'egg white', 'egg yolk', 'mayonnaise'],
+            'gluten': ['wheat', 'barley', 'rye', 'bread', 'pasta', 'flour', 'crackers', 'cereal'],
+            'shellfish': ['shrimp', 'crab', 'lobster', 'prawns', 'crawfish', 'crayfish'],
+            'soy': ['soy', 'soybean', 'tofu', 'tempeh', 'edamame', 'miso'],
+            'peanuts': ['peanut', 'peanuts', 'peanut butter'],
+            'tree nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio'],
+        }
+        
+        # Check if allergen is a category
+        if allergen in allergen_mappings:
+            return any(specific in ingredient for specific in allergen_mappings[allergen])
+        
+        # Direct check for specific allergens
+        return allergen in ingredient
     
     def _is_similar_ingredient(self, ingredient1: str, ingredient2: str) -> bool:
         """Check if two ingredients are similar (e.g., 'chicken' and 'chicken breast')."""
@@ -576,52 +709,203 @@ class CrewAIService:
             # Fetch pantry items
             pantry_items = await self._fetch_pantry_items(user_id)
             
+            # Fetch user preferences
+            user_preferences = await self._fetch_user_preferences(user_id)
+            
             # Get some recipe suggestions based on message
             if not pantry_items:
                 return {
                     "response": "I notice your pantry is empty. Would you like me to suggest some essential items to stock up on?",
                     "recipes": [],
-                    "pantry_items": []
+                    "pantry_items": [],
+                    "user_preferences": user_preferences
                 }
             
             # Simple keyword matching for dinner suggestions
             message_lower = message.lower()
             if any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
-                # Get ingredient names
-                ingredients = []
-                for item in pantry_items[:10]:  # Limit to 10 items
+                # Get unique ingredient names from ALL pantry items
+                ingredients_set = set()
+                for item in pantry_items:  # Use ALL items, not just first 10
                     if item.get('product_name'):
-                        ingredients.append(item['product_name'])
+                        # Clean up the ingredient name
+                        name = item['product_name'].strip()
+                        # Remove size/quantity info if present
+                        if '–' in name:
+                            name = name.split('–')[0].strip()
+                        ingredients_set.add(name)
+                
+                # Convert to sorted list for consistent ordering
+                ingredients = sorted(list(ingredients_set))
                 
                 # Generate simple response
-                response = f"Based on your pantry items, you could make something with: {', '.join(ingredients[:5])}. "
-                response += "Try combining these ingredients for a quick meal!"
+                response = f"Based on your {len(ingredients)} unique pantry items, here are some recipe suggestions! "
                 
-                # Return simplified recipe suggestions
-                simple_recipes = [
-                    {
-                        "name": "Quick Stir-fry",
-                        "description": "Combine your vegetables and proteins in a pan",
-                        "ingredients": ingredients[:3]
-                    },
-                    {
-                        "name": "Simple Pasta",
-                        "description": "Use your pasta and any vegetables or sauces",
-                        "ingredients": ingredients[:4]
-                    }
-                ]
+                # Create more diverse recipes based on actual ingredients
+                simple_recipes = []
+                
+                # Check what types of ingredients we have
+                has_corn = any('corn' in ing.lower() for ing in ingredients)
+                has_tomatoes = any('tomato' in ing.lower() for ing in ingredients)
+                has_pasta = any('pasta' in ing.lower() or 'noodle' in ing.lower() for ing in ingredients)
+                has_rice = any('rice' in ing.lower() for ing in ingredients)
+                has_protein = any(any(p in ing.lower() for p in ['chicken', 'beef', 'pork', 'fish', 'tofu', 'beans']) for ing in ingredients)
+                
+                # Recipe 1: Based on corn and tomatoes if available
+                if has_corn and has_tomatoes:
+                    recipe_ingredients = [ing for ing in ingredients if 'corn' in ing.lower() or 'tomato' in ing.lower()][:3]
+                    recipe_ingredients.extend([ing for ing in ingredients if ing not in recipe_ingredients][:2])
+                    simple_recipes.append({
+                        "name": "Mexican-Style Corn & Tomato Skillet",
+                        "description": "A vibrant dish combining corn and tomatoes with spices",
+                        "ingredients": recipe_ingredients[:5],
+                        "instructions": [
+                            "Heat 2 tablespoons oil in a large skillet over medium-high heat",
+                            "Add corn kernels and cook for 3-4 minutes until lightly charred",
+                            "Add diced tomatoes and cook for another 2-3 minutes",
+                            "Season with cumin, chili powder, salt, and pepper",
+                            "Stir in any additional vegetables and cook until tender",
+                            "Squeeze fresh lime juice over the mixture",
+                            "Garnish with cilantro and serve hot"
+                        ],
+                        "nutrition": {"calories": 320, "protein": 12},
+                        "time": 25,
+                        "available_ingredients": recipe_ingredients[:4],
+                        "missing_ingredients": ["Cumin", "Chili powder", "Lime"],
+                        "missing_count": 3,
+                        "available_count": 4,
+                        "match_score": 0.57,
+                        "expected_joy": 82,
+                        "cuisine_type": "Mexican",
+                        "dietary_tags": ["vegetarian"],
+                        "allergens_present": [],
+                        "matched_preferences": []
+                    })
+                
+                # Recipe 2: Stir-fry with available vegetables
+                veggie_ingredients = [ing for ing in ingredients if any(v in ing.lower() for v in ['corn', 'tomato', 'pepper', 'onion', 'broccoli', 'carrot'])][:4]
+                if len(veggie_ingredients) < 4:
+                    veggie_ingredients.extend([ing for ing in ingredients if ing not in veggie_ingredients][:4-len(veggie_ingredients)])
+                
+                simple_recipes.append({
+                    "name": "Garden Vegetable Stir-Fry",
+                    "description": "Quick and healthy vegetable stir-fry with available produce",
+                    "ingredients": veggie_ingredients[:5],
+                    "instructions": [
+                        "Prep all vegetables by washing and cutting into uniform pieces",
+                        "Heat 2 tablespoons oil in a wok or large skillet over high heat",
+                        "Add harder vegetables first (carrots, broccoli) and stir-fry for 2 minutes",
+                        "Add softer vegetables (peppers, tomatoes) and cook for another 2 minutes",
+                        "Push vegetables to the sides and add minced garlic and ginger to center",
+                        "Stir-fry aromatics for 30 seconds until fragrant",
+                        "Toss everything together with soy sauce and sesame oil",
+                        "Serve immediately over rice or noodles"
+                    ],
+                    "nutrition": {"calories": 280, "protein": 8},
+                    "time": 20,
+                    "available_ingredients": veggie_ingredients[:4],
+                    "missing_ingredients": ["Soy sauce", "Ginger", "Garlic"],
+                    "missing_count": 3,
+                    "available_count": 4,
+                    "match_score": 0.57,
+                    "expected_joy": 78,
+                    "cuisine_type": "Asian",
+                    "dietary_tags": ["vegetarian", "vegan"],
+                    "allergens_present": [],
+                    "matched_preferences": []
+                })
+                
+                # Recipe 3: Comfort food option
+                comfort_ingredients = ingredients[5:10] if len(ingredients) > 10 else ingredients[:5]
+                simple_recipes.append({
+                    "name": "Hearty One-Pot Meal",
+                    "description": "Comforting dish using your pantry staples",
+                    "ingredients": comfort_ingredients,
+                    "instructions": [
+                        "Heat 2 tablespoons oil in a large Dutch oven or heavy pot",
+                        "Brown any protein ingredients over medium-high heat, then set aside",
+                        "In the same pot, sauté onions and garlic until softened",
+                        "Add remaining vegetables and cook for 5 minutes",
+                        "Return protein to pot and add 4 cups of stock or water",
+                        "Add bay leaves and bring to a simmer",
+                        "Cover and cook for 25-30 minutes until everything is tender",
+                        "Season with salt, pepper, and herbs to taste before serving"
+                    ],
+                    "nutrition": {"calories": 420, "protein": 18},
+                    "time": 35,
+                    "available_ingredients": comfort_ingredients[:3],
+                    "missing_ingredients": ["Stock", "Bay leaves"],
+                    "missing_count": 2,
+                    "available_count": 3,
+                    "match_score": 0.6,
+                    "expected_joy": 85,
+                    "cuisine_type": "American",
+                    "dietary_tags": [],
+                    "allergens_present": [],
+                    "matched_preferences": []
+                })
+                
+                # Add variety by using different ingredient combinations
+                if len(ingredients) > 15:
+                    # Recipe 4: Using middle ingredients
+                    middle_ingredients = ingredients[10:15]
+                    simple_recipes.append({
+                        "name": "Creative Fusion Bowl",
+                        "description": "Mix and match your pantry items for a unique meal",
+                        "ingredients": middle_ingredients,
+                        "instructions": [
+                            "Cook 1 cup of quinoa or rice in 2 cups water/broth for 15-20 minutes",
+                            "While grains cook, dice vegetables into 1/2 inch pieces for even cooking",
+                            "Heat 2 tablespoons oil in a large skillet or wok over medium-high heat",
+                            "If using protein, season with salt and pepper, cook 5-7 minutes until golden",
+                            "Remove protein and set aside, keeping warm under foil",
+                            "Add harder vegetables (carrots, broccoli) first, cook 3-4 minutes",
+                            "Add softer vegetables (peppers, zucchini), cook another 2-3 minutes",
+                            "Mix 2 tbsp soy sauce with 1 tbsp honey and 1 tsp sesame oil for sauce",
+                            "Return protein to pan, add sauce, toss everything for 1 minute",
+                            "Serve over cooked grains, garnish with sesame seeds or green onions"
+                        ],
+                        "nutrition": {"calories": 380, "protein": 15},
+                        "time": 30,
+                        "available_ingredients": middle_ingredients[:4],
+                        "missing_ingredients": ["Soy sauce", "Honey", "Sesame oil"],
+                        "missing_count": 3,
+                        "available_count": 4,
+                        "match_score": 0.57,
+                        "expected_joy": 75,
+                        "cuisine_type": "Fusion",
+                        "dietary_tags": [],
+                        "allergens_present": [],
+                        "matched_preferences": []
+                    })
+                
+                # Rank recipes using the same ranking function
+                ranked_recipes = self._rank_recipes(simple_recipes, pantry_items, user_preferences)
+                
+                # Filter out recipes with allergens
+                safe_recipes = [r for r in ranked_recipes if not r.get('allergens_present', [])]
+                
+                # If all recipes contain allergens, return a message
+                if not safe_recipes and ranked_recipes:
+                    response = "I found some recipes, but they all contain ingredients you're allergic to. Let me find alternatives..."
+                    safe_recipes = []
+                
+                # Format response with preferences
+                formatted_response = self._format_response(safe_recipes[:5], pantry_items, message, user_preferences)
                 
                 return {
-                    "response": response,
-                    "recipes": simple_recipes,
-                    "pantry_items": pantry_items[:10]
+                    "response": formatted_response,
+                    "recipes": safe_recipes[:5],
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
                 }
             else:
                 # General response
                 return {
                     "response": f"You currently have {len(pantry_items)} items in your pantry. What would you like to know about them?",
                     "recipes": [],
-                    "pantry_items": pantry_items[:10]
+                    "pantry_items": pantry_items[:10],
+                    "user_preferences": user_preferences
                 }
                 
         except Exception as e:
@@ -629,5 +913,10 @@ class CrewAIService:
             return {
                 "response": "I'm having trouble accessing your pantry data. Please try again later.",
                 "recipes": [],
-                "pantry_items": []
+                "pantry_items": [],
+                "user_preferences": {
+                    "dietary_preference": [],
+                    "allergens": [],
+                    "cuisine_preference": []
+                }
             }

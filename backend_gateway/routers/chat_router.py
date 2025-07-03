@@ -125,10 +125,47 @@ async def generate_recipe_image(
         unsplash_access_key = os.getenv("UNSPLASH_ACCESS_KEY")
         
         if not unsplash_access_key:
-            # Fallback to a default food image if no API key
-            logger.warning("Unsplash API key not configured, using fallback image")
+            # Fallback to varied food images based on recipe name hash
+            logger.warning("Unsplash API key not configured, using fallback images")
+            
+            # Smart image selection based on recipe name
+            recipe_lower = request.recipe_name.lower()
+            
+            # Map recipe types to appropriate images
+            if 'bowl' in recipe_lower or 'buddha' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=800"  # Healthy bowl
+            elif 'stir fry' in recipe_lower or 'stir-fry' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=800"  # Stir fry
+            elif 'pasta' in recipe_lower or 'spaghetti' in recipe_lower or 'noodle' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800"  # Pasta
+            elif 'salad' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800"  # Salad
+            elif 'burger' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800"  # Burger
+            elif 'sandwich' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=800"  # Sandwich
+            elif 'pizza' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800"  # Pizza
+            elif 'soup' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1547592166-23ac45744acd?w=800"  # Soup
+            elif 'smoothie' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1505252585461-04db1eb84625?w=800"  # Smoothie
+            elif 'chicken' in recipe_lower:
+                image_url = "https://images.unsplash.com/photo-1532550907401-a500c9a57435?w=800"  # Chicken dish
+            else:
+                # Fallback to hash-based selection for unmatched recipes
+                fallback_images = [
+                    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",  # General food
+                    "https://images.unsplash.com/photo-1529042410759-befb1204b468?w=800",  # Asian food
+                    "https://images.unsplash.com/photo-1499028344343-cd173ffc68a9?w=800",  # Meal
+                ]
+                import hashlib
+                recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+                image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+                image_url = fallback_images[image_index]
+            
             return ImageGenerationResponse(
-                image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+                image_url=image_url,
                 recipe_name=request.recipe_name
             )
         
@@ -165,16 +202,36 @@ async def generate_recipe_image(
                     recipe_name=request.recipe_name
                 )
         
-        # Final fallback to a nice food photo
+        # Final fallback to varied food images
+        fallback_images = [
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800",
+            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=800",
+        ]
+        import hashlib
+        recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+        image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+        
         return ImageGenerationResponse(
-            image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            image_url=fallback_images[image_index],
             recipe_name=request.recipe_name
         )
         
     except Exception as e:
         logger.error(f"Error getting recipe image: {str(e)}")
-        # Fallback to a nice food photo
+        # Fallback to varied food images
+        fallback_images = [
+            "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800",
+        ]
+        import hashlib
+        recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
+        image_index = int(recipe_hash[:8], 16) % len(fallback_images)
+        
         return ImageGenerationResponse(
-            image_url="https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",
+            image_url=fallback_images[image_index],
             recipe_name=request.recipe_name
         )

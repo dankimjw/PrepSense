@@ -11,6 +11,8 @@ import {
   RefreshControl,
   Alert,
   Dimensions,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -53,10 +55,13 @@ interface SavedRecipe {
   recipe_image: string;
   recipe_data: any;
   rating: 'thumbs_up' | 'thumbs_down' | 'neutral';
+  is_favorite?: boolean;
   source: string;
   created_at: string;
   updated_at: string;
 }
+
+type SortOption = 'name' | 'date' | 'rating' | 'missing';
 
 export default function RecipesScreen() {
   const [recipes, setRecipes] = useState<Recipe[]>([]);
@@ -64,9 +69,12 @@ export default function RecipesScreen() {
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'pantry' | 'search' | 'random' | 'my-recipes'>('pantry');
+  const [activeTab, setActiveTab] = useState<'pantry' | 'discover' | 'my-recipes'>('pantry');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down'>('all');
+  const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down' | 'favorites'>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('name');
+  const [showSortModal, setShowSortModal] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(false);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -79,6 +87,13 @@ export default function RecipesScreen() {
     { id: 'gluten-free', label: 'Gluten-Free', icon: '🌾' },
     { id: 'dairy-free', label: 'Dairy-Free', icon: '🥛' },
     { id: 'low-carb', label: 'Low Carb', icon: '🥖' },
+  ];
+
+  const sortOptions = [
+    { value: 'name', label: 'Name (A-Z)', icon: 'alphabetical' },
+    { value: 'date', label: 'Recently Added', icon: 'clock-outline' },
+    { value: 'rating', label: 'Highest Rated', icon: 'star' },
+    { value: 'missing', label: 'Fewest Missing', icon: 'checkbox-marked-circle' },
   ];
 
   const toggleFilter = (filterId: string) => {
@@ -125,8 +140,14 @@ export default function RecipesScreen() {
     }
   }, []);
 
-  const searchRecipes = async () => {
-    if (!searchQuery.trim()) return;
+  const searchRecipes = async (query: string = searchQuery) => {
+    if (!query.trim() && activeTab === 'discover') {
+      // If no search query in discover tab, fetch random recipes
+      await fetchRandomRecipes();
+      return;
+    }
+
+    if (!query.trim()) return;
 
     try {
       setLoading(true);
@@ -134,7 +155,7 @@ export default function RecipesScreen() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: searchQuery,
+          query: query,
           number: 20,
           diet: selectedFilters.length > 0 ? selectedFilters.join(',') : undefined,
         }),
@@ -199,7 +220,12 @@ export default function RecipesScreen() {
         return;
       }
 
-      const filterParam = myRecipesFilter !== 'all' ? `?rating_filter=${myRecipesFilter}` : '';
+      let filterParam = '';
+      if (myRecipesFilter === 'favorites') {
+        filterParam = '?is_favorite=true';
+      } else if (myRecipesFilter !== 'all') {
+        filterParam = `?rating_filter=${myRecipesFilter}`;
+      }
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -288,6 +314,43 @@ export default function RecipesScreen() {
     }
   };
 
+  const toggleFavorite = async (recipeId: string, isFavorite: boolean) => {
+    try {
+      if (!token || !isAuthenticated) {
+        Alert.alert('Error', 'Please login to favorite recipes.');
+        return;
+      }
+
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_favorite: isFavorite }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+      
+      // Update local state
+      setSavedRecipes(prevRecipes => 
+        prevRecipes.map(recipe => 
+          recipe.id === recipeId ? { ...recipe, is_favorite: isFavorite } : recipe
+        )
+      );
+      
+      // Show feedback
+      if (isFavorite) {
+        Alert.alert('Added to Favorites', 'This recipe will be used to improve your recommendations.');
+      }
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+    }
+  };
+
   const deleteRecipe = async (recipeId: string) => {
     try {
       if (!token || !isAuthenticated) {
@@ -327,13 +390,64 @@ export default function RecipesScreen() {
     }
   };
 
+  // Filter recipes based on search query
+  const getFilteredRecipes = () => {
+    let filteredRecipes = [...recipes];
+    
+    if (searchQuery && activeTab === 'pantry') {
+      filteredRecipes = recipes.filter(recipe => 
+        recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Sort recipes
+    if (sortBy === 'name') {
+      filteredRecipes.sort((a, b) => a.title.localeCompare(b.title));
+    } else if (sortBy === 'missing') {
+      filteredRecipes.sort((a, b) => 
+        (a.missedIngredientCount || 0) - (b.missedIngredientCount || 0)
+      );
+    }
+    
+    return filteredRecipes;
+  };
+
+  // Filter saved recipes based on search query
+  const getFilteredSavedRecipes = () => {
+    let filteredRecipes = [...savedRecipes];
+    
+    if (searchQuery) {
+      filteredRecipes = savedRecipes.filter(recipe => 
+        recipe.recipe_title.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Sort recipes
+    if (sortBy === 'name') {
+      filteredRecipes.sort((a, b) => a.recipe_title.localeCompare(b.recipe_title));
+    } else if (sortBy === 'date') {
+      filteredRecipes.sort((a, b) => 
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    } else if (sortBy === 'rating') {
+      filteredRecipes.sort((a, b) => {
+        const ratingOrder = { thumbs_up: 2, neutral: 1, thumbs_down: 0 };
+        return ratingOrder[b.rating] - ratingOrder[a.rating];
+      });
+    }
+    
+    return filteredRecipes;
+  };
+
   useEffect(() => {
     if (activeTab === 'pantry') {
       fetchRecipesFromPantry();
-    } else if (activeTab === 'random') {
-      fetchRandomRecipes();
-    } else if (activeTab === 'search' && searchQuery) {
-      searchRecipes();
+    } else if (activeTab === 'discover') {
+      if (searchQuery) {
+        searchRecipes();
+      } else {
+        fetchRandomRecipes();
+      }
     } else if (activeTab === 'my-recipes') {
       fetchMyRecipes();
     }
@@ -343,10 +457,12 @@ export default function RecipesScreen() {
     setRefreshing(true);
     if (activeTab === 'pantry') {
       await fetchRecipesFromPantry();
-    } else if (activeTab === 'random') {
-      await fetchRandomRecipes();
-    } else if (activeTab === 'search' && searchQuery) {
-      await searchRecipes();
+    } else if (activeTab === 'discover') {
+      if (searchQuery) {
+        await searchRecipes();
+      } else {
+        await fetchRandomRecipes();
+      }
     } else if (activeTab === 'my-recipes') {
       await fetchMyRecipes();
     }
@@ -356,12 +472,21 @@ export default function RecipesScreen() {
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      router.push({
-        pathname: '/recipe-spoonacular-detail',
-        params: { recipeId: recipe.recipe_id.toString() },
-      });
+      if (recipe.source === 'chat') {
+        // Chat-generated recipes should go to recipe-details
+        router.push({
+          pathname: '/recipe-details',
+          params: { recipe: JSON.stringify(recipe.recipe_data) },
+        });
+      } else {
+        // Spoonacular recipes go to recipe-spoonacular-detail
+        router.push({
+          pathname: '/recipe-spoonacular-detail',
+          params: { recipeId: recipe.recipe_id.toString() },
+        });
+      }
     } else {
-      // This is a regular recipe
+      // This is a regular recipe from search/discovery
       router.push({
         pathname: '/recipe-spoonacular-detail',
         params: { recipeId: recipe.id.toString() },
@@ -393,7 +518,7 @@ export default function RecipesScreen() {
             <MaterialCommunityIcons name="close-circle" size={16} color="#F44336" />
             <Text style={styles.statText}>{recipe.missedIngredientCount || 0} missing</Text>
           </View>
-          {recipe.likes && (
+          {recipe.likes > 0 && (
             <View style={styles.stat}>
               <MaterialCommunityIcons name="heart" size={16} color="#E91E63" />
               <Text style={styles.statText}>{recipe.likes}</Text>
@@ -461,12 +586,24 @@ export default function RecipesScreen() {
             </TouchableOpacity>
           </View>
         </View>
-        <TouchableOpacity 
-          style={styles.deleteButton}
-          onPress={() => deleteRecipe(savedRecipe.id)}
-        >
-          <Ionicons name="trash-outline" size={18} color="#fff" />
-        </TouchableOpacity>
+        <View style={styles.cardActions}>
+          <TouchableOpacity 
+            style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
+            onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
+          >
+            <Ionicons 
+              name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
+              size={16} 
+              color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.deleteButton}
+            onPress={() => deleteRecipe(savedRecipe.id)}
+          >
+            <Ionicons name="trash-outline" size={14} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -475,9 +612,41 @@ export default function RecipesScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Recipes</Text>
-        <TouchableOpacity onPress={() => router.push('/chat')}>
-          <MaterialCommunityIcons name="chef-hat" size={24} color="#297A56" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.headerButton}>
+            <MaterialCommunityIcons name="sort" size={24} color="#297A56" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/chat')} style={styles.headerButton}>
+            <MaterialCommunityIcons name="chef-hat" size={24} color="#297A56" />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+          <Ionicons name="search" size={20} color="#666" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder={`Search ${activeTab === 'pantry' ? 'pantry recipes' : activeTab === 'discover' ? 'all recipes' : 'your recipes'}...`}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={() => activeTab === 'discover' && searchRecipes()}
+            returnKeyType="search"
+            onFocus={() => setSearchFocused(true)}
+            onBlur={() => setSearchFocused(false)}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#666" />
+            </TouchableOpacity>
+          )}
+        </View>
+        {activeTab === 'discover' && searchQuery.length > 0 && (
+          <TouchableOpacity style={styles.searchButton} onPress={() => searchRecipes()}>
+            <Text style={styles.searchButtonText}>Search</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.tabContainer}>
@@ -490,18 +659,10 @@ export default function RecipesScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'search' && styles.activeTab]}
-          onPress={() => setActiveTab('search')}
+          style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
+          onPress={() => setActiveTab('discover')}
         >
-          <Text style={[styles.tabText, activeTab === 'search' && styles.activeTabText]}>
-            Search
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'random' && styles.activeTab]}
-          onPress={() => setActiveTab('random')}
-        >
-          <Text style={[styles.tabText, activeTab === 'random' && styles.activeTabText]}>
+          <Text style={[styles.tabText, activeTab === 'discover' && styles.activeTabText]}>
             Discover
           </Text>
         </TouchableOpacity>
@@ -541,6 +702,21 @@ export default function RecipesScreen() {
             <TouchableOpacity
               style={[
                 styles.filterButton,
+                myRecipesFilter === 'favorites' && styles.filterButtonActive
+              ]}
+              onPress={() => setMyRecipesFilter('favorites')}
+            >
+              <Text style={styles.filterIcon}>❤️</Text>
+              <Text style={[
+                styles.filterText,
+                myRecipesFilter === 'favorites' && styles.filterTextActive
+              ]}>
+                Favorites
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.filterButton,
                 myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
               ]}
               onPress={() => setMyRecipesFilter('thumbs_up')}
@@ -569,7 +745,7 @@ export default function RecipesScreen() {
               </Text>
             </TouchableOpacity>
           </>
-        ) : (
+        ) : activeTab === 'discover' ? (
           dietaryFilters.map(filter => (
             <TouchableOpacity
               key={filter.id}
@@ -588,32 +764,8 @@ export default function RecipesScreen() {
               </Text>
             </TouchableOpacity>
           ))
-        )}
+        ) : null}
       </ScrollView>
-
-      {activeTab === 'search' && (
-        <View style={styles.searchContainer}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color="#666" />
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search recipes..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              onSubmitEditing={searchRecipes}
-              returnKeyType="search"
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchQuery('')}>
-                <Ionicons name="close-circle" size={20} color="#666" />
-              </TouchableOpacity>
-            )}
-          </View>
-          <TouchableOpacity style={styles.searchButton} onPress={searchRecipes}>
-            <Text style={styles.searchButtonText}>Search</Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
@@ -637,40 +789,83 @@ export default function RecipesScreen() {
           showsVerticalScrollIndicator={false}
         >
           {activeTab === 'my-recipes' ? (
-            savedRecipes.length === 0 ? (
+            getFilteredSavedRecipes().length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" />
                 <Text style={styles.emptyText}>
-                  {myRecipesFilter === 'all' 
+                  {searchQuery 
+                    ? `No recipes found matching "${searchQuery}"`
+                    : myRecipesFilter === 'all' 
                     ? 'No saved recipes yet. Save recipes from other tabs to see them here!'
+                    : myRecipesFilter === 'favorites'
+                    ? 'No favorite recipes yet. Tap the heart icon on recipes you love!'
                     : `No ${myRecipesFilter === 'thumbs_up' ? 'liked' : 'disliked'} recipes found`}
                 </Text>
               </View>
             ) : (
               <View style={styles.recipesGrid}>
-                {savedRecipes.map((recipe, index) => renderSavedRecipeCard(recipe, index))}
+                {getFilteredSavedRecipes().map((recipe, index) => renderSavedRecipeCard(recipe, index))}
               </View>
             )
           ) : (
-            recipes.length === 0 ? (
+            getFilteredRecipes().length === 0 ? (
               <View style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="food-off" size={64} color="#ccc" />
                 <Text style={styles.emptyText}>
-                  {activeTab === 'pantry'
+                  {searchQuery
+                    ? `No recipes found matching "${searchQuery}"`
+                    : activeTab === 'pantry'
                     ? 'No recipes found with your pantry items'
-                    : activeTab === 'search'
-                    ? 'Search for recipes by name or ingredient'
                     : 'Pull to refresh for new recipes'}
                 </Text>
               </View>
             ) : (
               <View style={styles.recipesGrid}>
-                {recipes.map((recipe, index) => renderRecipeCard(recipe, index))}
+                {getFilteredRecipes().map((recipe, index) => renderRecipeCard(recipe, index))}
               </View>
             )
           )}
         </ScrollView>
       )}
+
+      {/* Sort Modal */}
+      <Modal
+        visible={showSortModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowSortModal(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Sort By</Text>
+            {sortOptions.map(option => (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.sortOption, sortBy === option.value && styles.sortOptionActive]}
+                onPress={() => {
+                  setSortBy(option.value as SortOption);
+                  setShowSortModal(false);
+                }}
+              >
+                <MaterialCommunityIcons 
+                  name={option.icon as any} 
+                  size={24} 
+                  color={sortBy === option.value ? '#297A56' : '#666'} 
+                />
+                <Text style={[
+                  styles.sortOptionText,
+                  sortBy === option.value && styles.sortOptionTextActive
+                ]}>
+                  {option.label}
+                </Text>
+                {sortBy === option.value && (
+                  <Ionicons name="checkmark" size={24} color="#297A56" />
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -694,6 +889,54 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#297A56',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
+    padding: 4,
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    padding: 16,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  searchBarFocused: {
+    borderColor: '#297A56',
+    backgroundColor: '#fff',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  searchButton: {
+    backgroundColor: '#297A56',
+    paddingHorizontal: 20,
+    height: 40,
+    borderRadius: 10,
+    justifyContent: 'center',
+  },
+  searchButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   tabContainer: {
     flexDirection: 'row',
@@ -756,39 +999,6 @@ const styles = StyleSheet.create({
   },
   filterTextActive: {
     color: '#297A56',
-  },
-  searchContainer: {
-    flexDirection: 'row',
-    padding: 16,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    gap: 10,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 40,
-  },
-  searchInput: {
-    flex: 1,
-    marginLeft: 8,
-    fontSize: 16,
-    color: '#333',
-  },
-  searchButton: {
-    backgroundColor: '#297A56',
-    paddingHorizontal: 20,
-    height: 40,
-    borderRadius: 10,
-    justifyContent: 'center',
-  },
-  searchButtonText: {
-    color: '#fff',
-    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
@@ -890,12 +1100,9 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   deleteButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
     backgroundColor: 'rgba(244, 67, 54, 0.8)',
-    borderRadius: 20,
-    padding: 8,
+    borderRadius: 16,
+    padding: 6,
   },
   ratingButtons: {
     flexDirection: 'row',
@@ -910,5 +1117,60 @@ const styles = StyleSheet.create({
   },
   ratingButtonActive: {
     backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  cardActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  favoriteButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  favoriteButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.9)',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  sortOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  sortOptionActive: {
+    backgroundColor: '#E6F7F0',
+  },
+  sortOptionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+    marginLeft: 16,
+  },
+  sortOptionTextActive: {
+    color: '#297A56',
+    fontWeight: '600',
   },
 });
