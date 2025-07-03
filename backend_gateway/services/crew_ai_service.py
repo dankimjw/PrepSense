@@ -730,17 +730,25 @@ class CrewAIService:
                 # Sort by days until expiry
                 expiring_soon.sort(key=lambda x: x['days'])
                 
-                response = f"🚨 You have {len(expiring_soon)} items expiring soon:\n\n"
-                for item in expiring_soon[:10]:  # Show top 10
+                # Remove duplicates while preserving order
+                seen = set()
+                unique_expiring = []
+                for item in expiring_soon:
+                    if item['name'] not in seen:
+                        seen.add(item['name'])
+                        unique_expiring.append(item)
+                
+                response = f"🚨 You have {len(unique_expiring)} items expiring soon:\n\n"
+                for item in unique_expiring[:10]:  # Show top 10
                     if item['days'] == 0:
-                        response += f"• {item['name']} - **Expires TODAY!**\n"
+                        response += f"• {item['name']} - Expires TODAY!\n"
                     elif item['days'] == 1:
                         response += f"• {item['name']} - Expires tomorrow\n"
                     else:
                         response += f"• {item['name']} - Expires in {item['days']} days ({item['date']})\n"
                 
-                if len(expiring_soon) > 10:
-                    response += f"\n...and {len(expiring_soon) - 10} more items.\n"
+                if len(unique_expiring) > 10:
+                    response += f"\n...and {len(unique_expiring) - 10} more items.\n"
                 
                 response += "\n💡 Here are recipes to use these items before they expire:"
                 return response
