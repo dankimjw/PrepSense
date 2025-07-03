@@ -890,6 +890,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  addToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+    marginTop: 12,
+  },
+  addToListText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  startCookingButtonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
   imagePlaceholder: {
     width: '100%',
     height: '100%',
