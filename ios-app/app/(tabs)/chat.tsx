@@ -6,6 +6,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CustomHeader } from '../components/CustomHeader';
 import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
+import Markdown from 'react-native-markdown-display';
 
 type Message = {
   id: string;
@@ -228,9 +229,17 @@ export default function ChatScreen() {
                     message.sender === 'user' ? styles.userBubble : styles.aiBubble,
                   ]}
                 >
-                  <Text style={message.sender === 'user' ? styles.userText : styles.aiText}>
-                    {message.text}
-                  </Text>
+                  {message.sender === 'user' ? (
+                    <Text style={styles.userText}>
+                      {message.text}
+                    </Text>
+                  ) : (
+                    <Markdown 
+                      style={markdownStyles}
+                    >
+                      {message.text}
+                    </Markdown>
+                  )}
                 </View>
                 
                 {/* Show preference choice after first AI response */}
@@ -707,3 +716,62 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 });
+
+const markdownStyles = {
+  body: {
+    color: '#333',
+    fontSize: 16,
+    lineHeight: 22,
+  },
+  paragraph: {
+    marginBottom: 8,
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#333',
+  },
+  heading1: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    color: '#333',
+  },
+  heading2: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 6,
+    color: '#333',
+  },
+  heading3: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#333',
+  },
+  strong: {
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  listItem: {
+    marginBottom: 4,
+    fontSize: 16,
+    color: '#333',
+  },
+  listItemBullet: {
+    color: '#297A56',
+    marginRight: 4,
+  },
+  listItemNumber: {
+    color: '#297A56',
+    marginRight: 4,
+  },
+  bullet_list: {
+    marginBottom: 8,
+  },
+  ordered_list: {
+    marginBottom: 8,
+  },
+  link: {
+    color: '#297A56',
+    textDecorationLine: 'underline',
+  },
+};
