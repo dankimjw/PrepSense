@@ -23,7 +23,14 @@ const suggestedMessages = [
 
 export function AddButton() {
   const router = useRouter();
-  const pathname = usePathname();
+  let pathname = '';
+  
+  try {
+    pathname = usePathname() || '';
+  } catch (error) {
+    console.warn('Error getting pathname:', error);
+  }
+  
   const [modalVisible, setModalVisible] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
@@ -34,7 +41,7 @@ export function AddButton() {
   ).current;
 
   // Don't render the buttons on certain screens
-  if (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin') {
+  if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin')) {
     return null;
   }
 
