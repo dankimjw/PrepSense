@@ -1,8 +1,8 @@
 // app/chat.tsx - Part of the PrepSense mobile app
-import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image, Animated } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CustomHeader } from '../components/CustomHeader';
 import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
@@ -113,16 +113,9 @@ export default function ChatScreen() {
   const [showPreferenceChoice, setShowPreferenceChoice] = useState(false);
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const [usePreferences, setUsePreferences] = useState(true);
-  const [showFloatingSuggestions, setShowFloatingSuggestions] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
-  
-  // Animation values for floating suggestions
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnims = useRef(
-    suggestedMessages.map(() => new Animated.Value(-50))
-  ).current;
   
   // Check for suggestion from navigation
   useEffect(() => {
@@ -190,48 +183,7 @@ export default function ChatScreen() {
   };
 
   const handleSuggestedMessage = async (suggestion: string) => {
-    setShowFloatingSuggestions(false);
     await sendMessage(suggestion);
-  };
-
-  const toggleFloatingSuggestions = () => {
-    const newState = !showFloatingSuggestions;
-    setShowFloatingSuggestions(newState);
-    
-    if (newState) {
-      // Animate in
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        ...slideAnims.map((anim, index) =>
-          Animated.timing(anim, {
-            toValue: 0,
-            duration: 300,
-            delay: index * 50,
-            useNativeDriver: true,
-          })
-        ),
-      ]).start();
-    } else {
-      // Animate out
-      Animated.parallel([
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-        ...slideAnims.map((anim) =>
-          Animated.timing(anim, {
-            toValue: -50,
-            duration: 200,
-            useNativeDriver: true,
-          })
-        ),
-      ]).start();
-    }
   };
 
   return (
@@ -421,49 +373,6 @@ export default function ChatScreen() {
         </KeyboardAvoidingView>
       </View>
       </View>
-      
-      {/* Floating Lightbulb Button */}
-      <TouchableOpacity
-        style={styles.floatingLightbulb}
-        onPress={toggleFloatingSuggestions}
-        activeOpacity={0.8}
-      >
-        <Ionicons 
-          name={showFloatingSuggestions ? "bulb" : "bulb-outline"} 
-          size={24} 
-          color="#fff" 
-        />
-      </TouchableOpacity>
-      
-      {/* Floating Suggestion Bubbles */}
-      {showFloatingSuggestions && (
-        <Animated.View 
-          style={[
-            styles.floatingSuggestionsContainer,
-            { opacity: fadeAnim }
-          ]}
-        >
-          {suggestedMessages.slice(0, 4).map((suggestion, index) => (
-            <Animated.View
-              key={index}
-              style={[
-                styles.floatingSuggestionWrapper,
-                {
-                  transform: [{ translateX: slideAnims[index] }]
-                }
-              ]}
-            >
-              <TouchableOpacity
-                style={styles.floatingSuggestionBubble}
-                onPress={() => handleSuggestedMessage(suggestion)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.floatingSuggestionText}>{suggestion}</Text>
-              </TouchableOpacity>
-            </Animated.View>
-          ))}
-        </Animated.View>
-      )}
     </>
   );
 }
@@ -796,49 +705,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 14,
-  },
-  floatingLightbulb: {
-    position: 'absolute',
-    bottom: 72 + 48 + 16 + 10, // TabBar height + AddButton size + margin + spacing
-    right: 16, // Align with AddButton
-    width: 48, // Same size as AddButton
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#F59E0B',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  floatingSuggestionsContainer: {
-    position: 'absolute',
-    bottom: 72 + 48 + 16 + 10 - 5, // Align with lightbulb button
-    right: 70,
-    zIndex: 999,
-  },
-  floatingSuggestionWrapper: {
-    marginBottom: 8,
-  },
-  floatingSuggestionBubble: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: '#297A56',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: -2, height: 2 },
-    elevation: 4,
-    maxWidth: 200,
-  },
-  floatingSuggestionText: {
-    fontSize: 14,
-    color: '#297A56',
-    fontWeight: '500',
   },
 });
