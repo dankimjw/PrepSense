@@ -468,10 +468,10 @@ export default function RecipeSpoonacularDetail() {
                 </Text>
               </TouchableOpacity>
             )}
-            {recipe.extendedIngredients.map((ingredient) => {
+            {recipe.extendedIngredients.map((ingredient, index) => {
               const isAvailable = availableIngredients.has(ingredient.id);
               return (
-                <View key={ingredient.id} style={styles.ingredientItem}>
+                <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
                   {isAvailable ? (
                     <Ionicons name="checkmark-circle" size={20} color="#297A56" />
                   ) : (
@@ -492,8 +492,8 @@ export default function RecipeSpoonacularDetail() {
         {activeTab === 'instructions' && (
           <View style={styles.instructionsContainer}>
             {recipe.analyzedInstructions.length > 0 ? (
-              recipe.analyzedInstructions[0].steps.map((step) => (
-                <View key={step.number} style={styles.instructionStep}>
+              recipe.analyzedInstructions[0].steps.map((step, index) => (
+                <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
                   <View style={styles.stepNumber}>
                     <Text style={styles.stepNumberText}>{step.number}</Text>
                   </View>
@@ -510,8 +510,8 @@ export default function RecipeSpoonacularDetail() {
 
         {activeTab === 'nutrition' && recipe.nutrition && (
           <View style={styles.nutritionContainer}>
-            {recipe.nutrition.nutrients.slice(0, 10).map((nutrient) => (
-              <View key={nutrient.name} style={styles.nutrientItem}>
+            {recipe.nutrition.nutrients.slice(0, 10).map((nutrient, index) => (
+              <View key={`nutrient-${nutrient.name}-${index}`} style={styles.nutrientItem}>
                 <Text style={styles.nutrientName}>{nutrient.name}</Text>
                 <View style={styles.nutrientValue}>
                   <Text style={styles.nutrientAmount}>
