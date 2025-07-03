@@ -19,6 +19,7 @@ import { Picker } from '@react-native-picker/picker';
 import { UnitSelector } from '../UnitSelector';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
+import { validateQuantity, formatQuantityInput, getQuantityRules } from '../../constants/quantityRules';
 
 const { width } = Dimensions.get('window');
 
@@ -93,8 +94,10 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
       return false;
     }
 
-    if (form.quantity_amount <= 0) {
-      Alert.alert('Validation Error', 'Quantity must be greater than 0.');
+    // Validate quantity using rules
+    const quantityValidation = validateQuantity(form.quantity_amount, form.item_name, form.quantity_unit);
+    if (!quantityValidation.isValid) {
+      Alert.alert('Validation Error', quantityValidation.error || 'Invalid quantity.');
       return false;
     }
 
@@ -236,7 +239,12 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
                 placeholderTextColor="#9CA3AF"
               />
 
-              <Text style={styles.label}>Amount *</Text>
+              <View style={styles.amountLabelContainer}>
+                <Text style={styles.label}>Amount *</Text>
+                {!getQuantityRules(form.item_name, form.quantity_unit).allowDecimals && (
+                  <Text style={styles.wholeNumberHint}>Whole numbers only</Text>
+                )}
+              </View>
               <View 
                 style={[
                   styles.amountOuterContainer,
@@ -255,11 +263,12 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
                       }
                     ]}
                     value={form.quantity_amount_text}
-                    keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
+                    keyboardType={getQuantityRules(form.item_name, form.quantity_unit).allowDecimals 
+                      ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric')
+                      : 'number-pad'
+                    }
                     onChangeText={(t) => {
-                      const cleaned = t.replace(/[^0-9.]/g, '');
-                      const parts = cleaned.split('.');
-                      const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+                      const formatted = formatQuantityInput(t, form.item_name, form.quantity_unit);
                       
                       setForm((f) => ({ 
                         ...f, 
@@ -483,6 +492,18 @@ const styles = StyleSheet.create({
     color: '#222', 
     fontWeight: '600', 
     marginBottom: 2 
+  },
+  amountLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  wholeNumberHint: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
+    fontStyle: 'italic',
   },
   input: {
     borderWidth: 1,
