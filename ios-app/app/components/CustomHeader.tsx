@@ -125,10 +125,10 @@ export function CustomHeader({
               })}
               style={styles.iconButton}
             >
-              <Image 
-                source={require('../../assets/images/AiBulkEdit2.png')} 
-                style={styles.aiIcon}
-              />
+              <View style={styles.aiIconContainer}>
+                <Ionicons name="sync-outline" size={24} color="#1b6b45" style={styles.aiIconBackground} />
+                <Ionicons name="bulb-outline" size={12} color="#1b6b45" style={styles.aiIconForeground} />
+              </View>
             </Pressable>
           )}
           {shouldShowAdmin && (
@@ -227,9 +227,18 @@ const styles = StyleSheet.create({
   iconButton: {
     paddingHorizontal: 4,
   },
-  aiIcon: {
-    width: 26,
-    height: 26,
+  aiIconContainer: {
+    width: 24,
+    height: 24,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  aiIconBackground: {
+    position: 'absolute',
+  },
+  aiIconForeground: {
+    position: 'absolute',
   },
   adminMenuContainer: {
     position: 'absolute',
