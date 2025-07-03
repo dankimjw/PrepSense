@@ -42,6 +42,8 @@ coverage.xml
 .idea/
 .cursor/
 .claude/
+CLAUDE.md
+.claude-config
 *.swp
 *.swo
 *~

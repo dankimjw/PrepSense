@@ -11,10 +11,11 @@ import {
   Animated,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
+import { apiClient, ApiError } from '../../services/apiClient';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -23,11 +24,13 @@ interface ConsumptionModalProps {
   visible: boolean;
   item: any;
   onClose: () => void;
+  onExpirationPress?: () => void;
+  onEditPress?: () => void;
 }
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export default function ConsumptionModal({ visible, item, onClose }: ConsumptionModalProps) {
+export default function ConsumptionModal({ visible, item, onClose, onExpirationPress, onEditPress }: ConsumptionModalProps) {
   const [percentage, setPercentage] = useState(50);
   const [loading, setLoading] = useState(false);
   const { updateItem } = useItems();
@@ -38,9 +41,11 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
   const quickPercentages = [25, 50, 75, 100];
 
   React.useEffect(() => {
-    // Reset to default percentage when item changes
-    setPercentage(50);
-  }, [item]);
+    // Reset to default percentage when item changes or modal opens
+    if (visible && item) {
+      setPercentage(50);
+    }
+  }, [item, visible]);
 
   React.useEffect(() => {
     Animated.timing(animatedValue, {
@@ -68,20 +73,10 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
       const remainingAmount = calculateRemainingAmount();
 
       // Update the item in the database using the new consumption endpoint
-      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}/consume`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quantity_amount: remainingAmount,
-          used_quantity: (item.used_quantity || 0) + consumedAmount,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update item');
-      }
+      await apiClient.patch(`/pantry/items/${item.id}/consume`, {
+        quantity_amount: remainingAmount,
+        used_quantity: (item.used_quantity || 0) + consumedAmount,
+      }, 5000); // 5 second timeout
 
       // Update local state
       updateItem(item.id, {
@@ -93,11 +88,18 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
       Alert.alert(
         'Success',
         `Consumed ${consumedAmount.toFixed(1)} ${item.quantity_unit} of ${item.name}`,
-        [{ text: 'OK', onPress: onClose }]
+        [{ text: 'OK', onPress: () => {
+          setPercentage(50); // Reset to default
+          onClose();
+        }}]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update item consumption');
+    } catch (error: any) {
       console.error('Consumption error:', error);
+      if (error instanceof ApiError && error.isTimeout) {
+        Alert.alert('Timeout', 'Consumption update is taking too long. Please check your connection and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to update item consumption');
+      }
     } finally {
       setLoading(false);
     }
@@ -114,9 +116,16 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
     >
       <View style={styles.modalOverlay}>
         <View style={styles.modalContent}>
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <MaterialCommunityIcons name="close" size={24} color="#666" />
-          </TouchableOpacity>
+          <View style={styles.headerButtons}>
+            {onEditPress && (
+              <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
+                <Feather name="edit-2" size={20} color="#297A56" />
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+              <MaterialCommunityIcons name="close" size={24} color="#666" />
+            </TouchableOpacity>
+          </View>
 
           <Text style={styles.title}>Consume Item</Text>
           <Text style={styles.itemName}>{item.name}</Text>
@@ -127,6 +136,36 @@ export default function ConsumptionModal({ visible, item, onClose }: Consumption
               {item.quantity_amount} {item.quantity_unit}
             </Text>
           </View>
+
+          {/* Expiration Date Section */}
+          <TouchableOpacity 
+            style={styles.expirationSection} 
+            onPress={() => {
+              if (onExpirationPress) {
+                onExpirationPress();
+              }
+            }}
+            activeOpacity={0.7}
+          >
+            <View style={styles.expirationLeft}>
+              <Text style={styles.expirationLabel}>Expires:</Text>
+              <Text style={[
+                styles.expirationValue,
+                item.daysUntilExpiry <= 0 && styles.expiredText,
+                item.daysUntilExpiry > 0 && item.daysUntilExpiry <= 3 && styles.expiringSoonText
+              ]}>
+                {item.expiry || 'No expiration date'}
+              </Text>
+            </View>
+            <View style={styles.expirationRight}>
+              <MaterialCommunityIcons 
+                name="calendar-edit" 
+                size={20} 
+                color="#297A56" 
+              />
+              <Text style={styles.updateText}>Update</Text>
+            </View>
+          </TouchableOpacity>
 
           {isSingleUnit && (
             <Text style={styles.singleUnitNote}>
@@ -260,11 +299,19 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     alignItems: 'center',
   },
-  closeButton: {
+  headerButtons: {
     position: 'absolute',
     top: 15,
     right: 15,
+    flexDirection: 'row',
+    gap: 12,
     zIndex: 1,
+  },
+  editButton: {
+    padding: 4,
+  },
+  closeButton: {
+    padding: 4,
   },
   title: {
     fontSize: 24,
@@ -280,7 +327,7 @@ const styles = StyleSheet.create({
   currentQuantity: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 15,
   },
   quantityLabel: {
     fontSize: 16,
@@ -291,6 +338,46 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+  },
+  expirationSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  expirationLeft: {
+    flex: 1,
+  },
+  expirationLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  expirationValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  expiredText: {
+    color: '#DC2626',
+  },
+  expiringSoonText: {
+    color: '#D97706',
+  },
+  expirationRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  updateText: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '500',
   },
   singleUnitNote: {
     fontSize: 14,

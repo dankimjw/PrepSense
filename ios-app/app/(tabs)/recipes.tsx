@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,7 @@ import {
   Dimensions,
   Modal,
   Pressable,
+  Animated,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -75,6 +76,9 @@ export default function RecipesScreen() {
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showSortModal, setShowSortModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const filterHeight = useRef(new Animated.Value(1)).current;
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -87,6 +91,31 @@ export default function RecipesScreen() {
     { id: 'gluten-free', label: 'Gluten-Free', icon: '🌾' },
     { id: 'dairy-free', label: 'Dairy-Free', icon: '🥛' },
     { id: 'low-carb', label: 'Low Carb', icon: '🥖' },
+    { id: 'keto', label: 'Keto', icon: '🥑' },
+    { id: 'paleo', label: 'Paleo', icon: '🍖' },
+    { id: 'mediterranean', label: 'Mediterranean', icon: '🫒' },
+  ];
+
+  const cuisineFilters = [
+    { id: 'italian', label: 'Italian', icon: '🍝' },
+    { id: 'mexican', label: 'Mexican', icon: '🌮' },
+    { id: 'asian', label: 'Asian', icon: '🥢' },
+    { id: 'american', label: 'American', icon: '🍔' },
+    { id: 'indian', label: 'Indian', icon: '🍛' },
+    { id: 'french', label: 'French', icon: '🥐' },
+    { id: 'japanese', label: 'Japanese', icon: '🍱' },
+    { id: 'thai', label: 'Thai', icon: '🍜' },
+  ];
+
+  const mealTypeFilters = [
+    { id: 'breakfast', label: 'Breakfast', icon: '🍳' },
+    { id: 'lunch', label: 'Lunch', icon: '🥪' },
+    { id: 'dinner', label: 'Dinner', icon: '🍽️' },
+    { id: 'snack', label: 'Snack', icon: '🍿' },
+    { id: 'dessert', label: 'Dessert', icon: '🍰' },
+    { id: 'appetizer', label: 'Appetizer', icon: '🥟' },
+    { id: 'soup', label: 'Soup', icon: '🍲' },
+    { id: 'salad', label: 'Salad', icon: '🥗' },
   ];
 
   const sortOptions = [
@@ -494,6 +523,36 @@ export default function RecipesScreen() {
     }
   };
 
+  const handleScroll = (event: any) => {
+    const currentOffset = event.nativeEvent.contentOffset.y;
+    const scrollDiff = currentOffset - scrollOffset;
+    
+    // Collapse filters when scrolling down after 30px with velocity check
+    if (activeTab === 'discover') {
+      if (currentOffset > 30 && scrollDiff > 2 && !filtersCollapsed) {
+        // Scrolling down fast - collapse
+        setFiltersCollapsed(true);
+        Animated.spring(filterHeight, {
+          toValue: 0,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 10,
+        }).start();
+      } else if ((currentOffset < 20 || scrollDiff < -5) && filtersCollapsed) {
+        // Scrolling up or near top - expand
+        setFiltersCollapsed(false);
+        Animated.spring(filterHeight, {
+          toValue: 1,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 10,
+        }).start();
+      }
+    }
+    
+    setScrollOffset(currentOffset);
+  };
+
   const renderRecipeCard = (recipe: Recipe, index: number) => (
     <View key={recipe.id} style={styles.recipeCardWrapper}>
       <TouchableOpacity
@@ -676,13 +735,15 @@ export default function RecipesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
-        {activeTab === 'my-recipes' ? (
+      {/* Filter Grid */}
+      {activeTab === 'my-recipes' ? (
+        <View style={styles.filterContainer}>
+          <ScrollView 
+            horizontal
+            style={styles.filterScrollView}
+            contentContainerStyle={styles.filterContent}
+            showsHorizontalScrollIndicator={false}
+          >
           <>
             <TouchableOpacity
               style={[
@@ -745,27 +806,177 @@ export default function RecipesScreen() {
               </Text>
             </TouchableOpacity>
           </>
-        ) : activeTab === 'discover' ? (
-          dietaryFilters.map(filter => (
-            <TouchableOpacity
-              key={filter.id}
-              style={[
-                styles.filterButton,
-                selectedFilters.includes(filter.id) && styles.filterButtonActive
-              ]}
-              onPress={() => toggleFilter(filter.id)}
-            >
-              <Text style={styles.filterIcon}>{filter.icon}</Text>
-              <Text style={[
-                styles.filterText,
-                selectedFilters.includes(filter.id) && styles.filterTextActive
-              ]}>
-                {filter.label}
+          </ScrollView>
+        </View>
+      ) : activeTab === 'discover' ? (
+        <Animated.View 
+          style={[
+            styles.discoverFiltersContainer,
+            {
+              maxHeight: filterHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [32, 150],
+              }),
+            }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.collapsedFilterBar}
+            onPress={() => {
+              if (filtersCollapsed) {
+                setFiltersCollapsed(false);
+                Animated.timing(filterHeight, {
+                  toValue: 1,
+                  duration: 300,
+                  useNativeDriver: false,
+                }).start();
+              }
+            }}
+            activeOpacity={filtersCollapsed ? 0.7 : 1}
+          >
+            {selectedFilters.length > 0 && (
+              <Text style={styles.collapsedFilterText}>
+                {selectedFilters.length} filters active
               </Text>
-            </TouchableOpacity>
-          ))
-        ) : null}
-      </ScrollView>
+            )}
+            <Animated.View
+              style={{
+                transform: [{
+                  rotate: filterHeight.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '180deg'],
+                  })
+                }]
+              }}
+            >
+              <Ionicons name="chevron-down" size={20} color="#666" />
+            </Animated.View>
+          </TouchableOpacity>
+          <Animated.View
+            style={{
+              opacity: filterHeight,
+              transform: [{
+                translateY: filterHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                })
+              }]
+            }}
+          >
+          {/* Dietary Filters Row */}
+          <View style={styles.filterRow}>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRowContent}
+            >
+              {dietaryFilters.map(filter => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                  ]}
+                  onPress={() => toggleFilter(filter.id)}
+                >
+                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={[
+                    styles.filterText,
+                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Cuisine Filters Row */}
+          <View style={styles.filterRow}>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRowContent}
+            >
+              {cuisineFilters.map(filter => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                  ]}
+                  onPress={() => toggleFilter(filter.id)}
+                >
+                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={[
+                    styles.filterText,
+                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* Meal Type Filters Row */}
+          <View style={styles.filterRow}>
+            <ScrollView 
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterRowContent}
+            >
+              {mealTypeFilters.map(filter => (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[
+                    styles.filterButton,
+                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                  ]}
+                  onPress={() => toggleFilter(filter.id)}
+                >
+                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={[
+                    styles.filterText,
+                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+          </Animated.View>
+        </Animated.View>
+      ) : activeTab === 'pantry' ? (
+        <View style={styles.filterContainer}>
+          <ScrollView 
+            horizontal
+            style={styles.filterScrollView}
+            contentContainerStyle={styles.filterContent}
+            showsHorizontalScrollIndicator={false}
+          >
+            {mealTypeFilters.slice(0, 4).map(filter => (
+              <TouchableOpacity
+                key={filter.id}
+                style={[
+                  styles.filterButton,
+                  selectedFilters.includes(filter.id) && styles.filterButtonActive
+                ]}
+                onPress={() => toggleFilter(filter.id)}
+              >
+                <Text style={styles.filterIcon}>{filter.icon}</Text>
+                <Text style={[
+                  styles.filterText,
+                  selectedFilters.includes(filter.id) && styles.filterTextActive
+                ]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      ) : null}
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
@@ -778,6 +989,8 @@ export default function RecipesScreen() {
         <ScrollView
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
@@ -965,23 +1178,63 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     backgroundColor: '#fff',
-    maxHeight: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  discoverFiltersContainer: {
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+    overflow: 'hidden',
+  },
+  collapsedFilterBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+    height: 32,
+  },
+  collapsedFilterText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+    marginRight: 8,
+  },
+  filterRow: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  filterRowTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#666',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  filterRowContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+  },
+  filterScrollView: {
+    flexGrow: 0,
   },
   filterContent: {
     paddingHorizontal: 16,
     paddingVertical: 10,
-    gap: 8,
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
     marginRight: 8,
+    minWidth: 90,
+    justifyContent: 'center',
   },
   filterButtonActive: {
     backgroundColor: '#E6F7F0',

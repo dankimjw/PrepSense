@@ -17,14 +17,14 @@ const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // '127.0.0.1' works if the app is running in a web browser on the SAME machine as the backend.
 const DEV_API_CONFIG = {
   baseURL: ENV_API_URL || 'http://192.168.1.195:8001/api/v1', // Using detected IP for the backend service
-  timeout: 15000, // API request timeout in milliseconds (e.g., 15 seconds)
+  timeout: 10000, // API request timeout in milliseconds (e.g., 10 seconds)
 };
 
 // Production API (your deployed backend)
 // IMPORTANT: Replace with your actual deployed backend URL.
 const PROD_API_CONFIG = {
   baseURL: 'https://api.yourprepsenseapp.com/v1', // Example production URL
-  timeout: 30000, // API request timeout in milliseconds (e.g., 30 seconds)
+  timeout: 15000, // API request timeout in milliseconds (e.g., 15 seconds)
 };
 
 // Select API config based on environment
