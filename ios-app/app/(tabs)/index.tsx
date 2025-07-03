@@ -376,18 +376,9 @@ const IndexScreen: React.FC = () => {
           setExpirationModalVisible(false);
           setSelectedItemForExpiration(null);
         }}
-        onUpdate={async () => {
-          await fetchItems();
-          setExpirationModalVisible(false);
-          setSelectedItemForExpiration(null);
-          // Update the selected item for consumption to reflect new expiration date
-          if (selectedItemForConsumption) {
-            const updatedItems = await fetchItems();
-            const updatedItem = recentItems.find(item => item.id === selectedItemForConsumption.id);
-            if (updatedItem) {
-              setSelectedItemForConsumption(updatedItem);
-            }
-          }
+        onUpdate={() => {
+          // The update is handled in the modal, just close and refresh
+          fetchItems();
         }}
       />
     </View>
