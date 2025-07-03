@@ -108,9 +108,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   actionText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
     color: '#111827',
     textAlign: 'center',
+    lineHeight: 14,
   },
 });

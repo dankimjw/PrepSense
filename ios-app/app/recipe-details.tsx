@@ -16,6 +16,7 @@ import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem, compl
 import { Config } from '../config';
 import { useAuth } from '../context/AuthContext';
 import { parseIngredientsList } from '../utils/ingredientParser';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -190,18 +191,43 @@ export default function RecipeDetailsScreen() {
     }
 
     try {
-      // Convert missing ingredients to shopping list items
-      const shoppingItems: ShoppingListItem[] = recipe.missing_ingredients.map(ingredient => ({
-        item_name: ingredient,
-        recipe_name: recipe.name,
-      }));
+      // Get existing shopping list from AsyncStorage
+      const STORAGE_KEY = '@PrepSense_ShoppingList';
+      const savedList = await AsyncStorage.getItem(STORAGE_KEY);
+      let existingItems = [];
+      
+      if (savedList) {
+        existingItems = JSON.parse(savedList);
+      }
 
-      await addToShoppingList(111, shoppingItems); // TODO: Get actual user ID
+      // Convert missing ingredients to shopping list items
+      const newItems = recipe.missing_ingredients.map(ingredient => {
+        // Try to parse quantity from ingredient string
+        const parsed = parseIngredientsList([ingredient])[0];
+        
+        return {
+          id: Date.now().toString() + Math.random().toString(),
+          name: parsed?.name || ingredient,
+          quantity: parsed?.quantity ? `${parsed.quantity} ${parsed.unit || ''}`.trim() : undefined,
+          checked: false,
+          addedAt: new Date(),
+        };
+      });
+
+      // Combine with existing items
+      const updatedList = [...existingItems, ...newItems];
+      
+      // Save back to AsyncStorage
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
 
       Alert.alert(
         'Added to Shopping List',
         `${recipe.missing_ingredients.length} item${recipe.missing_ingredients.length > 1 ? 's' : ''} added to your shopping list.`,
         [
+          { 
+            text: 'View List', 
+            onPress: () => router.push('/(tabs)/shopping-list') 
+          },
           { text: 'OK' }
         ]
       );

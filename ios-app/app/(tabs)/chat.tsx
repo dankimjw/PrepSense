@@ -4,8 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
-import { CustomHeader } from './components/CustomHeader';
-import { sendChatMessage, Recipe, generateRecipeImage } from '../services/api';
+import { CustomHeader } from '../components/CustomHeader';
+import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
 
 type Message = {
   id: string;
