@@ -55,6 +55,8 @@ export default function AdminScreen() {
   const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'bigquery'>('cleanup');
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [cleanupTimeframe, setCleanupTimeframe] = useState<number | null>(24); // Default: 24 hours
+  const [isRevertingChanges, setIsRevertingChanges] = useState(false);
+  const [revertTimeframe, setRevertTimeframe] = useState<number | null>(1); // Default: 1 hour
 
   // Load mock users for prototype - TODO: Replace with real API when backend is ready
   useEffect(() => {
@@ -186,6 +188,96 @@ export default function AdminScreen() {
       )}
     </>
   );
+
+  // Function to revert all pantry changes (additions and recipe modifications)
+  const revertAllPantryChanges = async (hours: number | null = null) => {
+    if (isRevertingChanges) return;
+    
+    let timeframeText = 'all time';
+    if (hours !== null) {
+      const minutes = Math.round(hours * 60);
+      if (minutes < 60) {
+        timeframeText = `the last ${minutes} minute${minutes === 1 ? '' : 's'}`;
+      } else if (hours === 1) {
+        timeframeText = 'the last hour';
+      } else {
+        timeframeText = `the last ${hours} hours`;
+      }
+    }
+    
+    Alert.alert(
+      'Revert Pantry Changes?',
+      `This will revert ALL pantry changes from ${timeframeText}:\n\n• Items added will be removed\n• Recipe ingredient usage will be restored\n\nThis action cannot be undone.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Revert Changes', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setIsRevertingChanges(true);
+              
+              const params: any = {
+                user_id: 111, // Default demo user ID
+                include_recipe_changes: true,
+                include_additions: true
+              };
+              
+              if (hours !== null) {
+                if (hours < 1) {
+                  params.minutes_ago = Math.round(hours * 60);
+                } else {
+                  params.hours_ago = hours;
+                }
+              }
+              
+              const response = await fetch(`${Config.API_BASE_URL}/pantry/revert-changes?${new URLSearchParams(params)}`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+              });
+              
+              if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.detail || 'Failed to revert changes');
+              }
+              
+              const result = await response.json();
+              
+              const deletedCount = result.summary?.items_deleted || 0;
+              const restoredCount = result.summary?.quantities_restored || 0;
+              const totalChanges = result.summary?.total_changes_reverted || 0;
+              
+              if (totalChanges > 0) {
+                let message = 'Successfully reverted:\n';
+                if (deletedCount > 0) {
+                  message += `\n• ${deletedCount} item${deletedCount !== 1 ? 's' : ''} removed`;
+                }
+                if (restoredCount > 0) {
+                  message += `\n• ${restoredCount} item${restoredCount !== 1 ? 's' : ''} restored to original quantities`;
+                }
+                
+                Alert.alert('Success', message, [{ text: 'OK' }]);
+              } else {
+                Alert.alert(
+                  'No Changes Found', 
+                  `No pantry changes found to revert${hours ? ` from the last ${hours} hour${hours !== 1 ? 's' : ''}` : ''}`,
+                  [{ text: 'OK' }]
+                );
+              }
+              
+            } catch (error: any) {
+              console.error('Error reverting changes:', error);
+              Alert.alert('Error', `Failed to revert changes: ${error.message}`);
+            } finally {
+              setIsRevertingChanges(false);
+            }
+          } 
+        },
+      ]
+    );
+  };
 
   // Function to cleanup recently added items from BigQuery
   const cleanupRecentItems = async (hours: number | null = null) => {
@@ -396,10 +488,64 @@ export default function AdminScreen() {
       <ScrollView style={styles.scrollView}>
         {activeTab === 'cleanup' ? (
           <View style={styles.cleanupTabContainer}>
-            <Text style={styles.header}>Cleanup Vision Items</Text>
-            <View style={styles.cleanupContainer}>
+            <Text style={styles.header}>Cleanup & Revert</Text>
+            
+            {/* Revert All Changes Section */}
+            <View style={[styles.cleanupContainer, { marginBottom: 20 }]}>
+              <Text style={styles.sectionTitle}>Revert All Pantry Changes</Text>
               <Text style={styles.cleanupDescription}>
-                Remove items that were added via vision detection. This action cannot be undone.
+                Revert ALL pantry changes including new items added and ingredients used in recipes. Recipes and images remain saved.
+              </Text>
+              
+              <View style={styles.timeframeContainer}>
+                <Text style={styles.timeframeLabel}>Timeframe:</Text>
+                <View style={styles.timeframeButtons}>
+                  {[1/12, 0.5, 1, 3, 6, 12, 24].map((hours) => {
+                    const minutes = hours !== null ? Math.round(hours * 60) : null;
+                    return (
+                      <TouchableOpacity
+                        key={hours || 'all'}
+                        style={[
+                          styles.timeframeButton,
+                          revertTimeframe === hours && styles.timeframeButtonActive
+                        ]}
+                        onPress={() => setRevertTimeframe(hours)}
+                      >
+                        <Text style={[
+                          styles.timeframeButtonText,
+                          revertTimeframe === hours && styles.timeframeButtonTextActive
+                        ]}>
+                          {minutes === 5 ? '5m' : minutes < 60 ? `${minutes}m` : hours < 24 ? `${hours}h` : '24h'}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+              
+              <TouchableOpacity
+                style={[styles.revertButton, isRevertingChanges && styles.cleanupButtonDisabled]}
+                onPress={() => revertAllPantryChanges(revertTimeframe)}
+                disabled={isRevertingChanges}
+              >
+                {isRevertingChanges ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Ionicons name="arrow-undo" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+                    <Text style={styles.cleanupButtonText}>
+                      Revert All Changes
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+            
+            {/* Vision Items Cleanup Section */}
+            <View style={styles.cleanupContainer}>
+              <Text style={styles.sectionTitle}>Remove Vision-Detected Items Only</Text>
+              <Text style={styles.cleanupDescription}>
+                Remove only items that were added via vision detection. Recipe changes remain intact.
               </Text>
               
               <View style={styles.timeframeContainer}>
@@ -729,6 +875,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#FF3B30',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  revertButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF9500',
     padding: 12,
     borderRadius: 8,
     marginTop: 16,

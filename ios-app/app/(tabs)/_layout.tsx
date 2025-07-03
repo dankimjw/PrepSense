@@ -1,27 +1,19 @@
 // app/(tabs)/_layout.tsx - Part of the PrepSense mobile app
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable } from 'react-native';
 import React, { useState } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CustomHeader } from '../components/CustomHeader';
-import { ChatButton } from '../components/ChatButton';
+import { AddButton } from '../components/AddButton';
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
-  const [modalVisible, setModalVisible] = useState(false);
-  
-  // Filter out the admin tab from the routes
-  const filteredRoutes = state.routes.filter(route => route.name !== 'admin');
+  // Filter out the admin, profile, and add tabs from the routes
+  const filteredRoutes = state.routes.filter(route => 
+    route.name !== 'admin' && route.name !== 'profile' && route.name !== 'add'
+  );
   console.log('Tab Routes:', filteredRoutes.map(r => r.name));
-
-  const handleAddImage = () => {
-    setModalVisible(false);
-    navigation.navigate('upload-photo');
-  };
-  const handleAddFoodItem = () => {
-    setModalVisible(false);
-    navigation.navigate('add-item');
-  };
+  console.log('Current route:', state.routes[state.index].name);
 
   return (
     <>
@@ -29,16 +21,16 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
         {filteredRoutes.map((route, index) => {
           // Skip rendering the admin tab
           if (route.name === 'admin') return null;
-          if (route.name === 'add') {
+          if (route.name === 'chat') {
             return (
               <TouchableOpacity
                 key={route.key}
                 accessibilityRole="button"
                 style={styles.fabContainer}
-                onPress={() => setModalVisible(true)}
+                onPress={() => navigation.navigate('chat')}
               >
                 <View style={styles.fab}>
-                  <Ionicons name="add" size={32} color="#fff" />
+                  <MaterialCommunityIcons name="chef-hat" size={28} color="#fff" />
                 </View>
               </TouchableOpacity>
             );
@@ -50,12 +42,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
               : options.title !== undefined
               ? options.title
               : route.name;
-          const isFocused = state.index === index;
+          // Fix the highlighting by checking if the current route matches this tab
+          const isFocused = state.routes[state.index].name === route.name;
           let iconName: keyof typeof Ionicons.glyphMap = 'ellipse';
           if (route.name === 'index') iconName = isFocused ? 'home' : 'home-outline';
           if (route.name === 'stats') iconName = isFocused ? 'bar-chart' : 'bar-chart-outline';
           if (route.name === 'recipes') iconName = isFocused ? 'restaurant' : 'restaurant-outline';
-          if (route.name === 'profile') iconName = isFocused ? 'person' : 'person-outline';
+          if (route.name === 'shopping-list') iconName = isFocused ? 'cart' : 'cart-outline';
           let labelText = '';
           if (typeof label === 'string') labelText = label;
           else if (typeof label === 'function') labelText = '';
@@ -78,31 +71,12 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         })}
       </View>
-      <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <Pressable style={styles.modalOverlay} onPress={() => setModalVisible(false)}>
-          <View style={styles.modalContent}>
-            <TouchableOpacity style={styles.modalBtn} onPress={handleAddImage}>
-              <Ionicons name="image" size={22} color="#297A56" />
-              <Text style={styles.modalBtnText}>Add Image</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalBtn} onPress={handleAddFoodItem}>
-              <Ionicons name="fast-food" size={22} color="#297A56" />
-              <Text style={styles.modalBtnText}>Add Food Item</Text>
-            </TouchableOpacity>
-          </View>
-        </Pressable>
-      </Modal>
     </>
   );
 }
 
 // Define the tabs we want to show in the bottom tab bar
-const mainTabs = ['index', 'stats', 'add', 'recipes', 'profile'];
+const mainTabs = ['index', 'stats', 'chat', 'recipes', 'shopping-list'];
 
 export default function TabsLayout() {
   return (
@@ -111,8 +85,8 @@ export default function TabsLayout() {
         tabBar={props => <CustomTabBar {...props} />}
         screenOptions={{
           header: ({ navigation, route, options }) => {
-            // Don't show header for the add screen
-            if (route.name === 'add') return null;
+            // Don't show header for the chat screen as it has its own
+            if (route.name === 'chat') return null;
             
             return (
               <CustomHeader 
@@ -157,8 +131,23 @@ export default function TabsLayout() {
         <Tabs.Screen 
           name="add" 
           options={{ 
-            tabBarLabel: '',
+            tabBarButton: () => null, // Hide from tab bar
             headerShown: false
+          }} 
+        />
+        <Tabs.Screen 
+          name="chat" 
+          options={{ 
+            tabBarLabel: '',
+            tabBarButton: () => null, // This ensures the tab button is handled by CustomTabBar
+            header: () => (
+              <CustomHeader 
+                title="Chat with Chef"
+                showBackButton={true}
+                showChatButton={false}
+                showAdminButton={false}
+              />
+            )
           }} 
         />
         <Tabs.Screen 
@@ -176,15 +165,29 @@ export default function TabsLayout() {
           }} 
         />
         <Tabs.Screen 
-          name="profile" 
+          name="shopping-list" 
           options={{ 
-            tabBarLabel: 'Profile',
+            tabBarLabel: 'List',
             header: () => (
               <CustomHeader 
-                title="My Profile"
+                title="Shopping List"
                 showBackButton={false}
                 showChatButton={true}
                 showAdminButton={true}
+              />
+            )
+          }} 
+        />
+        <Tabs.Screen 
+          name="profile" 
+          options={{ 
+            tabBarButton: () => null, // This hides the tab from the bottom bar
+            header: () => (
+              <CustomHeader 
+                title="My Profile"
+                showBackButton={true}
+                showChatButton={false}
+                showAdminButton={false}
               />
             )
           }} 
@@ -205,7 +208,7 @@ export default function TabsLayout() {
           }}
         />
       </Tabs>
-      <ChatButton />
+      <AddButton />
     </>
   );
 }

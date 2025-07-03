@@ -36,15 +36,17 @@ backend_gateway/
 │   ├── recipes_router.py    # Recipe generation endpoints
 │   └── users.py             # User management
 ├── services/                 # Core business logic
-│   ├── bigquery_service.py  # BigQuery database operations
+│   ├── bigquery_service.py  # BigQuery database operations (with schema docs)
 │   ├── crew_ai_service.py   # AI agent orchestration
 │   ├── pantry_service.py    # Pantry management logic
 │   ├── recipe_service.py    # Recipe generation service
+│   ├── spoonacular_service.py # Spoonacular API integration
 │   ├── user_service.py      # User management service
 │   └── vision_service.py    # OpenAI Vision API integration
 ├── models/                   # Data models
 │   └── user.py              # User model definitions
 ├── core/                     # Core utilities
+│   ├── config.py            # Configuration management
 │   └── security.py          # Security and authentication
 ├── database.py              # Database configuration
 ├── pubsub.py               # Pub/Sub integration
@@ -59,7 +61,9 @@ ios-app/
 │   │   ├── index.tsx       # Home screen (pantry items)
 │   │   ├── stats.tsx       # Statistics dashboard
 │   │   ├── recipes.tsx     # Recipe suggestions
+│   │   ├── admin.tsx       # Admin panel with BigQuery access
 │   │   └── profile.tsx     # User profile
+│   ├── bigquery-tester.tsx # BigQuery testing interface
 │   ├── components/         # Screen-specific components
 │   └── utils/              # Utility functions
 ├── components/              # Shared components
@@ -68,6 +72,7 @@ ios-app/
 │   │   ├── PantryItem.tsx      # Item display component
 │   │   ├── PantryItemsList.tsx # Items list container
 │   │   └── TipCard.tsx         # Storage tips
+│   ├── CustomHeader.tsx    # Header with database access
 │   ├── SearchBar.tsx       # Search functionality
 │   └── FilterModal.tsx     # Filter and sort modal
 ├── hooks/                   # Custom React hooks
@@ -82,6 +87,20 @@ ios-app/
 └── utils/                  # Helper functions
     ├── itemHelpers.ts     # Item formatting utilities
     └── encoding.ts        # Navigation encoding
+```
+
+### Root Project Files
+```
+PrepSense/
+├── run_app.py              # Unified launcher for backend + iOS
+├── cleanup.py              # Python cleanup script
+├── cleanup.sh              # Shell cleanup script
+├── setup.py                # Interactive setup script
+├── .env                    # Environment configuration
+├── .env.template           # Environment template
+└── config/                 # Configuration files
+    ├── openai_key.txt      # OpenAI API key
+    └── *.json              # Google Cloud credentials
 ```
 
 
@@ -146,14 +165,46 @@ python3 setup.py
 
 ### 🏃 Running the Application
 
-After setup is complete:
+#### Unified Launcher (Recommended)
+
+We provide a unified launcher that starts both backend and iOS app with synchronized configuration:
 
 ```bash
-# Start the FastAPI backend server (runs on port 8001)
-python run_app.py
+# Start both backend and iOS app (default)
+python3 run_app.py
 
-# Press "i" for ios app simulator
+# Or use command line options:
+python3 run_app.py --backend              # Backend only
+python3 run_app.py --ios                 # iOS app only
+python3 run_app.py --port 8002           # Custom backend port
+python3 run_app.py --host 0.0.0.0        # Custom backend host
+python3 run_app.py --ios-port 8083       # Custom iOS port
+python3 run_app.py --help                # Show all options
 ```
+
+**Launcher Features:**
+- 🔄 Automatic IP synchronization between backend and iOS app
+- 🧹 Process cleanup before starting (prevents port conflicts)
+- 📱 Auto-launches iOS simulator (press 'i' when prompted)
+- 🛑 Graceful shutdown with Ctrl+C
+- 🔧 Environment variable support (LAUNCH_MODE, HOST, PORT, etc.)
+
+### 🧹 Cleanup Scripts
+
+If you encounter port conflicts or need to stop all PrepSense processes:
+
+```bash
+# Python cleanup script (recommended)
+python3 cleanup.py
+
+# Or shell script
+./cleanup.sh
+```
+
+These scripts will:
+- Kill processes on ports: 8001 (backend), 8082/8083 (iOS), 19000-19002, 19006 (Expo)
+- Stop processes by name: expo, metro, start.py, run_app.py, uvicorn, fastapi
+- Verify all processes are stopped
 
 
 
@@ -294,16 +345,18 @@ The interactive setup script handles most configuration automatically, but for m
 ### 4. Running the Application
 
 ```bash
-# Start backend (from project root)
-python run_app.py
+# Unified launcher - starts both backend and iOS app
+python3 run_app.py
 
-# Start iOS app (in new terminal)
-python run_ios.py
+# Alternative: Start services separately
+python3 run_app.py --backend    # Backend only on port 8001
+python3 run_app.py --ios        # iOS app only on port 8082
 ```
 
 #### Access Points
 - **API Documentation**: `http://localhost:8001/docs`
-- **iOS Simulator**: Automatically opens on Mac
+- **Backend Health Check**: `http://localhost:8001/health`
+- **iOS Simulator**: Automatically opens on Mac (press 'i' when prompted)
 - **Physical Device**: Scan QR code with Expo Go app
 - **Web Browser**: Press 'w' in the terminal
 
@@ -410,20 +463,29 @@ lsof -i :8001  # Kill any process using the port
 
 #### iOS App Connection Issues
 ```bash
-# Ensure backend is running on all interfaces
-SERVER_HOST=0.0.0.0 python run_server.py
+# The unified launcher handles IP configuration automatically
+python3 run_app.py
 
-# Check firewall settings
-# Update API_BASE_URL in constants/Config.ts
+# Or manually specify host for network access
+python3 run_app.py --host 0.0.0.0
+
+# Check network connectivity
+# API base URL is auto-configured by launcher
 ```
 
 #### BigQuery Authentication
 ```bash
-# Set credentials path
-export GOOGLE_APPLICATION_CREDENTIALS="path/to/credentials.json"
+# Credentials should be in config/ directory
+# The launcher auto-detects and configures them
 
-# Verify credentials
-gcloud auth application-default login
+# Manual verification
+export GOOGLE_APPLICATION_CREDENTIALS="config/your-service-account.json"
+
+# Check BigQuery connectivity
+curl http://localhost:8001/api/v1/bigquery/tables
+
+# Note: The app requires real BigQuery credentials
+# Development mode with mock data has been removed
 ```
 
 ## 📚 Additional Resources
