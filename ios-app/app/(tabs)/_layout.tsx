@@ -27,7 +27,10 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
                 key={route.key}
                 accessibilityRole="button"
                 style={styles.fabContainer}
-                onPress={() => navigation.navigate('chat')}
+                onPress={() => {
+                  const router = require('expo-router').router;
+                  router.push('/chat-modal');
+                }}
               >
                 <View style={styles.fab}>
                   <MaterialCommunityIcons name="chef-hat" size={28} color="#fff" />
@@ -92,6 +95,8 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="PrepSense"
                 showBackButton={false}
+                showAIBulkEditButton={true}
+                showAdminButton={true}
               />
             );
           },
@@ -103,12 +108,12 @@ export default function TabsLayout() {
           name="index" 
           options={{ 
             tabBarLabel: 'Home',
-            title: 'Home',
+            title: 'PrepSense',
             header: () => (
               <CustomHeader 
-                title="Home"
+                title="PrepSense"
                 showBackButton={false}
-                showChatButton={true}
+                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -122,7 +127,7 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Statistics"
                 showBackButton={false}
-                showChatButton={true}
+                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -158,7 +163,7 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Recipes"
                 showBackButton={false}
-                showChatButton={true}
+                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -172,7 +177,7 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Shopping List"
                 showBackButton={false}
-                showChatButton={true}
+                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )

@@ -13,6 +13,7 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { updatePantryItem } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
 
 interface ExpirationDateModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(Platform.OS === 'ios');
   const [isUpdating, setIsUpdating] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (item?.expirationDate) {
@@ -49,7 +51,19 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
   const handleUpdate = async () => {
     if (!item) return;
 
-    setIsUpdating(true);
+    // Store original date for rollback
+    const originalDate = item.expirationDate;
+    
+    // Optimistically update UI and close modal
+    if (onUpdate) {
+      onUpdate(selectedDate);
+    }
+    onClose();
+
+    // Show sync indicator in console
+    console.log('🔄 Updating expiration date for:', item.id, item.name);
+
+    // Perform backend update asynchronously
     try {
       await updatePantryItem(item.id, {
         product_name: item.name,
@@ -59,18 +73,22 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
         category: item.category,
       });
 
-      Alert.alert('Success', 'Expiration date updated successfully');
+      console.log('✅ Expiration date updated successfully:', item.id);
+      showToast('Expiration date updated', 'success');
+    } catch (error: any) {
+      console.error('❌ Error updating expiration date:', error);
       
-      // Pass the new date to parent for optimistic update
-      if (onUpdate) {
-        onUpdate(selectedDate);
+      // Rollback the optimistic update
+      if (onUpdate && originalDate) {
+        onUpdate(new Date(originalDate));
       }
-      onClose();
-    } catch (error) {
-      console.error('Error updating expiration date:', error);
-      Alert.alert('Error', 'Failed to update expiration date');
-    } finally {
-      setIsUpdating(false);
+      
+      if (error.message?.includes('timeout')) {
+        console.error('⏱️ Update timed out');
+        showToast('Update timed out. Please try again.', 'error');
+      } else {
+        showToast('Failed to update expiration date', 'error');
+      }
     }
   };
 
