@@ -198,6 +198,142 @@ Based on UI reference images (UI_Notes_1.jpeg):
 
 4. **Stats Cards Enhancement**
    - Add small icons to each stat card (like the grocery app)
+
+## Update: 2025-07-03 - New Stats Screen Analytics Implementation
+
+### New Metrics & Calculations from stats_screenv2.ipynb
+
+#### 1. Enhanced Pantry Analytics
+- **Expired Items Tracking** - REAL DATA
+  - Query counts items where `expiration_date < CURRENT_DATE()`
+  - Provides clear feedback when no items are expired
+  - Example output: "🥳 Zero expired items. Your pantry deserves a standing ovation!"
+
+- **Category Distribution with Personality** - REAL DATA
+  - Groups items by category and calculates proportions
+  - Adds personality-based comments based on percentage:
+    - >40%: "Basically your whole pantry"
+    - 25-40%: "Dominating the shelf space!"
+    - 10-25%: "Respectably stocked"
+    - <10%: "Just a sprinkle"
+  - Example output: "🧪 Uncategorized: 68.2% — Basically your whole pantry"
+
+- **Top Products** - REAL DATA (Last 30 Days)
+  - Shows most frequently added items with emoji ranking
+  - Uses fun emoji ranking (🥇, 🥈, 🥉, 🔥, 💥)
+  - Example: "🥇 Red Apple — 60 times"
+
+#### 2. New Sustainability Metrics
+- **Food Waste Prevention** - CALCULATED
+  - Formula: `unexpired_items * 0.3` (0.3kg average weight per item)
+  - Shows estimated food saved from expiration in kg
+
+- **CO₂ Emissions Savings** - CALCULATED
+  - Formula: `kg_saved * 2.5` (2.5kg CO₂ per kg of food)
+  - Provides environmental impact metric
+
+#### 3. Improved Expiry Tracking
+- **Expiring Soon** - REAL DATA
+  - Shows items expiring in next 7 days
+  - Friendly message when nothing is expiring soon
+  - Example: "🎉 Great news! Nothing is expiring in the next 7 days. Your pantry is under control. 👏😎"
+
+### Implementation Notes
+- Uses BigQuery for data processing
+- All calculations happen server-side for performance
+- Emoji-based UI elements for better engagement
+- Clear, conversational language for user feedback
+
+### Implementation Plan
+
+#### 1. Stats Screen Integration
+- **Location**: `ios-app/app/(tabs)/stats.tsx`
+- **Components to Update**:
+  - Create new `PantryInsightsCard` component for top products
+  - Add `SustainabilityStats` component for waste/CO₂ metrics
+  - Update existing `StatsCard` to support emoji indicators
+- **Data Fetching**:
+  ```typescript
+  // Example API call structure
+  const fetchPantryAnalytics = async () => {
+    const response = await fetch(`${Config.API_BASE_URL}/analytics/pantry`);
+    return response.json(); // { expiredCount, categoryDistribution, topProducts }
+  };
+  ```
+
+#### 2. Category Distribution Visualization
+- **Library**: `react-native-svg` or `victory-native`
+- **Implementation**:
+  - Interactive pie/donut chart
+  - Tappable segments showing category details
+  - Animation on initial load
+- **Data Format**:
+  ```typescript
+  interface CategoryData {
+    category: string;
+    count: number;
+    percentage: number;
+    color: string; // Predefined color palette
+  }
+  ```
+
+#### 3. CO₂ Savings Visualization
+- **Visual Elements**:
+  - Animated counter for kg of CO₂ saved
+  - Equivalent metrics (e.g., "Like planting X trees")
+  - Progress circle showing monthly goal
+- **Implementation**:
+  ```typescript
+  // Example calculation
+  const calculateCO2Savings = (unexpiredItems: number) => {
+    const KG_PER_ITEM = 0.3;
+    const CO2_PER_KG = 2.5;
+    return (unexpiredItems * KG_PER_ITEM * CO2_PER_KG).toFixed(1);
+  };
+  ```
+
+#### 4. Trend Analysis
+- **Time Frames**: Week/Month/Year toggles
+- **Data Points**:
+  - Items saved from expiration
+  - CO₂ savings over time
+  - Category distribution trends
+- **Implementation**:
+  - Use `react-native-chart-kit` for line/bar charts
+  - Cache historical data locally
+  - Add pull-to-refresh for latest data
+
+#### 5. Performance Considerations
+- **Caching**:
+  - Cache API responses for 1 hour
+  - Use React Query for state management
+  - Implement skeleton loaders
+- **Batch Updates**:
+  - Update stats in background
+  - Debounce rapid filter changes
+  - Virtualize long lists
+
+#### 6. Testing Plan
+1. **Unit Tests**:
+   - Calculation functions
+   - Data transformation logic
+   - Edge cases (empty pantry, all expired, etc.)
+
+2. **Integration Tests**:
+   - API response handling
+   - Component interactions
+   - State updates
+
+3. **Performance Testing**:
+   - Large pantry datasets
+   - Slow network conditions
+   - Memory usage with multiple charts
+
+#### 7. Accessibility
+- Add proper labels for screen readers
+- Ensure sufficient color contrast
+- Support dynamic text sizing
+- Add haptic feedback for interactions
    - Use color coding for different categories
    - Include trend arrows (↑↓) for changes
    - Add sparkline mini-charts where applicable

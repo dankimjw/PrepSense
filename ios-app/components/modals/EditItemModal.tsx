@@ -21,6 +21,7 @@ import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
 import { validateQuantity, formatQuantityInput, getQuantityRules } from '../../constants/quantityRules';
 import { apiClient, ApiError } from '../../services/apiClient';
+import { useToast } from '../../hooks/useToast';
 
 const { width } = Dimensions.get('window');
 
@@ -61,6 +62,7 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const amountInputRef = useRef<TextInput>(null);
+  const { showToast } = useToast();
   
   const [form, setForm] = useState({
     item_name: '',
@@ -120,50 +122,58 @@ export default function EditItemModal({ visible, item, onClose, onUpdate }: Edit
       return;
     }
 
+    // Prepare the updated item data
+    const updatedItem = {
+      ...item,
+      name: form.item_name.trim(),
+      item_name: form.item_name.trim(),
+      quantity_amount: form.quantity_amount,
+      quantity_unit: form.quantity_unit,
+      expected_expiration: form.expected_expiration,
+      category: form.category || 'Other',
+    };
+
+    // Store original item for rollback
+    const originalItem = { ...item };
+
+    // Optimistically update UI and close modal
+    updateItem(item.id, updatedItem);
+    if (onUpdate) {
+      onUpdate(updatedItem);
+    }
+    onClose();
+
+    // Show sync indicator
+    console.log('🔄 Updating item:', item.id, form.item_name);
+
+    // Perform backend update asynchronously
+    const requestBody = {
+      product_name: form.item_name.trim(),
+      quantity: form.quantity_amount,
+      unit_of_measurement: form.quantity_unit,
+      expiration_date: form.expected_expiration,
+      category: form.category || 'Other',
+    };
+
     try {
-      setSaving(true);
-      
-      // Update via API
-      const requestBody = {
-        product_name: form.item_name.trim(),
-        quantity: form.quantity_amount,
-        unit_of_measurement: form.quantity_unit,
-        expiration_date: form.expected_expiration,
-        category: form.category || 'Other',
-      };
-
-      await apiClient.put(`/pantry/items/${item.id}`, requestBody, 6000); // 6 second timeout
-
-      // Update local state
-      const updatedItem = {
-        ...item,
-        name: form.item_name.trim(),
-        item_name: form.item_name.trim(),
-        quantity_amount: form.quantity_amount,
-        quantity_unit: form.quantity_unit,
-        expected_expiration: form.expected_expiration,
-        category: form.category || 'Other',
-      };
-
-      updateItem(item.id, updatedItem);
-      
-      // Call onUpdate callback if provided
-      if (onUpdate) {
-        onUpdate(updatedItem);
-      }
-
-      Alert.alert('Success', 'Item updated successfully', [
-        { text: 'OK', onPress: onClose }
-      ]);
+      await apiClient.put(`/pantry/items/${item.id}`, requestBody, 15000); // Increase timeout to 15s
+      console.log('✅ Item updated successfully:', item.id, form.item_name);
+      showToast('Item updated successfully', 'success');
     } catch (error: any) {
-      console.error('Error updating item:', error);
-      if (error instanceof ApiError && error.isTimeout) {
-        Alert.alert('Timeout', 'Update is taking too long. Please check your connection and try again.');
-      } else {
-        Alert.alert('Error', 'Failed to update item. Please try again.');
+      console.error('❌ Error updating item:', error);
+      
+      // Rollback the optimistic update
+      updateItem(item.id, originalItem);
+      if (onUpdate) {
+        onUpdate(originalItem);
       }
-    } finally {
-      setSaving(false);
+      
+      if (error instanceof ApiError && error.isTimeout) {
+        console.error('⏱️ Update timed out after 15 seconds');
+        showToast('Update timed out. Please check your connection.', 'error');
+      } else {
+        showToast('Failed to update item. Changes reverted.', 'error');
+      }
     }
   };
 

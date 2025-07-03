@@ -14,6 +14,7 @@ type CustomHeaderProps = {
   showChatButton?: boolean;
   showAdminButton?: boolean;
   showDbButton?: boolean;
+  showAIBulkEditButton?: boolean;
   onBackPress?: () => void;
   onRefresh?: () => void;
 };
@@ -24,6 +25,7 @@ export function CustomHeader({
   showChatButton = false, 
   showAdminButton = false,
   showDbButton = false,
+  showAIBulkEditButton = false,
   onBackPress,
   onRefresh
 }: CustomHeaderProps) {
@@ -53,6 +55,7 @@ export function CustomHeader({
   const shouldShowChat = showChatButton !== false;
   const shouldShowAdmin = showAdminButton !== false && isAdmin; // Re-added admin check
   const shouldShowDb = showDbButton !== false;
+  const shouldShowAIBulkEdit = showAIBulkEditButton !== false;
   
   // Cleanup functionality has been moved to the Admin screen
 
@@ -107,10 +110,25 @@ export function CustomHeader({
           {shouldShowChat && (
             <Pressable 
               hitSlop={12} 
-              onPress={() => router.push('/chat')}
+              onPress={() => router.push('/chat-modal')}
               style={styles.iconButton}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#1b6b45" />
+            </Pressable>
+          )}
+          {shouldShowAIBulkEdit && (
+            <Pressable 
+              hitSlop={12} 
+              onPress={() => router.push({
+                pathname: '/(tabs)',
+                params: { openAIBulkEdit: 'true' }
+              })}
+              style={styles.iconButton}
+            >
+              <Image 
+                source={require('../../assets/images/AiBulkEdit2.png')} 
+                style={styles.aiIcon}
+              />
             </Pressable>
           )}
           {shouldShowAdmin && (
@@ -208,6 +226,10 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     paddingHorizontal: 4,
+  },
+  aiIcon: {
+    width: 26,
+    height: 26,
   },
   adminMenuContainer: {
     position: 'absolute',
