@@ -574,47 +574,31 @@ export default function RecipeDetailsScreen() {
               </View>
 
               {recipe.missing_ingredients.length > 0 && (
-                <View style={styles.shoppingListActions}>
-                  <TouchableOpacity 
-                    style={styles.addToListButton}
-                    onPress={() => handleAddToShoppingList()}
-                  >
-                    <Ionicons name="cart" size={20} color="#297A56" />
-                    <Text style={styles.addToListText}>Add All Missing</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity 
-                    style={styles.selectItemsButton}
-                    onPress={() => router.push({
-                      pathname: '/select-ingredients',
-                      params: { 
-                        ingredients: JSON.stringify(recipe.missing_ingredients),
-                        recipeName: recipe.name
-                      }
-                    })}
-                  >
-                    <Ionicons name="list" size={16} color="#297A56" />
-                    <Text style={styles.selectItemsText}>Select</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity 
+                  style={styles.addToListButton}
+                  onPress={() => router.push({
+                    pathname: '/select-ingredients',
+                    params: { 
+                      ingredients: JSON.stringify(recipe.missing_ingredients),
+                      recipeName: recipe.name
+                    }
+                  })}
+                >
+                  <Ionicons name="cart" size={20} color="#297A56" />
+                  <Text style={styles.addToListText}>Add to Shopping List</Text>
+                </TouchableOpacity>
               )}
             </>
           ) : (
             /* All ingredients are missing */
             <View style={styles.allMissingContainer}>
-              <Ionicons name="alert-circle" size={48} color="#F59E0B" />
+              <Ionicons name="alert-circle" size={48} color="#297A56" />
               <Text style={styles.allMissingTitle}>No ingredients available</Text>
               <Text style={styles.allMissingSubtitle}>
                 You'll need to shop for all {recipe.ingredients.length} ingredients first
               </Text>
               <TouchableOpacity 
                 style={styles.addAllToListButton}
-                onPress={() => handleAddToShoppingList()}
-              >
-                <Ionicons name="cart" size={20} color="#fff" />
-                <Text style={styles.addAllToListText}>Add All to Shopping List</Text>
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.selectIndividualButton}
                 onPress={() => router.push({
                   pathname: '/select-ingredients',
                   params: { 
@@ -623,8 +607,8 @@ export default function RecipeDetailsScreen() {
                   }
                 })}
               >
-                <Ionicons name="list" size={20} color="#297A56" />
-                <Text style={styles.selectIndividualText}>Select Individual Items</Text>
+                <Ionicons name="cart" size={20} color="#fff" />
+                <Text style={styles.addAllToListText}>Add to Shopping List</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -846,13 +830,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
-  shoppingListActions: {
-    flexDirection: 'row',
-    gap: 12,
-    marginTop: 12,
-  },
   addToListButton: {
-    flex: 1,
     flexDirection: 'row',
     backgroundColor: '#f0f7f4',
     paddingVertical: 16,
@@ -862,44 +840,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#297A56',
-    gap: 8,
-  },
-  addToListText: {
-    color: '#297A56',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  selectItemsButton: {
-    flexDirection: 'row',
-    backgroundColor: '#f0f7f4',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#297A56',
-    gap: 6,
-  },
-  selectItemsText: {
-    color: '#297A56',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  selectIndividualButton: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#297A56',
     marginTop: 12,
     gap: 8,
   },
-  selectIndividualText: {
+  addToListText: {
     color: '#297A56',
     fontSize: 16,
     fontWeight: '600',
@@ -911,29 +855,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 32,
     paddingVertical: 40,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#f0f7f4',
     marginTop: 20,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F59E0B',
+    borderColor: '#297A56',
   },
   allMissingTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: '#92400E',
+    color: '#333',
     marginBottom: 8,
     marginTop: 16,
   },
   allMissingSubtitle: {
     fontSize: 16,
-    color: '#92400E',
+    color: '#666',
     textAlign: 'center',
     marginBottom: 24,
     lineHeight: 22,
   },
   addAllToListButton: {
     flexDirection: 'row',
-    backgroundColor: '#F59E0B',
+    backgroundColor: '#297A56',
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 12,
