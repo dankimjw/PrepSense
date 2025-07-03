@@ -87,6 +87,31 @@ export default function RecipesScreen() {
     { id: 'gluten-free', label: 'Gluten-Free', icon: '🌾' },
     { id: 'dairy-free', label: 'Dairy-Free', icon: '🥛' },
     { id: 'low-carb', label: 'Low Carb', icon: '🥖' },
+    { id: 'keto', label: 'Keto', icon: '🥑' },
+    { id: 'paleo', label: 'Paleo', icon: '🍖' },
+    { id: 'mediterranean', label: 'Mediterranean', icon: '🫒' },
+  ];
+
+  const cuisineFilters = [
+    { id: 'italian', label: 'Italian', icon: '🍝' },
+    { id: 'mexican', label: 'Mexican', icon: '🌮' },
+    { id: 'asian', label: 'Asian', icon: '🥢' },
+    { id: 'american', label: 'American', icon: '🍔' },
+    { id: 'indian', label: 'Indian', icon: '🍛' },
+    { id: 'french', label: 'French', icon: '🥐' },
+    { id: 'japanese', label: 'Japanese', icon: '🍱' },
+    { id: 'thai', label: 'Thai', icon: '🍜' },
+  ];
+
+  const mealTypeFilters = [
+    { id: 'breakfast', label: 'Breakfast', icon: '🍳' },
+    { id: 'lunch', label: 'Lunch', icon: '🥪' },
+    { id: 'dinner', label: 'Dinner', icon: '🍽️' },
+    { id: 'snack', label: 'Snack', icon: '🍿' },
+    { id: 'dessert', label: 'Dessert', icon: '🍰' },
+    { id: 'appetizer', label: 'Appetizer', icon: '🥟' },
+    { id: 'soup', label: 'Soup', icon: '🍲' },
+    { id: 'salad', label: 'Salad', icon: '🥗' },
   ];
 
   const sortOptions = [
@@ -676,14 +701,10 @@ export default function RecipesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.filterContainer}
-        contentContainerStyle={styles.filterContent}
-      >
+      {/* Filter Grid */}
+      <View style={styles.filterContainer}>
         {activeTab === 'my-recipes' ? (
-          <>
+          <View style={styles.filterGrid}>
             <TouchableOpacity
               style={[
                 styles.filterButton,
@@ -744,28 +765,107 @@ export default function RecipesScreen() {
                 Disliked
               </Text>
             </TouchableOpacity>
-          </>
+          </View>
         ) : activeTab === 'discover' ? (
-          dietaryFilters.map(filter => (
-            <TouchableOpacity
-              key={filter.id}
-              style={[
-                styles.filterButton,
-                selectedFilters.includes(filter.id) && styles.filterButtonActive
-              ]}
-              onPress={() => toggleFilter(filter.id)}
-            >
-              <Text style={styles.filterIcon}>{filter.icon}</Text>
-              <Text style={[
-                styles.filterText,
-                selectedFilters.includes(filter.id) && styles.filterTextActive
-              ]}>
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))
+          <>
+            {/* Dietary Filters Row */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Dietary</Text>
+              <View style={styles.filterGrid}>
+                {dietaryFilters.map(filter => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterButton,
+                      selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    ]}
+                    onPress={() => toggleFilter(filter.id)}
+                  >
+                    <Text style={styles.filterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.filterText,
+                      selectedFilters.includes(filter.id) && styles.filterTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Cuisine Filters Row */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Cuisine</Text>
+              <View style={styles.filterGrid}>
+                {cuisineFilters.map(filter => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterButton,
+                      selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    ]}
+                    onPress={() => toggleFilter(filter.id)}
+                  >
+                    <Text style={styles.filterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.filterText,
+                      selectedFilters.includes(filter.id) && styles.filterTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Meal Type Filters Row */}
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Meal Type</Text>
+              <View style={styles.filterGrid}>
+                {mealTypeFilters.map(filter => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterButton,
+                      selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    ]}
+                    onPress={() => toggleFilter(filter.id)}
+                  >
+                    <Text style={styles.filterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.filterText,
+                      selectedFilters.includes(filter.id) && styles.filterTextActive
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          </>
+        ) : activeTab === 'pantry' ? (
+          <View style={styles.filterGrid}>
+            {mealTypeFilters.slice(0, 4).map(filter => (
+              <TouchableOpacity
+                key={filter.id}
+                style={[
+                  styles.filterButton,
+                  selectedFilters.includes(filter.id) && styles.filterButtonActive
+                ]}
+                onPress={() => toggleFilter(filter.id)}
+              >
+                <Text style={styles.filterIcon}>{filter.icon}</Text>
+                <Text style={[
+                  styles.filterText,
+                  selectedFilters.includes(filter.id) && styles.filterTextActive
+                ]}>
+                  {filter.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         ) : null}
-      </ScrollView>
+      </View>
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
@@ -965,23 +1065,38 @@ const styles = StyleSheet.create({
   },
   filterContainer: {
     backgroundColor: '#fff',
-    maxHeight: 60,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   filterContent: {
     paddingHorizontal: 16,
     paddingVertical: 10,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  filterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 8,
   },
   filterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
-    marginRight: 8,
+    minWidth: 90,
+    justifyContent: 'center',
   },
   filterButtonActive: {
     backgroundColor: '#E6F7F0',

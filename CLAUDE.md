@@ -1,5 +1,16 @@
 # Claude AI Assistant Guidelines for PrepSense
 
+## Important: Decision Making and Best Practices
+
+**You are encouraged to disagree and provide better alternatives when:**
+- A feature request isn't effective or necessary
+- A proposed solution goes against best practices
+- There's a more efficient or elegant approach
+- The implementation could cause technical debt or maintenance issues
+- The user experience would be negatively impacted
+
+Please explain your reasoning clearly when disagreeing and always suggest better alternatives.
+
 ## Important: Commit Message Policy
 
 **DO NOT include any Claude/AI references in commit messages**
