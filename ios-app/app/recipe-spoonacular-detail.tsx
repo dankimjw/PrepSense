@@ -68,6 +68,7 @@ export default function RecipeSpoonacularDetail() {
   const [availableIngredients, setAvailableIngredients] = useState<Set<number>>(new Set());
   const [missingIngredients, setMissingIngredients] = useState<Set<number>>(new Set());
   const [pantryItems, setPantryItems] = useState<any[]>([]);
+  const [isSaved, setIsSaved] = useState(false);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -345,6 +346,42 @@ export default function RecipeSpoonacularDetail() {
       .replace(/&quot;/g, '"');
   };
 
+  const handleSaveRecipe = async () => {
+    if (!recipe) return;
+    
+    try {
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          recipe_title: recipe.title,
+          recipe_image: recipe.image,
+          recipe_data: recipe,
+          source: 'spoonacular',
+          rating: 'neutral',
+        }),
+      });
+
+      if (response.ok) {
+        setIsSaved(true);
+        Alert.alert('Success', 'Recipe saved to your collection!');
+      } else {
+        const error = await response.json();
+        if (error.detail?.includes('already saved')) {
+          setIsSaved(true);
+        } else {
+          Alert.alert('Error', 'Failed to save recipe. Please try again.');
+        }
+      }
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -373,6 +410,16 @@ export default function RecipeSpoonacularDetail() {
           onPress={() => router.back()}
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.bookmarkButton}
+          onPress={handleSaveRecipe}
+        >
+          <Ionicons 
+            name={isSaved ? "bookmark" : "bookmark-outline"} 
+            size={24} 
+            color="#fff" 
+          />
         </TouchableOpacity>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeTitle}>{recipe.title}</Text>
@@ -644,6 +691,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 10,
     left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    top: 10,
+    right: 16,
     width: 40,
     height: 40,
     borderRadius: 20,
