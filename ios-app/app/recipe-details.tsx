@@ -185,7 +185,12 @@ export default function RecipeDetailsScreen() {
   };
 
   const handleAddToShoppingList = async () => {
-    if (recipe.missing_ingredients.length === 0) {
+    // Use missing_ingredients if available, otherwise use all ingredients if none are available
+    const ingredientsToAdd = recipe.missing_ingredients.length > 0 
+      ? recipe.missing_ingredients 
+      : (recipe.available_ingredients.length === 0 ? recipe.ingredients : []);
+    
+    if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
       return;
     }
@@ -201,7 +206,7 @@ export default function RecipeDetailsScreen() {
       }
 
       // Convert missing ingredients to shopping list items
-      const newItems = recipe.missing_ingredients.map(ingredient => {
+      const newItems = ingredientsToAdd.map(ingredient => {
         // Try to parse quantity from ingredient string
         const parsed = parseIngredientsList([ingredient])[0];
         
@@ -222,7 +227,7 @@ export default function RecipeDetailsScreen() {
 
       Alert.alert(
         'Added to Shopping List',
-        `${recipe.missing_ingredients.length} item${recipe.missing_ingredients.length > 1 ? 's' : ''} added to your shopping list.`,
+        `${ingredientsToAdd.length} item${ingredientsToAdd.length > 1 ? 's' : ''} added to your shopping list.`,
         [
           { 
             text: 'View List', 
