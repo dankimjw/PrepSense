@@ -373,6 +373,32 @@ export default function ChatScreen() {
         </KeyboardAvoidingView>
       </View>
       </View>
+      
+      {/* Simple Floating Lightbulb Button */}
+      <TouchableOpacity
+        style={{
+          position: 'absolute',
+          bottom: 100,
+          right: 20,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: '#F59E0B',
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+          elevation: 5,
+        }}
+        onPress={() => {
+          console.log('Lightbulb pressed!');
+          Alert.alert('Lightbulb', 'Button was pressed!');
+        }}
+      >
+        <Ionicons name="bulb" size={28} color="#fff" />
+      </TouchableOpacity>
     </>
   );
 }
