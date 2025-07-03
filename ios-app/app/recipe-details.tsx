@@ -185,7 +185,12 @@ export default function RecipeDetailsScreen() {
   };
 
   const handleAddToShoppingList = async () => {
-    if (recipe.missing_ingredients.length === 0) {
+    // Use missing_ingredients if available, otherwise use all ingredients if none are available
+    const ingredientsToAdd = recipe.missing_ingredients.length > 0 
+      ? recipe.missing_ingredients 
+      : (recipe.available_ingredients.length === 0 ? recipe.ingredients : []);
+    
+    if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
       return;
     }
@@ -201,14 +206,34 @@ export default function RecipeDetailsScreen() {
       }
 
       // Convert missing ingredients to shopping list items
-      const newItems = recipe.missing_ingredients.map(ingredient => {
+      const newItems = ingredientsToAdd.map((ingredient, index) => {
+        // Clean up the ingredient string first
+        const cleanedIngredient = ingredient.trim();
+        
         // Try to parse quantity from ingredient string
-        const parsed = parseIngredientsList([ingredient])[0];
+        const parsed = parseIngredientsList([cleanedIngredient])[0];
+        
+        // Use a cleaner approach for the shopping list
+        let displayName = '';
+        let displayQuantity = '';
+        
+        if (parsed && parsed.name && parsed.name.trim()) {
+          // If we successfully parsed the ingredient
+          displayName = parsed.name;
+          if (parsed.quantity && parsed.unit) {
+            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity) {
+            displayQuantity = `${parsed.quantity}`;
+          }
+        } else {
+          // If parsing failed, use the original string
+          displayName = cleanedIngredient;
+        }
         
         return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: parsed?.name || ingredient,
-          quantity: parsed?.quantity ? `${parsed.quantity} ${parsed.unit || ''}`.trim() : undefined,
+          id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          name: displayName,
+          quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
         };
@@ -222,7 +247,7 @@ export default function RecipeDetailsScreen() {
 
       Alert.alert(
         'Added to Shopping List',
-        `${recipe.missing_ingredients.length} item${recipe.missing_ingredients.length > 1 ? 's' : ''} added to your shopping list.`,
+        `${ingredientsToAdd.length} item${ingredientsToAdd.length > 1 ? 's' : ''} added to your shopping list.`,
         [
           { 
             text: 'View List', 
@@ -525,33 +550,68 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Action Buttons */}
-          <View style={styles.actionButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.startCookingButton,
-                recipe.missing_ingredients.length > 0 && styles.startCookingButtonDisabled
-              ]}
-              onPress={() => handleStartCooking()}
-            >
-              <Ionicons name="play" size={20} color="#fff" />
-              <Text style={styles.startCookingText}>Start Cooking</Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.quickCompleteButton}
-              onPress={() => handleQuickComplete()}
-            >
-              <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
-              <Text style={styles.quickCompleteText}>Quick Complete</Text>
-            </TouchableOpacity>
-          </View>
+          {recipe.available_ingredients.length > 0 ? (
+            <>
+              <View style={styles.actionButtons}>
+                <TouchableOpacity 
+                  style={[
+                    styles.startCookingButton,
+                    recipe.missing_ingredients.length > 0 && styles.startCookingButtonDisabled
+                  ]}
+                  onPress={() => handleStartCooking()}
+                >
+                  <Ionicons name="play" size={20} color="#fff" />
+                  <Text style={styles.startCookingText}>Start Cooking</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  style={styles.quickCompleteButton}
+                  onPress={() => handleQuickComplete()}
+                >
+                  <Ionicons name="checkmark-circle-outline" size={20} color="#297A56" />
+                  <Text style={styles.quickCompleteText}>Quick Complete</Text>
+                </TouchableOpacity>
+              </View>
 
-          <TouchableOpacity 
-            style={styles.addToListButton}
-            onPress={() => handleAddToShoppingList()}
-          >
-            <Text style={styles.addToListText}>+ Shopping List</Text>
-          </TouchableOpacity>
+              {recipe.missing_ingredients.length > 0 && (
+                <TouchableOpacity 
+                  style={styles.addToListButton}
+                  onPress={() => router.push({
+                    pathname: '/select-ingredients',
+                    params: { 
+                      ingredients: JSON.stringify(recipe.missing_ingredients),
+                      recipeName: recipe.name
+                    }
+                  })}
+                >
+                  <Ionicons name="cart" size={20} color="#297A56" />
+                  <Text style={styles.addToListText}>Add to Shopping List</Text>
+                </TouchableOpacity>
+              )}
+            </>
+          ) : (
+            /* All ingredients are missing */
+            <View style={styles.allMissingContainer}>
+              <Ionicons name="alert-circle" size={48} color="#297A56" />
+              <Text style={styles.allMissingTitle}>No ingredients available</Text>
+              <Text style={styles.allMissingSubtitle}>
+                You'll need to shop for all {recipe.ingredients.length} ingredients first
+              </Text>
+              <TouchableOpacity 
+                style={styles.addAllToListButton}
+                onPress={() => router.push({
+                  pathname: '/select-ingredients',
+                  params: { 
+                    ingredients: JSON.stringify(recipe.ingredients),
+                    recipeName: recipe.name
+                  }
+                })}
+              >
+                <Ionicons name="cart" size={20} color="#fff" />
+                <Text style={styles.addAllToListText}>Add to Shopping List</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </View>
@@ -766,6 +826,66 @@ const styles = StyleSheet.create({
   },
   quickCompleteText: {
     color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  addToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#f0f7f4',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#297A56',
+    marginTop: 12,
+    gap: 8,
+  },
+  addToListText: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  startCookingButtonDisabled: {
+    backgroundColor: '#A0A0A0',
+  },
+  allMissingContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 40,
+    backgroundColor: '#f0f7f4',
+    marginTop: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  allMissingTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+    marginTop: 16,
+  },
+  allMissingSubtitle: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  addAllToListButton: {
+    flexDirection: 'row',
+    backgroundColor: '#297A56',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addAllToListText: {
+    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,

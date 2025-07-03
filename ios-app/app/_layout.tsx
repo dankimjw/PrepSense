@@ -8,6 +8,7 @@ import { ItemsProvider } from '../context/ItemsContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
 import { ConfigurationError } from './components/ConfigurationError';
+import { ToastProvider } from '../hooks/useToast';
 
 const styles = StyleSheet.create({
   container: {
@@ -115,8 +116,9 @@ function AppContent() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <ItemsProvider>
-        <View style={styles.container}>
+      <ToastProvider>
+        <ItemsProvider>
+          <View style={styles.container}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen 
@@ -234,6 +236,14 @@ function AppContent() {
               }} 
             />
             <Stack.Screen 
+              name="chat-modal" 
+              options={{ 
+                headerShown: false,
+                presentation: 'modal',
+                animation: 'slide_from_bottom',
+              }} 
+            />
+            <Stack.Screen 
               name="recipe-spoonacular-detail" 
               options={{ 
                 header: ({ navigation }) => (
@@ -248,7 +258,8 @@ function AppContent() {
             />
           </Stack>
         </View>
-      </ItemsProvider>
+        </ItemsProvider>
+      </ToastProvider>
     </ThemeProvider>
   );
 }
