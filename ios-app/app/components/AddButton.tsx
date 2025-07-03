@@ -1,8 +1,8 @@
 // app/components/AddButton.tsx - Part of the PrepSense mobile app
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet, Dimensions, View, Modal, Text, TouchableOpacity } from 'react-native';
+import { Pressable, StyleSheet, Dimensions, View, Modal, Text, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 // Get screen width to calculate tab positions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -10,12 +10,26 @@ const TAB_BAR_HEIGHT = 72; // From tab bar styles
 const FAB_SIZE = 48; // Reduced from 56
 const FAB_MARGIN = 16;
 
+const suggestedMessages = [
+  "What can I make for dinner?",
+  "What can I make with only ingredients I have?",
+  "What's good for breakfast?",
+  "Show me healthy recipes",
+];
+
 export function AddButton() {
   const router = useRouter();
   const pathname = usePathname();
   const [modalVisible, setModalVisible] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnims = useRef(
+    suggestedMessages.map(() => new Animated.Value(-50))
+  ).current;
 
-  // Don't render the add button on certain screens
+  // Don't render the buttons on certain screens
   if (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin') {
     return null;
   }
@@ -29,9 +43,102 @@ export function AddButton() {
     setModalVisible(false);
     router.push('/add-item');
   };
+  
+  const toggleSuggestions = () => {
+    const newState = !showSuggestions;
+    setShowSuggestions(newState);
+    
+    if (newState) {
+      // Animate in
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        ...slideAnims.map((anim, index) =>
+          Animated.timing(anim, {
+            toValue: 0,
+            duration: 300,
+            delay: index * 50,
+            useNativeDriver: true,
+          })
+        ),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        ...slideAnims.map((anim) =>
+          Animated.timing(anim, {
+            toValue: -50,
+            duration: 200,
+            useNativeDriver: true,
+          })
+        ),
+      ]).start();
+    }
+  };
+  
+  const handleSuggestionPress = (suggestion: string) => {
+    setShowSuggestions(false);
+    // Navigate to chat with the suggestion
+    router.push({
+      pathname: '/(tabs)/chat',
+      params: { suggestion }
+    });
+  };
 
   return (
     <>
+      {/* Lightbulb Button - Always visible */}
+      <TouchableOpacity
+        style={styles.lightbulbFab}
+        onPress={toggleSuggestions}
+        activeOpacity={0.8}
+      >
+        <Ionicons 
+          name={showSuggestions ? "bulb" : "bulb-outline"} 
+          size={24} 
+          color="#fff" 
+        />
+      </TouchableOpacity>
+      
+      {/* Floating Suggestions */}
+      {showSuggestions && (
+        <Animated.View 
+          style={[
+            styles.suggestionsContainer,
+            { opacity: fadeAnim }
+          ]}
+        >
+          {suggestedMessages.map((suggestion, index) => (
+            <Animated.View
+              key={index}
+              style={[
+                styles.suggestionWrapper,
+                {
+                  transform: [{ translateX: slideAnims[index] }]
+                }
+              ]}
+            >
+              <TouchableOpacity
+                style={styles.suggestionBubble}
+                onPress={() => handleSuggestionPress(suggestion)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.suggestionText}>{suggestion}</Text>
+              </TouchableOpacity>
+            </Animated.View>
+          ))}
+        </Animated.View>
+      )}
+      
+      {/* Add Button */}
       <Pressable
         onPress={() => setModalVisible(true)}
         style={styles.fab}>
@@ -111,5 +218,50 @@ const styles = StyleSheet.create({
     color: '#297A56',
     marginLeft: 12,
     fontWeight: '600',
+  },
+  lightbulbFab: {
+    position: 'absolute',
+    bottom: TAB_BAR_HEIGHT + FAB_SIZE + FAB_MARGIN * 2 + 8,
+    right: FAB_MARGIN,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: FAB_SIZE / 2,
+    backgroundColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 8,
+    shadowColor: '#F59E0B',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    zIndex: 10,
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    bottom: TAB_BAR_HEIGHT + FAB_SIZE + FAB_MARGIN * 2,
+    right: FAB_SIZE + FAB_MARGIN + 8,
+    zIndex: 9,
+  },
+  suggestionWrapper: {
+    marginBottom: 8,
+  },
+  suggestionBubble: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderWidth: 1,
+    borderColor: '#297A56',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: -2, height: 2 },
+    elevation: 4,
+    maxWidth: 200,
+  },
+  suggestionText: {
+    fontSize: 14,
+    color: '#297A56',
+    fontWeight: '500',
   },
 });
