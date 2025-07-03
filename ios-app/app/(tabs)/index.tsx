@@ -349,10 +349,7 @@ const IndexScreen: React.FC = () => {
         onExpirationPress={() => {
           if (selectedItemForConsumption) {
             setSelectedItemForExpiration(selectedItemForConsumption);
-            setConsumptionModalVisible(false); // Close consumption modal first
-            setTimeout(() => {
-              setExpirationModalVisible(true); // Then open expiration modal
-            }, 100); // Reduced delay for snappier transition
+            setExpirationModalVisible(true); // Open expiration modal on top
           }
         }}
       />
@@ -377,24 +374,20 @@ const IndexScreen: React.FC = () => {
         item={selectedItemForExpiration}
         onClose={() => {
           setExpirationModalVisible(false);
-          // If we came from consumption modal, reopen it
-          if (selectedItemForConsumption) {
-            setTimeout(() => {
-              setConsumptionModalVisible(true);
-            }, 100);
-          }
           setSelectedItemForExpiration(null);
         }}
-        onUpdate={() => {
-          fetchItems();
+        onUpdate={async () => {
+          await fetchItems();
           setExpirationModalVisible(false);
-          // If we came from consumption modal, reopen it after update
-          if (selectedItemForConsumption) {
-            setTimeout(() => {
-              setConsumptionModalVisible(true);
-            }, 100);
-          }
           setSelectedItemForExpiration(null);
+          // Update the selected item for consumption to reflect new expiration date
+          if (selectedItemForConsumption) {
+            const updatedItems = await fetchItems();
+            const updatedItem = recentItems.find(item => item.id === selectedItemForConsumption.id);
+            if (updatedItem) {
+              setSelectedItemForConsumption(updatedItem);
+            }
+          }
         }}
       />
     </View>
