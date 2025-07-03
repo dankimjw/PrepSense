@@ -34,6 +34,8 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
   const { updateItem } = useItems();
   const animatedValue = React.useRef(new Animated.Value(50)).current;
 
+  console.log('ConsumptionModal rendered - visible:', visible, 'item:', item?.name, 'onExpirationPress:', !!onExpirationPress);
+
   // For single unit items (quantity = 1), we still allow partial consumption
   const isSingleUnit = item?.quantity_amount === 1;
   const quickPercentages = [25, 50, 75, 100];
@@ -138,6 +140,7 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
           <TouchableOpacity 
             style={styles.expirationSection} 
             onPress={() => {
+              console.log('Expiration section pressed, onExpirationPress exists:', !!onExpirationPress);
               if (onExpirationPress) {
                 onExpirationPress();
               }
