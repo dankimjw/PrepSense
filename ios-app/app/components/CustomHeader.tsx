@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
   },
   leftContainer: {
-    width: 60,
+    width: 120,
     alignItems: 'flex-start',
   },
   titleContainer: {
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#1b6b45',
   },
