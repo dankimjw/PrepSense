@@ -704,7 +704,7 @@ export default function RecipesScreen() {
       {/* Filter Grid */}
       <View style={styles.filterContainer}>
         {activeTab === 'my-recipes' ? (
-          <View style={styles.filterGrid}>
+          <View style={[styles.filterGrid, { paddingHorizontal: 16, marginHorizontal: 0 }]}>
             <TouchableOpacity
               style={[
                 styles.filterButton,
@@ -769,7 +769,7 @@ export default function RecipesScreen() {
         ) : activeTab === 'discover' ? (
           <>
             {/* Dietary Filters Row */}
-            <View style={styles.filterSection}>
+            <View style={[styles.filterSection, { paddingHorizontal: 16 }]}>
               <Text style={styles.filterSectionTitle}>Dietary</Text>
               <View style={styles.filterGrid}>
                 {dietaryFilters.map(filter => (
@@ -794,7 +794,7 @@ export default function RecipesScreen() {
             </View>
 
             {/* Cuisine Filters Row */}
-            <View style={styles.filterSection}>
+            <View style={[styles.filterSection, { paddingHorizontal: 16 }]}>
               <Text style={styles.filterSectionTitle}>Cuisine</Text>
               <View style={styles.filterGrid}>
                 {cuisineFilters.map(filter => (
@@ -819,7 +819,7 @@ export default function RecipesScreen() {
             </View>
 
             {/* Meal Type Filters Row */}
-            <View style={styles.filterSection}>
+            <View style={[styles.filterSection, { paddingHorizontal: 16 }]}>
               <Text style={styles.filterSectionTitle}>Meal Type</Text>
               <View style={styles.filterGrid}>
                 {mealTypeFilters.map(filter => (
@@ -844,7 +844,7 @@ export default function RecipesScreen() {
             </View>
           </>
         ) : activeTab === 'pantry' ? (
-          <View style={styles.filterGrid}>
+          <View style={[styles.filterGrid, { paddingHorizontal: 16, marginHorizontal: 0 }]}>
             {mealTypeFilters.slice(0, 4).map(filter => (
               <TouchableOpacity
                 key={filter.id}
