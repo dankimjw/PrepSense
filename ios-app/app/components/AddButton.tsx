@@ -15,6 +15,10 @@ const suggestedMessages = [
   "What can I make with only ingredients I have?",
   "What's good for breakfast?",
   "Show me healthy recipes",
+  "Quick meals under 20 minutes",
+  "What's expiring soon?",
+  "Low calorie recipes",
+  "High protein meals",
 ];
 
 export function AddButton() {
@@ -60,7 +64,7 @@ export function AddButton() {
           Animated.timing(anim, {
             toValue: 0,
             duration: 300,
-            delay: index * 50,
+            delay: index * 30, // Reduced delay for more items
             useNativeDriver: true,
           })
         ),
@@ -238,29 +242,33 @@ const styles = StyleSheet.create({
   },
   suggestionsContainer: {
     position: 'absolute',
-    bottom: TAB_BAR_HEIGHT + FAB_SIZE + FAB_MARGIN * 2,
+    bottom: TAB_BAR_HEIGHT + FAB_MARGIN,
     right: FAB_SIZE + FAB_MARGIN + 8,
     zIndex: 9,
+    width: 240,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
   },
   suggestionWrapper: {
-    marginBottom: 8,
+    marginBottom: 6,
+    marginRight: 6,
   },
   suggestionBubble: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderWidth: 1,
     borderColor: '#297A56',
     shadowColor: '#000',
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    shadowOffset: { width: -2, height: 2 },
-    elevation: 4,
-    maxWidth: 200,
+    shadowRadius: 4,
+    shadowOffset: { width: -1, height: 1 },
+    elevation: 3,
   },
   suggestionText: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#297A56',
     fontWeight: '500',
   },
