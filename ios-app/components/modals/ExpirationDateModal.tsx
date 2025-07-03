@@ -8,6 +8,7 @@ import {
   TouchableWithoutFeedback,
   Platform,
   Alert,
+  Animated,
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -105,7 +106,7 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="fade"
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
@@ -229,14 +230,17 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   modalContainer: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingBottom: 40,
-    maxHeight: '90%',
+    borderRadius: 20,
+    paddingBottom: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '85%',
   },
   handle: {
     width: 40,
