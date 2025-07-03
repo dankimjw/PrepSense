@@ -117,6 +117,7 @@ const IndexScreen: React.FC = () => {
     }, [isLoading, isInitialized, fetchItems])
   );
 
+
   // Pull to refresh handler
   const onRefresh = useCallback(async () => {
     setIsRefreshing(true);
@@ -146,7 +147,6 @@ const IndexScreen: React.FC = () => {
 
   // Handle item press - now opens consumption modal directly
   const handleItemPress = (item: PantryItemData) => {
-    console.log('handleItemPress called with item:', item.name);
     setSelectedItemForConsumption(item);
     setConsumptionModalVisible(true);
   };
@@ -338,20 +338,23 @@ const IndexScreen: React.FC = () => {
       </ScrollView>
 
       {/* Consumption Modal */}
-      {consumptionModalVisible && selectedItemForConsumption && (
-        <ConsumptionModal
-          visible={true}
-          item={selectedItemForConsumption}
-          onClose={() => {
-            setConsumptionModalVisible(false);
-            setSelectedItemForConsumption(null);
-          }}
-          onExpirationPress={() => {
+      <ConsumptionModal
+        visible={consumptionModalVisible}
+        item={selectedItemForConsumption}
+        onClose={() => {
+          setConsumptionModalVisible(false);
+          setSelectedItemForConsumption(null);
+        }}
+        onExpirationPress={() => {
+          if (selectedItemForConsumption) {
             setSelectedItemForExpiration(selectedItemForConsumption);
-            setExpirationModalVisible(true);
-          }}
-        />
-      )}
+            setConsumptionModalVisible(false); // Close consumption modal first
+            setTimeout(() => {
+              setExpirationModalVisible(true); // Then open expiration modal
+            }, 300);
+          }
+        }}
+      />
 
       {/* Action Sheet */}
       <PantryItemActionSheet
@@ -368,20 +371,31 @@ const IndexScreen: React.FC = () => {
       />
 
       {/* Expiration Date Modal */}
-      {expirationModalVisible && selectedItemForExpiration && (
-        <ExpirationDateModal
-          visible={true}
-          item={selectedItemForExpiration}
-          onClose={() => {
-            setExpirationModalVisible(false);
-            setSelectedItemForExpiration(null);
-          }}
-          onUpdate={() => {
-            // The update is handled in the modal, just close and refresh
-            fetchItems();
-          }}
-        />
-      )}
+      <ExpirationDateModal
+        visible={expirationModalVisible}
+        item={selectedItemForExpiration}
+        onClose={() => {
+          setExpirationModalVisible(false);
+          setSelectedItemForExpiration(null);
+          // Reopen consumption modal if we came from it
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+        onUpdate={() => {
+          fetchItems();
+          setExpirationModalVisible(false);
+          setSelectedItemForExpiration(null);
+          // Reopen consumption modal after update
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+      />
     </View>
   );
 };
