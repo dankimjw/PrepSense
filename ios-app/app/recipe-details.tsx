@@ -206,14 +206,34 @@ export default function RecipeDetailsScreen() {
       }
 
       // Convert missing ingredients to shopping list items
-      const newItems = ingredientsToAdd.map(ingredient => {
+      const newItems = ingredientsToAdd.map((ingredient, index) => {
+        // Clean up the ingredient string first
+        const cleanedIngredient = ingredient.trim();
+        
         // Try to parse quantity from ingredient string
-        const parsed = parseIngredientsList([ingredient])[0];
+        const parsed = parseIngredientsList([cleanedIngredient])[0];
+        
+        // Use a cleaner approach for the shopping list
+        let displayName = '';
+        let displayQuantity = '';
+        
+        if (parsed && parsed.name && parsed.name.trim()) {
+          // If we successfully parsed the ingredient
+          displayName = parsed.name;
+          if (parsed.quantity && parsed.unit) {
+            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity) {
+            displayQuantity = `${parsed.quantity}`;
+          }
+        } else {
+          // If parsing failed, use the original string
+          displayName = cleanedIngredient;
+        }
         
         return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: parsed?.name || ingredient,
-          quantity: parsed?.quantity ? `${parsed.quantity} ${parsed.unit || ''}`.trim() : undefined,
+          id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          name: displayName,
+          quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
         };
