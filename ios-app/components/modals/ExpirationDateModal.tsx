@@ -106,7 +106,7 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType="slide"
       onRequestClose={onClose}
     >
       <TouchableWithoutFeedback onPress={onClose}>
@@ -230,17 +230,15 @@ const styles = StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    justifyContent: 'flex-end',
   },
   modalContainer: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    paddingBottom: 20,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 40,
     width: '100%',
-    maxWidth: 400,
-    maxHeight: '85%',
+    maxHeight: '90%',
   },
   handle: {
     width: 40,
