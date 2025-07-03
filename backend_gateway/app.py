@@ -74,6 +74,10 @@ app.include_router(recipe_consumption_router, prefix=f"{settings.API_V1_STR}", t
 from backend_gateway.routers.user_recipes_router import router as user_recipes_router
 app.include_router(user_recipes_router, prefix=f"{settings.API_V1_STR}", tags=["User Recipes"])
 
+# Import shopping list router
+from backend_gateway.routers.shopping_list_router import router as shopping_list_router
+app.include_router(shopping_list_router, prefix=f"{settings.API_V1_STR}", tags=["Shopping List"])
+
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router
 # app.include_router(recipe_image_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Images"])
@@ -91,8 +95,21 @@ async def startup_event():
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
-    """Perform a health check."""
-    return {"status": "healthy"}
+    """Perform a health check and return environment status."""
+    env_status = {
+        "status": "healthy",
+        "environment": {
+            "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "google_cloud_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
+        }
+    }
+    
+    # Check if Google Cloud credentials file exists
+    gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    if gcp_path:
+        env_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
+    
+    return env_status
 
 # To run (from the directory containing the PrepSense folder, or if PrepSense is the root):
 # If PrepSense is the root directory: uvicorn app:app --reload
