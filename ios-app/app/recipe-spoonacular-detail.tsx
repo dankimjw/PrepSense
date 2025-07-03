@@ -171,14 +171,40 @@ export default function RecipeSpoonacularDetail() {
       }
 
       // Convert ingredients to shopping list items
-      const newItems = ingredientsToAdd.map(ingredient => {
-        // Parse the original ingredient string to extract quantity and unit
-        const parsed = parseIngredientsList([ingredient.original])[0];
+      const newItems = ingredientsToAdd.map((ingredient, index) => {
+        // For Spoonacular, we have both original string and parsed name
+        const cleanedOriginal = ingredient.original.trim();
+        const fallbackName = ingredient.name.trim();
+        
+        // Try to parse the original ingredient string
+        const parsed = parseIngredientsList([cleanedOriginal])[0];
+        
+        // Use a cleaner approach for the shopping list
+        let displayName = '';
+        let displayQuantity = '';
+        
+        if (parsed && parsed.name && parsed.name.trim()) {
+          // If we successfully parsed the ingredient
+          displayName = parsed.name;
+          if (parsed.quantity && parsed.unit) {
+            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity) {
+            displayQuantity = `${parsed.quantity}`;
+          }
+        } else {
+          // If parsing failed, use the ingredient name from Spoonacular
+          displayName = fallbackName;
+          // Try to extract just the amount and unit from the original string
+          const amountMatch = cleanedOriginal.match(/^([\d.\/\s]+)\s*([a-zA-Z]+)?/);
+          if (amountMatch && amountMatch[1]) {
+            displayQuantity = amountMatch[0].trim();
+          }
+        }
         
         return {
-          id: Date.now().toString() + Math.random().toString(),
-          name: parsed?.name || ingredient.name,
-          quantity: parsed?.quantity ? `${parsed.quantity} ${parsed.unit || ''}`.trim() : ingredient.original,
+          id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
+          name: displayName,
+          quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
         };
