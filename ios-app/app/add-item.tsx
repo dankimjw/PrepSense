@@ -13,6 +13,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useItems } from '../context/ItemsContext';
 import { UnitSelector } from '../components/UnitSelector';
 import { DEFAULT_UNIT } from '../constants/units';
+import { validateQuantity, formatQuantityInput, getQuantityRules } from '../constants/quantityRules';
 
 const categories = [
   'Dairy',
@@ -86,9 +87,10 @@ export default function AddItem() {
       return false;
     }
 
-    // Validate quantity amount
-    if (form.quantity_amount <= 0) {
-      Alert.alert('Validation Error', 'Quantity must be greater than 0.');
+    // Validate quantity using rules
+    const quantityValidation = validateQuantity(form.quantity_amount, form.item_name, form.quantity_unit);
+    if (!quantityValidation.isValid) {
+      Alert.alert('Validation Error', quantityValidation.error || 'Invalid quantity.');
       return false;
     }
 
@@ -160,7 +162,12 @@ export default function AddItem() {
         placeholderTextColor="#9CA3AF"
       />
 
-      <Text style={styles.label}>Amount *</Text>
+      <View style={styles.amountLabelContainer}>
+        <Text style={styles.label}>Amount *</Text>
+        {!getQuantityRules(form.item_name, form.quantity_unit).allowDecimals && (
+          <Text style={styles.wholeNumberHint}>Whole numbers only</Text>
+        )}
+      </View>
       <View 
         style={[
           styles.amountOuterContainer,
@@ -181,13 +188,12 @@ export default function AddItem() {
               }
             ]}
             value={form.quantity_amount_text}
-            keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
+            keyboardType={getQuantityRules(form.item_name, form.quantity_unit).allowDecimals 
+              ? (Platform.OS === 'ios' ? 'decimal-pad' : 'numeric')
+              : 'number-pad'
+            }
             onChangeText={(t) => {
-              // Allow decimals and validate input
-              const cleaned = t.replace(/[^0-9.]/g, '');
-              const parts = cleaned.split('.');
-              // Allow only one decimal point
-              const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+              const formatted = formatQuantityInput(t, form.item_name, form.quantity_unit);
               
               setForm((f: Item) => ({ 
                 ...f, 
@@ -397,6 +403,18 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   label: { fontSize: 15, color: '#222', fontWeight: '600', marginBottom: 2 },
+  amountLabelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 2,
+  },
+  wholeNumberHint: {
+    fontSize: 12,
+    color: '#F59E0B',
+    fontWeight: '500',
+    fontStyle: 'italic',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#e2e8f0',

@@ -14,6 +14,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { useItems } from '../context/ItemsContext';
 import { UnitSelector } from '../components/UnitSelector';
 import { Config } from '../config';
+import { validateQuantity, formatQuantityInput, getQuantityRules } from '../constants/quantityRules';
 
 
 const categories = [
@@ -196,11 +197,7 @@ export default function EditItem() {
             value={form.quantity_amount_text}
             keyboardType={Platform.OS === 'ios' ? 'decimal-pad' : 'numeric'}
             onChangeText={(t) => {
-              // Allow decimals and validate input
-              const cleaned = t.replace(/[^0-9.]/g, '');
-              const parts = cleaned.split('.');
-              // Allow only one decimal point
-              const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+              const formatted = formatQuantityInput(t, form.item_name, form.quantity_unit);
               setForm((f: Item) => ({ 
                 ...f, 
                 quantity_amount_text: formatted,
