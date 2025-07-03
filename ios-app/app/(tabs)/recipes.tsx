@@ -702,7 +702,12 @@ export default function RecipesScreen() {
       </View>
 
       {/* Filter Grid */}
-      <View style={styles.filterContainer}>
+      <ScrollView 
+        style={styles.filterContainer}
+        contentContainerStyle={styles.filterContent}
+        horizontal={activeTab !== 'discover'}
+        showsHorizontalScrollIndicator={false}
+      >
         {activeTab === 'my-recipes' ? (
           <View style={[styles.filterGrid, { paddingHorizontal: 16, marginHorizontal: 0 }]}>
             <TouchableOpacity
@@ -865,7 +870,7 @@ export default function RecipesScreen() {
             ))}
           </View>
         ) : null}
-      </View>
+      </ScrollView>
 
       {loading && !refreshing ? (
         <View style={styles.loadingContainer}>
@@ -1067,9 +1072,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+    maxHeight: 180,
   },
   filterContent: {
-    paddingHorizontal: 16,
     paddingVertical: 10,
   },
   filterSection: {
