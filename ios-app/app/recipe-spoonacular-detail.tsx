@@ -552,15 +552,35 @@ export default function RecipeSpoonacularDetail() {
           </View>
 
           {missingIngredients.size > 0 && (
-            <TouchableOpacity 
-              style={styles.addToListButton}
-              onPress={handleAddToShoppingList}
-            >
-              <Ionicons name="cart" size={20} color="#297A56" />
-              <Text style={styles.addToListText}>
-                Add {missingIngredients.size} missing item{missingIngredients.size > 1 ? 's' : ''} to Shopping List
-              </Text>
-            </TouchableOpacity>
+            <View style={styles.shoppingListActions}>
+              <TouchableOpacity 
+                style={styles.addToListButton}
+                onPress={handleAddToShoppingList}
+              >
+                <Ionicons name="cart" size={20} color="#297A56" />
+                <Text style={styles.addToListText}>
+                  Add All ({missingIngredients.size})
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.selectItemsButton}
+                onPress={() => {
+                  const missingList = recipe.extendedIngredients
+                    .filter(ing => missingIngredients.has(ing.id))
+                    .map(ing => ing.original);
+                  router.push({
+                    pathname: '/select-ingredients',
+                    params: { 
+                      ingredients: JSON.stringify(missingList),
+                      recipeName: recipe.title
+                    }
+                  });
+                }}
+              >
+                <Ionicons name="list" size={16} color="#297A56" />
+                <Text style={styles.selectItemsText}>Select</Text>
+              </TouchableOpacity>
+            </View>
           )}
         </>
       ) : (
@@ -579,6 +599,22 @@ export default function RecipeSpoonacularDetail() {
             <Text style={styles.addAllToListText}>
               Add All to Shopping List
             </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.selectIndividualButton}
+            onPress={() => {
+              const allIngredients = recipe.extendedIngredients.map(ing => ing.original);
+              router.push({
+                pathname: '/select-ingredients',
+                params: { 
+                  ingredients: JSON.stringify(allIngredients),
+                  recipeName: recipe.title
+                }
+              });
+            }}
+          >
+            <Ionicons name="list" size={20} color="#92400E" />
+            <Text style={styles.selectIndividualText}>Select Individual Items</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -839,7 +875,14 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  shoppingListActions: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    gap: 12,
+  },
   addToListButton: {
+    flex: 1,
     flexDirection: 'row',
     backgroundColor: '#FEF3C7',
     paddingVertical: 16,
@@ -847,16 +890,31 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    marginHorizontal: 16,
-    marginBottom: 20,
     borderWidth: 1,
     borderColor: '#F59E0B',
+    gap: 8,
   },
   addToListText: {
     color: '#92400E',
     fontSize: 16,
     fontWeight: '600',
-    marginLeft: 8,
+  },
+  selectItemsButton: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF3C7',
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    gap: 6,
+  },
+  selectItemsText: {
+    color: '#92400E',
+    fontSize: 16,
+    fontWeight: '600',
   },
   allMissingContainer: {
     alignItems: 'center',
@@ -899,6 +957,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     marginLeft: 8,
+  },
+  selectIndividualButton: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    paddingVertical: 16,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#F59E0B',
+    marginTop: 12,
+    gap: 8,
+  },
+  selectIndividualText: {
+    color: '#92400E',
+    fontSize: 16,
+    fontWeight: '600',
   },
   missingBadge: {
     backgroundColor: '#EF4444',
