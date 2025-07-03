@@ -20,6 +20,9 @@ import {
 import { enc } from '../../utils/encoding';
 import type { PantryItemData } from '../../components/home/PantryItem';
 import ConsumptionModal from '../../components/modals/ConsumptionModal';
+import { ExpirationDateModal } from '../../components/modals/ExpirationDateModal';
+import { PantryItemActionSheet } from '../../components/modals/PantryItemActionSheet';
+import { deletePantryItem } from '../../services/api';
 
 const IndexScreen: React.FC = () => {
   // State management
@@ -29,6 +32,10 @@ const IndexScreen: React.FC = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [consumptionModalVisible, setConsumptionModalVisible] = useState(false);
   const [selectedItemForConsumption, setSelectedItemForConsumption] = useState<PantryItemData | null>(null);
+  const [expirationModalVisible, setExpirationModalVisible] = useState(false);
+  const [selectedItemForExpiration, setSelectedItemForExpiration] = useState<PantryItemData | null>(null);
+  const [actionSheetVisible, setActionSheetVisible] = useState(false);
+  const [selectedItemForAction, setSelectedItemForAction] = useState<PantryItemData | null>(null);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
@@ -137,30 +144,81 @@ const IndexScreen: React.FC = () => {
     setIsFilterModalVisible(false);
   };
 
-  // Handle item press - now opens consumption modal
+  // Handle item press - now opens action sheet
   const handleItemPress = (item: PantryItemData) => {
-    setSelectedItemForConsumption(item);
-    setConsumptionModalVisible(true);
+    setSelectedItemForAction(item);
+    setActionSheetVisible(true);
   };
 
   // Handle edit item
   const handleEditItem = (item: PantryItemData) => {
-    router.push({
-      pathname: '/edit-item',
-      params: { 
-        index: '0',
-        data: enc([{
-          ...item,
-          id: item.id,
-          item_name: item.name,
-          quantity_amount: item.quantity_amount,
-          quantity_unit: item.quantity_unit,
-          expected_expiration: item.expirationDate.toISOString().split('T')[0],
-          category: item.category,
-          count: item.count || 1
-        }])
-      }
-    });
+    setSelectedItemForAction(item);
+    setActionSheetVisible(true);
+  };
+
+  // Handle update expiration date
+  const handleUpdateExpiration = () => {
+    if (selectedItemForAction) {
+      setSelectedItemForExpiration(selectedItemForAction);
+      setExpirationModalVisible(true);
+    }
+  };
+
+  // Handle consume item
+  const handleConsumeItem = () => {
+    if (selectedItemForAction) {
+      setSelectedItemForConsumption(selectedItemForAction);
+      setConsumptionModalVisible(true);
+    }
+  };
+
+  // Handle edit item details
+  const handleEditItemDetails = () => {
+    if (selectedItemForAction) {
+      router.push({
+        pathname: '/edit-item',
+        params: { 
+          index: '0',
+          data: enc([{
+            ...selectedItemForAction,
+            id: selectedItemForAction.id,
+            item_name: selectedItemForAction.name,
+            quantity_amount: selectedItemForAction.quantity_amount,
+            quantity_unit: selectedItemForAction.quantity_unit,
+            expected_expiration: selectedItemForAction.expirationDate.toISOString().split('T')[0],
+            category: selectedItemForAction.category,
+            count: selectedItemForAction.count || 1
+          }])
+        }
+      });
+    }
+  };
+
+  // Handle delete item
+  const handleDeleteItem = async () => {
+    if (selectedItemForAction) {
+      Alert.alert(
+        'Delete Item',
+        `Are you sure you want to delete ${selectedItemForAction.name}?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deletePantryItem(selectedItemForAction.id);
+                Alert.alert('Success', 'Item deleted successfully');
+                fetchItems();
+              } catch (error) {
+                console.error('Error deleting item:', error);
+                Alert.alert('Error', 'Failed to delete item');
+              }
+            },
+          },
+        ]
+      );
+    }
   };
 
   // Reset filters function
@@ -286,6 +344,33 @@ const IndexScreen: React.FC = () => {
           setConsumptionModalVisible(false);
           setSelectedItemForConsumption(null);
           // Refresh items after consumption
+          fetchItems();
+        }}
+      />
+
+      {/* Action Sheet */}
+      <PantryItemActionSheet
+        visible={actionSheetVisible}
+        item={selectedItemForAction}
+        onClose={() => {
+          setActionSheetVisible(false);
+          setSelectedItemForAction(null);
+        }}
+        onUpdateExpiration={handleUpdateExpiration}
+        onEditItem={handleEditItemDetails}
+        onConsumeItem={handleConsumeItem}
+        onDeleteItem={handleDeleteItem}
+      />
+
+      {/* Expiration Date Modal */}
+      <ExpirationDateModal
+        visible={expirationModalVisible}
+        item={selectedItemForExpiration}
+        onClose={() => {
+          setExpirationModalVisible(false);
+          setSelectedItemForExpiration(null);
+        }}
+        onUpdate={() => {
           fetchItems();
         }}
       />
