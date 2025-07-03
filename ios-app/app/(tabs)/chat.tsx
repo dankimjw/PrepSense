@@ -227,9 +227,10 @@ export default function ChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={[styles.content, { paddingBottom: insets.bottom }]}>
+    <>
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" />
+        <View style={[styles.content, { paddingBottom: insets.bottom }]}>
         <ScrollView 
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
@@ -413,17 +414,19 @@ export default function ChatScreen() {
       </View>
       
       {/* Floating Lightbulb Button */}
-      <TouchableOpacity
-        style={styles.floatingLightbulb}
-        onPress={toggleFloatingSuggestions}
-        activeOpacity={0.8}
-      >
-        <Ionicons 
-          name={showFloatingSuggestions ? "bulb" : "bulb-outline"} 
-          size={24} 
-          color="#fff" 
-        />
-      </TouchableOpacity>
+      <View style={styles.floatingLightbulb}>
+        <TouchableOpacity
+          onPress={toggleFloatingSuggestions}
+          activeOpacity={0.8}
+          style={{ width: '100%', height: '100%', justifyContent: 'center', alignItems: 'center' }}
+        >
+          <Ionicons 
+            name={showFloatingSuggestions ? "bulb" : "bulb-outline"} 
+            size={28} 
+            color="#fff" 
+          />
+        </TouchableOpacity>
+      </View>
       
       {/* Floating Suggestion Bubbles */}
       {showFloatingSuggestions && (
@@ -454,7 +457,7 @@ export default function ChatScreen() {
           ))}
         </Animated.View>
       )}
-    </View>
+    </>
   );
 }
 
@@ -788,25 +791,25 @@ const styles = StyleSheet.create({
   },
   floatingLightbulb: {
     position: 'absolute',
-    bottom: 140,
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    bottom: 150, // Simple fixed position
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: '#F59E0B',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#F59E0B',
-    shadowOpacity: 0.3,
+    shadowColor: '#000',
+    shadowOpacity: 0.25,
     shadowRadius: 8,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 10,
     zIndex: 1000,
   },
   floatingSuggestionsContainer: {
     position: 'absolute',
-    bottom: 130,
-    right: 70,
+    bottom: 145, // Align with lightbulb button
+    right: 85,
     zIndex: 999,
   },
   floatingSuggestionWrapper: {
