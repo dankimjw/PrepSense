@@ -106,7 +106,7 @@ export default function SettingsScreen() {
         </View>
 
         <View style={styles.section}>
-          <MenuItem {...menuItems[6]} />
+          {menuItems.length > 6 && <MenuItem {...menuItems[6]} />}
         </View>
       </ScrollView>
     </View>
