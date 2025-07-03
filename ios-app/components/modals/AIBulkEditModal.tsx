@@ -170,12 +170,15 @@ export const AIBulkEditModal: React.FC<AIBulkEditModalProps> = ({
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#333" />
+          </TouchableOpacity>
           <View style={styles.headerContent}>
-            <MaterialCommunityIcons name="robot" size={24} color="#297A56" />
-            <Text style={styles.headerTitle}>AI Bulk Editor</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={28} color="#333" />
-            </TouchableOpacity>
+            <View style={styles.headerIconContainer}>
+              <Ionicons name="sync-outline" size={32} color="#297A56" style={styles.headerIconBackground} />
+              <Ionicons name="bulb-outline" size={16} color="#297A56" style={styles.headerIconForeground} />
+            </View>
+            <Text style={styles.headerTitle}>Pantry Assistant</Text>
           </View>
         </View>
 
@@ -462,25 +465,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    paddingTop: 50,
-    paddingBottom: 16,
+    paddingTop: 60,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
   },
   headerContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 20,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 24,
+    fontWeight: '700',
     color: '#333',
     marginLeft: 8,
   },
   closeButton: {
     position: 'absolute',
     right: 20,
+    top: 60,
     padding: 4,
+    zIndex: 1,
   },
   content: {
     flex: 1,
@@ -783,5 +788,19 @@ const styles = StyleSheet.create({
   emptyStateText: {
     fontSize: 16,
     color: '#666',
+  },
+  headerIconContainer: {
+    width: 32,
+    height: 32,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  headerIconBackground: {
+    position: 'absolute',
+  },
+  headerIconForeground: {
+    position: 'absolute',
   },
 });
