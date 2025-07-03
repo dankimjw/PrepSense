@@ -15,6 +15,7 @@ import { MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
+import { apiClient, ApiError } from '../../services/apiClient';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -72,20 +73,10 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
       const remainingAmount = calculateRemainingAmount();
 
       // Update the item in the database using the new consumption endpoint
-      const response = await fetch(`${Config.API_BASE_URL}/pantry/items/${item.id}/consume`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          quantity_amount: remainingAmount,
-          used_quantity: (item.used_quantity || 0) + consumedAmount,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update item');
-      }
+      await apiClient.patch(`/pantry/items/${item.id}/consume`, {
+        quantity_amount: remainingAmount,
+        used_quantity: (item.used_quantity || 0) + consumedAmount,
+      }, 5000); // 5 second timeout
 
       // Update local state
       updateItem(item.id, {
@@ -102,9 +93,13 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
           onClose();
         }}]
       );
-    } catch (error) {
-      Alert.alert('Error', 'Failed to update item consumption');
+    } catch (error: any) {
       console.error('Consumption error:', error);
+      if (error instanceof ApiError && error.isTimeout) {
+        Alert.alert('Timeout', 'Consumption update is taking too long. Please check your connection and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to update item consumption');
+      }
     } finally {
       setLoading(false);
     }
