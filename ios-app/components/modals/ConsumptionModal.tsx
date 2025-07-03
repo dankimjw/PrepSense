@@ -132,7 +132,11 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
           {/* Expiration Date Section */}
           <TouchableOpacity 
             style={styles.expirationSection} 
-            onPress={onExpirationPress}
+            onPress={() => {
+              if (onExpirationPress) {
+                onExpirationPress();
+              }
+            }}
             activeOpacity={0.7}
           >
             <View style={styles.expirationLeft}>
