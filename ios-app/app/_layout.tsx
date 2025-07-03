@@ -2,7 +2,6 @@
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme, View, StyleSheet, ActivityIndicator } from 'react-native';
-import { ChatButton } from './components/ChatButton';
 import { CustomHeader } from './components/CustomHeader';
 import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
@@ -248,7 +247,6 @@ function AppContent() {
               }} 
             />
           </Stack>
-          <ChatButton />
         </View>
       </ItemsProvider>
     </ThemeProvider>

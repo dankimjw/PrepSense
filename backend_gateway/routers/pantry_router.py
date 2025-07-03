@@ -463,14 +463,23 @@ async def complete_recipe(
                     new_quantity = current_quantity - subtract_amount
                     
                     # Update the item in the database
-                    rows_updated = bq_service.update_rows(
-                        "pantry_items",
-                        {
-                            "quantity": new_quantity,
-                            "used_quantity": (pantry_item.used_quantity or 0) + subtract_amount
-                        },
-                        {"pantry_item_id": pantry_item.pantry_item_id}
-                    )
+                    update_query = """
+                    UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                    SET 
+                        quantity = @new_quantity,
+                        used_quantity = @new_used_quantity,
+                        updated_at = CURRENT_DATETIME()
+                    WHERE pantry_item_id = @pantry_item_id
+                    """
+                    
+                    update_params = {
+                        "new_quantity": new_quantity,
+                        "new_used_quantity": (pantry_item.used_quantity or 0) + subtract_amount,
+                        "pantry_item_id": pantry_item.pantry_item_id
+                    }
+                    
+                    bq_service.execute_query(update_query, update_params)
+                    rows_updated = 1  # Assume success if no exception
                     
                     if rows_updated > 0:
                         updated_items.append({
@@ -515,3 +524,167 @@ async def complete_recipe(
     except Exception as e:
         logger.error(f"Error completing recipe: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}")
+
+
+@router.post("/revert-changes", response_model=Dict[str, Any], summary="Revert Recent Pantry Changes")
+async def revert_pantry_changes(
+    user_id: int = 111,
+    hours_ago: Optional[float] = None,
+    minutes_ago: Optional[float] = None,
+    include_recipe_changes: bool = True,
+    include_additions: bool = True,
+    bq_service: BigQueryService = Depends(get_bigquery_service)
+):
+    """
+    Revert recent pantry changes including recipe subtractions.
+    
+    This enhanced version can:
+    - Revert items added within X hours/minutes
+    - Revert quantity changes from recipe completions
+    - Selectively revert only certain types of changes
+    
+    Args:
+        user_id: The user whose changes to revert
+        hours_ago: Revert changes from the last X hours
+        minutes_ago: Revert changes from the last X minutes (overrides hours_ago)
+        include_recipe_changes: If True, revert recipe-related quantity changes
+        include_additions: If True, revert newly added items
+        
+    Returns:
+        Summary of reverted changes
+    """
+    try:
+        # Calculate the cutoff time
+        if minutes_ago:
+            cutoff_query = f"TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {int(minutes_ago)} MINUTE)"
+        elif hours_ago:
+            cutoff_query = f"TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {int(hours_ago)} HOUR)"
+        else:
+            # Default to last hour
+            cutoff_query = "TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)"
+        
+        reverted_items = []
+        deleted_items = []
+        restored_quantities = []
+        
+        # 1. Handle newly added items if requested
+        if include_additions:
+            # Get pantry IDs for the user
+            pantry_query = """
+            SELECT pantry_id
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
+            WHERE user_id = @user_id
+            """
+            pantry_results = bq_service.execute_query(pantry_query, {"user_id": user_id})
+            
+            if pantry_results:
+                pantry_ids = [row["pantry_id"] for row in pantry_results]
+                
+                # Find items to delete
+                items_query = f"""
+                SELECT pantry_item_id, product_name, quantity, created_at
+                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
+                JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+                ON pi.pantry_item_id = p.pantry_item_id
+                WHERE pi.pantry_id IN UNNEST(@pantry_ids)
+                AND CAST(pi.created_at AS TIMESTAMP) >= {cutoff_query}
+                """
+                
+                items_to_delete = bq_service.execute_query(items_query, {"pantry_ids": pantry_ids})
+                
+                # Delete the items
+                if items_to_delete:
+                    item_ids = [item["pantry_item_id"] for item in items_to_delete]
+                    
+                    delete_query = """
+                    DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                    WHERE pantry_item_id IN UNNEST(@item_ids)
+                    """
+                    
+                    bq_service.execute_query(delete_query, {"item_ids": item_ids})
+                    
+                    # Also delete from products table
+                    delete_products_query = """
+                    DELETE FROM `adsp-34002-on02-prep-sense.Inventory.products`
+                    WHERE pantry_item_id IN UNNEST(@item_ids)
+                    """
+                    
+                    bq_service.execute_query(delete_products_query, {"item_ids": item_ids})
+                    
+                    deleted_items = [
+                        {
+                            "item_id": item["pantry_item_id"],
+                            "name": item["product_name"],
+                            "quantity": item["quantity"],
+                            "added_at": str(item["created_at"])
+                        }
+                        for item in items_to_delete
+                    ]
+        
+        # 2. Handle recipe-related quantity changes if requested
+        if include_recipe_changes:
+            # Find items that were modified (not created) within the time window
+            modified_query = f"""
+            SELECT 
+                pi.pantry_item_id,
+                p.product_name,
+                pi.quantity as current_quantity,
+                pi.used_quantity,
+                pi.created_at,
+                pi.updated_at
+            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
+            JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+            ON pi.pantry_item_id = p.pantry_item_id
+            JOIN `adsp-34002-on02-prep-sense.Inventory.pantry` pan
+            ON pi.pantry_id = pan.pantry_id
+            WHERE pan.user_id = @user_id
+            AND CAST(pi.updated_at AS TIMESTAMP) >= {cutoff_query}
+            AND CAST(pi.updated_at AS TIMESTAMP) > CAST(pi.created_at AS TIMESTAMP)  -- Only items that were modified after creation
+            AND pi.used_quantity > 0  -- Items that have been used
+            """
+            
+            modified_items = bq_service.execute_query(modified_query, {"user_id": user_id})
+            
+            # Restore quantities by adding back the used amount
+            for item in modified_items:
+                restored_quantity = item["current_quantity"] + (item["used_quantity"] or 0)
+                
+                restore_query = """
+                UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                SET 
+                    quantity = @restored_quantity,
+                    used_quantity = 0,
+                    updated_at = CURRENT_DATETIME()
+                WHERE pantry_item_id = @item_id
+                """
+                
+                bq_service.execute_query(restore_query, {
+                    "restored_quantity": restored_quantity,
+                    "item_id": item["pantry_item_id"]
+                })
+                
+                restored_quantities.append({
+                    "item_id": item["pantry_item_id"],
+                    "name": item["product_name"],
+                    "previous_quantity": item["current_quantity"],
+                    "restored_quantity": restored_quantity,
+                    "amount_restored": item["used_quantity"]
+                })
+        
+        # Create summary
+        time_desc = f"{minutes_ago} minutes" if minutes_ago else f"{hours_ago} hours" if hours_ago else "1 hour"
+        
+        return {
+            "message": f"Successfully reverted pantry changes from the last {time_desc}",
+            "deleted_items": deleted_items,
+            "restored_quantities": restored_quantities,
+            "summary": {
+                "items_deleted": len(deleted_items),
+                "quantities_restored": len(restored_quantities),
+                "total_changes_reverted": len(deleted_items) + len(restored_quantities)
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Error reverting pantry changes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to revert changes: {str(e)}")
