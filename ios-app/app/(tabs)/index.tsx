@@ -146,6 +146,7 @@ const IndexScreen: React.FC = () => {
 
   // Handle item press - now opens consumption modal directly
   const handleItemPress = (item: PantryItemData) => {
+    console.log('handleItemPress called with item:', item.name);
     setSelectedItemForConsumption(item);
     setConsumptionModalVisible(true);
   };
@@ -337,24 +338,20 @@ const IndexScreen: React.FC = () => {
       </ScrollView>
 
       {/* Consumption Modal */}
-      <ConsumptionModal
-        key={selectedItemForConsumption?.id || 'consumption-modal'}
-        visible={consumptionModalVisible}
-        item={selectedItemForConsumption}
-        onClose={() => {
-          setConsumptionModalVisible(false);
-          // Clear the selected item after modal animation completes
-          setTimeout(() => {
+      {consumptionModalVisible && selectedItemForConsumption && (
+        <ConsumptionModal
+          visible={true}
+          item={selectedItemForConsumption}
+          onClose={() => {
+            setConsumptionModalVisible(false);
             setSelectedItemForConsumption(null);
-          }, 300);
-        }}
-        onExpirationPress={() => {
-          if (selectedItemForConsumption) {
+          }}
+          onExpirationPress={() => {
             setSelectedItemForExpiration(selectedItemForConsumption);
             setExpirationModalVisible(true);
-          }
-        }}
-      />
+          }}
+        />
+      )}
 
       {/* Action Sheet */}
       <PantryItemActionSheet
@@ -371,18 +368,20 @@ const IndexScreen: React.FC = () => {
       />
 
       {/* Expiration Date Modal */}
-      <ExpirationDateModal
-        visible={expirationModalVisible}
-        item={selectedItemForExpiration}
-        onClose={() => {
-          setExpirationModalVisible(false);
-          setSelectedItemForExpiration(null);
-        }}
-        onUpdate={() => {
-          // The update is handled in the modal, just close and refresh
-          fetchItems();
-        }}
-      />
+      {expirationModalVisible && selectedItemForExpiration && (
+        <ExpirationDateModal
+          visible={true}
+          item={selectedItemForExpiration}
+          onClose={() => {
+            setExpirationModalVisible(false);
+            setSelectedItemForExpiration(null);
+          }}
+          onUpdate={() => {
+            // The update is handled in the modal, just close and refresh
+            fetchItems();
+          }}
+        />
+      )}
     </View>
   );
 };
