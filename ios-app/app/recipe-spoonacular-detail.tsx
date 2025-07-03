@@ -145,7 +145,17 @@ export default function RecipeSpoonacularDetail() {
   };
 
   const handleAddToShoppingList = async () => {
-    if (!recipe || missingIngredients.size === 0) {
+    if (!recipe) {
+      Alert.alert('Error', 'Recipe data not loaded');
+      return;
+    }
+    
+    // When all ingredients are missing, use all ingredients
+    const ingredientsToAdd = missingIngredients.size > 0 
+      ? recipe.extendedIngredients.filter(ing => missingIngredients.has(ing.id))
+      : (availableIngredients.size === 0 ? recipe.extendedIngredients : []);
+    
+    if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
       return;
     }
@@ -160,13 +170,8 @@ export default function RecipeSpoonacularDetail() {
         existingItems = JSON.parse(savedList);
       }
 
-      // Get missing ingredients from the recipe
-      const missingIngredientsList = recipe.extendedIngredients.filter(ing => 
-        missingIngredients.has(ing.id)
-      );
-
-      // Convert missing ingredients to shopping list items
-      const newItems = missingIngredientsList.map(ingredient => {
+      // Convert ingredients to shopping list items
+      const newItems = ingredientsToAdd.map(ingredient => {
         // Parse the original ingredient string to extract quantity and unit
         const parsed = parseIngredientsList([ingredient.original])[0];
         
@@ -187,7 +192,7 @@ export default function RecipeSpoonacularDetail() {
 
       Alert.alert(
         'Added to Shopping List',
-        `${missingIngredients.size} item${missingIngredients.size > 1 ? 's' : ''} added to your shopping list.`,
+        `${ingredientsToAdd.length} item${ingredientsToAdd.length > 1 ? 's' : ''} added to your shopping list.`,
         [
           { 
             text: 'View List', 
