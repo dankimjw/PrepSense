@@ -78,6 +78,7 @@ export default function RecipesScreen() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [scrollOffset, setScrollOffset] = useState(0);
+  const filterHeight = useRef(new Animated.Value(1)).current;
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -526,14 +527,26 @@ export default function RecipesScreen() {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const scrollDiff = currentOffset - scrollOffset;
     
-    // Collapse filters when scrolling down after 50px
+    // Collapse filters when scrolling down after 30px with velocity check
     if (activeTab === 'discover') {
-      if (currentOffset > 50 && scrollDiff > 0) {
-        // Scrolling down
+      if (currentOffset > 30 && scrollDiff > 2 && !filtersCollapsed) {
+        // Scrolling down fast - collapse
         setFiltersCollapsed(true);
-      } else if (scrollDiff < -10) {
-        // Scrolling up
+        Animated.spring(filterHeight, {
+          toValue: 0,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 10,
+        }).start();
+      } else if ((currentOffset < 20 || scrollDiff < -5) && filtersCollapsed) {
+        // Scrolling up or near top - expand
         setFiltersCollapsed(false);
+        Animated.spring(filterHeight, {
+          toValue: 1,
+          useNativeDriver: false,
+          tension: 50,
+          friction: 10,
+        }).start();
       }
     }
     
@@ -796,19 +809,58 @@ export default function RecipesScreen() {
           </ScrollView>
         </View>
       ) : activeTab === 'discover' ? (
-        <View style={[styles.discoverFiltersContainer, filtersCollapsed && styles.discoverFiltersCollapsed]}>
-          {filtersCollapsed ? (
-            <TouchableOpacity 
-              style={styles.collapsedFilterBar}
-              onPress={() => setFiltersCollapsed(false)}
+        <Animated.View 
+          style={[
+            styles.discoverFiltersContainer,
+            {
+              maxHeight: filterHeight.interpolate({
+                inputRange: [0, 1],
+                outputRange: [50, 200],
+              }),
+            }
+          ]}
+        >
+          <TouchableOpacity 
+            style={styles.collapsedFilterBar}
+            onPress={() => {
+              if (filtersCollapsed) {
+                setFiltersCollapsed(false);
+                Animated.timing(filterHeight, {
+                  toValue: 1,
+                  duration: 300,
+                  useNativeDriver: false,
+                }).start();
+              }
+            }}
+            activeOpacity={filtersCollapsed ? 0.7 : 1}
+          >
+            <Text style={styles.collapsedFilterText}>
+              {selectedFilters.length > 0 ? `${selectedFilters.length} filters active` : 'Tap to show filters'}
+            </Text>
+            <Animated.View
+              style={{
+                transform: [{
+                  rotate: filterHeight.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: ['0deg', '180deg'],
+                  })
+                }]
+              }}
             >
-              <Text style={styles.collapsedFilterText}>
-                {selectedFilters.length > 0 ? `${selectedFilters.length} filters active` : 'Tap to show filters'}
-              </Text>
               <Ionicons name="chevron-down" size={20} color="#666" />
-            </TouchableOpacity>
-          ) : (
-            <>
+            </Animated.View>
+          </TouchableOpacity>
+          <Animated.View
+            style={{
+              opacity: filterHeight,
+              transform: [{
+                translateY: filterHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [-20, 0],
+                })
+              }]
+            }}
+          >
           {/* Dietary Filters Row */}
           <View style={styles.filterRow}>
             <Text style={styles.filterRowTitle}>Dietary</Text>
@@ -895,9 +947,8 @@ export default function RecipesScreen() {
               ))}
             </ScrollView>
           </View>
-          </>
-          )}
-        </View>
+          </Animated.View>
+        </Animated.View>
       ) : activeTab === 'pantry' ? (
         <View style={styles.filterContainer}>
           <ScrollView 
@@ -1137,14 +1188,12 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E5E7EB',
     overflow: 'hidden',
   },
-  discoverFiltersCollapsed: {
-    height: 50,
-  },
   collapsedFilterBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 15,
+    height: 50,
   },
   collapsedFilterText: {
     fontSize: 14,
