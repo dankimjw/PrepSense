@@ -815,7 +815,7 @@ export default function RecipesScreen() {
             {
               maxHeight: filterHeight.interpolate({
                 inputRange: [0, 1],
-                outputRange: [50, 150],
+                outputRange: [32, 150],
               }),
             }
           ]}
@@ -1191,8 +1191,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 15,
-    height: 50,
+    paddingVertical: 8,
+    height: 32,
   },
   collapsedFilterText: {
     fontSize: 14,
@@ -1216,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   filterRowContent: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 6,
   },
   filterScrollView: {
     flexGrow: 0,
