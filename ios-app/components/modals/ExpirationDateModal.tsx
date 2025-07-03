@@ -18,7 +18,7 @@ interface ExpirationDateModalProps {
   visible: boolean;
   item: any;
   onClose: () => void;
-  onUpdate: () => void;
+  onUpdate: (newDate: Date) => void;
 }
 
 export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
@@ -60,7 +60,11 @@ export const ExpirationDateModal: React.FC<ExpirationDateModalProps> = ({
       });
 
       Alert.alert('Success', 'Expiration date updated successfully');
-      onUpdate();
+      
+      // Pass the new date to parent for optimistic update
+      if (onUpdate) {
+        onUpdate(selectedDate);
+      }
       onClose();
     } catch (error) {
       console.error('Error updating expiration date:', error);

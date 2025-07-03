@@ -384,10 +384,27 @@ const IndexScreen: React.FC = () => {
             }, 300);
           }
         }}
-        onUpdate={() => {
+        onUpdate={(newDate: Date) => {
+          // Optimistically update the local state
+          if (selectedItemForConsumption) {
+            const updatedExpiry = formatExpirationDate(newDate.toISOString());
+            const updatedDaysUntilExpiry = calculateDaysUntilExpiry(newDate.toISOString());
+            
+            // Update the consumption modal item with new expiration data
+            setSelectedItemForConsumption({
+              ...selectedItemForConsumption,
+              expirationDate: newDate,
+              expected_expiration: newDate.toISOString(),
+              expiry: updatedExpiry,
+              daysUntilExpiry: updatedDaysUntilExpiry
+            });
+          }
+          
+          // Fetch items in the background to sync with server
           fetchItems();
           setExpirationModalVisible(false);
           setSelectedItemForExpiration(null);
+          
           // Reopen consumption modal after update
           if (selectedItemForConsumption) {
             setTimeout(() => {
