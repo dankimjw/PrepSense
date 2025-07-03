@@ -39,9 +39,11 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
   const quickPercentages = [25, 50, 75, 100];
 
   React.useEffect(() => {
-    // Reset to default percentage when item changes
-    setPercentage(50);
-  }, [item]);
+    // Reset to default percentage when item changes or modal opens
+    if (visible && item) {
+      setPercentage(50);
+    }
+  }, [item, visible]);
 
   React.useEffect(() => {
     Animated.timing(animatedValue, {
@@ -94,7 +96,10 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
       Alert.alert(
         'Success',
         `Consumed ${consumedAmount.toFixed(1)} ${item.quantity_unit} of ${item.name}`,
-        [{ text: 'OK', onPress: onClose }]
+        [{ text: 'OK', onPress: () => {
+          setPercentage(50); // Reset to default
+          onClose();
+        }}]
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to update item consumption');
