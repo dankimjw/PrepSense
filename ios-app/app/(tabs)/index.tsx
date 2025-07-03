@@ -22,6 +22,7 @@ import type { PantryItemData } from '../../components/home/PantryItem';
 import ConsumptionModal from '../../components/modals/ConsumptionModal';
 import { ExpirationDateModal } from '../../components/modals/ExpirationDateModal';
 import { PantryItemActionSheet } from '../../components/modals/PantryItemActionSheet';
+import EditItemModal from '../../components/modals/EditItemModal';
 import { deletePantryItem } from '../../services/api';
 
 const IndexScreen: React.FC = () => {
@@ -36,6 +37,8 @@ const IndexScreen: React.FC = () => {
   const [selectedItemForExpiration, setSelectedItemForExpiration] = useState<PantryItemData | null>(null);
   const [actionSheetVisible, setActionSheetVisible] = useState(false);
   const [selectedItemForAction, setSelectedItemForAction] = useState<PantryItemData | null>(null);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [selectedItemForEdit, setSelectedItemForEdit] = useState<PantryItemData | null>(null);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
@@ -356,10 +359,11 @@ const IndexScreen: React.FC = () => {
         }}
         onEditPress={() => {
           if (selectedItemForConsumption) {
-            router.push({
-              pathname: '/edit-pantry-item',
-              params: { id: selectedItemForConsumption.id }
-            });
+            setSelectedItemForEdit(selectedItemForConsumption);
+            setConsumptionModalVisible(false);
+            setTimeout(() => {
+              setEditModalVisible(true);
+            }, 300);
           }
         }}
       />
@@ -419,6 +423,34 @@ const IndexScreen: React.FC = () => {
               setConsumptionModalVisible(true);
             }, 300);
           }
+        }}
+      />
+
+      {/* Edit Item Modal */}
+      <EditItemModal
+        visible={editModalVisible}
+        item={selectedItemForEdit}
+        onClose={() => {
+          setEditModalVisible(false);
+          setSelectedItemForEdit(null);
+          // Reopen consumption modal if we came from it
+          if (selectedItemForConsumption) {
+            setTimeout(() => {
+              setConsumptionModalVisible(true);
+            }, 300);
+          }
+        }}
+        onUpdate={(updatedItem) => {
+          // Update the consumption modal item with new data
+          if (selectedItemForConsumption) {
+            setSelectedItemForConsumption({
+              ...selectedItemForConsumption,
+              ...updatedItem,
+              name: updatedItem.item_name || updatedItem.name,
+            });
+          }
+          // Fetch items in the background to sync with server
+          fetchItems();
         }}
       />
     </View>
