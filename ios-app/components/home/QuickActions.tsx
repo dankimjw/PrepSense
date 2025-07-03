@@ -26,10 +26,10 @@ const defaultActions: QuickAction[] = [
   },
   { 
     id: 'scan', 
-    icon: 'barcode',
-    title: 'Scan Barcode',
+    icon: 'receipt',
+    title: 'Scan Receipt',
     color: '#4F46E5',
-    onPress: () => Alert.alert('Barcode Scanner', 'Barcode scanning functionality will be implemented soon.')
+    onPress: () => Alert.alert('Receipt Scanner', 'Receipt scanning functionality will be implemented soon.')
   },
   { 
     id: 'recipe', 
