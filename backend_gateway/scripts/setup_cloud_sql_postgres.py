@@ -14,7 +14,12 @@ INSTANCE_NAME = "prepsense-postgres"
 REGION = "us-central1"
 TIER = "db-f1-micro"  # Small instance for development
 DATABASE_NAME = "prepsense"
-ROOT_PASSWORD = os.getenv('POSTGRES_ROOT_PASSWORD', 'CHANGE_ME_BEFORE_RUNNING')  # Set via environment variable
+ROOT_PASSWORD = os.getenv('POSTGRES_ROOT_PASSWORD', os.getenv('PGPASSWORD'))  # Set via environment variable
+
+if not ROOT_PASSWORD:
+    print("ERROR: POSTGRES_ROOT_PASSWORD or PGPASSWORD environment variable must be set")
+    print("Example: export POSTGRES_ROOT_PASSWORD='your-secure-password'")
+    sys.exit(1)
 
 def run_command(cmd, check=True):
     """Run a command and return the result"""
