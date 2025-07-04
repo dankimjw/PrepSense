@@ -4,6 +4,7 @@ Setup IAM authentication for Cloud SQL PostgreSQL
 This allows team members to connect without passwords
 """
 
+import os
 import subprocess
 import sys
 
@@ -58,7 +59,17 @@ SELECT usename, usesuper FROM pg_user WHERE usename LIKE '%@%';
     
     print("\n2. To complete IAM setup, run these commands:")
     print(f"   # Connect as postgres user and grant permissions")
-    print(f"   PGPASSWORD=changeme123! psql -h 35.184.61.42 -U postgres -d {DATABASE_NAME} < grant_iam_permissions.sql")
+    # Get password from environment variable
+    postgres_password = os.getenv('POSTGRES_PASSWORD')
+    if not postgres_password:
+        print("Error: POSTGRES_PASSWORD environment variable is required")
+        print("Please set it using: export POSTGRES_PASSWORD='your-password'")
+        return False
+    
+    # Get host from environment variable
+    postgres_host = os.getenv('POSTGRES_HOST', '35.184.61.42')
+    
+    print(f"   PGPASSWORD=$POSTGRES_PASSWORD psql -h {postgres_host} -U postgres -d {DATABASE_NAME} < grant_iam_permissions.sql")
     
     print("\n3. Team members can now connect without passwords:")
     print(f"   # Using gcloud (recommended)")
@@ -81,7 +92,7 @@ access_token = credentials.token
 
 # Connect using the access token as password
 conn = psycopg2.connect(
-    host='35.184.61.42',  # or 127.0.0.1 if using proxy
+    host=os.getenv('POSTGRES_HOST', '35.184.61.42'),  # or 127.0.0.1 if using proxy
     database='prepsense',
     user='danielk7@uchicago.edu',  # Your IAM email
     password=access_token,  # Use token as password

@@ -14,7 +14,13 @@ INSTANCE_NAME = "prepsense-db"
 REGION = "us-central1"
 TIER = "db-f1-micro"  # Small instance for development
 DATABASE_NAME = "prepsense"
-ROOT_PASSWORD = "changeme123!"  # Change this!
+
+# Get password from environment variable
+ROOT_PASSWORD = os.getenv('MYSQL_ROOT_PASSWORD')
+if not ROOT_PASSWORD:
+    print("Error: MYSQL_ROOT_PASSWORD environment variable is required")
+    print("Please set it using: export MYSQL_ROOT_PASSWORD='your-password'")
+    sys.exit(1)
 
 def run_command(cmd, check=True):
     """Run a command and return the result"""
@@ -298,14 +304,14 @@ def main():
     print("   curl -o cloud_sql_proxy https://dl.google.com/cloudsql/cloud_sql_proxy.darwin.amd64")
     print("   chmod +x cloud_sql_proxy")
     print("\n2. Import the schema:")
-    print(f"   mysql -h {ip_address} -u root -p{ROOT_PASSWORD} < {schema_file}")
+    print(f"   mysql -h {ip_address} -u root -p$MYSQL_ROOT_PASSWORD < {schema_file}")
     print("\n3. Update your .env file with:")
     print(f"   # Direct connection (for development)")
     print(f"   MYSQL_HOST={ip_address}")
     print(f"   MYSQL_PORT=3306")
     print(f"   MYSQL_DATABASE={DATABASE_NAME}")
     print(f"   MYSQL_USER=root")
-    print(f"   MYSQL_PASSWORD={ROOT_PASSWORD}")
+    print(f"   MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD")
     print(f"   CLOUD_SQL_CONNECTION_NAME={connection_name}")
     print(f"\n   # Or for Cloud SQL Proxy (more secure):")
     print(f"   # MYSQL_HOST=127.0.0.1")
