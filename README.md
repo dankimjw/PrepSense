@@ -147,7 +147,9 @@ python3 setup.py
 **Menu Options:**
 1. **Initial Setup** - Install dependencies, create directories, set up environment
 2. **Setup API Keys** - Configure OpenAI and Google Cloud credentials interactively
-3. **Exit**
+3. **Setup Google Cloud ADC** - Configure Application Default Credentials (recommended for teams)
+4. **Show Virtual Environment Activation** - Display activation commands
+5. **Exit**
 
 **Option 1 - Initial Setup:**
 - ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git)
@@ -162,6 +164,14 @@ python3 setup.py
 - ✅ Smart Google Cloud credentials detection in `config/` folder
 - ✅ Auto-update `.env` with correct credential paths
 - ✅ Handle multiple credential files with user selection
+
+**Option 3 - Setup Google Cloud ADC (Recommended):**
+- ✅ Check for Google Cloud SDK installation
+- ✅ Guide through `gcloud auth login` and `gcloud auth application-default login`
+- ✅ Set default project to `adsp-34002-on02-prep-sense`
+- ✅ Automatically comment out `GOOGLE_APPLICATION_CREDENTIALS` in `.env`
+- ✅ Test ADC connection to BigQuery
+- ✅ No JSON key files needed - more secure for team development
 
 ### 🏃 Running the Application
 
@@ -298,7 +308,8 @@ python3 setup.py
 ```
 
 1. Select **option 1** for initial setup (dependencies, directories, environment)
-2. Select **option 2** to configure API keys (OpenAI + Google Cloud auto-detection)
+2. Select **option 3** for Google Cloud ADC setup (recommended for teams)
+3. Select **option 2** if you need to use service account JSON files instead
 
 ### 3. Manual Setup (Alternative)
 
