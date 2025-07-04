@@ -4,27 +4,26 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from typing import Dict, Any, List, Optional # For type hinting
 from pydantic import BaseModel
+from datetime import datetime
 
 # Correct import for the centralized VisionService
 from backend_gateway.services.vision_service import VisionService
 
 # Import additional services
 from backend_gateway.services.pantry_service import PantryService
-from backend_gateway.services.bigquery_service import BigQueryService
 from backend_gateway.services.pantry_item_manager import PantryItemManager
+from backend_gateway.config.database import get_database_service, get_pantry_service
 
 # Dependency functions
 def get_vision_service():
     return VisionService()
     
-def get_bigquery_service():
-    return BigQueryService()
-    
-def get_pantry_service(bq_service: BigQueryService = Depends(get_bigquery_service)):
-    return PantryService(bq_service)
+def get_pantry_service_dep():
+    return get_pantry_service()
 
-def get_pantry_item_manager(bq_service: BigQueryService = Depends(get_bigquery_service)):
-    return PantryItemManager(bq_service)
+def get_pantry_item_manager():
+    db_service = get_database_service()
+    return PantryItemManager(db_service)
 
 # Pydantic models for request validation
 class DetectedItem(BaseModel):
@@ -142,7 +141,7 @@ async def cleanup_detected_items(
 @router.get("/debug-items/{user_id}", response_model=Dict[str, Any])
 async def debug_user_items(
     user_id: int,
-    bq_service: BigQueryService = Depends(get_bigquery_service)
+    db_service = Depends(get_database_service)
 ):
     """Debug endpoint to check items and their timestamps."""
     try:
@@ -154,20 +153,20 @@ async def debug_user_items(
                 pi.quantity,
                 pi.unit_of_measurement,
                 p.product_name,
-                DATETIME_DIFF(CURRENT_DATETIME(), pi.created_at, MINUTE) as minutes_ago
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-            LEFT JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+                EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - pi.created_at))/60 as minutes_ago
+            FROM pantry_items pi
+            LEFT JOIN products p
             ON pi.pantry_item_id = p.pantry_item_id
             WHERE pi.pantry_id IN (
                 SELECT pantry_id 
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-                WHERE user_id = @user_id
+                FROM pantry
+                WHERE user_id = %(user_id)s
             )
             ORDER BY pi.created_at DESC
             LIMIT 20
         """
         
-        results = bq_service.execute_query(query, {"user_id": user_id})
+        results = db_service.execute_query(query, {"user_id": user_id})
         
         return {
             "user_id": user_id,

@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend_gateway.services.user_recipes_service import UserRecipesService
-from backend_gateway.services.bigquery_service import BigQueryService
+from backend_gateway.config.database import get_database_service
 from backend_gateway.core.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,9 @@ router = APIRouter(
 )
 
 
-def get_user_recipes_service(bq_service: BigQueryService = Depends(lambda: BigQueryService())) -> UserRecipesService:
-    return UserRecipesService(bq_service=bq_service)
+def get_user_recipes_service() -> UserRecipesService:
+    db_service = get_database_service()
+    return UserRecipesService(db_service=db_service)
 
 
 @router.post("", summary="Save a recipe to user's collection")

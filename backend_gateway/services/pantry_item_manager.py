@@ -1,28 +1,27 @@
-"""Service for managing pantry items across all related BigQuery tables."""
+"""Service for managing pantry items across all related PostgreSQL tables."""
 
 import logging
 import uuid
 import random
 from typing import List, Dict, Any, Optional
-from datetime import datetime, date
-from backend_gateway.services.bigquery_service import BigQueryService
+from datetime import datetime, date, timedelta
 
 logger = logging.getLogger(__name__)
 
 class PantryItemManager:
     """Manages the insertion of pantry items across all related tables."""
     
-    def __init__(self, bq_service: BigQueryService):
-        self.bq_service = bq_service
+    def __init__(self, db_service):
+        self.db_service = db_service
         self._pantry_cache = {}  # Cache pantry IDs by user_id
         
     def get_next_id(self, table: str, id_column: str) -> int:
         """Get the next available ID for a table by finding max + 1."""
         query = f"""
             SELECT COALESCE(MAX({id_column}), 0) + 1 as next_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.{table}`
+            FROM {table}
         """
-        result = self.bq_service.execute_query(query)
+        result = self.db_service.execute_query(query)
         return result[0]['next_id']
     
     def get_or_create_pantry(self, user_id: int) -> int:
@@ -34,12 +33,12 @@ class PantryItemManager:
         # Check if user has a pantry
         query = """
             SELECT pantry_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-            WHERE user_id = @user_id
+            FROM pantries
+            WHERE user_id = %(user_id)s
             ORDER BY created_at DESC
             LIMIT 1
         """
-        result = self.bq_service.execute_query(query, {"user_id": user_id})
+        result = self.db_service.execute_query(query, {"user_id": user_id})
         
         if result:
             pantry_id = result[0]['pantry_id']
@@ -50,10 +49,10 @@ class PantryItemManager:
         next_pantry_id = int(datetime.now().timestamp() * 1000) % 1000000000
         
         insert_query = """
-            INSERT INTO `adsp-34002-on02-prep-sense.Inventory.pantry`
+            INSERT INTO pantries
             (pantry_id, user_id, pantry_name, created_at)
             VALUES
-            (@pantry_id, @user_id, @pantry_name, CURRENT_DATETIME())
+            (%(pantry_id)s, %(user_id)s, %(pantry_name)s, CURRENT_TIMESTAMP)
         """
         
         params = {
@@ -62,7 +61,7 @@ class PantryItemManager:
             "pantry_name": f"User {user_id} Pantry"
         }
         
-        self.bq_service.execute_query(insert_query, params)
+        self.db_service.execute_query(insert_query, params)
         logger.info(f"Created new pantry {next_pantry_id} for user {user_id}")
         
         self._pantry_cache[user_id] = next_pantry_id
@@ -169,14 +168,14 @@ class PantryItemManager:
                 
                 # Insert into pantry_items
                 pantry_item_query = """
-                    INSERT INTO `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                    INSERT INTO pantry_items
                     (pantry_item_id, pantry_id, quantity, unit_of_measurement, 
                      expiration_date, unit_price, total_price, created_at, 
                      used_quantity, status)
                     VALUES
-                    (@pantry_item_id, @pantry_id, @quantity, @unit, 
-                     @exp_date, @unit_price, @total_price, CURRENT_DATETIME(), 
-                     @used_qty, @status)
+                    (%(pantry_item_id)s, %(pantry_id)s, %(quantity)s, %(unit)s, 
+                     %(exp_date)s, %(unit_price)s, %(total_price)s, CURRENT_TIMESTAMP, 
+                     %(used_qty)s, %(status)s)
                 """
                 
                 pantry_item_params = {
@@ -192,17 +191,17 @@ class PantryItemManager:
                 }
                 
                 insert_start = datetime.now()
-                self.bq_service.execute_query(pantry_item_query, pantry_item_params)
+                self.db_service.execute_query(pantry_item_query, pantry_item_params)
                 logger.info(f"Pantry item insert took {(datetime.now() - insert_start).total_seconds()}s")
                 
                 # Insert into products
                 product_query = """
-                    INSERT INTO `adsp-34002-on02-prep-sense.Inventory.products`
+                    INSERT INTO products
                     (product_id, pantry_item_id, product_name, brand_name, 
                      category, upc_code, created_at)
                     VALUES
-                    (@product_id, @pantry_item_id, @product_name, @brand, 
-                     @category, @upc, CURRENT_DATETIME())
+                    (%(product_id)s, %(pantry_item_id)s, %(product_name)s, %(brand)s, 
+                     %(category)s, %(upc)s, CURRENT_TIMESTAMP)
                 """
                 
                 product_params = {
@@ -215,7 +214,7 @@ class PantryItemManager:
                 }
                 
                 product_start = datetime.now()
-                self.bq_service.execute_query(product_query, product_params)
+                self.db_service.execute_query(product_query, product_params)
                 logger.info(f"Product insert took {(datetime.now() - product_start).total_seconds()}s")
                 
                 saved_items.append({
@@ -264,10 +263,10 @@ class PantryItemManager:
             # Get pantry for user
             pantry_query = """
                 SELECT pantry_id
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-                WHERE user_id = @user_id
+                FROM pantries
+                WHERE user_id = %(user_id)s
             """
-            pantry_results = self.bq_service.execute_query(pantry_query, {"user_id": user_id})
+            pantry_results = self.db_service.execute_query(pantry_query, {"user_id": user_id})
             
             if not pantry_results:
                 logger.warning(f"No pantry found for user {user_id}")
@@ -279,20 +278,20 @@ class PantryItemManager:
             # Build time filter
             time_filter = ""
             if hours is not None:
-                time_filter = f"AND pi.created_at >= DATETIME_SUB(CURRENT_DATETIME(), INTERVAL {int(hours * 60)} MINUTE)"
+                time_filter = f"AND pi.created_at >= CURRENT_TIMESTAMP - INTERVAL '{int(hours * 60)} minutes'"
             
             # First, get the items to delete
             select_query = f"""
                 SELECT pi.pantry_item_id, p.product_id
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-                LEFT JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
+                FROM pantry_items pi
+                LEFT JOIN products p
                 ON pi.pantry_item_id = p.pantry_item_id
-                WHERE pi.pantry_id IN UNNEST(@pantry_ids)
+                WHERE pi.pantry_id = ANY(%(pantry_ids)s)
                 {time_filter}
             """
             
             logger.info(f"Running select query with time_filter: {time_filter}")
-            items_to_delete = self.bq_service.execute_query(
+            items_to_delete = self.db_service.execute_query(
                 select_query, 
                 {"pantry_ids": pantry_ids}
             )
@@ -307,19 +306,19 @@ class PantryItemManager:
             product_ids = [item['product_id'] for item in items_to_delete if item['product_id'] is not None]
             if product_ids:
                 delete_products_query = """
-                    DELETE FROM `adsp-34002-on02-prep-sense.Inventory.products`
-                    WHERE product_id IN UNNEST(@product_ids)
+                    DELETE FROM products
+                    WHERE product_id = ANY(%(product_ids)s)
                 """
-                self.bq_service.execute_query(delete_products_query, {"product_ids": product_ids})
+                self.db_service.execute_query(delete_products_query, {"product_ids": product_ids})
                 logger.info(f"Deleted {len(product_ids)} products")
             
             # Then delete from pantry_items
             pantry_item_ids = [item['pantry_item_id'] for item in items_to_delete]
             delete_items_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_item_id IN UNNEST(@pantry_item_ids)
+                DELETE FROM pantry_items
+                WHERE pantry_item_id = ANY(%(pantry_item_ids)s)
             """
-            self.bq_service.execute_query(delete_items_query, {"pantry_item_ids": pantry_item_ids})
+            self.db_service.execute_query(delete_items_query, {"pantry_item_ids": pantry_item_ids})
             logger.info(f"Deleted {len(pantry_item_ids)} pantry items")
             
             # Clear the pantry cache for this user after deletion
@@ -354,13 +353,13 @@ class PantryItemManager:
         # Verify the item belongs to the user
         verify_query = """
             SELECT pi.pantry_item_id, p.product_id, prod.product_name
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-            JOIN `adsp-34002-on02-prep-sense.Inventory.pantry` p ON pi.pantry_id = p.pantry_id
-            JOIN `adsp-34002-on02-prep-sense.Inventory.products` prod ON pi.pantry_item_id = prod.pantry_item_id
-            WHERE p.user_id = @user_id AND pi.pantry_item_id = @pantry_item_id
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            JOIN products prod ON pi.pantry_item_id = prod.pantry_item_id
+            WHERE p.user_id = %(user_id)s AND pi.pantry_item_id = %(pantry_item_id)s
         """
         
-        result = self.bq_service.execute_query(verify_query, {
+        result = self.db_service.execute_query(verify_query, {
             "user_id": user_id,
             "pantry_item_id": pantry_item_id
         })
@@ -375,17 +374,17 @@ class PantryItemManager:
         
         # Delete from products first
         delete_product_query = """
-            DELETE FROM `adsp-34002-on02-prep-sense.Inventory.products`
-            WHERE product_id = @product_id
+            DELETE FROM products
+            WHERE product_id = %(product_id)s
         """
-        self.bq_service.execute_query(delete_product_query, {"product_id": item_info['product_id']})
+        self.db_service.execute_query(delete_product_query, {"product_id": item_info['product_id']})
         
         # Then delete from pantry_items
         delete_item_query = """
-            DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-            WHERE pantry_item_id = @pantry_item_id
+            DELETE FROM pantry_items
+            WHERE pantry_item_id = %(pantry_item_id)s
         """
-        self.bq_service.execute_query(delete_item_query, {"pantry_item_id": pantry_item_id})
+        self.db_service.execute_query(delete_item_query, {"pantry_item_id": pantry_item_id})
         
         return {
             "deleted": True,
