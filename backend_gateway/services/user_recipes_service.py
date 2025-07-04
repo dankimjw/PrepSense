@@ -72,6 +72,15 @@ class UserRecipesService:
                     "action": "updated"
                 }
             else:
+                # For external recipes (spoonacular), we need to handle the foreign key constraint
+                # by setting recipe_id to NULL since these recipes don't exist in our local recipes table
+                if source == 'spoonacular' and recipe_id:
+                    # Store the external recipe_id in the recipe_data for reference
+                    recipe_data['external_recipe_id'] = recipe_id
+                    recipe_id_to_save = None  # Set to NULL to avoid foreign key constraint
+                else:
+                    recipe_id_to_save = recipe_id
+                
                 # Insert new recipe
                 insert_query = """
                 INSERT INTO user_recipes (
@@ -85,7 +94,7 @@ class UserRecipesService:
                 
                 result = self.db_service.execute_query(insert_query, {
                     "user_id": user_id,
-                    "recipe_id": recipe_id,
+                    "recipe_id": recipe_id_to_save,
                     "recipe_title": recipe_title,
                     "recipe_image": recipe_image,
                     "recipe_data": json.dumps(recipe_data),
