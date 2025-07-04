@@ -145,33 +145,27 @@ python3 setup.py
 ```
 
 **Menu Options:**
-1. **Initial Setup** - Install dependencies, create directories, set up environment
-2. **Setup API Keys** - Configure OpenAI and Google Cloud credentials interactively
-3. **Setup Google Cloud ADC** - Configure Application Default Credentials (recommended for teams)
-4. **Show Virtual Environment Activation** - Display activation commands
-5. **Exit**
+1. **Complete Setup** - Full setup with Google Cloud ADC (recommended)
+2. **Configure API Keys Only** - For OpenAI keys or legacy JSON file setup
+3. **Show Virtual Environment Activation** - Display activation commands
+4. **Exit**
 
-**Option 1 - Initial Setup:**
-- ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git)
-- ✅ Create virtual environment and install Python dependencies
-- ✅ Install npm packages for iOS app
-- ✅ Create required directories (`config/`, `logs/`, `data/`)
-- ✅ Set up `.env` file from template
-- ✅ Create `config/openai_key.txt` placeholder
+**Option 1 - Complete Setup (Recommended):**
+- ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git, gcloud SDK)
+- ✅ Create virtual environment and install all dependencies
+- ✅ Set up directories and environment files
+- ✅ Configure OpenAI API key
+- ✅ **Set up Google Cloud ADC** - No JSON files needed!
+  - Guide through `gcloud auth login` and `gcloud auth application-default login`
+  - Set default project automatically
+  - Test BigQuery connection
+- ✅ Ready to run immediately after setup
 
-**Option 2 - Setup API Keys:**
-- ✅ Interactive OpenAI API key configuration with validation
-- ✅ Smart Google Cloud credentials detection in `config/` folder
-- ✅ Auto-update `.env` with correct credential paths
-- ✅ Handle multiple credential files with user selection
-
-**Option 3 - Setup Google Cloud ADC (Recommended):**
-- ✅ Check for Google Cloud SDK installation
-- ✅ Guide through `gcloud auth login` and `gcloud auth application-default login`
-- ✅ Set default project to `adsp-34002-on02-prep-sense`
-- ✅ Automatically comment out `GOOGLE_APPLICATION_CREDENTIALS` in `.env`
-- ✅ Test ADC connection to BigQuery
-- ✅ No JSON key files needed - more secure for team development
+**Why ADC?**
+- 🔒 More secure - no key files to leak
+- 👥 Better for teams - each developer uses their own Google account
+- 📊 Better audit trails - actions traced to individuals
+- 🚀 Easier setup - no file management needed
 
 ### 🏃 Running the Application
 
@@ -307,9 +301,9 @@ Run the interactive Python setup script:
 python3 setup.py
 ```
 
-1. Select **option 1** for initial setup (dependencies, directories, environment)
-2. Select **option 3** for Google Cloud ADC setup (recommended for teams)
-3. Select **option 2** if you need to use service account JSON files instead
+Select **option 1** for complete setup - this will install everything and configure Google Cloud ADC (no JSON files needed!)
+
+> 💡 **For JSON files**: If you must use service account JSON files, use option 2 after running option 1
 
 ### 3. Manual Setup (Alternative)
 
@@ -348,24 +342,20 @@ The interactive setup script handles most configuration automatically, but for m
 - Place your API key in `config/openai_key.txt`
 - The `.env` file is already configured to read from this file
 
-**2. Google Cloud Configuration (RECOMMENDED - Use ADC):**
+**2. Google Cloud Authentication:**
 
-**Option A: Application Default Credentials (Recommended for team projects)**
+**Default: Application Default Credentials (ADC)**
+The setup script (option 1) will guide you through:
 ```bash
-# One-time setup for each team member
 gcloud auth login                          # For CLI access
 gcloud auth application-default login       # For application access
 gcloud config set project adsp-34002-on02-prep-sense
 ```
-- No JSON key files to share or manage
-- Uses OAuth tokens tied to each developer's Google account
-- More secure and follows Google's best practices
-- Leave `GOOGLE_APPLICATION_CREDENTIALS` commented out in `.env`
 
-**Option B: Service Account Key (Only if ADC doesn't work)**
-- Place your service account JSON file in the `config/` directory
-- The setup script auto-detects and configures the path in `.env`
-- Manual path format: `GOOGLE_APPLICATION_CREDENTIALS=config/your-service-account-key.json`
+**Alternative: JSON Key Files (not recommended)**
+- Only use if ADC doesn't work in your environment
+- Place service account JSON in `config/` directory
+- Run setup option 2 to configure
 - ⚠️ Never commit key files to Git!
 
 ### 4. Running the Application
