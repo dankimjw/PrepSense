@@ -70,7 +70,7 @@ The backend automatically supports both authentication methods:
 ```env
 DB_TYPE=postgres
 POSTGRES_USE_IAM=false
-POSTGRES_PASSWORD=changeme123!
+POSTGRES_PASSWORD=your-secure-password
 ```
 
 ### IAM Mode
