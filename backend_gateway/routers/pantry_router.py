@@ -259,14 +259,6 @@ async def consume_pantry_item(
     """
     try:
         # Update the pantry_items table with new quantity
-        query = """
-        UPDATE `pantry_items`
-        SET 
-            quantity = @quantity_amount,
-            used_quantity = @used_quantity
-        WHERE pantry_item_id = @item_id
-        """
-        
         params = {
             "quantity_amount": consumption_data.quantity_amount,
             "used_quantity": consumption_data.used_quantity or 0,
@@ -277,10 +269,10 @@ async def consume_pantry_item(
         update_query = """
         UPDATE pantry_items
         SET 
-            quantity = @quantity_amount,
-            used_quantity = @used_quantity,
+            quantity = %(quantity_amount)s,
+            used_quantity = %(used_quantity)s,
             updated_at = CURRENT_TIMESTAMP
-        WHERE pantry_item_id = @item_id
+        WHERE pantry_item_id = %(item_id)s
         """
         
         result = db_service.execute_query(update_query, params)

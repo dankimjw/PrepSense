@@ -92,7 +92,7 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
 
 export const updatePantryItem = async (itemId: string, data: any): Promise<any> => {
   try {
-    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 30000); // 30 second timeout for BigQuery updates
+    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 30000); // 30 second timeout for database updates
     return response.data;
   } catch (error: any) {
     if (error instanceof ApiError && error.isTimeout) {

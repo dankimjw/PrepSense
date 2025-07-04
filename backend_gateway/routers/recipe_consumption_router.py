@@ -8,7 +8,7 @@ from datetime import datetime
 
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.spoonacular_service import SpoonacularService
-from backend_gateway.services.bigquery_service import BigQueryService
+from backend_gateway.config.database import get_database_service, get_pantry_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,8 +37,8 @@ router = APIRouter(
 )
 
 
-def get_pantry_service(bq_service: BigQueryService = Depends(lambda: BigQueryService())) -> PantryService:
-    return PantryService(bq_service=bq_service)
+def get_pantry_service_dep() -> PantryService:
+    return get_pantry_service()
 
 
 def get_spoonacular_service() -> SpoonacularService:
@@ -48,7 +48,7 @@ def get_spoonacular_service() -> SpoonacularService:
 @router.post("/cook", summary="Cook a recipe and update pantry")
 async def cook_recipe(
     request: CookRecipeRequest,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ) -> Dict[str, Any]:
     """
     Cook a recipe and subtract ingredients from pantry
@@ -143,7 +143,7 @@ async def check_ingredients_availability(
     recipe_id: int,
     user_id: int,
     servings: int = 1,
-    pantry_service: PantryService = Depends(get_pantry_service),
+    pantry_service: PantryService = Depends(get_pantry_service_dep),
     spoonacular_service: SpoonacularService = Depends(get_spoonacular_service)
 ) -> Dict[str, Any]:
     """
