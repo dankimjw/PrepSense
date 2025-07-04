@@ -167,6 +167,12 @@ Set `DEVELOPMENT_MODE=true` in `.env` to use mock data when BigQuery is unavaila
   - Test BigQuery connection
 - ✅ Ready to run immediately after setup
 
+**Why ADC?**
+- 🔒 More secure - no key files to leak
+- 👥 Better for teams - each developer uses their own Google account
+- 📊 Better audit trails - actions traced to individuals
+- 🚀 Easier setup - no file management needed
+
 ### 🏃 Running the Application
 
 #### Unified Launcher (Recommended)
