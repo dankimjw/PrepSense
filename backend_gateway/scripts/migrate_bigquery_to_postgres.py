@@ -438,18 +438,25 @@ def main():
     parser.add_argument('--pg-port', default=5432, type=int, help='PostgreSQL port')
     parser.add_argument('--pg-database', default='prepsense', help='PostgreSQL database')
     parser.add_argument('--pg-user', default='postgres', help='PostgreSQL user')
-    parser.add_argument('--pg-password', required=True, help='PostgreSQL password')
+    parser.add_argument('--pg-password', help='PostgreSQL password (can also use POSTGRES_PASSWORD env var)')
     parser.add_argument('--dry-run', action='store_true', 
                        help='Test connection without migrating')
     
     args = parser.parse_args()
+    
+    # Get password from argument or environment variable
+    password = args.pg_password or os.getenv('POSTGRES_PASSWORD')
+    if not password:
+        logger.error("PostgreSQL password is required")
+        logger.error("Please provide it via --pg-password argument or POSTGRES_PASSWORD environment variable")
+        sys.exit(1)
     
     postgres_config = {
         'host': args.pg_host,
         'port': args.pg_port,
         'database': args.pg_database,
         'user': args.pg_user,
-        'password': args.pg_password
+        'password': password
     }
     
     migrator = BigQueryToPostgresMigrator(args.project_id, postgres_config)
