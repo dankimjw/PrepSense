@@ -30,7 +30,7 @@ class PerformanceTester:
             'port': int(os.getenv('POSTGRES_PORT', '5432')),
             'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
             'user': os.getenv('POSTGRES_USER', 'postgres'),
-            'password': os.getenv('POSTGRES_PASSWORD', 'changeme123!')
+            'password': os.getenv('POSTGRES_PASSWORD')  # Must be set in environment
         }
         
         # Initialize services

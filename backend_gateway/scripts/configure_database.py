@@ -48,7 +48,7 @@ def update_env_file(use_postgres: bool):
             new_lines.append('POSTGRES_PORT=5432\n')
             new_lines.append('POSTGRES_DATABASE=prepsense\n')
             new_lines.append('POSTGRES_USER=postgres\n')
-            new_lines.append('POSTGRES_PASSWORD=changeme123!  # Update with your password\n')
+            new_lines.append('POSTGRES_PASSWORD=  # Set your PostgreSQL password here\n')
             new_lines.append('CLOUD_SQL_CONNECTION_NAME=adsp-34002-on02-prep-sense:us-central1:prepsense-postgres\n')
     else:
         new_lines.append('\n# Database Configuration\n')

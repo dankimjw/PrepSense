@@ -14,7 +14,7 @@ INSTANCE_NAME = "prepsense-postgres"
 REGION = "us-central1"
 TIER = "db-f1-micro"  # Small instance for development
 DATABASE_NAME = "prepsense"
-ROOT_PASSWORD = "changeme123!"  # Change this!
+ROOT_PASSWORD = os.getenv('POSTGRES_ROOT_PASSWORD', 'CHANGE_ME_BEFORE_RUNNING')  # Set via environment variable
 
 def run_command(cmd, check=True):
     """Run a command and return the result"""
