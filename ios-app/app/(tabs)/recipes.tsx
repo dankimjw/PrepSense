@@ -321,20 +321,21 @@ export default function RecipesScreen() {
   const fetchMyRecipes = async () => {
     try {
       setLoading(true);
-      if (!token || !isAuthenticated) {
-        Alert.alert('Error', 'Please login to view your saved recipes.');
-        return;
-      }
+      // Authentication temporarily disabled - using hardcoded user_id = 111
+      // if (!token || !isAuthenticated) {
+      //   Alert.alert('Error', 'Please login to view your saved recipes.');
+      //   return;
+      // }
 
       let filterParam = '';
       if (myRecipesFilter === 'favorites') {
         filterParam = '?is_favorite=true';
       } else if (myRecipesFilter !== 'all') {
-        filterParam = `?rating_filter=${myRecipesFilter}`;
+        filterParam = `?rating=${myRecipesFilter}`;
       }
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
@@ -344,7 +345,8 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
-      setSavedRecipes(data.recipes || []);
+      console.log('Fetched saved recipes:', data);
+      setSavedRecipes(data || []);
     } catch (error) {
       console.error('Error fetching saved recipes:', error);
       Alert.alert('Error', 'Failed to load saved recipes. Please try again.');
@@ -387,6 +389,10 @@ export default function RecipesScreen() {
       }
       
       Alert.alert('Success', 'Recipe saved to your collection!');
+      // Refresh my recipes if on that tab
+      if (activeTab === 'my-recipes') {
+        await fetchMyRecipes();
+      }
     } catch (error) {
       console.error('Error saving recipe:', error);
       Alert.alert('Error', 'Failed to save recipe. Please try again.');
@@ -591,10 +597,17 @@ export default function RecipesScreen() {
         });
       } else {
         // Spoonacular recipes go to recipe-spoonacular-detail
-        router.push({
-          pathname: '/recipe-spoonacular-detail',
-          params: { recipeId: recipe.recipe_id.toString() },
-        });
+        // Check if recipe_id exists (might be null for external recipes)
+        const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
+        if (recipeId) {
+          router.push({
+            pathname: '/recipe-spoonacular-detail',
+            params: { recipeId: recipeId.toString() },
+          });
+        } else {
+          console.error('No recipe ID found for saved recipe:', recipe);
+          Alert.alert('Error', 'Unable to open recipe details');
+        }
       }
     } else {
       // This is a regular recipe from search/discovery
