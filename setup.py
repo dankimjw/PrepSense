@@ -64,10 +64,12 @@ def show_menu():
     """Display the main menu"""
     print_header("PrepSense Setup Script")
     print(f"{Colors.BOLD}Please select an option:{Colors.END}\n")
-    print(f"{Colors.CYAN}1.{Colors.END} Initial Setup (Install dependencies, create directories)")
-    print(f"{Colors.CYAN}2.{Colors.END} Setup API Keys (Configure OpenAI and other API keys)")
+    print(f"{Colors.CYAN}1.{Colors.END} Complete Setup (Dependencies + Google Cloud ADC + OpenAI)")
+    print(f"{Colors.CYAN}2.{Colors.END} Configure API Keys Only")
     print(f"{Colors.CYAN}3.{Colors.END} Show Virtual Environment Activation")
     print(f"{Colors.CYAN}4.{Colors.END} Exit")
+    print()
+    print(f"{Colors.YELLOW}Note:{Colors.END} Option 1 uses Google Cloud ADC (recommended). For JSON keys, see option 2.")
     print()
 
 def get_user_choice():
@@ -242,6 +244,109 @@ def create_openai_key_file():
         print_success("Created config/openai_key.txt placeholder")
     else:
         print_success("config/openai_key.txt already exists")
+    
+    return True
+
+def complete_setup():
+    """Complete setup with ADC as the default authentication method"""
+    print_header("Complete PrepSense Setup")
+    
+    # Change to script directory
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
+    
+    # Step 1: Check prerequisites
+    print(f"{Colors.BOLD}Step 1/5: Checking Prerequisites{Colors.END}")
+    if not check_prerequisites():
+        print_error("\nPlease install missing prerequisites and run setup again.")
+        return False
+    
+    # Step 2: Create directories
+    print(f"\n{Colors.BOLD}Step 2/5: Creating Directories{Colors.END}")
+    if not create_directories():
+        return False
+    
+    # Step 3: Setup environment file
+    print(f"\n{Colors.BOLD}Step 3/5: Setting Up Environment{Colors.END}")
+    if not setup_environment_file():
+        print_error("\nEnvironment file setup failed.")
+        return False
+    
+    # Create OpenAI key file placeholder
+    if not create_openai_key_file():
+        return False
+    
+    # Step 4: Setup Python and iOS dependencies
+    print(f"\n{Colors.BOLD}Step 4/5: Installing Dependencies{Colors.END}")
+    if not setup_python_environment():
+        print_error("\nPython environment setup failed.")
+        return False
+    
+    if not setup_ios_app():
+        print_error("\niOS app setup failed.")
+        return False
+    
+    # Step 5: Setup authentication
+    print(f"\n{Colors.BOLD}Step 5/5: Setting Up Authentication{Colors.END}")
+    
+    # Setup OpenAI first
+    print(f"\n{Colors.YELLOW}5a. OpenAI API Key:{Colors.END}")
+    openai_key_file = Path("config/openai_key.txt")
+    if openai_key_file.exists():
+        current_key = openai_key_file.read_text().strip()
+        if current_key and current_key != "your_openai_api_key_here":
+            print_success("OpenAI key is already configured")
+        else:
+            setup_openai_key(openai_key_file)
+    else:
+        setup_openai_key(openai_key_file)
+    
+    # Setup Google Cloud ADC (default)
+    print(f"\n{Colors.YELLOW}5b. Google Cloud Authentication (ADC):{Colors.END}")
+    print(f"{Colors.GREEN}Using Application Default Credentials (recommended){Colors.END}")
+    
+    # Check if user wants to use ADC or has existing JSON files
+    existing_json = list(Path("config").glob("*.json"))
+    gcp_json_files = [f for f in existing_json if "openai" not in f.name.lower()]
+    
+    if gcp_json_files:
+        print_warning(f"Found {len(gcp_json_files)} JSON file(s) in config/")
+        print("Would you like to:")
+        print(f"  {Colors.CYAN}1.{Colors.END} Use ADC (recommended) - remove JSON files")
+        print(f"  {Colors.CYAN}2.{Colors.END} Keep using JSON files (not recommended)")
+        
+        choice = input("\nYour choice (1/2): ").strip()
+        if choice == "2":
+            print_info("Keeping existing JSON configuration")
+            update_gcp_credentials_in_env()
+        else:
+            # Setup ADC
+            if setup_google_cloud_adc():
+                print_success("ADC setup completed!")
+                # Suggest removing JSON files
+                print(f"\n{Colors.YELLOW}Recommended:{Colors.END} Remove JSON key files from config/")
+                print("They're no longer needed with ADC.")
+            else:
+                print_warning("ADC setup incomplete. You can set it up later with option 2.")
+    else:
+        # No existing files, go straight to ADC
+        if not setup_google_cloud_adc():
+            print_warning("ADC setup incomplete. You can set it up later with option 2.")
+            print_info("The app will still work if you add JSON files to config/ later.")
+    
+    # Complete!
+    print_header("Setup Complete! 🎉")
+    print(f"{Colors.GREEN}✓ All dependencies installed{Colors.END}")
+    print(f"{Colors.GREEN}✓ Environment configured{Colors.END}")
+    print(f"{Colors.GREEN}✓ Authentication ready{Colors.END}")
+    
+    print(f"\n{Colors.BOLD}To run the application:{Colors.END}")
+    print(f"  1. {Colors.YELLOW}Activate the virtual environment:{Colors.END}")
+    if platform.system() == "Windows":
+        print(f"     {Colors.CYAN}venv\\Scripts\\activate{Colors.END}")
+    else:
+        print(f"     {Colors.CYAN}source venv/bin/activate{Colors.END}")
+    print(f"  2. {Colors.GREEN}python run_app.py{Colors.END}")
     
     return True
 
@@ -536,8 +641,11 @@ def check_google_credentials():
         return False
 
 def setup_api_keys():
-    """Setup API keys"""
+    """Setup API keys with option for JSON files"""
     print_header("API Key Configuration")
+    
+    print(f"{Colors.YELLOW}Note:{Colors.END} For Google Cloud, we recommend using ADC (option 1) instead of JSON files.")
+    print(f"This option is primarily for OpenAI keys and legacy JSON file setup.\n")
     
     # Check if config directory exists
     config_dir = Path("config")
@@ -580,7 +688,9 @@ def setup_api_keys():
     gcp_updated = check_google_credentials()
     
     if not gcp_updated:
-        print_info("To add Google Cloud credentials later:")
+        print(f"\n{Colors.YELLOW}Recommended:{Colors.END} Use Application Default Credentials (ADC) instead!")
+        print(f"  Run {Colors.CYAN}option 3{Colors.END} to set up ADC - it's more secure and easier for teams")
+        print(f"\n{Colors.BOLD}Or, to use a service account key file:{Colors.END}")
         print(f"  1. Download your service account JSON from Google Cloud Console")
         print(f"  2. Place it in the {Colors.CYAN}config/{Colors.END} directory")
         print(f"  3. Run this setup again to auto-detect and configure it")
@@ -600,6 +710,134 @@ def setup_api_keys():
     print(f"  4. Access API docs: {Colors.BLUE}http://localhost:8001/docs{Colors.END}")
     
     return True
+
+def setup_google_cloud_adc():
+    """Setup Google Cloud Application Default Credentials"""
+    print_header("Google Cloud ADC Setup (Recommended)")
+    
+    print(f"{Colors.BOLD}Application Default Credentials (ADC) Benefits:{Colors.END}")
+    print(f"  • {Colors.GREEN}More secure{Colors.END} - No JSON key files to manage")
+    print(f"  • {Colors.GREEN}Better for teams{Colors.END} - Each developer uses their own Google account")
+    print(f"  • {Colors.GREEN}Automatic{Colors.END} - No need to update .env files")
+    print(f"  • {Colors.GREEN}Best practice{Colors.END} - Recommended by Google Cloud")
+    
+    print(f"\n{Colors.BOLD}Prerequisites:{Colors.END}")
+    
+    # Check if gcloud is installed
+    if not check_command('gcloud'):
+        print_error("Google Cloud SDK is not installed")
+        print(f"\n{Colors.BOLD}To install Google Cloud SDK:{Colors.END}")
+        if platform.system() == "Darwin":  # macOS
+            print(f"  {Colors.CYAN}brew install google-cloud-sdk{Colors.END}")
+        elif platform.system() == "Windows":
+            print(f"  Download from: {Colors.BLUE}https://cloud.google.com/sdk/docs/install{Colors.END}")
+        else:  # Linux
+            print(f"  {Colors.CYAN}curl https://sdk.cloud.google.com | bash{Colors.END}")
+        print(f"\nAfter installing, run this setup option again.")
+        return False
+    else:
+        print_success("Google Cloud SDK is installed")
+    
+    # Check current authentication status
+    print(f"\n{Colors.BOLD}Checking current authentication:{Colors.END}")
+    
+    # Check gcloud auth list
+    result = subprocess.run(['gcloud', 'auth', 'list'], capture_output=True, text=True)
+    if result.returncode == 0:
+        print_info("Current authenticated accounts:")
+        print(result.stdout)
+    
+    # Setup steps
+    print(f"\n{Colors.BOLD}Setup Steps:{Colors.END}")
+    print(f"\n1. {Colors.YELLOW}First, login to your Google account:{Colors.END}")
+    print(f"   {Colors.CYAN}gcloud auth login{Colors.END}")
+    
+    response = input("\nHave you completed this step? (y/N): ").lower()
+    if response != 'y':
+        print_info("Please run the command above and try again")
+        return False
+    
+    print(f"\n2. {Colors.YELLOW}Now, set up Application Default Credentials:{Colors.END}")
+    print(f"   {Colors.CYAN}gcloud auth application-default login{Colors.END}")
+    print_info("This will open a browser window for authentication")
+    
+    response = input("\nReady to proceed? (y/N): ").lower()
+    if response == 'y':
+        # Run the ADC login command
+        result = run_command(['gcloud', 'auth', 'application-default', 'login'])
+        if result:
+            print_success("ADC setup completed successfully!")
+        else:
+            print_error("ADC setup failed. Please try running the command manually.")
+            return False
+    else:
+        print_info("Please run the command manually when ready")
+        return False
+    
+    print(f"\n3. {Colors.YELLOW}Set the default project:{Colors.END}")
+    print(f"   {Colors.CYAN}gcloud config set project adsp-34002-on02-prep-sense{Colors.END}")
+    
+    result = run_command(['gcloud', 'config', 'set', 'project', 'adsp-34002-on02-prep-sense'])
+    if result:
+        print_success("Project set successfully!")
+    
+    # Update .env to comment out GOOGLE_APPLICATION_CREDENTIALS
+    print(f"\n{Colors.BOLD}Updating .env configuration:{Colors.END}")
+    env_file = Path(".env")
+    if env_file.exists():
+        env_content = env_file.read_text()
+        lines = env_content.split('\n')
+        updated = False
+        
+        for i, line in enumerate(lines):
+            if line.strip().startswith("GOOGLE_APPLICATION_CREDENTIALS=") and not line.strip().startswith("#"):
+                lines[i] = f"# {line}  # Commented out - using ADC instead"
+                updated = True
+                print_success("Commented out GOOGLE_APPLICATION_CREDENTIALS in .env")
+                break
+        
+        if updated:
+            env_file.write_text('\n'.join(lines))
+    
+    # Test the setup
+    print(f"\n{Colors.BOLD}Testing ADC setup:{Colors.END}")
+    test_script = '''
+from google.cloud import bigquery
+try:
+    client = bigquery.Client()
+    print("✓ ADC is working correctly!")
+    print(f"  Project: {client.project}")
+except Exception as e:
+    print(f"✗ ADC test failed: {e}")
+'''
+    
+    # Write test script to temporary file
+    test_file = Path("test_adc.py")
+    test_file.write_text(test_script)
+    
+    # Run test with virtual environment python if it exists
+    venv_python = Path("venv/bin/python") if platform.system() != "Windows" else Path("venv/Scripts/python.exe")
+    if venv_python.exists():
+        result = run_command([str(venv_python), "test_adc.py"])
+    else:
+        result = run_command([sys.executable, "test_adc.py"])
+    
+    # Clean up test file
+    test_file.unlink()
+    
+    if result:
+        print(f"\n{Colors.GREEN}{Colors.BOLD}ADC Setup Complete!{Colors.END}")
+        print(f"\n{Colors.BOLD}Your app will now use ADC automatically.{Colors.END}")
+        print(f"No JSON key files needed!")
+        print(f"\n{Colors.BOLD}Next steps:{Colors.END}")
+        print(f"  1. Make sure all team members run the same ADC setup")
+        print(f"  2. Remove any JSON key files from the config/ directory")
+        print(f"  3. Never commit credential files to Git")
+        return True
+    else:
+        print_error("\nADC test failed. Please check your setup and try again.")
+        print_info("Make sure you have the necessary BigQuery permissions.")
+        return False
 
 def setup_openai_key(openai_key_file):
     """Setup OpenAI API key"""
@@ -644,11 +882,11 @@ def main():
         choice = get_user_choice()
         
         if choice == 1:
-            success = initial_setup()
+            success = complete_setup()
             if success:
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
             else:
-                print_error("\nInitial setup failed!")
+                print_error("\nSetup failed!")
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
         
         elif choice == 2:

@@ -9,11 +9,12 @@ import logging
 logger = logging.getLogger(__name__)
 
 class PantryService:
-    def __init__(self, bq_service: BigQueryService): # Modified
+    def __init__(self, db_service): # Modified to accept any database service
         """
-        Initializes the PantryService with a BigQueryService instance.
+        Initializes the PantryService with a database service instance.
+        Can be either BigQueryService or PostgresService.
         """
-        self.bq_service = bq_service
+        self.db_service = db_service
 
     async def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
         """
@@ -32,7 +33,7 @@ class PantryService:
         # For now, assuming BigQueryService.execute_query can be called directly.
         # If BigQueryService methods are async, this method should be async too.
         # Based on view_file output, execute_query is synchronous.
-        return self.bq_service.execute_query(query, params)
+        return self.db_service.execute_query(query, params)
 
     async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]: # Modified signature
         """
@@ -60,7 +61,7 @@ class PantryService:
         #     "total_price": item_data.get("total_price"), # Often calculated
         #     "status": item_data.get("status", "available")
         # }
-        # self.bq_service.execute_query(query, params) # INSERT queries might not return rows with execute_query
+        # self.db_service.execute_query(query, params) # INSERT queries might not return rows with execute_query
                                                     # BigQuery DML doesn't return the inserted row by default.
                                                     # Might need a different method in BigQueryService for DML
                                                     # or handle the fact that execute_query returns list of rows (empty for INSERT).
@@ -88,7 +89,7 @@ class PantryService:
         # Use PantryItemManager for proper multi-table insertion
         from backend_gateway.services.pantry_item_manager import PantryItemManager
         
-        pantry_manager = PantryItemManager(self.bq_service)
+        pantry_manager = PantryItemManager(self.db_service)
         
         # Convert PantryItemCreate to the format expected by add_items_batch
         items_to_add = [{
@@ -163,7 +164,7 @@ class PantryService:
             WHERE user_id = @user_id
         """
         pantry_params = {"user_id": user_id}
-        pantry_results = self.bq_service.execute_query(pantry_query, pantry_params)
+        pantry_results = self.db_service.execute_query(pantry_query, pantry_params)
         
         if not pantry_results:
             return {"message": "No pantry found for this user", "deleted_count": 0}
@@ -198,7 +199,7 @@ class PantryService:
         
         # Execute the deletion
         try:
-            result = self.bq_service.execute_query(delete_query, delete_params)
+            result = self.db_service.execute_query(delete_query, delete_params)
             # For DML operations like DELETE, the result typically contains statistics
             # about the operation rather than deleted rows
             return {
@@ -230,7 +231,7 @@ class PantryService:
             WHERE user_id = @user_id
         """
         pantry_params = {"user_id": user_id}
-        pantry_results = self.bq_service.execute_query(pantry_query, pantry_params)
+        pantry_results = self.db_service.execute_query(pantry_query, pantry_params)
         
         if not pantry_results:
             return {"message": "No pantry found for this user", "deleted_count": 0}
@@ -259,7 +260,7 @@ class PantryService:
         
         # Execute the deletion
         try:
-            result = self.bq_service.execute_query(delete_query, delete_params)
+            result = self.db_service.execute_query(delete_query, delete_params)
             return {
                 "message": "Vision detected items deleted successfully", 
                 "deleted_count": "See BigQuery job statistics",
@@ -291,7 +292,7 @@ class PantryService:
                 WHERE pi.pantry_item_id = @pantry_item_id
             """
             check_params = {"pantry_item_id": pantry_item_id}
-            existing_items = self.bq_service.execute_query(check_query, check_params)
+            existing_items = self.db_service.execute_query(check_query, check_params)
             
             if not existing_items:
                 return None
@@ -324,7 +325,7 @@ class PantryService:
                 "total_price": float(total_price) if total_price is not None else None
             }
             
-            self.bq_service.execute_query(update_pantry_query, pantry_params)
+            self.db_service.execute_query(update_pantry_query, pantry_params)
             
             # Update the products table if product exists
             if existing_item.get('product_id'):
@@ -342,7 +343,7 @@ class PantryService:
                     "category": getattr(item_data, 'category', 'Uncategorized')
                 }
                 
-                self.bq_service.execute_query(update_product_query, product_params)
+                self.db_service.execute_query(update_product_query, product_params)
             
             # Return the updated item information
             return {
@@ -383,7 +384,7 @@ class PantryService:
                 WHERE pantry_item_id = @pantry_item_id
             """
             check_params = {"pantry_item_id": pantry_item_id}
-            existing_items = self.bq_service.execute_query(check_query, check_params)
+            existing_items = self.db_service.execute_query(check_query, check_params)
             
             if not existing_items:
                 return False
@@ -395,7 +396,7 @@ class PantryService:
             """
             delete_params = {"pantry_item_id": pantry_item_id}
             
-            self.bq_service.execute_query(delete_query, delete_params)
+            self.db_service.execute_query(delete_query, delete_params)
             
             # Note: We might also want to delete from products table if this was the only pantry_item
             # referencing that product, but for now we'll leave products intact
@@ -424,7 +425,7 @@ class PantryService:
         params = {"pantry_item_id": pantry_item_id}
         
         try:
-            results = self.bq_service.execute_query(query, params)
+            results = self.db_service.execute_query(query, params)
             return results[0] if results else None
         except Exception as e:
             logger.error(f"Error getting pantry item {pantry_item_id}: {str(e)}")
@@ -453,7 +454,7 @@ class PantryService:
         }
         
         try:
-            result = self.bq_service.execute_query(update_query, params)
+            result = self.db_service.execute_query(update_query, params)
             return {
                 "success": True,
                 "pantry_item_id": pantry_item_id,
