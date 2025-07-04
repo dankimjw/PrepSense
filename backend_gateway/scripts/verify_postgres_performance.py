@@ -30,7 +30,7 @@ class PerformanceTester:
             'port': int(os.getenv('POSTGRES_PORT', '5432')),
             'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
             'user': os.getenv('POSTGRES_USER', 'postgres'),
-            'password': os.getenv('POSTGRES_PASSWORD')  # Must be set in environment
+            'password': os.getenv('POSTGRES_PASSWORD', os.getenv('PGPASSWORD'))  # Must be set via POSTGRES_PASSWORD or PGPASSWORD
         }
         
         # Initialize services
@@ -269,8 +269,9 @@ async def main():
 
 if __name__ == "__main__":
     # Check if PostgreSQL is configured
-    if not os.getenv('POSTGRES_PASSWORD'):
-        logger.warning("POSTGRES_PASSWORD not set. Using default password.")
-        logger.warning("Set environment variables or update the script with your configuration.")
+    if not os.getenv('POSTGRES_PASSWORD') and not os.getenv('PGPASSWORD'):
+        logger.error("POSTGRES_PASSWORD or PGPASSWORD environment variable must be set")
+        logger.error("Example: export POSTGRES_PASSWORD='your-password'")
+        sys.exit(1)
         
     asyncio.run(main())
