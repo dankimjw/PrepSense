@@ -37,6 +37,19 @@ class Settings(BaseSettings):
     BIGQUERY_PROJECT: str = "adsp-34002-on02-prep-sense"
     BIGQUERY_DATASET: str = "Inventory"
     
+    # Database Type Selection
+    DB_TYPE: Optional[str] = "bigquery"  # "bigquery" or "postgres"
+    
+    # PostgreSQL Configuration
+    POSTGRES_HOST: Optional[str] = None
+    POSTGRES_PORT: Optional[int] = 5432
+    POSTGRES_DATABASE: Optional[str] = None
+    POSTGRES_USER: Optional[str] = None
+    POSTGRES_PASSWORD: Optional[str] = None
+    CLOUD_SQL_CONNECTION_NAME: Optional[str] = None
+    POSTGRES_USE_IAM: Optional[bool] = False
+    POSTGRES_IAM_USER: Optional[str] = None
+    
     # Google Cloud Configuration
     GOOGLE_APPLICATION_CREDENTIALS: Optional[str] = None
     

@@ -77,8 +77,8 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
     };
     
     const response = item.id 
-      ? await apiClient.put(endpoint, requestBody, 8000) // 8 second timeout
-      : await apiClient.post(endpoint, requestBody, 8000);
+      ? await apiClient.put(endpoint, requestBody, 30000) // 30 second timeout for updates
+      : await apiClient.post(endpoint, requestBody, 15000); // 15 second timeout for creates
       
     return response.data;
   } catch (error: any) {
@@ -92,11 +92,11 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
 
 export const updatePantryItem = async (itemId: string, data: any): Promise<any> => {
   try {
-    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 15000); // 15 second timeout
+    const response = await apiClient.put(`/pantry/items/${itemId}`, data, 30000); // 30 second timeout for BigQuery updates
     return response.data;
   } catch (error: any) {
     if (error instanceof ApiError && error.isTimeout) {
-      throw new Error('Update timed out - please try again');
+      throw new Error('Update timed out - server is taking too long to respond');
     }
     console.error('Error updating pantry item:', error);
     throw error;

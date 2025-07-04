@@ -9,6 +9,7 @@ from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.bigquery_service import BigQueryService
 from backend_gateway.services.recipe_image_service import RecipeImageService
+from backend_gateway.config.database import get_pantry_service as get_pantry_service_dep
 
 logger = logging.getLogger(__name__)
 
@@ -57,8 +58,8 @@ def get_bigquery_service() -> BigQueryService:
     return BigQueryService()
 
 
-def get_pantry_service(bq_service: BigQueryService = Depends(get_bigquery_service)) -> PantryService:
-    return PantryService(bq_service=bq_service)
+def get_pantry_service() -> PantryService:
+    return get_pantry_service_dep()  # Use the same dep as pantry_router
 
 
 @router.post("/search/by-ingredients", summary="Search recipes by ingredients")
@@ -233,8 +234,8 @@ async def search_recipes_from_pantry(
                 # Normalize ingredient name (lowercase, strip)
                 normalized_name = ingredient_name.lower().strip()
                 
-                # Aggregate quantities
-                quantity = item.get('quantity', 0)
+                # Aggregate quantities - convert Decimal to float
+                quantity = float(item.get('quantity', 0))
                 ingredient_quantities[normalized_name] += quantity
                 
                 # Store unit (assuming same ingredient has same unit)

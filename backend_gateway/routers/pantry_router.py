@@ -14,8 +14,8 @@ from backend_gateway.models.user import UserInDB
 from backend_gateway.routers.users import get_current_active_user
 
 # Service imports
-from backend_gateway.services.bigquery_service import BigQueryService
 from backend_gateway.services.pantry_service import PantryService
+from backend_gateway.config.database import get_database_service, get_pantry_service
 
 # Model for creating a pantry item
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 class PantryItemCreate(BaseModel):
     product_name: str = Field(..., example="Whole Milk", description="Name of the product.")
-    quantity: float = Field(..., gt=0, example=1.0, description="Quantity of the item.")
+    quantity: float = Field(..., ge=0, example=1.0, description="Quantity of the item. 0 means the item is depleted.")
     unit_of_measurement: str = Field(..., example="gallon", description="Unit of measurement (e.g., kg, lbs, gallon, liter).")
     expiration_date: Optional[date] = Field(None, description="Expiration date of the item.")
     purchase_date: Optional[date] = Field(None, description="Date the item was purchased.")
@@ -90,18 +90,14 @@ router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-# Dependency for BigQueryService
-def get_bigquery_service() -> BigQueryService:
-    return BigQueryService()
-
-# Dependency for PantryService
-def get_pantry_service(bq_service: BigQueryService = Depends(get_bigquery_service)) -> PantryService:
-    return PantryService(bq_service=bq_service)
+# Dependency for PantryService - now uses database config
+def get_pantry_service_dep() -> PantryService:
+    return get_pantry_service()
 
 @router.get("/user/{user_id}/items", response_model=List[UserPantryItem], summary="Get User's Pantry Items")
 async def get_user_pantry_items(
     user_id: int,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Get all pantry items for a specific user from the user_pantry_full view.
@@ -132,7 +128,7 @@ async def get_user_pantry_items(
 async def add_pantry_item_for_specific_user(
     user_id: int,
     item_data: PantryItemCreate,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Adds a new item to the pantry for a specific user.
@@ -157,7 +153,7 @@ async def add_pantry_item_for_specific_user(
 @router.post("/items", response_model=Dict[str, Any], status_code=201, summary="Add Item to User's Pantry")
 async def add_pantry_item_for_user(
     item_data: PantryItemCreate,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Adds a new item to the pantry for a hardcoded user (ID 111).
@@ -177,7 +173,7 @@ async def add_pantry_item_for_user(
         raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
 
 @router.get("/user/{user_id}/full", response_model=List[Dict[str, Any]])
-async def get_user_pantry_full(user_id: int = 111, bq: BigQueryService = Depends(get_bigquery_service)):
+async def get_user_pantry_full(user_id: int = 111, db_service = Depends(get_database_service)):
     """
     Get the user's full pantry view ordered by expiration date.
     Uses the user_pantry_full table which likely contains joined data.
@@ -197,7 +193,7 @@ async def get_user_pantry_full(user_id: int = 111, bq: BigQueryService = Depends
         params = {"user_id": user_id}
         
         # Execute the query and return results
-        return bq.execute_query(query, params)
+        return db_service.execute_query(query, params)
     
     except Exception as e:
         logger.error(f"Error retrieving user pantry full view: {e}")
@@ -208,7 +204,7 @@ async def get_user_pantry_full(user_id: int = 111, bq: BigQueryService = Depends
 async def update_pantry_item(
     item_id: str,
     item_data: PantryItemCreate,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Update an existing pantry item.
@@ -244,8 +240,8 @@ async def update_pantry_item(
 async def consume_pantry_item(
     item_id: str,
     consumption_data: PantryItemConsumption,
-    pantry_service: PantryService = Depends(get_pantry_service),
-    bq_service: BigQueryService = Depends(get_bigquery_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep),
+    db_service = Depends(get_database_service)
 ):
     """
     Update the consumption of a pantry item.
@@ -277,17 +273,20 @@ async def consume_pantry_item(
             "item_id": int(item_id)
         }
         
-        # Execute the update
-        rows_updated = bq_service.update_rows(
-            "pantry_items",
-            {
-                "quantity": consumption_data.quantity_amount,
-                "used_quantity": consumption_data.used_quantity or 0
-            },
-            {"pantry_item_id": int(item_id)}
-        )
+        # Execute the update using SQL query
+        update_query = """
+        UPDATE pantry_items
+        SET 
+            quantity = @quantity_amount,
+            used_quantity = @used_quantity,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE pantry_item_id = @item_id
+        """
         
-        if rows_updated == 0:
+        result = db_service.execute_query(update_query, params)
+        
+        # Check if any rows were updated
+        if not result or result[0].get('affected_rows', 0) == 0:
             raise HTTPException(status_code=404, detail=f"Pantry item {item_id} not found")
         
         return {
@@ -306,7 +305,7 @@ async def consume_pantry_item(
 @router.delete("/items/{item_id}", response_model=Dict[str, Any], summary="Delete Single Pantry Item")
 async def delete_pantry_item(
     item_id: str,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Delete a single pantry item by ID.
@@ -337,7 +336,7 @@ async def delete_user_pantry_items(
     user_id: int = 111, 
     hours_ago: Optional[int] = None,
     delete_all: bool = False,
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep)
 ):
     """
     Delete pantry items for a specific user.
@@ -368,8 +367,8 @@ async def delete_user_pantry_items(
 @router.post("/recipe/complete", response_model=Dict[str, Any], summary="Complete Recipe and Subtract Ingredients")
 async def complete_recipe(
     request: RecipeCompletionRequest,
-    pantry_service: PantryService = Depends(get_pantry_service),
-    bq_service: BigQueryService = Depends(get_bigquery_service)
+    pantry_service: PantryService = Depends(get_pantry_service_dep),
+    db_service = Depends(get_database_service)
 ):
     """
     Complete a recipe and subtract the used ingredients from the user's pantry.
@@ -377,7 +376,7 @@ async def complete_recipe(
     Args:
         request: The recipe completion request with user ID, recipe name, and ingredients
         pantry_service: The pantry service instance
-        bq_service: The BigQuery service instance
+        db_service: The BigQuery service instance
         
     Returns:
         Success message with details about updated items
@@ -410,8 +409,8 @@ async def complete_recipe(
                 # Find matching items in the user's pantry (case-insensitive)
                 matching_items = []
                 for item in user_items:
-                    # More sophisticated matching
-                    item_name_lower = item.product_name.lower()
+                    # More sophisticated matching - use dictionary access for RealDictRow
+                    item_name_lower = item['product_name'].lower()
                     ingredient_name_lower = ingredient.ingredient_name.lower()
                     
                     # Check for exact match
@@ -433,10 +432,10 @@ async def complete_recipe(
                     continue
                 
                 # Sort by quantity to use items with less quantity first (FIFO-like behavior)
-                matching_items.sort(key=lambda x: x.quantity)
+                matching_items.sort(key=lambda x: x['quantity'])
                 
                 # Handle multiple matching items
-                total_available = sum(item.quantity for item in matching_items)
+                total_available = sum(item['quantity'] for item in matching_items)
                 needed_quantity = ingredient.quantity if ingredient.quantity else total_available
                 
                 if total_available < needed_quantity:
@@ -444,7 +443,7 @@ async def complete_recipe(
                         "ingredient": ingredient.ingredient_name,
                         "needed": needed_quantity,
                         "available": total_available,
-                        "unit": ingredient.unit or matching_items[0].unit_of_measurement
+                        "unit": ingredient.unit or matching_items[0]['unit_of_measurement']
                     })
                 
                 # Subtract from available items
@@ -454,7 +453,7 @@ async def complete_recipe(
                     if remaining_to_subtract <= 0:
                         break
                     
-                    current_quantity = pantry_item.quantity
+                    current_quantity = pantry_item['quantity']
                     if current_quantity <= 0:
                         continue
                     
@@ -464,35 +463,35 @@ async def complete_recipe(
                     
                     # Update the item in the database
                     update_query = """
-                    UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                    UPDATE pantry_items
                     SET 
                         quantity = @new_quantity,
                         used_quantity = @new_used_quantity,
-                        updated_at = CURRENT_DATETIME()
+                        updated_at = CURRENT_TIMESTAMP
                     WHERE pantry_item_id = @pantry_item_id
                     """
                     
                     update_params = {
                         "new_quantity": new_quantity,
-                        "new_used_quantity": (pantry_item.used_quantity or 0) + subtract_amount,
-                        "pantry_item_id": pantry_item.pantry_item_id
+                        "new_used_quantity": (pantry_item.get('used_quantity') or 0) + subtract_amount,
+                        "pantry_item_id": pantry_item['pantry_item_id']
                     }
                     
-                    bq_service.execute_query(update_query, update_params)
+                    db_service.execute_query(update_query, update_params)
                     rows_updated = 1  # Assume success if no exception
                     
                     if rows_updated > 0:
                         updated_items.append({
-                            "item_name": pantry_item.product_name,
-                            "pantry_item_id": pantry_item.pantry_item_id,
+                            "item_name": pantry_item['product_name'],
+                            "pantry_item_id": pantry_item['pantry_item_id'],
                             "previous_quantity": current_quantity,
                             "new_quantity": new_quantity,
                             "used_quantity": subtract_amount,
-                            "unit": pantry_item.unit_of_measurement
+                            "unit": pantry_item['unit_of_measurement']
                         })
                         remaining_to_subtract -= subtract_amount
                     else:
-                        errors.append(f"Failed to update {pantry_item.product_name}")
+                        errors.append(f"Failed to update {pantry_item['product_name']}")
                         
             except Exception as e:
                 logger.error(f"Error processing ingredient {ingredient.ingredient_name}: {str(e)}")
@@ -533,7 +532,7 @@ async def revert_pantry_changes(
     minutes_ago: Optional[float] = None,
     include_recipe_changes: bool = True,
     include_additions: bool = True,
-    bq_service: BigQueryService = Depends(get_bigquery_service)
+    db_service = Depends(get_database_service)
 ):
     """
     Revert recent pantry changes including recipe subtractions.
@@ -575,7 +574,7 @@ async def revert_pantry_changes(
             FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
             WHERE user_id = @user_id
             """
-            pantry_results = bq_service.execute_query(pantry_query, {"user_id": user_id})
+            pantry_results = db_service.execute_query(pantry_query, {"user_id": user_id})
             
             if pantry_results:
                 pantry_ids = [row["pantry_id"] for row in pantry_results]
@@ -590,7 +589,7 @@ async def revert_pantry_changes(
                 AND CAST(pi.created_at AS TIMESTAMP) >= {cutoff_query}
                 """
                 
-                items_to_delete = bq_service.execute_query(items_query, {"pantry_ids": pantry_ids})
+                items_to_delete = db_service.execute_query(items_query, {"pantry_ids": pantry_ids})
                 
                 # Delete the items
                 if items_to_delete:
@@ -601,7 +600,7 @@ async def revert_pantry_changes(
                     WHERE pantry_item_id IN UNNEST(@item_ids)
                     """
                     
-                    bq_service.execute_query(delete_query, {"item_ids": item_ids})
+                    db_service.execute_query(delete_query, {"item_ids": item_ids})
                     
                     # Also delete from products table
                     delete_products_query = """
@@ -609,7 +608,7 @@ async def revert_pantry_changes(
                     WHERE pantry_item_id IN UNNEST(@item_ids)
                     """
                     
-                    bq_service.execute_query(delete_products_query, {"item_ids": item_ids})
+                    db_service.execute_query(delete_products_query, {"item_ids": item_ids})
                     
                     deleted_items = [
                         {
@@ -643,7 +642,7 @@ async def revert_pantry_changes(
             AND pi.used_quantity > 0  -- Items that have been used
             """
             
-            modified_items = bq_service.execute_query(modified_query, {"user_id": user_id})
+            modified_items = db_service.execute_query(modified_query, {"user_id": user_id})
             
             # Restore quantities by adding back the used amount
             for item in modified_items:
@@ -658,7 +657,7 @@ async def revert_pantry_changes(
                 WHERE pantry_item_id = @item_id
                 """
                 
-                bq_service.execute_query(restore_query, {
+                db_service.execute_query(restore_query, {
                     "restored_quantity": restored_quantity,
                     "item_id": item["pantry_item_id"]
                 })
