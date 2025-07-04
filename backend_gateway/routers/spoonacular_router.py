@@ -113,18 +113,49 @@ async def get_recipe_information(
     recipe_id: int,
     include_nutrition: bool = Query(True, description="Include nutrition information"),
     spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
-    recipe_image_service: RecipeImageService = Depends(get_recipe_image_service)
+    recipe_image_service: RecipeImageService = Depends(get_recipe_image_service),
+    db_service = Depends(get_database_service)
 ) -> Dict[str, Any]:
     """
     Get detailed information about a specific recipe.
     This endpoint also checks for stored recipe images in GCS and generates new ones using OpenAI if needed.
     """
     try:
-        # Get recipe information from Spoonacular
-        recipe = await spoonacular_service.get_recipe_information(
-            recipe_id=recipe_id,
-            include_nutrition=include_nutrition
-        )
+        # First, try to get recipe from Spoonacular
+        recipe = None
+        try:
+            recipe = await spoonacular_service.get_recipe_information(
+                recipe_id=recipe_id,
+                include_nutrition=include_nutrition
+            )
+        except Exception as spoon_error:
+            logger.warning(f"Spoonacular API failed for recipe {recipe_id}: {str(spoon_error)}")
+            
+            # Fallback: Check if we have this recipe saved locally
+            try:
+                saved_recipe_query = """
+                    SELECT recipe_data
+                    FROM user_recipes
+                    WHERE (recipe_id = %(recipe_id)s OR recipe_data->>'id' = %(recipe_id_str)s OR recipe_data->>'external_recipe_id' = %(recipe_id_str)s)
+                    AND recipe_data IS NOT NULL
+                    AND recipe_data != '{}'::jsonb
+                    LIMIT 1
+                """
+                
+                result = db_service.execute_query(saved_recipe_query, {
+                    "recipe_id": recipe_id,
+                    "recipe_id_str": str(recipe_id)
+                })
+                
+                if result and result[0].get('recipe_data'):
+                    logger.info(f"Using locally saved recipe data for {recipe_id}")
+                    recipe = result[0]['recipe_data']
+                else:
+                    # If no local data, re-raise the original error
+                    raise spoon_error
+            except Exception as db_error:
+                logger.error(f"Database fallback also failed: {str(db_error)}")
+                raise spoon_error
         
         # Check if we have a stored image or generate a new one
         try:
