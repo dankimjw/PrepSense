@@ -7,9 +7,8 @@ from pydantic import BaseModel, Field
 
 from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.pantry_service import PantryService
-from backend_gateway.services.bigquery_service import BigQueryService
 from backend_gateway.services.recipe_image_service import RecipeImageService
-from backend_gateway.config.database import get_pantry_service as get_pantry_service_dep
+from backend_gateway.config.database import get_pantry_service as get_pantry_service_dep, get_database_service
 
 logger = logging.getLogger(__name__)
 
@@ -52,10 +51,6 @@ def get_spoonacular_service() -> SpoonacularService:
 
 def get_recipe_image_service() -> RecipeImageService:
     return RecipeImageService()
-
-
-def get_bigquery_service() -> BigQueryService:
-    return BigQueryService()
 
 
 def get_pantry_service() -> PantryService:

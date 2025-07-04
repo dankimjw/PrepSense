@@ -52,7 +52,7 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'bigquery'>('cleanup');
+  const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'database'>('cleanup');
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [cleanupTimeframe, setCleanupTimeframe] = useState<number | null>(24); // Default: 24 hours
   const [isRevertingChanges, setIsRevertingChanges] = useState(false);
@@ -350,9 +350,9 @@ export default function AdminScreen() {
     );
   };
 
-  const renderBigQueryTab = () => (
+  const renderDatabaseTab = () => (
     <View style={styles.bigQueryContainer}>
-      <Text style={styles.header}>BigQuery Testing</Text>
+      <Text style={styles.header}>Database Testing</Text>
 
       <View style={styles.settingRow}>
         <Text style={styles.settingLabel}>Mock Mode</Text>
@@ -400,7 +400,7 @@ export default function AdminScreen() {
           <TouchableOpacity
             key={table.id}
             style={styles.tableCard}
-            onPress={() => router.push('/bigquery-tester')}
+            onPress={() => router.push('/database-tester')}
           >
             <Text style={styles.tableName}>{table.name}</Text>
             <Text style={styles.tableDescription}>{table.description}</Text>
@@ -419,7 +419,7 @@ export default function AdminScreen() {
           style={styles.queryButton}
           onPress={() => router.push('/bigquery-tester')}
         >
-          <Text style={styles.queryButtonText}>🔍 Open BigQuery Tester</Text>
+          <Text style={styles.queryButtonText}>🔍 Open Database Tester</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -476,11 +476,11 @@ export default function AdminScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'bigquery' && styles.activeTab]}
-          onPress={() => setActiveTab('bigquery')}
+          style={[styles.tab, activeTab === 'database' && styles.activeTab]}
+          onPress={() => setActiveTab('database')}
         >
-          <Text style={[styles.tabText, activeTab === 'bigquery' && styles.activeTabText]}>
-            <Ionicons name="analytics-outline" size={16} style={styles.tabIcon} /> BigQuery
+          <Text style={[styles.tabText, activeTab === 'database' && styles.activeTabText]}>
+            <Ionicons name="analytics-outline" size={16} style={styles.tabIcon} /> Database
           </Text>
         </TouchableOpacity>
       </View>
@@ -598,7 +598,7 @@ export default function AdminScreen() {
         ) : activeTab === 'users' ? (
           renderUsersTab()
         ) : (
-          renderBigQueryTab()
+          renderDatabaseTab()
         )}
       </ScrollView>
 
