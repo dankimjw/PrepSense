@@ -130,11 +130,12 @@ class RecipeImageService:
             
             return stored_url
             
-        except openai.error.OpenAIError as e:
-            logger.error(f"OpenAI API error generating image for recipe {recipe_id}: {str(e)}")
-            return None
         except Exception as e:
-            logger.error(f"Error generating image for recipe {recipe_id}: {str(e)}")
+            # Handle any OpenAI-related errors
+            if hasattr(e, '__class__') and 'openai' in str(type(e)).lower():
+                logger.error(f"OpenAI API error generating image for recipe {recipe_id}: {str(e)}")
+            else:
+                logger.error(f"Error generating image for recipe {recipe_id}: {str(e)}")
             return None
     
     async def generate_batch_recipe_images(self, recipes: list[Dict[str, Any]]) -> Dict[str, str]:

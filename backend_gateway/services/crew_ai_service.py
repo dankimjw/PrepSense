@@ -12,15 +12,15 @@ except ImportError:
     CREWAI_AVAILABLE = False
     Agent = Task = Crew = Process = None
 
-from backend_gateway.services.bigquery_service import BigQueryService
 from backend_gateway.services.recipe_service import RecipeService
+from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
 class CrewAIService:
     def __init__(self):
         """Initialize the CrewAI service with necessary components."""
-        self.bq_service = BigQueryService()
+        self.db_service = get_database_service()
         self.recipe_service = RecipeService()
         
         # Initialize OpenAI
@@ -148,13 +148,13 @@ class CrewAIService:
         
         query = """
             SELECT *
-            FROM `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
-            WHERE user_id = @user_id
+            FROM user_pantry_full
+            WHERE user_id = %(user_id)s
             ORDER BY expiration_date ASC
         """
         params = {"user_id": user_id}
         
-        results = self.bq_service.execute_query(query, params)
+        results = self.db_service.execute_query(query, params)
         logger.info(f"Found {len(results)} pantry items for user {user_id}")
         
         # Log the product names for debugging
@@ -170,15 +170,21 @@ class CrewAIService:
         
         query = """
             SELECT *
-            FROM `adsp-34002-on02-prep-sense.Inventory.user_preference`
-            WHERE user_id = @user_id
+            FROM user_preferences
+            WHERE user_id = %(user_id)s
             LIMIT 1
         """
         params = {"user_id": user_id}
         
-        results = self.bq_service.execute_query(query, params)
-        if results:
-            preferences = results[0]
+        results = self.db_service.execute_query(query, params)
+        if results and results[0].get('preferences'):
+            # Extract preferences from JSONB column
+            prefs_data = results[0]['preferences']
+            preferences = {
+                'dietary_preference': prefs_data.get('dietary_restrictions', []),
+                'allergens': prefs_data.get('allergens', []),
+                'cuisine_preference': prefs_data.get('cuisine_preferences', [])
+            }
             logger.info(f"Found preferences: dietary={preferences.get('dietary_preference', [])}, allergens={preferences.get('allergens', [])}")
             return preferences
         else:

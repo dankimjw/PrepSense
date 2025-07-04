@@ -1,6 +1,4 @@
-# from database import get_db # No longer needed if using BigQueryService exclusively
 from typing import Dict, Any, List
-from backend_gateway.services.bigquery_service import BigQueryService # Added
 import logging
 # Assuming PantryItem is a Pydantic model or similar, define it or import it
 # For now, let's assume it's a Dict for add_pantry_item simplicity in this refactor step.
@@ -150,8 +148,8 @@ class PantryService:
         # First get the pantry IDs for this user to ensure we only delete their items
         pantry_query = """
             SELECT pantry_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-            WHERE user_id = @user_id
+            FROM pantry
+            WHERE user_id = %(user_id)s
         """
         pantry_params = {"user_id": user_id}
         pantry_results = self.db_service.execute_query(pantry_query, pantry_params)
@@ -166,24 +164,24 @@ class PantryService:
         if delete_all:
             # Delete all items for this user's pantries
             delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_id IN UNNEST(@pantry_ids)
+                DELETE FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
             """
             delete_params = {"pantry_ids": pantry_ids}
         elif hours_ago is not None:
             # Delete only items added within the specified time window
             delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_id IN UNNEST(@pantry_ids)
-                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @hours_ago HOUR)
+                DELETE FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
+                AND created_at >= CURRENT_TIMESTAMP - INTERVAL '%(hours_ago)s hours'
             """
             delete_params = {"pantry_ids": pantry_ids, "hours_ago": hours_ago}
         else:
             # Default: delete items added in the last 24 hours
             delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_id IN UNNEST(@pantry_ids)
-                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 24 HOUR)
+                DELETE FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
+                AND created_at >= CURRENT_TIMESTAMP - INTERVAL '24 hours'
             """
             delete_params = {"pantry_ids": pantry_ids}
         
@@ -194,7 +192,7 @@ class PantryService:
             # about the operation rather than deleted rows
             return {
                 "message": "Pantry items deleted successfully", 
-                "deleted_count": "See BigQuery job statistics",
+                "deleted_count": "Items deleted",
                 "user_id": user_id,
                 "pantry_ids": pantry_ids
             }
@@ -217,8 +215,8 @@ class PantryService:
         # First get the pantry IDs for this user to ensure we only delete their items
         pantry_query = """
             SELECT pantry_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-            WHERE user_id = @user_id
+            FROM pantry
+            WHERE user_id = %(user_id)s
         """
         pantry_params = {"user_id": user_id}
         pantry_results = self.db_service.execute_query(pantry_query, pantry_params)
@@ -233,17 +231,17 @@ class PantryService:
         if hours_ago is not None:
             # Delete only vision-detected items added within the specified time window
             delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_id IN UNNEST(@pantry_ids)
+                DELETE FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
                 AND source = 'vision_detected'
-                AND created_at >= TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL @hours_ago HOUR)
+                AND created_at >= CURRENT_TIMESTAMP - INTERVAL '%(hours_ago)s hours'
             """
             delete_params = {"pantry_ids": pantry_ids, "hours_ago": hours_ago}
         else:
             # Default: delete all vision-detected items regardless of time
             delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_id IN UNNEST(@pantry_ids)
+                DELETE FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
                 AND source = 'vision_detected'
             """
             delete_params = {"pantry_ids": pantry_ids}
@@ -253,7 +251,7 @@ class PantryService:
             result = self.db_service.execute_query(delete_query, delete_params)
             return {
                 "message": "Vision detected items deleted successfully", 
-                "deleted_count": "See BigQuery job statistics",
+                "deleted_count": "Items deleted",
                 "user_id": user_id,
                 "pantry_ids": pantry_ids
             }
@@ -263,7 +261,7 @@ class PantryService:
             
     async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
         """
-        Updates an existing pantry item and its associated product.
+        Updates an existing pantry item - delegates to the database service
         
         Args:
             pantry_item_id: The ID of the pantry item to update
@@ -272,93 +270,12 @@ class PantryService:
         Returns:
             Dict with the updated item information
         """
-        try:
-            # First, check if the item exists and get its details
-            check_query = """
-                SELECT pi.*, p.product_id, p.product_name
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-                LEFT JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
-                ON pi.pantry_item_id = p.pantry_item_id
-                WHERE pi.pantry_item_id = @pantry_item_id
-            """
-            check_params = {"pantry_item_id": pantry_item_id}
-            existing_items = self.db_service.execute_query(check_query, check_params)
-            
-            if not existing_items:
-                return None
-                
-            existing_item = existing_items[0]
-            
-            # Update the pantry_items table
-            update_pantry_query = """
-                UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                SET 
-                    quantity = @quantity,
-                    unit_of_measurement = @unit_of_measurement,
-                    expiration_date = @expiration_date,
-                    unit_price = CASE WHEN @unit_price IS NULL THEN NULL ELSE CAST(@unit_price AS FLOAT64) END,
-                    total_price = CASE WHEN @total_price IS NULL THEN NULL ELSE CAST(@total_price AS FLOAT64) END
-                WHERE pantry_item_id = @pantry_item_id
-            """
-            
-            # Calculate total price if unit price is provided
-            total_price = None
-            if item_data.unit_price:
-                total_price = item_data.unit_price * item_data.quantity
-            
-            pantry_params = {
-                "pantry_item_id": pantry_item_id,
-                "quantity": float(item_data.quantity) if item_data.quantity is not None else 0.0,
-                "unit_of_measurement": item_data.unit_of_measurement,
-                "expiration_date": item_data.expiration_date.isoformat() if item_data.expiration_date else None,
-                "unit_price": float(item_data.unit_price) if item_data.unit_price is not None else None,
-                "total_price": float(total_price) if total_price is not None else None
-            }
-            
-            self.db_service.execute_query(update_pantry_query, pantry_params)
-            
-            # Update the products table if product exists
-            if existing_item.get('product_id'):
-                update_product_query = """
-                    UPDATE `adsp-34002-on02-prep-sense.Inventory.products`
-                    SET 
-                        product_name = @product_name,
-                        category = @category
-                    WHERE product_id = @product_id
-                """
-                
-                product_params = {
-                    "product_id": existing_item['product_id'],
-                    "product_name": item_data.product_name,
-                    "category": getattr(item_data, 'category', 'Uncategorized')
-                }
-                
-                self.db_service.execute_query(update_product_query, product_params)
-            
-            # Return the updated item information
-            return {
-                'id': str(pantry_item_id),
-                'pantry_item_id': pantry_item_id,
-                'product_id': existing_item.get('product_id'),
-                'product_name': item_data.product_name,
-                'item_name': item_data.product_name,
-                'quantity': item_data.quantity,
-                'quantity_amount': item_data.quantity,
-                'unit_of_measurement': item_data.unit_of_measurement,
-                'quantity_unit': item_data.unit_of_measurement,
-                'expiration_date': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
-                'expected_expiration': item_data.expiration_date.isoformat() if item_data.expiration_date else None,
-                'category': getattr(item_data, 'category', 'Uncategorized'),
-                'message': 'Item updated successfully'
-            }
-            
-        except Exception as e:
-            print(f"Error updating pantry item: {str(e)}")
-            raise
+        # Delegate to the database service (PostgreSQL)
+        return await self.db_service.update_pantry_item(pantry_item_id, item_data)
             
     async def delete_single_pantry_item(self, pantry_item_id: int) -> bool:
         """
-        Deletes a single pantry item by ID.
+        Deletes a single pantry item by ID - delegates to database service
         
         Args:
             pantry_item_id: The ID of the pantry item to delete
@@ -366,36 +283,8 @@ class PantryService:
         Returns:
             True if deleted successfully, False if not found
         """
-        try:
-            # First check if the item exists
-            check_query = """
-                SELECT pantry_item_id
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_item_id = @pantry_item_id
-            """
-            check_params = {"pantry_item_id": pantry_item_id}
-            existing_items = self.db_service.execute_query(check_query, check_params)
-            
-            if not existing_items:
-                return False
-            
-            # Delete the item
-            delete_query = """
-                DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                WHERE pantry_item_id = @pantry_item_id
-            """
-            delete_params = {"pantry_item_id": pantry_item_id}
-            
-            self.db_service.execute_query(delete_query, delete_params)
-            
-            # Note: We might also want to delete from products table if this was the only pantry_item
-            # referencing that product, but for now we'll leave products intact
-            
-            return True
-            
-        except Exception as e:
-            print(f"Error deleting single pantry item: {str(e)}")
-            raise
+        # Delegate to the database service (PostgreSQL)
+        return await self.db_service.delete_single_pantry_item(pantry_item_id)
     
     async def get_pantry_item_by_id(self, pantry_item_id: int) -> Dict[str, Any]:
         """
@@ -409,8 +298,8 @@ class PantryService:
         """
         query = """
             SELECT *
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-            WHERE pantry_item_id = @pantry_item_id
+            FROM pantry_items
+            WHERE pantry_item_id = %(pantry_item_id)s
         """
         params = {"pantry_item_id": pantry_item_id}
         
@@ -433,10 +322,10 @@ class PantryService:
             Dict with update status
         """
         update_query = """
-            UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-            SET quantity = @new_quantity,
-                updated_at = CURRENT_TIMESTAMP()
-            WHERE pantry_item_id = @pantry_item_id
+            UPDATE pantry_items
+            SET quantity = %(new_quantity)s,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE pantry_item_id = %(pantry_item_id)s
         """
         params = {
             "pantry_item_id": pantry_item_id,
