@@ -70,3 +70,11 @@ test_*.py
 
 # Keep environment template
 !.env.template
+
+# Database backups - keep these local only
+db_backups/
+bigquery_backups/
+*_backup_*.json
+*_backup_*.sql
+backend_gateway/scripts/BIGQUERY_BACKUP_RESTORE.md
+backend_gateway/scripts/backup_bigquery_tables.py
