@@ -48,7 +48,7 @@ def update_env_file(use_postgres: bool):
             new_lines.append('POSTGRES_PORT=5432\n')
             new_lines.append('POSTGRES_DATABASE=prepsense\n')
             new_lines.append('POSTGRES_USER=postgres\n')
-            new_lines.append('POSTGRES_PASSWORD=***REMOVED***  # Update with your password\n')
+            new_lines.append('POSTGRES_PASSWORD=your-secure-password  # Set via environment variable\n')
             new_lines.append('CLOUD_SQL_CONNECTION_NAME=adsp-34002-on02-prep-sense:us-central1:prepsense-postgres\n')
     else:
         new_lines.append('\n# Database Configuration\n')
@@ -76,7 +76,7 @@ def main():
             print("1. Ensure Cloud SQL instance is running:")
             print("   gcloud sql instances describe prepsense-postgres --project=adsp-34002-on02-prep-sense")
             print("\n2. Run migration if needed:")
-            print("   python backend_gateway/scripts/migrate_bigquery_to_postgres.py --pg-host [IP] --pg-password [PASSWORD]")
+            print("   POSTGRES_PASSWORD=your-password python backend_gateway/scripts/migrate_bigquery_to_postgres.py")
             print("\n3. Restart the backend:")
             print("   uvicorn backend_gateway.app:app --reload")
     elif choice == '2':

@@ -24,13 +24,19 @@ logger = logging.getLogger(__name__)
 
 class PerformanceTester:
     def __init__(self):
-        # PostgreSQL config
+        # PostgreSQL config - get password from environment variable
+        postgres_password = os.getenv('POSTGRES_PASSWORD')
+        if not postgres_password:
+            logger.error("POSTGRES_PASSWORD environment variable is required")
+            logger.error("Please set it using: export POSTGRES_PASSWORD='your-password'")
+            sys.exit(1)
+        
         self.pg_config = {
             'host': os.getenv('POSTGRES_HOST', '***REMOVED***'),
             'port': int(os.getenv('POSTGRES_PORT', '5432')),
             'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
             'user': os.getenv('POSTGRES_USER', 'postgres'),
-            'password': os.getenv('POSTGRES_PASSWORD', '***REMOVED***')
+            'password': postgres_password
         }
         
         # Initialize services
@@ -270,7 +276,8 @@ async def main():
 if __name__ == "__main__":
     # Check if PostgreSQL is configured
     if not os.getenv('POSTGRES_PASSWORD'):
-        logger.warning("POSTGRES_PASSWORD not set. Using default password.")
-        logger.warning("Set environment variables or update the script with your configuration.")
+        logger.error("POSTGRES_PASSWORD environment variable is required")
+        logger.error("Please set it using: export POSTGRES_PASSWORD='your-password'")
+        sys.exit(1)
         
     asyncio.run(main())
