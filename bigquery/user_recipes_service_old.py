@@ -5,9 +5,6 @@ import logging
 import uuid
 from typing import List, Dict, Any, Optional
 from datetime import datetime
-from google.cloud import bigquery
-
-from backend_gateway.services.bigquery_service import BigQueryService
 
 logger = logging.getLogger(__name__)
 
@@ -15,9 +12,9 @@ logger = logging.getLogger(__name__)
 class UserRecipesService:
     """Service for handling user recipe operations"""
     
-    def __init__(self, bq_service: BigQueryService):
-        self.bq_service = bq_service
-        self.table_name = f"{self.bq_service.project_id}.{self.bq_service.dataset_id}.user_recipes"
+    def __init__(self, db_service):
+        self.db_service = db_service
+        self.table_name = "user_recipes"
         
     async def save_recipe(
         self,

@@ -33,9 +33,9 @@ class UserRecipesService:
             # Check if recipe already exists for this user
             check_query = """
             SELECT id FROM user_recipes 
-            WHERE user_id = @user_id 
-            AND recipe_title = @recipe_title 
-            AND source = @source
+            WHERE user_id = %(user_id)s 
+            AND recipe_title = %(recipe_title)s 
+            AND source = %(source)s
             """
             
             existing = self.db_service.execute_query(check_query, {
@@ -49,11 +49,11 @@ class UserRecipesService:
                 update_query = """
                 UPDATE user_recipes 
                 SET 
-                    recipe_data = @recipe_data,
-                    rating = @rating,
-                    is_favorite = @is_favorite,
+                    recipe_data = %(recipe_data)s,
+                    rating = %(rating)s,
+                    is_favorite = %(is_favorite)s,
                     updated_at = CURRENT_TIMESTAMP
-                WHERE id = @id
+                WHERE id = %(id)s
                 RETURNING id
                 """
                 
@@ -78,8 +78,8 @@ class UserRecipesService:
                     user_id, recipe_id, recipe_title, recipe_image, 
                     recipe_data, source, rating, is_favorite
                 ) VALUES (
-                    @user_id, @recipe_id, @recipe_title, @recipe_image,
-                    @recipe_data, @source, @rating, @is_favorite
+                    %(user_id)s, %(recipe_id)s, %(recipe_title)s, %(recipe_image)s,
+                    %(recipe_data)s, %(source)s, %(rating)s, %(is_favorite)s
                 ) RETURNING id
                 """
                 
@@ -119,19 +119,19 @@ class UserRecipesService:
         """Get user's saved recipes with optional filters"""
         try:
             # Build query with filters
-            conditions = ["user_id = @user_id"]
+            conditions = ["user_id = %(user_id)s"]
             params = {"user_id": user_id}
             
             if source:
-                conditions.append("source = @source")
+                conditions.append("source = %(source)s")
                 params["source"] = source
                 
             if is_favorite is not None:
-                conditions.append("is_favorite = @is_favorite")
+                conditions.append("is_favorite = %(is_favorite)s")
                 params["is_favorite"] = is_favorite
                 
             if rating:
-                conditions.append("rating = @rating")
+                conditions.append("rating = %(rating)s")
                 params["rating"] = rating
             
             query = f"""
@@ -188,8 +188,8 @@ class UserRecipesService:
         try:
             update_query = """
             UPDATE user_recipes 
-            SET rating = @rating, updated_at = CURRENT_TIMESTAMP
-            WHERE id = @recipe_id AND user_id = @user_id
+            SET rating = %(rating)s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
             """
             
             result = self.db_service.execute_query(update_query, {
@@ -217,7 +217,7 @@ class UserRecipesService:
             # Get current status
             query = """
             SELECT is_favorite FROM user_recipes 
-            WHERE id = @recipe_id AND user_id = @user_id
+            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
             """
             
             result = self.db_service.execute_query(query, {
@@ -237,8 +237,8 @@ class UserRecipesService:
             # Update favorite status
             update_query = """
             UPDATE user_recipes 
-            SET is_favorite = @is_favorite, updated_at = CURRENT_TIMESTAMP
-            WHERE id = @recipe_id AND user_id = @user_id
+            SET is_favorite = %(is_favorite)s, updated_at = CURRENT_TIMESTAMP
+            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
             """
             
             self.db_service.execute_query(update_query, {
@@ -266,7 +266,7 @@ class UserRecipesService:
         try:
             delete_query = """
             DELETE FROM user_recipes 
-            WHERE id = @recipe_id AND user_id = @user_id
+            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
             """
             
             result = self.db_service.execute_query(delete_query, {
@@ -301,7 +301,7 @@ class UserRecipesService:
                 COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
                 COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes
             FROM user_recipes
-            WHERE user_id = @user_id
+            WHERE user_id = %(user_id)s
             """
             
             result = self.db_service.execute_query(stats_query, {"user_id": user_id})

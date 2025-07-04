@@ -8,21 +8,13 @@ import uuid
 import logging
 
 from ..models.user import UserCreate, UserInDB, UserResponse, UserProfileResponse, UserProfilePreference
-from ..services.bigquery_service import BigQueryService
 from ..services.recipe_service import RecipeService
 from ..services.user_service import UserService
 from ..core.security import create_access_token, reusable_oauth2, get_password_hash, verify_password, oauth2_scheme_optional
 from ..core.config import settings
+from ..config.database import get_database_service
 
 logger = logging.getLogger(__name__)
-
-# Initialize BigQuery service
-def get_bigquery_service():
-    return BigQueryService(
-        project_id=settings.BIGQUERY_PROJECT,
-        dataset_id=settings.BIGQUERY_DATASET,
-        credentials_path=os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    )
 
 # Dependency to get UserService instance
 def get_user_service():
@@ -34,97 +26,14 @@ oauth2_scheme = HTTPBearer()
 
 # Constants
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-USERS_TABLE = f"{settings.BIGQUERY_PROJECT}.{settings.BIGQUERY_DATASET}.users"
-USER_PREFS_TABLE = f"{settings.BIGQUERY_PROJECT}.{settings.BIGQUERY_DATASET}.user_preference"
+USERS_TABLE = "users"
+USER_PREFS_TABLE = "user_preference"
 
 router = APIRouter()
 
-# Helper functions
-async def get_user_by_email(email: str, bq: BigQueryService) -> Optional[UserInDB]:
-    """Get a user by email from BigQuery"""
-    query = f"""
-        SELECT id, email, first_name, last_name, is_admin, created_at, updated_at
-        FROM `{USERS_TABLE}`
-        WHERE email = @email
-        LIMIT 1
-    """
-    params = [{"name": "email", "type": "STRING", "value": email}]
-    rows = bq.execute_query(query, params)
-    
-    if not rows:
-        return None
-    
-    row = rows[0]
-    return UserInDB(
-        id=row['id'],
-        email=row['email'],
-        first_name=row['first_name'],
-        last_name=row['last_name'],
-        is_admin=row['is_admin'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at']
-    )
-
-async def get_user_by_id(user_id: str, bq: BigQueryService) -> Optional[UserInDB]:
-    """Get a user by ID from BigQuery"""
-    query = f"""
-        SELECT id, email, first_name, last_name, is_admin, created_at, updated_at
-        FROM `{USERS_TABLE}`
-        WHERE id = @user_id
-        LIMIT 1
-    """
-    params = [{"name": "user_id", "type": "STRING", "value": user_id}]
-    rows = bq.execute_query(query, params)
-    
-    if not rows:
-        return None
-    
-    row = rows[0]
-    return UserInDB(
-        id=row['id'],
-        email=row['email'],
-        first_name=row['first_name'],
-        last_name=row['last_name'],
-        is_admin=row['is_admin'],
-        created_at=row['created_at'],
-        updated_at=row['updated_at']
-    )
-
-async def create_user(user: UserCreate, bq: BigQueryService) -> UserInDB:
-    """Create a new user in BigQuery"""
-    user_id = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    
-    # Hash the password
-    hashed_password = get_password_hash(user.password)
-    
-    query = f"""
-        INSERT INTO `{USERS_TABLE}` 
-        (id, email, first_name, last_name, password_hash, is_admin, created_at, updated_at)
-        VALUES (@user_id, @email, @first_name, @last_name, @password_hash, @is_admin, @created_at, @updated_at)
-    """
-    params = [
-        {"name": "user_id", "type": "STRING", "value": user_id},
-        {"name": "email", "type": "STRING", "value": user.email},
-        {"name": "first_name", "type": "STRING", "value": user.first_name},
-        {"name": "last_name", "type": "STRING", "value": user.last_name},
-        {"name": "password_hash", "type": "STRING", "value": hashed_password},
-        {"name": "is_admin", "type": "BOOL", "value": user.is_admin or False},
-        {"name": "created_at", "type": "TIMESTAMP", "value": now},
-        {"name": "updated_at", "type": "TIMESTAMP", "value": now}
-    ]
-    
-    bq.execute_query(query, params)
-    
-    return UserInDB(
-        id=user_id,
-        email=user.email,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        is_admin=user.is_admin or False,
-        created_at=now,
-        updated_at=now
-    )
+# Helper function to get database service
+def get_db_service():
+    return get_database_service()
 
 @router.get("/users/{user_id}/profile", response_model=UserProfileResponse)
 async def read_user_profile(
@@ -223,7 +132,7 @@ async def read_users_me(current_user: UserInDB = Depends(get_current_active_user
 async def list_users(
     skip: int = 0, 
     limit: int = 100,
-    bq: BigQueryService = Depends(get_bigquery_service),
+    db_service = Depends(get_db_service),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """List all users (admin only)"""
@@ -235,17 +144,17 @@ async def list_users(
     
     query = f"""
         SELECT id, email, first_name, last_name, is_admin, created_at, updated_at
-        FROM `{USERS_TABLE}`
+        FROM {USERS_TABLE}
         ORDER BY created_at DESC
-        LIMIT @limit
-        OFFSET @offset
+        LIMIT %(limit)s
+        OFFSET %(offset)s
     """
-    params = [
-        {"name": "limit", "type": "INT64", "value": limit},
-        {"name": "offset", "type": "INT64", "value": skip}
-    ]
+    params = {
+        "limit": limit,
+        "offset": skip
+    }
     
-    rows = bq.execute_query(query, params)
+    rows = db_service.execute_query(query, params)
     users = [
         UserInDB(
             id=row['id'],
@@ -263,7 +172,7 @@ async def list_users(
 @router.get("/users/{user_id}", response_model=UserResponse)
 async def read_user(
     user_id: str, 
-    bq: BigQueryService = Depends(get_bigquery_service),
+    user_service: UserService = Depends(get_user_service),
     current_user: UserInDB = Depends(get_current_active_user)
 ):
     """Get a specific user by ID"""
@@ -274,7 +183,7 @@ async def read_user(
             detail="Not enough permissions to view this user"
         )
         
-    user = await get_user_by_id(user_id, bq)
+    user = await user_service.get_user_by_id(user_id)
     if user is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

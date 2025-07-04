@@ -160,37 +160,58 @@ class PostgresService:
     # Pantry-specific methods that match BigQueryService interface
     
     def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
-        """Get all pantry items for a user"""
+        """Get all pantry items for a user with full BigQuery-compatible schema"""
+        # Query that matches the BigQuery user_pantry_full view structure
+        # Adjusted for PostgreSQL schema differences
         query = """
         SELECT 
-            pi.pantry_item_id as id,
-            pi.product_name as item_name,
-            pi.brand_name as brand,
-            pi.quantity as quantity_amount,
-            pi.unit_of_measurement as quantity_unit,
-            pi.expiration_date as expected_expiration,
-            pi.category,
+            u.user_id,
+            u.username as user_name,
+            p.pantry_id,
+            pi.pantry_item_id,
+            pi.quantity,
+            pi.unit_of_measurement,
+            pi.expiration_date,
+            pi.unit_price,
+            pi.total_price,
+            pi.created_at as pantry_item_created_at,
+            pi.used_quantity,
             pi.status,
-            pi.created_at as "addedDate",
-            pi.metadata
+            NULL::integer as product_id,
+            pi.product_name,
+            pi.brand_name,
+            pi.category as food_category,
+            CAST(pi.metadata->>'upc_code' AS VARCHAR) as upc_code,
+            pi.created_at as product_created_at
         FROM pantry_items pi
         JOIN pantries p ON pi.pantry_id = p.pantry_id
+        JOIN users u ON p.user_id = u.user_id
         WHERE p.user_id = %(user_id)s
         ORDER BY pi.created_at DESC
         """
         
         results = self.execute_query(query, {"user_id": user_id})
         
-        # Convert dates to ISO format strings
+        # Convert dates to ISO format strings and ensure all fields are present
         for item in results:
-            if item.get('expected_expiration'):
-                item['expected_expiration'] = item['expected_expiration'].isoformat()
-            if item.get('addedDate'):
-                item['addedDate'] = item['addedDate'].isoformat()
+            # Handle date conversions
+            if item.get('expiration_date'):
+                item['expiration_date'] = item['expiration_date'].isoformat()
+            if item.get('pantry_item_created_at'):
+                item['pantry_item_created_at'] = item['pantry_item_created_at'].isoformat()
+            if item.get('product_created_at'):
+                item['product_created_at'] = item['product_created_at'].isoformat()
+                
+            # Ensure all expected fields are present with defaults if null
+            item['used_quantity'] = item.get('used_quantity', 0)
+            item['unit_price'] = item.get('unit_price')
+            item['total_price'] = item.get('total_price')
+            item['upc_code'] = item.get('upc_code')
+            item['status'] = item.get('status', 'available')
                 
         return results
         
-    def add_pantry_item(self, user_id: int, item_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]:
         """Add a new pantry item"""
         # First get the user's pantry
         pantry_query = """
@@ -224,18 +245,23 @@ class PostgresService:
             ) RETURNING pantry_item_id, created_at
             """
             
+            # Calculate total price if unit price is provided
+            total_price = None
+            if hasattr(item_data, 'unit_price') and item_data.unit_price:
+                total_price = float(item_data.unit_price) * float(item_data.quantity)
+            
             params = {
                 "pantry_id": pantry_id,
-                "product_name": item_data.get("product_name", "Unknown"),
-                "brand_name": item_data.get("brand_name"),
-                "category": item_data.get("category", "Uncategorized"),
-                "quantity": float(item_data.get("quantity", 0)),
-                "unit_of_measurement": item_data.get("unit_of_measurement"),
-                "expiration_date": item_data.get("expiration_date"),
-                "unit_price": float(item_data["unit_price"]) if item_data.get("unit_price") else None,
-                "total_price": float(item_data["total_price"]) if item_data.get("total_price") else None,
-                "source": item_data.get("source", "manual"),
-                "status": item_data.get("status", "available")
+                "product_name": item_data.product_name if hasattr(item_data, 'product_name') else "Unknown",
+                "brand_name": getattr(item_data, 'brand_name', None),
+                "category": getattr(item_data, 'category', 'Uncategorized'),
+                "quantity": float(item_data.quantity) if hasattr(item_data, 'quantity') else 0.0,
+                "unit_of_measurement": item_data.unit_of_measurement if hasattr(item_data, 'unit_of_measurement') else None,
+                "expiration_date": item_data.expiration_date if hasattr(item_data, 'expiration_date') else None,
+                "unit_price": float(item_data.unit_price) if hasattr(item_data, 'unit_price') and item_data.unit_price else None,
+                "total_price": total_price,
+                "source": getattr(item_data, 'source', 'manual'),
+                "status": getattr(item_data, 'status', 'available')
             }
             
             cursor.execute(insert_query, params)
@@ -257,34 +283,42 @@ class PostgresService:
                 "message": "Item added successfully"
             }
             
-    def update_pantry_item(self, pantry_item_id: int, updates: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
         """Update a pantry item"""
         # Build dynamic update query
         set_clauses = []
         params = {"pantry_item_id": pantry_item_id}
         
-        field_mapping = {
-            "product_name": "product_name",
-            "quantity": "quantity",
-            "unit_of_measurement": "unit_of_measurement",
-            "expiration_date": "expiration_date",
-            "category": "category",
-            "brand_name": "brand_name",
-            "unit_price": "unit_price",
-            "total_price": "total_price",
-            "status": "status"
-        }
-        
-        for api_field, db_field in field_mapping.items():
-            if api_field in updates:
-                set_clauses.append(f"{db_field} = %({db_field})s")
-                value = updates[api_field]
-                
-                # Handle numeric fields
-                if db_field in ["quantity", "unit_price", "total_price"]:
-                    value = float(value) if value is not None else None
-                    
-                params[db_field] = value
+        # Map fields from PantryItemCreate to database columns
+        if hasattr(item_data, 'product_name') and item_data.product_name is not None:
+            set_clauses.append("product_name = %(product_name)s")
+            params['product_name'] = item_data.product_name
+            
+        if hasattr(item_data, 'quantity') and item_data.quantity is not None:
+            set_clauses.append("quantity = %(quantity)s")
+            params['quantity'] = float(item_data.quantity)
+            
+        if hasattr(item_data, 'unit_of_measurement') and item_data.unit_of_measurement is not None:
+            set_clauses.append("unit_of_measurement = %(unit_of_measurement)s")
+            params['unit_of_measurement'] = item_data.unit_of_measurement
+            
+        if hasattr(item_data, 'expiration_date') and item_data.expiration_date is not None:
+            set_clauses.append("expiration_date = %(expiration_date)s")
+            params['expiration_date'] = item_data.expiration_date
+            
+        if hasattr(item_data, 'category') and item_data.category is not None:
+            set_clauses.append("category = %(category)s")
+            params['category'] = item_data.category
+            
+        if hasattr(item_data, 'unit_price') and item_data.unit_price is not None:
+            set_clauses.append("unit_price = %(unit_price)s")
+            params['unit_price'] = float(item_data.unit_price)
+            
+            # Calculate total price
+            if hasattr(item_data, 'quantity') and item_data.quantity is not None:
+                total_price = float(item_data.unit_price) * float(item_data.quantity)
+                set_clauses.append("total_price = %(total_price)s")
+                params['total_price'] = total_price
                 
         if not set_clauses:
             return {"error": "No fields to update"}
@@ -327,6 +361,10 @@ class PostgresService:
         
         result = self.execute_query(query, {"pantry_item_id": pantry_item_id})
         return result[0]["affected_rows"] > 0
+        
+    async def delete_single_pantry_item(self, pantry_item_id: int) -> bool:
+        """Delete a single pantry item (async wrapper for compatibility)"""
+        return self.delete_pantry_item(pantry_item_id)
         
     def batch_add_pantry_items(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Add multiple pantry items in a batch"""
