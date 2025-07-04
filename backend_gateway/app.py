@@ -70,7 +70,7 @@ app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["S
 from backend_gateway.routers.recipe_consumption_router import router as recipe_consumption_router
 app.include_router(recipe_consumption_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Consumption"])
 
-# Import user recipes router
+# Import user recipes router (PostgreSQL version)
 from backend_gateway.routers.user_recipes_router import router as user_recipes_router
 app.include_router(user_recipes_router, prefix=f"{settings.API_V1_STR}", tags=["User Recipes"])
 
