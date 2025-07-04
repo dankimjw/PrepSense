@@ -21,12 +21,19 @@ def migrate_pantry_items():
     logger.info("Initializing services...")
     bq_service = BigQueryService()
     
+    # Get PostgreSQL configuration from environment variables
+    postgres_password = os.getenv('POSTGRES_PASSWORD')
+    if not postgres_password:
+        logger.error("POSTGRES_PASSWORD environment variable is required")
+        logger.error("Please set it using: export POSTGRES_PASSWORD='your-password'")
+        sys.exit(1)
+    
     pg_config = {
-        'host': '***REMOVED***',
-        'port': 5432,
-        'database': 'prepsense',
-        'user': 'postgres',
-        'password': '***REMOVED***'
+        'host': os.getenv('POSTGRES_HOST', '***REMOVED***'),
+        'port': int(os.getenv('POSTGRES_PORT', '5432')),
+        'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
+        'user': os.getenv('POSTGRES_USER', 'postgres'),
+        'password': postgres_password
     }
     pg_service = PostgresService(pg_config)
     

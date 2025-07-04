@@ -41,7 +41,7 @@ IP_ADDRESS=$(gcloud sql instances describe prepsense-postgres \
 
 # Import schema
 cd backend_gateway/scripts
-PGPASSWORD=***REMOVED*** psql -h $IP_ADDRESS -U postgres -d prepsense < schema_postgres.sql
+PGPASSWORD=$POSTGRES_PASSWORD psql -h $IP_ADDRESS -U postgres -d prepsense < schema_postgres.sql
 ```
 
 ### 3. Run Data Migration
@@ -51,13 +51,13 @@ Migrate existing data from BigQuery to PostgreSQL:
 ```bash
 python migrate_bigquery_to_postgres.py \
   --pg-host $IP_ADDRESS \
-  --pg-password ***REMOVED*** \
+  --pg-password $POSTGRES_PASSWORD \
   --dry-run  # Test connection first
 
 # If dry run succeeds, run actual migration
 python migrate_bigquery_to_postgres.py \
   --pg-host $IP_ADDRESS \
-  --pg-password ***REMOVED***
+  --pg-password $POSTGRES_PASSWORD
 ```
 
 ### 4. Configure Backend to Use PostgreSQL
@@ -75,7 +75,7 @@ POSTGRES_HOST=***REMOVED***  # Your Cloud SQL IP
 POSTGRES_PORT=5432
 POSTGRES_DATABASE=prepsense
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=***REMOVED***
+POSTGRES_PASSWORD=your-secure-password
 CLOUD_SQL_CONNECTION_NAME=adsp-34002-on02-prep-sense:us-central1:prepsense-postgres
 ```
 

@@ -14,7 +14,13 @@ INSTANCE_NAME = "prepsense-postgres"
 REGION = "us-central1"
 TIER = "db-f1-micro"  # Small instance for development
 DATABASE_NAME = "prepsense"
-ROOT_PASSWORD = "***REMOVED***"  # Change this!
+
+# Get password from environment variable
+ROOT_PASSWORD = os.getenv('POSTGRES_ROOT_PASSWORD')
+if not ROOT_PASSWORD:
+    print("Error: POSTGRES_ROOT_PASSWORD environment variable is required")
+    print("Please set it using: export POSTGRES_ROOT_PASSWORD='your-password'")
+    sys.exit(1)
 
 def run_command(cmd, check=True):
     """Run a command and return the result"""
@@ -386,7 +392,7 @@ def main():
     print("\n2. Install psql client if needed:")
     print("   brew install postgresql")
     print("\n3. Import the schema:")
-    print(f"   PGPASSWORD={ROOT_PASSWORD} psql -h {ip_address} -U postgres -d {DATABASE_NAME} < {schema_file}")
+    print(f"   PGPASSWORD=$POSTGRES_ROOT_PASSWORD psql -h {ip_address} -U postgres -d {DATABASE_NAME} < {schema_file}")
     print("\n4. Update your .env file with:")
     print(f"   # PostgreSQL connection")
     print(f"   DB_TYPE=postgres")
@@ -394,7 +400,7 @@ def main():
     print(f"   POSTGRES_PORT=5432")
     print(f"   POSTGRES_DATABASE={DATABASE_NAME}")
     print(f"   POSTGRES_USER=postgres")
-    print(f"   POSTGRES_PASSWORD={ROOT_PASSWORD}")
+    print(f"   POSTGRES_PASSWORD=$POSTGRES_ROOT_PASSWORD")
     print(f"   CLOUD_SQL_CONNECTION_NAME={connection_name}")
     print(f"\n   # Or for Cloud SQL Proxy (more secure):")
     print(f"   # POSTGRES_HOST=127.0.0.1")

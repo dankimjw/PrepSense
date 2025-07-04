@@ -50,7 +50,7 @@ POSTGRES_HOST=***REMOVED***
 POSTGRES_PORT=5432
 POSTGRES_DATABASE=prepsense
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=***REMOVED***
+POSTGRES_PASSWORD=your-secure-password
 POSTGRES_USE_IAM=false  # Set to true for production
 
 # BigQuery Configuration (still used for analytics)
@@ -140,10 +140,10 @@ BIGQUERY_DATASET=Inventory
 ### PostgreSQL Backups
 ```bash
 # Create backup
-pg_dump -h ***REMOVED*** -U postgres -d prepsense > backup.sql
+pg_dump -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE > backup.sql
 
 # Restore backup
-psql -h ***REMOVED*** -U postgres -d prepsense < backup.sql
+psql -h $POSTGRES_HOST -U $POSTGRES_USER -d $POSTGRES_DATABASE < backup.sql
 ```
 
 ### BigQuery Snapshots
