@@ -337,10 +337,25 @@ The interactive setup script handles most configuration automatically, but for m
 - Place your API key in `config/openai_key.txt`
 - The `.env` file is already configured to read from this file
 
-**2. Google Cloud Configuration:**
+**2. Google Cloud Configuration (RECOMMENDED - Use ADC):**
+
+**Option A: Application Default Credentials (Recommended for team projects)**
+```bash
+# One-time setup for each team member
+gcloud auth login                          # For CLI access
+gcloud auth application-default login       # For application access
+gcloud config set project adsp-34002-on02-prep-sense
+```
+- No JSON key files to share or manage
+- Uses OAuth tokens tied to each developer's Google account
+- More secure and follows Google's best practices
+- Leave `GOOGLE_APPLICATION_CREDENTIALS` commented out in `.env`
+
+**Option B: Service Account Key (Only if ADC doesn't work)**
 - Place your service account JSON file in the `config/` directory
 - The setup script auto-detects and configures the path in `.env`
 - Manual path format: `GOOGLE_APPLICATION_CREDENTIALS=config/your-service-account-key.json`
+- ⚠️ Never commit key files to Git!
 
 ### 4. Running the Application
 
