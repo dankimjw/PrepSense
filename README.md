@@ -9,6 +9,7 @@ PrepSense is an intelligent pantry management application that helps users:
 - Get personalized recipe suggestions based on available ingredients
 - Manage dietary preferences and allergens
 - Generate shopping lists automatically
+- Admin dashboard with database integration for data analysis
 
 ## 📚 Getting Started Documentation
 
@@ -17,6 +18,7 @@ PrepSense is an intelligent pantry management application that helps users:
 ### Quick Links:
 - **[Prerequisites & Tools Installation](./docs/getting-started/01-prerequisites.md)** - What you need before starting
 - **[Step-by-Step Setup Guide](./docs/getting-started/02-repository-setup.md)** - Clone and configure the project
+- **[Database Migration Guide](./docs/database-migration.md)** - PostgreSQL migration details
 - **[Troubleshooting Guide](./docs/getting-started/06-troubleshooting.md)** - Common issues and solutions
 - **[Helpful Resources](./docs/getting-started/07-resources.md)** - Learning materials and references
 - **[Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)** - Team collaboration guidelines
@@ -29,19 +31,19 @@ backend_gateway/
 ├── app.py                    # Main FastAPI application entry point
 ├── routers/                  # API route handlers
 │   ├── auth.py              # Authentication endpoints
-│   ├── bigquery_router.py   # BigQuery integration routes
+│   ├── bigquery_router.py   # BigQuery integration routes (analytics)
 │   ├── chat_router.py       # AI chat functionality
 │   ├── images_router.py     # Image upload and processing
 │   ├── pantry_router.py     # Pantry CRUD operations
 │   ├── recipes_router.py    # Recipe generation endpoints
 │   └── users.py             # User management
 ├── services/                 # Core business logic
-│   ├── bigquery_service.py  # BigQuery database operations (with schema docs)
+│   ├── bigquery_service.py  # BigQuery database operations with schema documentation
 │   ├── crew_ai_service.py   # AI agent orchestration
 │   ├── pantry_service.py    # Pantry management logic
 │   ├── recipe_service.py    # Recipe generation service
 │   ├── spoonacular_service.py # Spoonacular API integration
-│   ├── user_service.py      # User management service
+│   ├── user_service.py      # User management service with dual ID system
 │   └── vision_service.py    # OpenAI Vision API integration
 ├── models/                   # Data models
 │   └── user.py              # User model definitions
@@ -61,9 +63,9 @@ ios-app/
 │   │   ├── index.tsx       # Home screen (pantry items)
 │   │   ├── stats.tsx       # Statistics dashboard
 │   │   ├── recipes.tsx     # Recipe suggestions
-│   │   ├── admin.tsx       # Admin panel with BigQuery access
+│   │   ├── admin.tsx       # Admin panel with BigQuery tester
 │   │   └── profile.tsx     # User profile
-│   ├── bigquery-tester.tsx # BigQuery testing interface
+│   ├── bigquery-tester.tsx # Interactive BigQuery tester interface
 │   ├── components/         # Screen-specific components
 │   └── utils/              # Utility functions
 ├── components/              # Shared components
@@ -92,15 +94,15 @@ ios-app/
 ### Root Project Files
 ```
 PrepSense/
-├── run_app.py              # Unified launcher for backend + iOS
-├── cleanup.py              # Python cleanup script
-├── cleanup.sh              # Shell cleanup script
+├── run_app.py              # Unified launcher for backend + iOS (replaces start.py)
+├── cleanup.py              # Python cleanup script (kills all related processes)
+├── cleanup.sh              # Shell cleanup script alternative
 ├── setup.py                # Interactive setup script
 ├── .env                    # Environment configuration
 ├── .env.template           # Environment template
 └── config/                 # Configuration files
     ├── openai_key.txt      # OpenAI API key
-    └── *.json              # Google Cloud credentials
+    └── adsp-*.json         # Google Cloud credentials (adsp-34002-on02-*)
 ```
 
 
@@ -108,7 +110,8 @@ PrepSense/
 
 ### Backend
 - **FastAPI** - Modern Python web framework
-- **Google BigQuery** - Cloud data warehouse
+- **PostgreSQL (Cloud SQL)** - Primary transactional database for pantry operations
+- **Google BigQuery** - Data warehouse for analytics and historical data
 - **OpenAI Vision API** - Image recognition
 - **CrewAI** - AI agent orchestration
 - **Python 3.8+** - Backend language
@@ -150,6 +153,9 @@ python3 setup.py
 3. **Show Virtual Environment Activation** - Display activation commands
 4. **Exit**
 
+**Development Mode:**
+Set `DEVELOPMENT_MODE=true` in `.env` to use mock data when BigQuery is unavailable.
+
 **Option 1 - Complete Setup (Recommended):**
 - ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git, gcloud SDK)
 - ✅ Create virtual environment and install all dependencies
@@ -161,12 +167,6 @@ python3 setup.py
   - Test BigQuery connection
 - ✅ Ready to run immediately after setup
 
-**Why ADC?**
-- 🔒 More secure - no key files to leak
-- 👥 Better for teams - each developer uses their own Google account
-- 📊 Better audit trails - actions traced to individuals
-- 🚀 Easier setup - no file management needed
-
 ### 🏃 Running the Application
 
 #### Unified Launcher (Recommended)
@@ -176,6 +176,9 @@ We provide a unified launcher that starts both backend and iOS app with synchron
 ```bash
 # Start both backend and iOS app (default)
 python3 run_app.py
+
+# Development mode with mock data
+DEVELOPMENT_MODE=true python3 run_app.py
 
 # Or use command line options:
 python3 run_app.py --backend              # Backend only
@@ -192,6 +195,8 @@ python3 run_app.py --help                # Show all options
 - 📱 Auto-launches iOS simulator (press 'i' when prompted)
 - 🛑 Graceful shutdown with Ctrl+C
 - 🔧 Environment variable support (LAUNCH_MODE, HOST, PORT, etc.)
+- 🔍 BigQuery live query support with proper table name qualification
+- 🚫 Mock data fallback when in development mode
 
 ### 🧹 Cleanup Scripts
 
@@ -216,74 +221,27 @@ These scripts will:
 
 The application uses Google BigQuery with the dataset `adsp-34002-on02-prep-sense.Inventory`.
 
-### Core Tables
+### 📊 Database Schema
 
-#### 🏠 `pantry` - User pantries
+### 🔑 Dual ID System
+- **`users` table**: Uses string `id` (e.g., 'samantha-smith-001') for authentication
+- **`user` table**: Uses numeric `user_id` (INT64) for foreign key relationships
+- **Pantry and related tables** reference the numeric `user_id`
+
+### 🏪 `pantry` - User pantries
 | Column | Type | Description |
 |--------|------|-------------|
-| pantry_id | INTEGER | Unique pantry identifier |
-| user_id | INTEGER | Associated user ID |
-| pantry_name | STRING | Name of the pantry |
-| created_at | DATETIME | Creation timestamp |
-
-#### 🥫 `pantry_items` - Inventory tracking
+| pantry_id | INTEGER | Primary key |
+| user_id | INTEGER | References user.user_id (not users.id) |
+| name | STRING | Pantry name |
+| created_at | TIMESTAMP | Creation timestamp |
+| updated_at | TIMESTAMP | Last update timestamp |- Inventory tracking
 | Column | Type | Description |
 |--------|------|-------------|
 | pantry_item_id | INTEGER | Unique item identifier |
 | pantry_id | INTEGER | Associated pantry ID |
 | quantity | FLOAT | Item quantity |
-| unit_of_measurement | STRING | Unit (kg, lb, count, etc.) |
-| expiration_date | DATE | Expiration date |
-| unit_price | FLOAT | Price per unit |
-| total_price | FLOAT | Total item cost |
-| created_at | DATETIME | Creation timestamp |
-| used_quantity | INTEGER | Amount used |
-| status | STRING | Item status |
-
-#### 📦 `products` - Product information
-| Column | Type | Description |
-|--------|------|-------------|
-| product_id | INTEGER | Unique product identifier |
-| pantry_item_id | INTEGER | Associated pantry item |
-| product_name | STRING | Product name |
-| brand_name | STRING | Brand name |
-| category | STRING | Product category |
-| upc_code | STRING | Universal Product Code |
-| created_at | DATETIME | Creation timestamp |
-
-#### 🍳 `recipies` - Recipe database
-| Column | Type | Description |
-|--------|------|-------------|
-| recipe_id | INTEGER | Unique recipe identifier |
-| product_id | INTEGER | Required product |
-| recipe_name | STRING | Recipe name |
-| quantity_needed | FLOAT | Required quantity |
-| unit_of_measurement | STRING | Measurement unit |
-| instructions | STRING | Cooking instructions |
-| created_at | DATETIME | Creation timestamp |
-
-#### 👤 `user` - User accounts
-| Column | Type | Description |
-|--------|------|-------------|
-| user_id | INTEGER | Unique user identifier |
-| user_name | STRING | Username |
-| first_name | STRING | First name |
-| last_name | STRING | Last name |
-| email | STRING | Email address |
-| password_hash | STRING | Encrypted password |
-| role | STRING | User role |
-| api_key_enc | BYTES | Encrypted API key |
-| created_at | DATETIME | Creation timestamp |
-
-#### ⚙️ `user_preference` - User preferences
-| Column | Type | Description |
-|--------|------|-------------|
-| user_id | INTEGER | Associated user ID |
-| household_size | INTEGER | Number of people |
-| dietary_preference | STRING[] | Dietary restrictions (REPEATED) |
-| allergens | STRING[] | Food allergies (REPEATED) |
-| cuisine_preference | STRING[] | Preferred cuisines (REPEATED) |
-| created_at | DATETIME | Creation timestamp |
+{{ ... }}
 
 ## 📋 Getting Started
 
