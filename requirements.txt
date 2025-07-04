@@ -28,11 +28,14 @@ pydantic>=2.4.2,<3.0.0  # Version compatible with CrewAI
 fastapi>=0.95.2  # Updated to be compatible with Pydantic 2.x
 uvicorn>=0.22.0
 
-# Google Cloud
-google-cloud-bigquery==3.17.2
+# Google Cloud (for storage and authentication only)
 google-cloud-storage==2.10.0
 google-auth==2.29.0
 google-auth-oauthlib==1.2.0
+
+# PostgreSQL
+psycopg2-binary>=2.9.0
+sqlalchemy>=2.0.0
 
 # Web scraping and parsing
 beautifulsoup4==4.12.3
