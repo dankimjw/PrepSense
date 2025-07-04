@@ -78,3 +78,10 @@ bigquery_backups/
 *_backup_*.sql
 backend_gateway/scripts/BIGQUERY_BACKUP_RESTORE.md
 backend_gateway/scripts/backup_bigquery_tables.py
+
+# Secret files - NEVER commit these
+POSTGRES_SECRETS.md
+*_SECRETS.md
+*_secrets.md
+secrets/
+credentials/
