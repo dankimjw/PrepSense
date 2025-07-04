@@ -34,11 +34,9 @@ class Settings(BaseSettings):
     
     # Database Configuration
     GCP_PROJECT_ID: str = "adsp-34002-on02-prep-sense"
-    BIGQUERY_PROJECT: str = "adsp-34002-on02-prep-sense"
-    BIGQUERY_DATASET: str = "Inventory"
     
     # Database Type Selection
-    DB_TYPE: Optional[str] = "bigquery"  # "bigquery" or "postgres"
+    DB_TYPE: Optional[str] = "postgres"  # Only PostgreSQL is supported
     
     # PostgreSQL Configuration
     POSTGRES_HOST: Optional[str] = None

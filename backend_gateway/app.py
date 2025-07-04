@@ -8,11 +8,13 @@ import os
 from dotenv import load_dotenv
 import traceback
 import openai
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Import routers
 from backend_gateway.routers.images_router import router as images_router
 from backend_gateway.routers.users import router as users_router
-from backend_gateway.routers.bigquery_router import router as bigquery_router
 from backend_gateway.services.user_service import UserService
 from backend_gateway.core.config import settings
 
@@ -52,7 +54,7 @@ app.add_middleware(
 # Include routers
 app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"])
 app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["Pantry Image Processing"])
-app.include_router(bigquery_router, prefix=f"{settings.API_V1_STR}/bigquery", tags=["BigQuery"])
+# BigQuery router removed - using PostgreSQL instead
 
 # Import pantry router after other routers to avoid circular imports
 from backend_gateway.routers.pantry_router import router as pantry_router
@@ -90,8 +92,12 @@ async def root():
 async def startup_event():
     """Initialize data on startup"""
     # Create default user if it doesn't exist
-    user_service = UserService()
-    await user_service.create_default_user()
+    try:
+        user_service = UserService()
+        await user_service.create_default_user()
+    except Exception as e:
+        logger.error(f"Failed to create default user: {e}")
+        # Continue startup even if default user creation fails
 
 @app.get("/health", tags=["Health Check"])
 async def health_check():
