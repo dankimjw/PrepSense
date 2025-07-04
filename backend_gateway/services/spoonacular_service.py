@@ -138,6 +138,9 @@ class SpoonacularService:
                 if hasattr(e, 'response') and e.response:
                     logger.error(f"Response status: {e.response.status_code}")
                     logger.error(f"Response body: {e.response.text}")
+                    # For 500 errors, don't retry as it's a server issue
+                    if e.response.status_code >= 500:
+                        raise Exception(f"Spoonacular server error (status {e.response.status_code})")
                 raise
                 
             except Exception as e:
