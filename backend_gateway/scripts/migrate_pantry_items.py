@@ -22,12 +22,17 @@ def migrate_pantry_items():
     bq_service = BigQueryService()
     
     pg_config = {
-        'host': '35.184.61.42',
-        'port': 5432,
-        'database': 'prepsense',
-        'user': 'postgres',
-        'password': 'changeme123!'
+        'host': os.getenv('POSTGRES_HOST', '35.184.61.42'),
+        'port': int(os.getenv('POSTGRES_PORT', 5432)),
+        'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
+        'user': os.getenv('POSTGRES_USER', 'postgres'),
+        'password': os.getenv('POSTGRES_PASSWORD')  # Must be set in environment
     }
+    
+    if not pg_config['password']:
+        logger.error("POSTGRES_PASSWORD environment variable not set!")
+        logger.error("Please set: export POSTGRES_PASSWORD='your-password'")
+        return
     pg_service = PostgresService(pg_config)
     
     # Get all pantry items from BigQuery
