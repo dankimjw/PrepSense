@@ -355,15 +355,16 @@ export default function RecipesScreen() {
 
   const saveRecipe = async (recipe: Recipe) => {
     try {
-      if (!token || !isAuthenticated) {
-        Alert.alert('Error', 'Please login to save recipes.');
-        return;
-      }
+      // Authentication temporarily disabled - using hardcoded user_id = 111
+      // if (!token || !isAuthenticated) {
+      //   Alert.alert('Error', 'Please login to save recipes.');
+      //   return;
+      // }
 
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -394,15 +395,16 @@ export default function RecipesScreen() {
 
   const updateRecipeRating = async (recipeId: string, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
     try {
-      if (!token || !isAuthenticated) {
-        Alert.alert('Error', 'Please login to rate recipes.');
-        return;
-      }
+      // Authentication temporarily disabled - using hardcoded user_id = 111
+      // if (!token || !isAuthenticated) {
+      //   Alert.alert('Error', 'Please login to rate recipes.');
+      //   return;
+      // }
 
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ rating }),
@@ -422,15 +424,16 @@ export default function RecipesScreen() {
 
   const toggleFavorite = async (recipeId: string, isFavorite: boolean) => {
     try {
-      if (!token || !isAuthenticated) {
-        Alert.alert('Error', 'Please login to favorite recipes.');
-        return;
-      }
+      // Authentication temporarily disabled - using hardcoded user_id = 111
+      // if (!token || !isAuthenticated) {
+      //   Alert.alert('Error', 'Please login to favorite recipes.');
+      //   return;
+      // }
 
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${token}`,
+          // 'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ is_favorite: isFavorite }),
@@ -459,10 +462,11 @@ export default function RecipesScreen() {
 
   const deleteRecipe = async (recipeId: string) => {
     try {
-      if (!token || !isAuthenticated) {
-        Alert.alert('Error', 'Please login to delete recipes.');
-        return;
-      }
+      // Authentication temporarily disabled - using hardcoded user_id = 111
+      // if (!token || !isAuthenticated) {
+      //   Alert.alert('Error', 'Please login to delete recipes.');
+      //   return;
+      // }
 
       Alert.alert(
         'Delete Recipe',
@@ -476,7 +480,8 @@ export default function RecipesScreen() {
               const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}`, {
                 method: 'DELETE',
                 headers: {
-                  'Authorization': `Bearer ${token}`,
+                  // 'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
                 },
               });
 
