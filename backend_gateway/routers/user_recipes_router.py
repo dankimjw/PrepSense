@@ -1,4 +1,4 @@
-"""Router for user recipes management"""
+"""Router for user recipes management using PostgreSQL"""
 
 import logging
 from typing import List, Dict, Any, Optional
@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend_gateway.services.user_recipes_service import UserRecipesService
-from backend_gateway.services.bigquery_service import BigQueryService
+from backend_gateway.config.database import get_database_service
 from backend_gateway.core.security import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -40,38 +40,21 @@ router = APIRouter(
 )
 
 
-def get_user_recipes_service(bq_service: BigQueryService = Depends(lambda: BigQueryService())) -> UserRecipesService:
-    return UserRecipesService(bq_service=bq_service)
+def get_user_recipes_service(db_service = Depends(get_database_service)) -> UserRecipesService:
+    """Dependency to get UserRecipesService instance"""
+    return UserRecipesService(db_service)
 
 
-@router.post("", summary="Save a recipe to user's collection")
-async def save_recipe(
+@router.post("", response_model=Dict[str, Any], summary="Save a recipe to user's collection")
+async def save_user_recipe(
     request: SaveRecipeRequest,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Save a recipe to the user's personal collection
-    
-    This endpoint allows users to save recipes from various sources:
-    - Spoonacular recipes (from search or recommendations)
-    - AI-generated recipes (from chat)
-    - Custom recipes (user-created)
-    """
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Save a recipe to the user's collection"""
     try:
-        # Extract user_id from current user
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        # Check if recipe already exists (if it has a recipe_id)
-        if request.recipe_id:
-            existing = await service.check_recipe_exists(user_id, request.recipe_id)
-            if existing:
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Recipe already saved with rating: {existing['rating']}"
-                )
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
         
         result = await service.save_recipe(
             user_id=user_id,
@@ -86,237 +69,159 @@ async def save_recipe(
         
         return result
         
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error saving recipe: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to save recipe: {str(e)}")
 
 
-@router.get("", summary="Get user's saved recipes")
+@router.get("", response_model=List[Dict[str, Any]], summary="Get user's saved recipes")
 async def get_user_recipes(
-    rating_filter: Optional[str] = Query(None, description="Filter by rating: 'thumbs_up' or 'thumbs_down'"),
+    source: Optional[str] = Query(None, description="Filter by source"),
     is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
-    limit: int = Query(50, ge=1, le=100, description="Number of recipes to return"),
+    rating: Optional[str] = Query(None, description="Filter by rating"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Get all recipes saved by the user
-    
-    Optionally filter by rating (thumbs up/down)
-    """
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Get user's saved recipes with optional filters"""
     try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+        
         recipes = await service.get_user_recipes(
             user_id=user_id,
-            rating_filter=rating_filter,
+            source=source,
             is_favorite=is_favorite,
+            rating=rating,
             limit=limit,
             offset=offset
         )
         
-        return {
-            "recipes": recipes,
-            "total": len(recipes),
-            "filter": rating_filter,
-            "limit": limit,
-            "offset": offset
-        }
+        return recipes
         
     except Exception as e:
-        logger.error(f"Error fetching user recipes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to fetch recipes: {str(e)}")
+        logger.error(f"Error getting user recipes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recipes: {str(e)}")
 
 
-@router.put("/{recipe_id}/rating", summary="Update recipe rating")
-async def update_recipe_rating(
-    recipe_id: str,
-    request: UpdateRatingRequest,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Update the rating of a saved recipe
-    
-    Ratings:
-    - thumbs_up: User likes this recipe
-    - thumbs_down: User dislikes this recipe
-    - neutral: No rating
-    """
+@router.get("/stats", response_model=Dict[str, Any], summary="Get user's recipe statistics")
+async def get_recipe_stats(
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Get statistics about user's saved recipes"""
     try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+        
+        stats = await service.get_recipe_stats(user_id)
+        
+        return stats
+        
+    except Exception as e:
+        logger.error(f"Error getting recipe stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+
+
+@router.put("/{recipe_id}/rating", response_model=Dict[str, Any], summary="Update recipe rating")
+async def update_recipe_rating(
+    recipe_id: int,
+    request: UpdateRatingRequest,
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Update the rating for a saved recipe"""
+    try:
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+        
         result = await service.update_recipe_rating(
             user_id=user_id,
             recipe_id=recipe_id,
             rating=request.rating
         )
         
-        if not result["success"]:
-            raise HTTPException(status_code=404, detail=result["message"])
-            
         return result
         
-    except HTTPException:
-        raise
     except Exception as e:
         logger.error(f"Error updating recipe rating: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to update rating: {str(e)}")
 
 
-@router.put("/{recipe_id}/favorite", summary="Update recipe favorite status")
-async def update_recipe_favorite(
-    recipe_id: str,
-    request: UpdateFavoriteRequest,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Update the favorite status of a saved recipe
-    
-    This is used to mark recipes as favorites for better recommendations
-    """
+@router.put("/{recipe_id}/favorite", response_model=Dict[str, Any], summary="Toggle recipe favorite status")
+async def toggle_recipe_favorite(
+    recipe_id: int,
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Toggle the favorite status for a saved recipe"""
     try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        result = await service.update_recipe_favorite(
-            user_id=user_id,
-            recipe_id=recipe_id,
-            is_favorite=request.is_favorite
-        )
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
         
-        if not result["success"]:
-            raise HTTPException(status_code=404, detail=result["message"])
-            
-        return result
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating recipe favorite: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update favorite: {str(e)}")
-
-
-@router.delete("/{recipe_id}", summary="Delete a saved recipe")
-async def delete_recipe(
-    recipe_id: str,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Remove a recipe from user's collection
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        result = await service.delete_user_recipe(
+        result = await service.toggle_favorite(
             user_id=user_id,
             recipe_id=recipe_id
         )
         
-        if not result["success"]:
-            raise HTTPException(status_code=404, detail=result["message"])
-            
         return result
         
-    except HTTPException:
-        raise
+    except Exception as e:
+        logger.error(f"Error toggling favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to toggle favorite: {str(e)}")
+
+
+@router.delete("/{recipe_id}", response_model=Dict[str, Any], summary="Delete a saved recipe")
+async def delete_user_recipe(
+    recipe_id: int,
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Delete a recipe from user's collection"""
+    try:
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+        
+        result = await service.delete_recipe(
+            user_id=user_id,
+            recipe_id=recipe_id
+        )
+        
+        return result
+        
     except Exception as e:
         logger.error(f"Error deleting recipe: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete recipe: {str(e)}")
 
 
-@router.get("/check/{spoonacular_recipe_id}", summary="Check if recipe is saved")
-async def check_recipe_saved(
-    spoonacular_recipe_id: int,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Check if a Spoonacular recipe is already saved by the user
-    """
+@router.get("/{recipe_id}", response_model=Dict[str, Any], summary="Get a specific saved recipe")
+async def get_user_recipe(
+    recipe_id: int,
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Get a specific recipe from user's collection"""
     try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        existing = await service.check_recipe_exists(user_id, spoonacular_recipe_id)
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
         
-        return {
-            "is_saved": existing is not None,
-            "recipe_id": existing["id"] if existing else None,
-            "rating": existing["rating"] if existing else None,
-            "is_favorite": existing["is_favorite"] if existing else None
-        }
+        recipes = await service.get_user_recipes(
+            user_id=user_id,
+            limit=1,
+            offset=0
+        )
         
-    except Exception as e:
-        logger.error(f"Error checking recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to check recipe: {str(e)}")
-
-
-@router.post("/{recipe_id}/cooked", summary="Mark recipe as cooked")
-async def mark_recipe_cooked(
-    recipe_id: str,
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Increment the times_cooked counter for a recipe
-    
-    This endpoint is called when a user cooks a saved recipe
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        result = await service.increment_times_cooked(user_id, recipe_id)
+        # Find the specific recipe
+        recipe = next((r for r in recipes if r['id'] == recipe_id), None)
         
-        if not result["success"]:
-            raise HTTPException(status_code=404, detail=result["message"])
+        if not recipe:
+            raise HTTPException(status_code=404, detail="Recipe not found")
             
-        return result
+        return recipe
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error marking recipe as cooked: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update recipe: {str(e)}")
-
-
-@router.get("/stats", summary="Get user recipe statistics")
-async def get_recipe_stats(
-    current_user: Dict = Depends(get_current_user),
-    service: UserRecipesService = Depends(get_user_recipes_service)
-) -> Dict[str, Any]:
-    """
-    Get statistics about user's saved recipes
-    
-    Returns:
-    - Total recipes saved
-    - Number of liked/disliked recipes
-    - Total times cooked
-    - Unique cuisines explored
-    """
-    try:
-        user_id = current_user.get("user_id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="User ID not found")
-            
-        stats = await service.get_user_recipe_stats(user_id)
-        return stats
-        
-    except Exception as e:
-        logger.error(f"Error getting recipe stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+        logger.error(f"Error getting recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recipe: {str(e)}")
