@@ -64,27 +64,28 @@ def show_menu():
     """Display the main menu"""
     print_header("PrepSense Setup Script")
     print(f"{Colors.BOLD}Please select an option:{Colors.END}\n")
-    print(f"{Colors.CYAN}1.{Colors.END} Initial Setup (Install dependencies, create directories)")
-    print(f"{Colors.CYAN}2.{Colors.END} Setup API Keys (Configure OpenAI and Google Cloud)")
-    print(f"{Colors.CYAN}3.{Colors.END} Setup Google Cloud ADC (Recommended for teams)")
-    print(f"{Colors.CYAN}4.{Colors.END} Show Virtual Environment Activation")
-    print(f"{Colors.CYAN}5.{Colors.END} Exit")
+    print(f"{Colors.CYAN}1.{Colors.END} Complete Setup (Dependencies + Google Cloud ADC + OpenAI)")
+    print(f"{Colors.CYAN}2.{Colors.END} Configure API Keys Only")
+    print(f"{Colors.CYAN}3.{Colors.END} Show Virtual Environment Activation")
+    print(f"{Colors.CYAN}4.{Colors.END} Exit")
+    print()
+    print(f"{Colors.YELLOW}Note:{Colors.END} Option 1 uses Google Cloud ADC (recommended). For JSON keys, see option 2.")
     print()
 
 def get_user_choice():
     """Get user menu choice"""
     while True:
         try:
-            choice = input(f"{Colors.BOLD}Enter your choice (1-5): {Colors.END}").strip()
-            if choice in ['1', '2', '3', '4', '5']:
+            choice = input(f"{Colors.BOLD}Enter your choice (1-4): {Colors.END}").strip()
+            if choice in ['1', '2', '3', '4']:
                 return int(choice)
             else:
-                print_error("Please enter 1, 2, 3, 4, or 5")
+                print_error("Please enter 1, 2, 3, or 4")
         except KeyboardInterrupt:
             print("\n\nExiting...")
             sys.exit(0)
         except Exception:
-            print_error("Invalid input. Please enter 1, 2, 3, 4, or 5")
+            print_error("Invalid input. Please enter 1, 2, 3, or 4")
 
 def check_prerequisites():
     """Check if all required tools are installed"""
@@ -243,6 +244,109 @@ def create_openai_key_file():
         print_success("Created config/openai_key.txt placeholder")
     else:
         print_success("config/openai_key.txt already exists")
+    
+    return True
+
+def complete_setup():
+    """Complete setup with ADC as the default authentication method"""
+    print_header("Complete PrepSense Setup")
+    
+    # Change to script directory
+    script_dir = Path(__file__).parent
+    os.chdir(script_dir)
+    
+    # Step 1: Check prerequisites
+    print(f"{Colors.BOLD}Step 1/5: Checking Prerequisites{Colors.END}")
+    if not check_prerequisites():
+        print_error("\nPlease install missing prerequisites and run setup again.")
+        return False
+    
+    # Step 2: Create directories
+    print(f"\n{Colors.BOLD}Step 2/5: Creating Directories{Colors.END}")
+    if not create_directories():
+        return False
+    
+    # Step 3: Setup environment file
+    print(f"\n{Colors.BOLD}Step 3/5: Setting Up Environment{Colors.END}")
+    if not setup_environment_file():
+        print_error("\nEnvironment file setup failed.")
+        return False
+    
+    # Create OpenAI key file placeholder
+    if not create_openai_key_file():
+        return False
+    
+    # Step 4: Setup Python and iOS dependencies
+    print(f"\n{Colors.BOLD}Step 4/5: Installing Dependencies{Colors.END}")
+    if not setup_python_environment():
+        print_error("\nPython environment setup failed.")
+        return False
+    
+    if not setup_ios_app():
+        print_error("\niOS app setup failed.")
+        return False
+    
+    # Step 5: Setup authentication
+    print(f"\n{Colors.BOLD}Step 5/5: Setting Up Authentication{Colors.END}")
+    
+    # Setup OpenAI first
+    print(f"\n{Colors.YELLOW}5a. OpenAI API Key:{Colors.END}")
+    openai_key_file = Path("config/openai_key.txt")
+    if openai_key_file.exists():
+        current_key = openai_key_file.read_text().strip()
+        if current_key and current_key != "your_openai_api_key_here":
+            print_success("OpenAI key is already configured")
+        else:
+            setup_openai_key(openai_key_file)
+    else:
+        setup_openai_key(openai_key_file)
+    
+    # Setup Google Cloud ADC (default)
+    print(f"\n{Colors.YELLOW}5b. Google Cloud Authentication (ADC):{Colors.END}")
+    print(f"{Colors.GREEN}Using Application Default Credentials (recommended){Colors.END}")
+    
+    # Check if user wants to use ADC or has existing JSON files
+    existing_json = list(Path("config").glob("*.json"))
+    gcp_json_files = [f for f in existing_json if "openai" not in f.name.lower()]
+    
+    if gcp_json_files:
+        print_warning(f"Found {len(gcp_json_files)} JSON file(s) in config/")
+        print("Would you like to:")
+        print(f"  {Colors.CYAN}1.{Colors.END} Use ADC (recommended) - remove JSON files")
+        print(f"  {Colors.CYAN}2.{Colors.END} Keep using JSON files (not recommended)")
+        
+        choice = input("\nYour choice (1/2): ").strip()
+        if choice == "2":
+            print_info("Keeping existing JSON configuration")
+            update_gcp_credentials_in_env()
+        else:
+            # Setup ADC
+            if setup_google_cloud_adc():
+                print_success("ADC setup completed!")
+                # Suggest removing JSON files
+                print(f"\n{Colors.YELLOW}Recommended:{Colors.END} Remove JSON key files from config/")
+                print("They're no longer needed with ADC.")
+            else:
+                print_warning("ADC setup incomplete. You can set it up later with option 2.")
+    else:
+        # No existing files, go straight to ADC
+        if not setup_google_cloud_adc():
+            print_warning("ADC setup incomplete. You can set it up later with option 2.")
+            print_info("The app will still work if you add JSON files to config/ later.")
+    
+    # Complete!
+    print_header("Setup Complete! 🎉")
+    print(f"{Colors.GREEN}✓ All dependencies installed{Colors.END}")
+    print(f"{Colors.GREEN}✓ Environment configured{Colors.END}")
+    print(f"{Colors.GREEN}✓ Authentication ready{Colors.END}")
+    
+    print(f"\n{Colors.BOLD}To run the application:{Colors.END}")
+    print(f"  1. {Colors.YELLOW}Activate the virtual environment:{Colors.END}")
+    if platform.system() == "Windows":
+        print(f"     {Colors.CYAN}venv\\Scripts\\activate{Colors.END}")
+    else:
+        print(f"     {Colors.CYAN}source venv/bin/activate{Colors.END}")
+    print(f"  2. {Colors.GREEN}python run_app.py{Colors.END}")
     
     return True
 
@@ -537,8 +641,11 @@ def check_google_credentials():
         return False
 
 def setup_api_keys():
-    """Setup API keys"""
+    """Setup API keys with option for JSON files"""
     print_header("API Key Configuration")
+    
+    print(f"{Colors.YELLOW}Note:{Colors.END} For Google Cloud, we recommend using ADC (option 1) instead of JSON files.")
+    print(f"This option is primarily for OpenAI keys and legacy JSON file setup.\n")
     
     # Check if config directory exists
     config_dir = Path("config")
@@ -775,11 +882,11 @@ def main():
         choice = get_user_choice()
         
         if choice == 1:
-            success = initial_setup()
+            success = complete_setup()
             if success:
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
             else:
-                print_error("\nInitial setup failed!")
+                print_error("\nSetup failed!")
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
         
         elif choice == 2:
@@ -791,20 +898,13 @@ def main():
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
         
         elif choice == 3:
-            success = setup_google_cloud_adc()
-            if success:
-                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
-            else:
-                input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
-        
-        elif choice == 4:
             success = show_activation_instructions()
             if success:
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
             else:
                 input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.END}")
         
-        elif choice == 5:
+        elif choice == 4:
             print("\nExiting setup script. Goodbye!")
             sys.exit(0)
 
