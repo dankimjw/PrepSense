@@ -36,7 +36,11 @@ class PostgresIAMService:
     def _initialize_credentials(self):
         """Initialize Google Cloud credentials"""
         try:
-            self._credentials, self._project = default()
+            # Get default credentials with Cloud SQL scopes
+            self._credentials, self._project = default(
+                scopes=["https://www.googleapis.com/auth/cloud-platform",
+                        "https://www.googleapis.com/auth/sqlservice.admin"]
+            )
             logger.info("Google Cloud credentials initialized")
         except Exception as e:
             logger.error(f"Failed to get Google Cloud credentials: {e}")
