@@ -167,7 +167,9 @@ class UserRecipesService:
             recipes = []
             for row in results:
                 recipe = dict(row)
-                if recipe.get('recipe_data'):
+                # PostgreSQL JSONB columns are automatically converted to Python dicts
+                # Only parse if it's a string (shouldn't happen with JSONB)
+                if recipe.get('recipe_data') and isinstance(recipe['recipe_data'], str):
                     try:
                         recipe['recipe_data'] = json.loads(recipe['recipe_data'])
                     except:
