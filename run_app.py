@@ -337,14 +337,26 @@ def main():
     current_creds = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
     credentials_path = project_root / "config" / "adsp-34002-on02-prep-sense-ef1111b0833b.json"
     
-    if not current_creds or not Path(current_creds).exists():
-        if credentials_path.exists():
-            os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(credentials_path)
-            print(f"📋 Set Google credentials path: {credentials_path}")
-        else:
-            print("⚠️  Google credentials file not found, running in development mode")
+    # Check if using PostgreSQL with IAM
+    postgres_use_iam = os.getenv('POSTGRES_USE_IAM', '').lower() == 'true'
+    
+    if postgres_use_iam:
+        # For IAM auth, we need to use ADC, not service account files
+        if current_creds:
+            print(f"⚠️  GOOGLE_APPLICATION_CREDENTIALS is set but using IAM auth.")
+            print("   Unsetting to use Application Default Credentials (ADC)...")
+            del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
+        print("📋 Using Application Default Credentials (ADC) for IAM authentication")
     else:
-        print(f"📋 Using existing Google credentials path: {current_creds}")
+        # Original logic for non-IAM auth
+        if not current_creds or not Path(current_creds).exists():
+            if credentials_path.exists():
+                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(credentials_path)
+                print(f"📋 Set Google credentials path: {credentials_path}")
+            else:
+                print("⚠️  Google credentials file not found, running in development mode")
+        else:
+            print(f"📋 Using existing Google credentials path: {current_creds}")
     
     # Check if we're in a virtual environment
     in_venv = sys.prefix != sys.base_prefix

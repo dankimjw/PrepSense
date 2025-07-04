@@ -29,16 +29,15 @@ class UserService:
                 # Load environment variables first
                 load_dotenv()
                 
-                # Try to initialize BigQuery client using environment variables
+                # Try to initialize BigQuery client
                 credentials_path = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-                logger.info(f"UserService: Attempting to use credentials from: {credentials_path}")
+                project_id = settings.BIGQUERY_PROJECT
                 
                 if credentials_path and os.path.exists(credentials_path):
                     # Use service account credentials
                     logger.info(f"UserService: Found credentials file at: {credentials_path}")
                     credentials = service_account.Credentials.from_service_account_file(credentials_path)
                     
-                    project_id = settings.BIGQUERY_PROJECT
                     logger.info(f"UserService: Using project ID: {project_id}")
                     
                     self.bq_client = bigquery.Client(
@@ -46,14 +45,20 @@ class UserService:
                         project=project_id
                     )
                     logger.info("BigQuery client initialized with service account credentials")
-                    logger.info(f"UserService: BigQuery client project: {self.bq_client.project}")
                 else:
-                    if not credentials_path:
-                        error_msg = "GOOGLE_APPLICATION_CREDENTIALS environment variable not set"
-                    else:
-                        error_msg = f"Credentials file not found at: {credentials_path}"
-                    logger.error(f"UserService: {error_msg}")
-                    raise Exception(f"BigQuery credentials error: {error_msg}")
+                    # Try Application Default Credentials (ADC)
+                    logger.info("UserService: No service account file found, trying Application Default Credentials (ADC)")
+                    try:
+                        # BigQuery client will automatically use ADC
+                        self.bq_client = bigquery.Client(project=project_id)
+                        logger.info(f"BigQuery client initialized with ADC for project: {project_id}")
+                    except Exception as adc_error:
+                        error_msg = f"Failed to initialize with ADC: {adc_error}"
+                        logger.error(f"UserService: {error_msg}")
+                        logger.error("Please run: gcloud auth application-default login")
+                        raise Exception(f"BigQuery credentials error: {error_msg}")
+                
+                logger.info(f"UserService: BigQuery client project: {self.bq_client.project}")
                 
                 self.table_id = f"{settings.BIGQUERY_PROJECT}.{settings.BIGQUERY_DATASET}.users" # For 'users' (plural, credentials)
                 self.profile_table_id = f"{settings.BIGQUERY_PROJECT}.{settings.BIGQUERY_DATASET}.user" # For 'user' (singular, profile details)

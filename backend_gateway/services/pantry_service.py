@@ -18,22 +18,12 @@ class PantryService:
 
     async def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
         """
-        Retrieves all pantry items for a specific user from BigQuery.
+        Retrieves all pantry items for a specific user from the database.
         """
-        query = """
-            SELECT *
-            FROM
-              `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
-            WHERE
-              user_id = @user_id;
-        """
-        params = {"user_id": user_id}
-        # BigQueryService.execute_query is synchronous, if it needs to be async,
-        # it should be called with await or run in a thread pool.
-        # For now, assuming BigQueryService.execute_query can be called directly.
-        # If BigQueryService methods are async, this method should be async too.
-        # Based on view_file output, execute_query is synchronous.
-        return self.db_service.execute_query(query, params)
+        # Use the database service's method which handles the appropriate SQL syntax
+        # For PostgreSQL, it uses proper table names without backticks
+        # For BigQuery, it would use the backtick syntax
+        return self.db_service.get_user_pantry_items(user_id)
 
     async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]: # Modified signature
         """

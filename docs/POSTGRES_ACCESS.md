@@ -7,9 +7,11 @@ PrepSense uses PostgreSQL hosted on Google Cloud SQL. Since everyone has access 
 
 ### Step 1: Authenticate with Google Cloud
 ```bash
-# If you haven't already, authenticate with Google
-gcloud auth application-default login
+# IMPORTANT: Use the --scopes flag for Cloud SQL access
+gcloud auth application-default login --scopes=https://www.googleapis.com/auth/cloud-platform,https://www.googleapis.com/auth/sqlservice.admin
 ```
+
+**Note**: If you get authentication errors, make sure you used the `--scopes` flag above!
 
 ### Step 2: Configure Your Environment
 1. Copy the environment template:
@@ -29,11 +31,19 @@ gcloud auth application-default login
    - Other connection details (NOT the password)
 
 ### Step 3: Request Database Access
-Ask the team lead to grant your Google account access to the database. They'll run:
+Ask the team lead to:
+
+1. **Add you as a Cloud SQL user:**
 ```bash
 gcloud sql users create your-email@uchicago.edu \
   --instance=prepsense-postgres \
   --type=CLOUD_IAM_USER
+```
+
+2. **Grant database permissions:**
+```bash
+cd backend_gateway/scripts
+python grant_iam_permissions.py your-email@uchicago.edu
 ```
 
 ### Step 4: Test Your Connection
