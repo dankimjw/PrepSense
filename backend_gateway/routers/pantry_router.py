@@ -181,13 +181,13 @@ async def get_user_pantry_full(user_id: int = 111, db_service = Depends(get_data
     try:
         # The query to get the full user pantry view
         query = """
-            SELECT *
-            FROM
-              `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
-            WHERE
-              user_id = @user_id
-            ORDER BY
-              expiration_date ASC
+            SELECT 
+                pi.*,
+                p.user_id
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            WHERE p.user_id = %(user_id)s
+            ORDER BY pi.expiration_date ASC
         """
         
         params = {"user_id": user_id}
@@ -457,10 +457,10 @@ async def complete_recipe(
                     update_query = """
                     UPDATE pantry_items
                     SET 
-                        quantity = @new_quantity,
-                        used_quantity = @new_used_quantity,
+                        quantity = %(new_quantity)s,
+                        used_quantity = %(new_used_quantity)s,
                         updated_at = CURRENT_TIMESTAMP
-                    WHERE pantry_item_id = @pantry_item_id
+                    WHERE pantry_item_id = %(pantry_item_id)s
                     """
                     
                     update_params = {
@@ -547,12 +547,12 @@ async def revert_pantry_changes(
     try:
         # Calculate the cutoff time
         if minutes_ago:
-            cutoff_query = f"TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {int(minutes_ago)} MINUTE)"
+            cutoff_query = f"CURRENT_TIMESTAMP - INTERVAL '{int(minutes_ago)} minutes'"
         elif hours_ago:
-            cutoff_query = f"TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL {int(hours_ago)} HOUR)"
+            cutoff_query = f"CURRENT_TIMESTAMP - INTERVAL '{int(hours_ago)} hours'"
         else:
             # Default to last hour
-            cutoff_query = "TIMESTAMP_SUB(CURRENT_TIMESTAMP(), INTERVAL 1 HOUR)"
+            cutoff_query = "CURRENT_TIMESTAMP - INTERVAL '1 hour'"
         
         reverted_items = []
         deleted_items = []
@@ -563,8 +563,8 @@ async def revert_pantry_changes(
             # Get pantry IDs for the user
             pantry_query = """
             SELECT pantry_id
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry`
-            WHERE user_id = @user_id
+            FROM pantries
+            WHERE user_id = %(user_id)s
             """
             pantry_results = db_service.execute_query(pantry_query, {"user_id": user_id})
             
@@ -574,11 +574,9 @@ async def revert_pantry_changes(
                 # Find items to delete
                 items_query = f"""
                 SELECT pantry_item_id, product_name, quantity, created_at
-                FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-                JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
-                ON pi.pantry_item_id = p.pantry_item_id
-                WHERE pi.pantry_id IN UNNEST(@pantry_ids)
-                AND CAST(pi.created_at AS TIMESTAMP) >= {cutoff_query}
+                FROM pantry_items
+                WHERE pantry_id = ANY(%(pantry_ids)s)
+                AND created_at >= {cutoff_query}
                 """
                 
                 items_to_delete = db_service.execute_query(items_query, {"pantry_ids": pantry_ids})
@@ -588,19 +586,20 @@ async def revert_pantry_changes(
                     item_ids = [item["pantry_item_id"] for item in items_to_delete]
                     
                     delete_query = """
-                    DELETE FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items`
-                    WHERE pantry_item_id IN UNNEST(@item_ids)
+                    DELETE FROM pantry_items
+                    WHERE pantry_item_id = ANY(%(item_ids)s)
                     """
                     
                     db_service.execute_query(delete_query, {"item_ids": item_ids})
                     
-                    # Also delete from products table
-                    delete_products_query = """
-                    DELETE FROM `adsp-34002-on02-prep-sense.Inventory.products`
-                    WHERE pantry_item_id IN UNNEST(@item_ids)
-                    """
+                    # Also delete from products table - Skip this for PostgreSQL
+                    # In PostgreSQL, products are part of pantry_items table
+                    # delete_products_query = """
+                    # DELETE FROM products
+                    # WHERE pantry_item_id = ANY(%(item_ids)s)
+                    # """
                     
-                    db_service.execute_query(delete_products_query, {"item_ids": item_ids})
+                    # db_service.execute_query(delete_products_query, {"item_ids": item_ids})
                     
                     deleted_items = [
                         {
@@ -618,19 +617,16 @@ async def revert_pantry_changes(
             modified_query = f"""
             SELECT 
                 pi.pantry_item_id,
-                p.product_name,
+                pi.product_name,
                 pi.quantity as current_quantity,
                 pi.used_quantity,
                 pi.created_at,
                 pi.updated_at
-            FROM `adsp-34002-on02-prep-sense.Inventory.pantry_items` pi
-            JOIN `adsp-34002-on02-prep-sense.Inventory.products` p
-            ON pi.pantry_item_id = p.pantry_item_id
-            JOIN `adsp-34002-on02-prep-sense.Inventory.pantry` pan
-            ON pi.pantry_id = pan.pantry_id
-            WHERE pan.user_id = @user_id
-            AND CAST(pi.updated_at AS TIMESTAMP) >= {cutoff_query}
-            AND CAST(pi.updated_at AS TIMESTAMP) > CAST(pi.created_at AS TIMESTAMP)  -- Only items that were modified after creation
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            WHERE p.user_id = %(user_id)s
+            AND pi.updated_at >= {cutoff_query}
+            AND pi.updated_at > pi.created_at  -- Only items that were modified after creation
             AND pi.used_quantity > 0  -- Items that have been used
             """
             
@@ -641,12 +637,12 @@ async def revert_pantry_changes(
                 restored_quantity = item["current_quantity"] + (item["used_quantity"] or 0)
                 
                 restore_query = """
-                UPDATE `adsp-34002-on02-prep-sense.Inventory.pantry_items`
+                UPDATE pantry_items
                 SET 
-                    quantity = @restored_quantity,
+                    quantity = %(restored_quantity)s,
                     used_quantity = 0,
-                    updated_at = CURRENT_DATETIME()
-                WHERE pantry_item_id = @item_id
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE pantry_item_id = %(item_id)s
                 """
                 
                 db_service.execute_query(restore_query, {
