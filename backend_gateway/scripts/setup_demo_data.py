@@ -13,9 +13,23 @@ from pathlib import Path
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
 
-from backend_gateway.config.database import get_database_service
-from backend_gateway.services.pantry_service import PantryService
-from backend_gateway.services.user_recipes_service import UserRecipesService
+# Activate virtual environment if available
+venv_path = Path(__file__).parent.parent.parent / "venv"
+if venv_path.exists():
+    activate_this = venv_path / "bin" / "activate_this.py"
+    if activate_this.exists():
+        exec(open(activate_this).read(), {'__file__': str(activate_this)})
+
+try:
+    from backend_gateway.config.database import get_database_service
+    from backend_gateway.services.pantry_service import PantryService
+    from backend_gateway.services.user_recipes_service import UserRecipesService
+except ImportError:
+    print("❌ Error: Unable to import required modules.")
+    print("   Make sure you're running this from the PrepSense root directory")
+    print("   and that the virtual environment is activated:")
+    print("   $ source venv/bin/activate")
+    sys.exit(1)
 
 # Demo user ID
 DEMO_USER_ID = 111
@@ -55,14 +69,14 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "product_name": "Whole Milk",
             "quantity": 2000,  # 2 liters
             "unit_of_measurement": "ml",
-            "category": "Dairy",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=7)).date()
         },
         {
             "product_name": "Olive Oil",
             "quantity": 750,  # 750ml
             "unit_of_measurement": "ml",
-            "category": "Oils & Condiments",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=180)).date()
         },
         
@@ -71,21 +85,21 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "product_name": "All-Purpose Flour",
             "quantity": 2.5,  # 2.5 kg
             "unit_of_measurement": "kg",
-            "category": "Baking",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=365)).date()
         },
         {
             "product_name": "Granulated Sugar",
             "quantity": 1000,  # 1kg in grams
             "unit_of_measurement": "g",
-            "category": "Baking",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=730)).date()
         },
         {
             "product_name": "Pasta (Spaghetti)",
             "quantity": 1,  # 1 pound
             "unit_of_measurement": "lb",
-            "category": "Grains",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=365)).date()
         },
         
@@ -94,14 +108,14 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "product_name": "Large Eggs",
             "quantity": 12,
             "unit_of_measurement": "each",
-            "category": "Dairy",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=21)).date()
         },
         {
             "product_name": "Roma Tomatoes",
             "quantity": 6,
             "unit_of_measurement": "each",
-            "category": "Produce",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=5)).date()
         },
         
@@ -110,14 +124,14 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "product_name": "Butter",
             "quantity": 1,  # 1 pound
             "unit_of_measurement": "lb",
-            "category": "Dairy",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=30)).date()
         },
         {
             "product_name": "Chicken Breast",
             "quantity": 2,  # 2 pounds
             "unit_of_measurement": "lb",
-            "category": "Meat",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=3)).date()
         },
         
@@ -126,45 +140,67 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "product_name": "Salt",
             "quantity": 500,
             "unit_of_measurement": "g",
-            "category": "Spices",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=1095)).date()
         },
         {
             "product_name": "Black Pepper",
             "quantity": 100,
             "unit_of_measurement": "g",
-            "category": "Spices",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=1095)).date()
         },
         {
             "product_name": "Vanilla Extract",
             "quantity": 4,  # 4 fl oz
             "unit_of_measurement": "fl oz",
-            "category": "Baking",
+            "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=730)).date()
         }
     ]
     
-    # Insert demo items
-    insert_query = """
-    INSERT INTO pantry_items (
-        pantry_id, product_name, quantity, unit_of_measurement, 
-        category, expiration_date, created_at, updated_at
-    ) VALUES (
-        %(pantry_id)s, %(product_name)s, %(quantity)s, %(unit_of_measurement)s,
-        %(category)s, %(expiration_date)s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
-    )
-    ON CONFLICT (pantry_id, product_name) DO UPDATE SET
-        quantity = EXCLUDED.quantity,
-        unit_of_measurement = EXCLUDED.unit_of_measurement,
-        expiration_date = EXCLUDED.expiration_date,
-        updated_at = CURRENT_TIMESTAMP
-    """
-    
+    # Insert or update demo items
+    # First check if item exists
     for item in demo_items:
         item['pantry_id'] = pantry_id
-        db_service.execute_query(insert_query, item)
-        print(f"  ✅ Added: {item['product_name']} - {item['quantity']} {item['unit_of_measurement']}")
+        
+        # Check if item exists
+        check_query = """
+        SELECT pantry_item_id FROM pantry_items 
+        WHERE pantry_id = %(pantry_id)s AND product_name = %(product_name)s
+        """
+        existing = db_service.execute_query(check_query, {
+            'pantry_id': pantry_id,
+            'product_name': item['product_name']
+        })
+        
+        if existing:
+            # Update existing item
+            update_query = """
+            UPDATE pantry_items SET
+                quantity = %(quantity)s,
+                unit_of_measurement = %(unit_of_measurement)s,
+                expiration_date = %(expiration_date)s,
+                category = %(category)s,
+                used_quantity = 0,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE pantry_id = %(pantry_id)s AND product_name = %(product_name)s
+            """
+            db_service.execute_query(update_query, item)
+            print(f"  ✅ Updated: {item['product_name']} - {item['quantity']} {item['unit_of_measurement']}")
+        else:
+            # Insert new item
+            insert_query = """
+            INSERT INTO pantry_items (
+                pantry_id, product_name, quantity, unit_of_measurement, 
+                category, expiration_date, created_at, updated_at
+            ) VALUES (
+                %(pantry_id)s, %(product_name)s, %(quantity)s, %(unit_of_measurement)s,
+                %(category)s, %(expiration_date)s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+            """
+            db_service.execute_query(insert_query, item)
+            print(f"  ✅ Added: {item['product_name']} - {item['quantity']} {item['unit_of_measurement']}")
     
     return len(demo_items)
 
