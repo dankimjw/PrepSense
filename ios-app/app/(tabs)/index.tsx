@@ -322,6 +322,32 @@ const IndexScreen: React.FC = () => {
         }}
       />
       
+      {/* Quick Test Filter Toggle */}
+      <TouchableOpacity
+        style={[
+          styles.testFilterToggle,
+          filters.selectedCategories.includes('Test') && styles.testFilterToggleActive
+        ]}
+        onPress={() => {
+          const isTestSelected = filters.selectedCategories.includes('Test');
+          updateFilters({
+            selectedCategories: isTestSelected ? [] : ['Test']
+          });
+        }}
+      >
+        <MaterialCommunityIcons 
+          name="test-tube" 
+          size={20} 
+          color={filters.selectedCategories.includes('Test') ? '#fff' : '#297A56'} 
+        />
+        <Text style={[
+          styles.testFilterText,
+          filters.selectedCategories.includes('Test') && styles.testFilterTextActive
+        ]}>
+          {filters.selectedCategories.includes('Test') ? 'Showing Test Items' : 'Show Test Items Only'}
+        </Text>
+      </TouchableOpacity>
+      
       {/* Filter Modal */}
       <FilterModal
         visible={isFilterModalVisible}
@@ -580,5 +606,30 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontWeight: '500',
     fontSize: 14,
+  },
+  testFilterToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    marginHorizontal: 16,
+    marginVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  testFilterToggleActive: {
+    backgroundColor: '#297A56',
+    borderColor: '#297A56',
+  },
+  testFilterText: {
+    marginLeft: 8,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#297A56',
+  },
+  testFilterTextActive: {
+    color: '#fff',
   },
 });
