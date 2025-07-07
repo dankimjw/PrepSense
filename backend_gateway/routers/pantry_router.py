@@ -16,6 +16,8 @@ from backend_gateway.routers.users import get_current_active_user
 # Service imports
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.config.database import get_database_service, get_pantry_service
+from backend_gateway.constants.units import convert_quantity, normalize_unit, get_unit_category
+from backend_gateway.services.recipe_completion_service import RecipeCompletionService
 
 # Model for creating a pantry item
 from pydantic import BaseModel, Field
@@ -398,92 +400,66 @@ async def complete_recipe(
         
         for ingredient in request.ingredients:
             try:
-                # Find matching items in the user's pantry (case-insensitive)
-                matching_items = []
-                for item in user_items:
-                    # More sophisticated matching - use dictionary access for RealDictRow
-                    item_name_lower = item['product_name'].lower()
-                    ingredient_name_lower = ingredient.ingredient_name.lower()
-                    
-                    # Check for exact match
-                    if item_name_lower == ingredient_name_lower:
-                        matching_items.append(item)
-                    # Check if ingredient is in item name or vice versa
-                    elif ingredient_name_lower in item_name_lower or item_name_lower in ingredient_name_lower:
-                        matching_items.append(item)
-                    # Check for common variations (e.g., "tomato" vs "tomatoes")
-                    elif (ingredient_name_lower.rstrip('s') == item_name_lower.rstrip('s') or
-                          ingredient_name_lower.rstrip('es') == item_name_lower.rstrip('es')):
-                        matching_items.append(item)
+                # Convert ingredient to dict format for the service
+                ingredient_dict = {
+                    'ingredient_name': ingredient.ingredient_name,
+                    'quantity': ingredient.quantity,
+                    'unit': ingredient.unit
+                }
                 
-                if not matching_items:
+                # Find matching items using the new service
+                matching_items = RecipeCompletionService.match_ingredient_to_pantry(
+                    ingredient.ingredient_name,
+                    user_items
+                )
+                
+                # Process consumption with unit conversion support
+                consumption_result = RecipeCompletionService.process_ingredient_consumption(
+                    ingredient_dict,
+                    matching_items,
+                    db_service
+                )
+                
+                # Handle results
+                if consumption_result['missing']:
                     missing_items.append({
                         "ingredient": ingredient.ingredient_name,
-                        "reason": "Not found in pantry"
+                        "reason": "Not found in pantry",
+                        "requested_quantity": ingredient.quantity,
+                        "requested_unit": ingredient.unit
                     })
-                    continue
-                
-                # Sort by quantity to use items with less quantity first (FIFO-like behavior)
-                matching_items.sort(key=lambda x: x['quantity'])
-                
-                # Handle multiple matching items
-                total_available = sum(item['quantity'] for item in matching_items)
-                needed_quantity = ingredient.quantity if ingredient.quantity else total_available
-                
-                if total_available < needed_quantity:
+                elif consumption_result['insufficient']:
+                    total_consumed = sum(item['quantity_used'] for item in consumption_result['consumed_items'])
                     insufficient_items.append({
                         "ingredient": ingredient.ingredient_name,
-                        "needed": needed_quantity,
-                        "available": total_available,
-                        "unit": ingredient.unit or matching_items[0]['unit_of_measurement']
+                        "needed": ingredient.quantity,
+                        "needed_unit": ingredient.unit,
+                        "consumed": total_consumed,
+                        "remaining_needed": consumption_result.get('remaining_needed'),
+                        "warnings": consumption_result.get('warnings', [])
                     })
                 
-                # Subtract from available items
-                remaining_to_subtract = min(needed_quantity, total_available)
-                
-                for pantry_item in matching_items:
-                    if remaining_to_subtract <= 0:
-                        break
-                    
-                    current_quantity = pantry_item['quantity']
-                    if current_quantity <= 0:
-                        continue
-                    
-                    # Calculate how much to subtract from this item
-                    subtract_amount = min(remaining_to_subtract, current_quantity)
-                    new_quantity = current_quantity - subtract_amount
-                    
-                    # Update the item in the database
-                    update_query = """
-                    UPDATE pantry_items
-                    SET 
-                        quantity = %(new_quantity)s,
-                        used_quantity = %(new_used_quantity)s,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE pantry_item_id = %(pantry_item_id)s
-                    """
-                    
-                    update_params = {
-                        "new_quantity": new_quantity,
-                        "new_used_quantity": (pantry_item.get('used_quantity') or 0) + subtract_amount,
-                        "pantry_item_id": pantry_item['pantry_item_id']
+                # Add consumed items to updated list
+                for consumed in consumption_result['consumed_items']:
+                    update_info = {
+                        "item_name": consumed['item_name'],
+                        "pantry_item_id": consumed['pantry_item_id'],
+                        "previous_quantity": consumed['previous_quantity'],
+                        "new_quantity": consumed['new_quantity'],
+                        "used_quantity": consumed['quantity_used'],
+                        "unit": consumed['unit'],
+                        "match_score": consumed.get('match_score', 0)
                     }
                     
-                    db_service.execute_query(update_query, update_params)
-                    rows_updated = 1  # Assume success if no exception
+                    if 'conversion_details' in consumed:
+                        update_info['conversion_details'] = consumed['conversion_details']
                     
-                    if rows_updated > 0:
-                        updated_items.append({
-                            "item_name": pantry_item['product_name'],
-                            "pantry_item_id": pantry_item['pantry_item_id'],
-                            "previous_quantity": current_quantity,
-                            "new_quantity": new_quantity,
-                            "used_quantity": subtract_amount,
-                            "unit": pantry_item['unit_of_measurement']
-                        })
-                        remaining_to_subtract -= subtract_amount
-                    else:
-                        errors.append(f"Failed to update {pantry_item['product_name']}")
+                    updated_items.append(update_info)
+                
+                # Collect any warnings
+                if consumption_result.get('warnings'):
+                    for warning in consumption_result['warnings']:
+                        errors.append(f"{ingredient.ingredient_name}: {warning}")
                         
             except Exception as e:
                 logger.error(f"Error processing ingredient {ingredient.ingredient_name}: {str(e)}")
