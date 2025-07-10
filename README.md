@@ -1,503 +1,138 @@
 # PrepSense 🥗
-AI-powered smart pantry management system - Capstone project for University of Chicago
 
-## 🚀 Project Overview
-
-PrepSense is an intelligent pantry management application that helps users:
-- Track food inventory with AI-powered image recognition
-- Monitor expiration dates to reduce food waste
-- Get personalized recipe suggestions based on available ingredients
-- Manage dietary preferences and allergens
-- Generate shopping lists automatically
-- Admin dashboard with database integration for data analysis
-
-## 📚 Getting Started Documentation
-
-⭐ For detailed setup instructions and comprehensive guides, please visit our **[Getting Started Documentation](./docs/README.md)**.
-
-### Quick Links:
-- **[Prerequisites & Tools Installation](./docs/getting-started/01-prerequisites.md)** - What you need before starting
-- **[Step-by-Step Setup Guide](./docs/getting-started/02-repository-setup.md)** - Clone and configure the project
-- **[Database Migration Guide](./docs/database-migration.md)** - PostgreSQL migration details
-- **[Troubleshooting Guide](./docs/getting-started/06-troubleshooting.md)** - Common issues and solutions
-- **[Helpful Resources](./docs/getting-started/07-resources.md)** - Learning materials and references
-- **[Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)** - Team collaboration guidelines
-
-## 🏗️ Project Architecture
-
-### Backend Gateway (`/backend_gateway`)
-```
-backend_gateway/
-├── app.py                    # Main FastAPI application entry point
-├── routers/                  # API route handlers
-│   ├── auth.py              # Authentication endpoints
-│   ├── bigquery_router.py   # BigQuery integration routes (analytics)
-│   ├── chat_router.py       # AI chat functionality
-│   ├── images_router.py     # Image upload and processing
-│   ├── pantry_router.py     # Pantry CRUD operations
-│   ├── recipes_router.py    # Recipe generation endpoints
-│   └── users.py             # User management
-├── services/                 # Core business logic
-│   ├── bigquery_service.py  # BigQuery database operations with schema documentation
-│   ├── crew_ai_service.py   # AI agent orchestration
-│   ├── pantry_service.py    # Pantry management logic
-│   ├── recipe_service.py    # Recipe generation service
-│   ├── spoonacular_service.py # Spoonacular API integration
-│   ├── user_service.py      # User management service with dual ID system
-│   └── vision_service.py    # OpenAI Vision API integration
-├── models/                   # Data models
-│   └── user.py              # User model definitions
-├── core/                     # Core utilities
-│   ├── config.py            # Configuration management
-│   └── security.py          # Security and authentication
-├── database.py              # Database configuration
-├── pubsub.py               # Pub/Sub integration
-└── requirements.txt         # Python dependencies
-```
-
-### iOS Application (`/ios-app`)
-```
-ios-app/
-├── app/                     # Main application screens
-│   ├── (tabs)/             # Tab-based navigation screens
-│   │   ├── index.tsx       # Home screen (pantry items)
-│   │   ├── stats.tsx       # Statistics dashboard
-│   │   ├── recipes.tsx     # Recipe suggestions
-│   │   ├── admin.tsx       # Admin panel with BigQuery tester
-│   │   └── profile.tsx     # User profile
-│   ├── bigquery-tester.tsx # Interactive BigQuery tester interface
-│   ├── components/         # Screen-specific components
-│   └── utils/              # Utility functions
-├── components/              # Shared components
-│   ├── home/               # Home screen components
-│   │   ├── QuickActions.tsx    # Quick action buttons
-│   │   ├── PantryItem.tsx      # Item display component
-│   │   ├── PantryItemsList.tsx # Items list container
-│   │   └── TipCard.tsx         # Storage tips
-│   ├── CustomHeader.tsx    # Header with database access
-│   ├── SearchBar.tsx       # Search functionality
-│   └── FilterModal.tsx     # Filter and sort modal
-├── hooks/                   # Custom React hooks
-│   └── useItemsWithFilters.ts # Items filtering logic
-├── context/                 # Global state management
-│   ├── ItemsContext.tsx    # Pantry items state
-│   └── AuthContext.tsx     # Authentication state
-├── services/               # API integration
-│   └── api.ts             # Backend API client
-├── types/                  # TypeScript definitions
-│   └── index.ts           # Shared type interfaces
-└── utils/                  # Helper functions
-    ├── itemHelpers.ts     # Item formatting utilities
-    └── encoding.ts        # Navigation encoding
-```
-
-### Root Project Files
-```
-PrepSense/
-├── run_app.py              # Unified launcher for backend + iOS + tests
-├── cleanup.py              # Python cleanup script (kills all related processes)
-├── cleanup.sh              # Shell cleanup script alternative
-├── setup.py                # Interactive setup script
-├── .env                    # Environment configuration
-├── .env.template           # Environment template
-└── config/                 # Configuration files
-    ├── openai_key.txt      # OpenAI API key
-    └── adsp-*.json         # Google Cloud credentials (adsp-34002-on02-*)
-```
-
-
-## 🛠️ Tech Stack
-
-### Backend
-- **FastAPI** - Modern Python web framework
-- **PostgreSQL (Cloud SQL)** - Primary transactional database for pantry operations
-- **Google BigQuery** - Data warehouse for analytics and historical data
-- **OpenAI Vision API** - Image recognition
-- **CrewAI** - AI agent orchestration
-- **Python 3.8+** - Backend language
-
-### Frontend (iOS)
-- **React Native** - Cross-platform mobile framework
-- **Expo** - React Native development platform
-- **TypeScript** - Type-safe JavaScript
-- **React Navigation** - Navigation library
-- **Context API** - State management
-
-### AI/ML
-- **OpenAI GPT-4** - Natural language processing
-- **OpenAI Vision** - Food item recognition
-- **CrewAI Agents** - Recipe generation and recommendations
-
-## 🔧 Prerequisites
-
-Before you begin, ensure you have the following installed:
-- **Git** - Version control
-- **Python 3.8+** - Backend runtime
-- **Node.js** (LTS version) and npm - Frontend runtime
-- **Expo CLI** (optional) - React Native development (`npm install -g expo-cli`)
-- **iOS Simulator** (Mac only) or **Expo Go** app on your device
+AI-powered smart pantry management system - University of Chicago Capstone Project
 
 ## 🚀 Quick Start
 
-### 🎯 Interactive Setup (Recommended)
+### Prerequisites
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL database
+- iOS Simulator (Mac) or Expo Go app (mobile)
 
-We provide an interactive Python setup script with menu options:
+### Setup
+
+1. **Clone and Setup**
+   ```bash
+   git clone https://github.com/your-org/PrepSense.git
+   cd PrepSense
+   python3 setup.py  # Select option 1 for complete setup
+   ```
+
+2. **Configure Environment**
+   ```bash
+   cp .env.template .env
+   # Edit .env with your API keys and database credentials
+   ```
+
+3. **Run the App**
+   ```bash
+   python run_app.py  # Starts both backend and iOS app
+   ```
+
+## 📱 What PrepSense Does
+
+- **Track Pantry Items**: Add items via barcode scan or image recognition
+- **Monitor Expiration**: Get alerts before food expires
+- **Recipe Suggestions**: AI-powered recipes based on what you have
+- **Smart Shopping Lists**: Auto-generate lists based on recipes and inventory
+- **Dietary Management**: Track preferences, allergens, and nutrition
+
+## 🏗️ Project Structure
+
+```
+PrepSense/
+├── backend_gateway/     # FastAPI backend
+│   ├── app.py          # Main application
+│   ├── routers/        # API endpoints
+│   ├── services/       # Business logic
+│   └── scripts/        # Database setup & utilities
+├── ios-app/            # React Native app
+│   ├── app/           # Screen components
+│   ├── services/      # API integration
+│   └── components/    # Reusable UI components
+├── tests/             # Test suites
+└── run_app.py         # Main launcher script
+```
+
+## 🛠️ Common Commands
 
 ```bash
-python3 setup.py
+# Development
+python run_app.py                    # Start everything
+python run_app.py --backend          # Backend only
+python run_app.py --ios              # iOS app only
+
+# Testing
+python run_app.py --test-sub         # Run ingredient subtraction tests
+python run_app.py --reset-data       # Reset demo data
+
+# Cleanup
+python cleanup.py                    # Stop all processes
 ```
 
-**Menu Options:**
-1. **Complete Setup** - Full setup with Google Cloud ADC (recommended)
-2. **Configure API Keys Only** - For OpenAI keys or legacy JSON file setup
-3. **Show Virtual Environment Activation** - Display activation commands
-4. **Exit**
+## 🔧 Key Features
 
-**Development Mode:**
-Set `DEVELOPMENT_MODE=true` in `.env` to use mock data when BigQuery is unavailable.
+### Backend (Port 8000)
+- RESTful API with automatic docs at `/docs`
+- PostgreSQL database with connection pooling
+- AI integration (OpenAI Vision, CrewAI)
+- Real-time recipe generation
+- Smart ingredient matching and unit conversion
 
-**Option 1 - Complete Setup (Recommended):**
-- ✅ Check all prerequisites (Python 3.8+, Node.js, npm, Git, gcloud SDK)
-- ✅ Create virtual environment and install all dependencies
-- ✅ Set up directories and environment files
-- ✅ Configure OpenAI API key
-- ✅ **Set up Google Cloud ADC** - No JSON files needed!
-  - Guide through `gcloud auth login` and `gcloud auth application-default login`
-  - Set default project automatically
-  - Test BigQuery connection
-- ✅ Ready to run immediately after setup
+### iOS App (Port 8081)
+- Barcode scanning
+- Image recognition for receipts
+- Real-time pantry updates
+- Recipe browsing with filters
+- Shopping list management
 
-**Why ADC?**
-- 🔒 More secure - no key files to leak
-- 👥 Better for teams - each developer uses their own Google account
-- 📊 Better audit trails - actions traced to individuals
-- 🚀 Easier setup - no file management needed
+## 🧪 Testing
 
-### 🏃 Running the Application
-
-#### Unified Launcher (Recommended)
-
-We provide a unified launcher that starts both backend and iOS app with synchronized configuration:
-
+Run the automated test suite:
 ```bash
-# Start both backend and iOS app (default)
-python3 run_app.py
-
-# Development mode with mock data
-DEVELOPMENT_MODE=true python3 run_app.py
-
-# Or use command line options:
-python3 run_app.py --backend              # Backend only
-python3 run_app.py --ios                 # iOS app only
-python3 run_app.py --port 8002           # Custom backend port
-python3 run_app.py --host 0.0.0.0        # Custom backend host
-python3 run_app.py --ios-port 8083       # Custom iOS port
-python3 run_app.py --test-sub            # Run ingredient subtraction tests
-python3 run_app.py --reset-data          # Reset demo data
-python3 run_app.py --help                # Show all options
+python run_app.py --test-sub
 ```
 
-**Launcher Features:**
-- 🔄 Automatic IP synchronization between backend and iOS app
-- 🧹 Process cleanup before starting (prevents port conflicts)
-- 📱 Auto-launches iOS simulator (press 'i' when prompted)
-- 🛑 Graceful shutdown with Ctrl+C
-- 🔧 Environment variable support (LAUNCH_MODE, HOST, PORT, etc.)
-- 🔍 BigQuery live query support with proper table name qualification
-- 🚫 Mock data fallback when in development mode
-- 🧪 Built-in test runner for ingredient subtraction feature
+This tests:
+- Ingredient quantity subtraction
+- Unit conversions (cups → ml, g → lb)
+- Smart ingredient matching
+- Error handling
 
-### 🧪 Running Tests
+See [`tests/ingredient-subtraction/`](./tests/ingredient-subtraction/) for details.
 
-The project includes automated tests for the ingredient subtraction feature:
+## 📊 Database
 
+PostgreSQL database with main tables:
+- `users` - User accounts
+- `pantry_items` - Inventory tracking
+- `user_recipes` - Saved recipes
+- `shopping_lists` - Shopping items
+
+## 🆘 Troubleshooting
+
+**Port already in use?**
 ```bash
-# Run ingredient subtraction tests (auto-starts backend)
-python3 run_app.py --test-sub
-
-# Reset test data to initial state
-python3 run_app.py --reset-data
+python cleanup.py
 ```
 
-For detailed test documentation, see [`tests/ingredient-subtraction/README.md`](./tests/ingredient-subtraction/README.md)
+**Database connection issues?**
+- Check PostgreSQL is running
+- Verify credentials in `.env`
+- Run `python backend_gateway/scripts/setup_demo_data.py` for test data
 
-### 🧹 Cleanup Scripts
+**iOS app can't connect?**
+- Backend runs on `http://localhost:8000`
+- Check firewall settings
+- Verify both services are running
 
-If you encounter port conflicts or need to stop all PrepSense processes:
+## 📚 Documentation
 
-```bash
-# Python cleanup script (recommended)
-python3 cleanup.py
+- [Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)
+- [API Documentation](http://localhost:8000/docs) (when running)
+- [Test Documentation](./tests/ingredient-subtraction/README.md)
 
-# Or shell script
-./cleanup.sh
-```
+## 👥 Team
 
-These scripts will:
-- Kill processes on ports: 8001 (backend), 8082/8083 (iOS), 19000-19002, 19006 (Expo)
-- Stop processes by name: expo, metro, start.py, run_app.py, uvicorn, fastapi
-- Verify all processes are stopped
-
-
-
-## 💾 Database Schema
-
-The application uses Google BigQuery with the dataset `adsp-34002-on02-prep-sense.Inventory`.
-
-### 📊 Database Schema
-
-### 🔑 Dual ID System
-- **`users` table**: Uses string `id` (e.g., 'samantha-smith-001') for authentication
-- **`user` table**: Uses numeric `user_id` (INT64) for foreign key relationships
-- **Pantry and related tables** reference the numeric `user_id`
-
-### 🏪 `pantry` - User pantries
-| Column | Type | Description |
-|--------|------|-------------|
-| pantry_id | INTEGER | Primary key |
-| user_id | INTEGER | References user.user_id (not users.id) |
-| name | STRING | Pantry name |
-| created_at | TIMESTAMP | Creation timestamp |
-| updated_at | TIMESTAMP | Last update timestamp |- Inventory tracking
-| Column | Type | Description |
-|--------|------|-------------|
-| pantry_item_id | INTEGER | Unique item identifier |
-| pantry_id | INTEGER | Associated pantry ID |
-| quantity | FLOAT | Item quantity |
-{{ ... }}
-
-## 📋 Getting Started
-
-### 1. Clone the Repository
-```bash
-git clone https://github.com/your-org/PrepSense.git
-cd PrepSense
-```
-
-### 2. Interactive Setup (Recommended)
-
-Run the interactive Python setup script:
-
-```bash
-python3 setup.py
-```
-
-Select **option 1** for complete setup - this will install everything and configure Google Cloud ADC (no JSON files needed!)
-
-> 💡 **For JSON files**: If you must use service account JSON files, use option 2 after running option 1
-
-### 3. Manual Setup (Alternative)
-
-If you prefer manual setup or the automated script fails:
-
-#### Backend Setup
-
-```bash
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Copy environment template
-cp .env.template .env
-
-# Edit .env with your API keys
-```
-
-#### iOS App Setup
-
-```bash
-# Install dependencies
-cd ios-app
-npm install
-cd ..
-```
-
-#### Configure Environment Variables
-
-The interactive setup script handles most configuration automatically, but for manual setup:
-
-**1. OpenAI Configuration:**
-- Place your API key in `config/openai_key.txt`
-- The `.env` file is already configured to read from this file
-
-**2. Google Cloud Authentication:**
-
-**Default: Application Default Credentials (ADC)**
-The setup script (option 1) will guide you through:
-```bash
-gcloud auth login                          # For CLI access
-gcloud auth application-default login       # For application access
-gcloud config set project adsp-34002-on02-prep-sense
-```
-
-**Alternative: JSON Key Files (not recommended)**
-- Only use if ADC doesn't work in your environment
-- Place service account JSON in `config/` directory
-- Run setup option 2 to configure
-- ⚠️ Never commit key files to Git!
-
-### 4. Running the Application
-
-```bash
-# Unified launcher - starts both backend and iOS app
-python3 run_app.py
-
-# Alternative: Start services separately
-python3 run_app.py --backend    # Backend only on port 8001
-python3 run_app.py --ios        # iOS app only on port 8082
-```
-
-#### Access Points
-- **API Documentation**: `http://localhost:8001/docs`
-- **Backend Health Check**: `http://localhost:8001/health`
-- **iOS Simulator**: Automatically opens on Mac (press 'i' when prompted)
-- **Physical Device**: Scan QR code with Expo Go app
-- **Web Browser**: Press 'w' in the terminal
-
-### 4. Testing Tips
-
-#### Using iOS Simulator
-1. **Add Test Images**: Drag image files onto the simulator to add them to Photos
-2. **Test Upload**: Use "Upload Image" in the app to test AI recognition
-3. **Manual Entry**: Use "Add Item" for quick testing without images
-
-#### API Testing
-- FastAPI docs: `http://localhost:8001/docs`
-- Interactive API testing: `http://localhost:8001/redoc`
-
-## 🤝 Collaboration Guidelines
-
-### 🌳 Git Workflow
-
-#### Branch Strategy
-```
-main
-├── feature/add-shopping-list
-├── feature/recipe-filters
-├── fix/expiration-date-bug
-└── refactor/modular-components
-```
-
-#### Development Process
-```bash
-# 1. Start from updated main
-git checkout main
-git pull origin main
-
-# 2. Create feature branch
-git checkout -b feature/your-feature
-
-# 3. Make changes and commit
-git add .
-git commit -m "feat: add ingredient search"
-
-# 4. Push to remote
-git push -u origin feature/your-feature
-
-# 5. Create Pull Request on GitHub
-```
-
-### 📝 Commit Convention
-| Type | Description | Example |
-|------|-------------|---------|
-| `feat:` | New feature | `feat: add recipe sharing` |
-| `fix:` | Bug fix | `fix: correct expiration calculation` |
-| `docs:` | Documentation | `docs: update API endpoints` |
-| `style:` | Formatting | `style: fix indentation` |
-| `refactor:` | Code restructuring | `refactor: modularize home screen` |
-| `test:` | Add tests | `test: add pantry service tests` |
-| `chore:` | Maintenance | `chore: update dependencies` |
-
-### 🏗️ Modular Architecture
-
-The codebase follows a modular architecture for better team collaboration:
-
-- **Components are isolated** - Work on different features without conflicts
-- **Clear interfaces** - TypeScript ensures type safety
-- **Shared utilities** - Reusable functions in `utils/`
-- **Custom hooks** - Business logic separated from UI
-
-See the [Modular Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md) for details.
-
-### 👥 Team Guidelines
-
-#### Code Review
-- All PRs require at least one review
-- Run tests before requesting review
-- Address feedback promptly
-- Keep PRs focused and small
-
-#### Development Setup
-1. **Use virtual environment** for Python
-2. **Run linters** before committing
-3. **Test on iOS simulator** and devices
-4. **Update documentation** for new features
-
-#### Security Best Practices
-- Never commit `.env` files
-- Use environment variables for secrets
-- Rotate API keys regularly
-- Follow OWASP guidelines
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-#### Backend Won't Start
-```bash
-# Check Python version
-python --version  # Should be 3.8+
-
-# Reinstall dependencies
-pip install -r requirements.txt --force-reinstall
-
-# Check port availability
-lsof -i :8001  # Kill any process using the port
-```
-
-#### iOS App Connection Issues
-```bash
-# The unified launcher handles IP configuration automatically
-python3 run_app.py
-
-# Or manually specify host for network access
-python3 run_app.py --host 0.0.0.0
-
-# Check network connectivity
-# API base URL is auto-configured by launcher
-```
-
-#### BigQuery Authentication
-```bash
-# Credentials should be in config/ directory
-# The launcher auto-detects and configures them
-
-# Manual verification
-export GOOGLE_APPLICATION_CREDENTIALS="config/your-service-account.json"
-
-# Check BigQuery connectivity
-curl http://localhost:8001/api/v1/bigquery/tables
-
-# Note: The app requires real BigQuery credentials
-# Development mode with mock data has been removed
-```
-
-## 📚 Additional Resources
-
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Expo Documentation](https://docs.expo.dev/)
-- [React Native Docs](https://reactnative.dev/)
-- [BigQuery Documentation](https://cloud.google.com/bigquery/docs)
-- [OpenAI API Reference](https://platform.openai.com/docs)
-
-## 📄 License
-
-This project is part of the University of Chicago Capstone program.
-
----
-
-Built with ❤️ by the PrepSense Team
-
+University of Chicago Capstone Project Team
