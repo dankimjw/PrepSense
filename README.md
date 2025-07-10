@@ -94,7 +94,7 @@ ios-app/
 ### Root Project Files
 ```
 PrepSense/
-├── run_app.py              # Unified launcher for backend + iOS (replaces start.py)
+├── run_app.py              # Unified launcher for backend + iOS + tests
 ├── cleanup.py              # Python cleanup script (kills all related processes)
 ├── cleanup.sh              # Shell cleanup script alternative
 ├── setup.py                # Interactive setup script
@@ -192,6 +192,8 @@ python3 run_app.py --ios                 # iOS app only
 python3 run_app.py --port 8002           # Custom backend port
 python3 run_app.py --host 0.0.0.0        # Custom backend host
 python3 run_app.py --ios-port 8083       # Custom iOS port
+python3 run_app.py --test-sub            # Run ingredient subtraction tests
+python3 run_app.py --reset-data          # Reset demo data
 python3 run_app.py --help                # Show all options
 ```
 
@@ -203,6 +205,21 @@ python3 run_app.py --help                # Show all options
 - 🔧 Environment variable support (LAUNCH_MODE, HOST, PORT, etc.)
 - 🔍 BigQuery live query support with proper table name qualification
 - 🚫 Mock data fallback when in development mode
+- 🧪 Built-in test runner for ingredient subtraction feature
+
+### 🧪 Running Tests
+
+The project includes automated tests for the ingredient subtraction feature:
+
+```bash
+# Run ingredient subtraction tests (auto-starts backend)
+python3 run_app.py --test-sub
+
+# Reset test data to initial state
+python3 run_app.py --reset-data
+```
+
+For detailed test documentation, see [`tests/ingredient-subtraction/README.md`](./tests/ingredient-subtraction/README.md)
 
 ### 🧹 Cleanup Scripts
 

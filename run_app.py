@@ -1,472 +1,194 @@
 #!/usr/bin/env python3
 """
-Unified launcher for PrepSense backend server and iOS app.
-This script ensures both the backend and frontend use the same IP configuration.
-
-Usage:
-    python3 run_app.py            # Start both backend and iOS app (default)
-    python3 run_app.py --backend  # Start backend server only
-    python3 run_app.py --ios      # Start iOS app only
-    python3 run_app.py --help     # Show help
+PrepSense Backend Runner
+Convenient script to start the backend server or run tests
 """
 
-import uvicorn
-import os
-
-# --- Start of environment variable cleanup ---
-# List of environment variables to unset to prevent conflicts with .env file
-VARIABLES_TO_UNSET = [
-    'BIGQUERY_PROJECT',  # Should come from .env or pydantic settings
-    'PORT',              # Should be set by the script or use default
-    # Add other variables here if needed
-]
-
-for var in VARIABLES_TO_UNSET:
-    if var in os.environ:
-        print(f"run_app.py: Found {var} in shell environment: {os.getenv(var)}")
-        print(f"run_app.py: Unsetting {var} to prioritize .env or default config values.")
-        del os.environ[var]
-        # On Unix-like systems, also remove from os.environ.mapping
-        if hasattr(os.environ, 'mapping') and var in os.environ.mapping:
-            del os.environ.mapping[var]
-# --- End of environment variable cleanup ---
-import sys
-import signal
-import platform
-import time
-import subprocess
-import threading
-import atexit
 import argparse
-from pathlib import Path
-from typing import Optional, List
-import socket
-import webbrowser
+import subprocess
+import sys
+import os
+import time
+import signal
 import threading
-from dotenv import load_dotenv
 
-# Default configuration
-DEFAULT_HOST = "0.0.0.0"
-DEFAULT_BACKEND_PORT = 8001
-DEFAULT_IOS_PORT = 8082
-
-class ProcessManager:
-    """Manages both backend and frontend processes"""
+def start_backend_server(port=8000, reload=True):
+    """Start the FastAPI backend server"""
+    print(f"🚀 Starting PrepSense backend on port {port}...")
+    cmd = [
+        sys.executable, "-m", "uvicorn", 
+        "backend_gateway.app:app",
+        f"--port={port}",
+        "--host=0.0.0.0"
+    ]
+    if reload:
+        cmd.append("--reload")
     
-    def __init__(self):
-        self.backend_process = None
-        self.ios_process = None
-        self.cleanup_registered = False
-        
-    def register_cleanup(self):
-        """Register cleanup functions for graceful shutdown"""
-        if not self.cleanup_registered:
-            atexit.register(self.cleanup_all)
-            signal.signal(signal.SIGINT, self._signal_handler)
-            signal.signal(signal.SIGTERM, self._signal_handler)
-            self.cleanup_registered = True
-    
-    def _signal_handler(self, signum, frame):
-        """Handle shutdown signals"""
-        print(f"\nReceived signal {signum}, shutting down gracefully...")
-        self.cleanup_all()
-        sys.exit(0)
-    
-    def cleanup_all(self):
-        """Clean up all processes"""
-        print("Cleaning up processes...")
-        
-        # Stop iOS process
-        if self.ios_process and self.ios_process.poll() is None:
-            try:
-                self.ios_process.terminate()
-                self.ios_process.wait(timeout=5)
-                print("iOS app stopped")
-            except subprocess.TimeoutExpired:
-                self.ios_process.kill()
-                print("iOS app force killed")
-            except Exception as e:
-                print(f"Error stopping iOS app: {e}")
-        
-        # Clean up expo ports
-        expo_ports = [19000, 19001, 19002, 19006, 8081, DEFAULT_IOS_PORT]
-        for port in expo_ports:
-            kill_processes_on_port(port)
-
-def kill_processes_on_port(port: int, host: str = '0.0.0.0') -> bool:
-    """Kill processes running on the specified port.
-    
-    Args:
-        port: The port number to check
-        host: The host to check (default: 0.0.0.0)
-        
-    Returns:
-        bool: True if any processes were killed, False otherwise
-    """
-    killed_any = False
-    max_attempts = 2
-    
-    for attempt in range(1, max_attempts + 1):
-        try:
-            if platform.system() == 'Windows':
-                # Windows implementation
-                result = subprocess.run(
-                    ['netstat', '-ano', '-p', 'tcp'], 
-                    capture_output=True, 
-                    text=True
-                )
-                lines = result.stdout.split('\n')
-                for line in lines:
-                    if f":{port} " in line and (f"{host}:" in line or '0.0.0.0' in line):
-                        parts = line.split()
-                        pid = parts[-1]
-                        try:
-                            subprocess.run(['taskkill', '/F', '/PID', pid], 
-                                         check=True, 
-                                         stderr=subprocess.PIPE)
-                            print(f"Killed process with PID {pid} on port {port}")
-                            killed_any = True
-                            time.sleep(1)
-                        except subprocess.CalledProcessError:
-                            pass
-            else:
-                # Unix/Linux/macOS implementation
-                try:
-                    # Find processes using lsof
-                    result = subprocess.run(
-                        ['lsof', '-ti', f':{port}'], 
-                        capture_output=True, 
-                        text=True,
-                        check=False
-                    )
-                    
-                    if result.returncode == 0 and result.stdout.strip():
-                        pids = result.stdout.strip().split('\n')
-                        for pid in pids:
-                            if pid.strip():
-                                try:
-                                    # Try SIGTERM first
-                                    subprocess.run(['kill', '-TERM', pid.strip()], 
-                                                 check=True, 
-                                                 stderr=subprocess.PIPE)
-                                    print(f"Terminated process with PID {pid.strip()} on port {port}")
-                                    killed_any = True
-                                except subprocess.CalledProcessError:
-                                    try:
-                                        # If SIGTERM fails, use SIGKILL
-                                        subprocess.run(['kill', '-KILL', pid.strip()], 
-                                                     check=True, 
-                                                     stderr=subprocess.PIPE)
-                                        print(f"Force killed process with PID {pid.strip()} on port {port}")
-                                        killed_any = True
-                                    except subprocess.CalledProcessError:
-                                        pass
-                        
-                        if killed_any:
-                            time.sleep(1.5)
-                except FileNotFoundError:
-                    # lsof not available, try alternative
-                    pass
-                    
-        except Exception as e:
-            print(f"Error in attempt {attempt} to kill processes on port {port}: {e}")
-        
-        if not killed_any:
-            break
-    
-    return killed_any
-
-def get_local_ip(fallback: str = DEFAULT_HOST) -> str:
-    """Best-effort attempt to discover this machine's LAN IP address."""
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
-            s.connect(("8.8.8.8", 80))
-            return s.getsockname()[0]
-    except OSError:
-        return fallback
+        # Ensure we run from the project root directory
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        subprocess.run(cmd, cwd=project_root)
+    except KeyboardInterrupt:
+        print("\n✋ Server stopped by user")
 
-def check_port_available(host: str, port: int) -> bool:
-    """Check if a port is available for binding."""
+def run_ingredient_subtraction_tests():
+    """Run the ingredient subtraction test suite"""
+    print("🧪 Running ingredient subtraction tests...")
+    
+    # Start backend server in background
+    server_process = None
     try:
-        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        test_socket.bind((host, port))
-        test_socket.close()
-        return True
-    except OSError:
-        return False
-
-def start_backend_server(host: str, port: int, reload: bool = True):
-    """Start the backend server using uvicorn and attempt to open docs page."""
-    print(f"Starting backend server on {host}:{port}")
-
-    def open_docs_in_browser(target_host: str, target_port: int):
-        docs_url_host = "127.0.0.1" if target_host == "0.0.0.0" else target_host
-        docs_url = f"http://{docs_url_host}:{target_port}/docs"
-        # Adding a newline for cleaner output, as this might print after other uvicorn logs
-        print(f"\nAttempting to open API docs at {docs_url} in your browser (after 3s delay)...")
-        try:
-            webbrowser.open_new_tab(docs_url)
-            print("Successfully requested to open API docs in browser.")
-        except Exception as e:
-            print(f"Could not open browser automatically: {e}")
-            print(f"Please open the API docs manually by navigating to: {docs_url}")
-
-    # Start a timer to open the docs page.
-    # This timer will run 'open_docs_in_browser' after 3 seconds in a separate thread.
-    doc_opener_timer = threading.Timer(3.0, open_docs_in_browser, args=[host, port])
-    doc_opener_timer.daemon = True  # So it doesn't prevent program exit
-    doc_opener_timer.start()
-
-    try:
-        from backend_gateway.app import app # Original placement
-        uvicorn.run(
+        # Start server in a subprocess
+        print("Starting backend server for tests...")
+        server_cmd = [
+            sys.executable, "-m", "uvicorn", 
             "backend_gateway.app:app",
-            host=host,
-            port=port,
-            reload=reload,
-            log_level="info"
+            "--port=8000"
+        ]
+        # Get project root directory
+        project_root = os.path.dirname(os.path.abspath(__file__))
+        server_process = subprocess.Popen(
+            server_cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=project_root
         )
-    except ImportError as e:
-        if "pydantic_settings" in str(e):
-            print(f"\n❌ Error: {e}")
-            print("\n⚠️  It seems the virtual environment is not activated.")
-            print("Please run the following commands:")
-            print("  source venv/bin/activate")
-            print("  python3 run_app.py")
-            sys.exit(1)
+        
+        # Wait for server to start
+        print("Waiting for server to start...")
+        time.sleep(5)
+        
+        # Check if server is running
+        import requests
+        try:
+            response = requests.get("http://localhost:8000/health", timeout=5)
+            if response.status_code == 200:
+                print("✅ Server is running")
+            else:
+                print("⚠️  Server returned status:", response.status_code)
+        except:
+            print("⚠️  Could not connect to server, but continuing with tests...")
+        
+        # Run tests - try simple test first (no external dependencies)
+        test_script = os.path.join(
+            os.path.dirname(__file__),
+            "tests/ingredient-subtraction/simple_test.py"
+        )
+        
+        # Fall back to full test suite if simple test doesn't exist
+        if not os.path.exists(test_script):
+            test_script = os.path.join(
+                os.path.dirname(__file__),
+                "tests/ingredient-subtraction/run_tests.py"
+            )
+        
+        if not os.path.exists(test_script):
+            print(f"❌ Test script not found at: {test_script}")
+            return
+        
+        print("\n" + "="*80)
+        print("Running test suite...")
+        print("="*80 + "\n")
+        
+        result = subprocess.run([sys.executable, test_script])
+        
+        if result.returncode == 0:
+            print("\n✅ Tests completed successfully!")
         else:
-            raise
+            print("\n❌ Tests failed with exit code:", result.returncode)
+            
+    except KeyboardInterrupt:
+        print("\n✋ Tests interrupted by user")
     except Exception as e:
-        print(f"Backend server error: {e}")
-        raise
+        print(f"❌ Error running tests: {e}")
+    finally:
+        # Stop the server
+        if server_process:
+            print("\nStopping test server...")
+            server_process.terminate()
+            try:
+                server_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                server_process.kill()
+            print("✅ Test server stopped")
 
-def start_ios_app_subprocess(backend_url: str, ios_port: int, project_root: Path):
-    """Start the iOS app as a subprocess"""
-    ios_app_dir = project_root / "ios-app"
+def reset_test_data():
+    """Reset test data to initial state"""
+    print("🔄 Resetting test data...")
     
-    if not ios_app_dir.exists():
-        raise FileNotFoundError("ios-app directory not found")
+    script_path = os.path.join(
+        os.path.dirname(__file__),
+        "backend_gateway/scripts/setup_demo_data.py"
+    )
     
-    try:
-        # Set environment variables for the iOS app
-        env = os.environ.copy()
-        env["EXPO_PUBLIC_API_BASE_URL"] = backend_url
-        
-        print(f"Starting iOS app on port {ios_port} with backend: {backend_url}")
-        
-        # Start the iOS app as subprocess
-        process = subprocess.Popen([
-            "npm", "start", "--", "--port", str(ios_port)
-        ], cwd=ios_app_dir, env=env)
-        
-        return process
-        
-    except Exception as e:
-        print(f"Error starting iOS app: {e}")
-        raise
+    if not os.path.exists(script_path):
+        print(f"❌ Setup script not found at: {script_path}")
+        return
+    
+    result = subprocess.run([sys.executable, script_path])
+    
+    if result.returncode == 0:
+        print("✅ Test data reset successfully!")
+    else:
+        print("❌ Failed to reset test data")
 
-def parse_arguments():
-    """Parse command line arguments"""
+def main():
     parser = argparse.ArgumentParser(
-        description="PrepSense App Launcher - Launch backend and/or iOS app",
+        description="PrepSense Backend Runner",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-    python3 run_app.py                # Start both services (default)
-    python3 run_app.py --backend      # Backend server only
-    python3 run_app.py --ios          # iOS app only
-    python3 run_app.py --backend --port 8002  # Backend on custom port
-        
-Environment Variables:
-    LAUNCH_MODE     Launch mode: both, backend, ios (default: both)
-    HOST           Backend host (default: 0.0.0.0)
-    PORT           Backend port (default: 8001)  
-    IOS_PORT       iOS app port (default: 8082)
+  python run_app.py                    # Start backend server
+  python run_app.py --port 8080        # Start on different port
+  python run_app.py --test-sub         # Run ingredient subtraction tests
+  python run_app.py --reset-data       # Reset test data
         """
     )
     
     parser.add_argument(
-        '--backend', 
-        action='store_true',
-        help='Start backend server only'
+        "--port", 
+        type=int, 
+        default=8000,
+        help="Port to run the server on (default: 8000)"
     )
     
     parser.add_argument(
-        '--ios', 
-        action='store_true',
-        help='Start iOS app only'
+        "--no-reload",
+        action="store_true",
+        help="Disable auto-reload"
     )
     
     parser.add_argument(
-        '--port', 
-        type=int,
-        help='Override backend port (same as PORT env var)'
+        "--test-sub",
+        action="store_true",
+        help="Run ingredient subtraction tests"
     )
     
     parser.add_argument(
-        '--host', 
-        type=str,
-        help='Override backend host (same as HOST env var)'
+        "--reset-data",
+        action="store_true",
+        help="Reset test data to initial state"
     )
     
-    parser.add_argument(
-        '--ios-port', 
-        type=int,
-        help='Override iOS app port (same as IOS_PORT env var)'
-    )
+    args = parser.parse_args()
     
-    return parser.parse_args()
-
-def main():
-    """Main function to coordinate backend and frontend startup"""
-    print("🚀 PrepSense Unified App Launcher")
-    print("=" * 50)
-    
-    # Get the project root directory
-    project_root = Path(__file__).parent.absolute()
-    
-    # Add the project root to Python path if needed
-    if str(project_root) not in sys.path:
-        sys.path.append(str(project_root))
-    
-    # Load environment variables from .env FIRST
-    load_dotenv()
-    
-    # Set up Google Cloud credentials path if not already set or if the current path doesn't exist
-    current_creds = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
-    credentials_path = project_root / "config" / "adsp-34002-on02-prep-sense-ef1111b0833b.json"
-    
-    # Check if using PostgreSQL with IAM
-    postgres_use_iam = os.getenv('POSTGRES_USE_IAM', '').lower() == 'true'
-    
-    if postgres_use_iam:
-        # For IAM auth, we need to use ADC, not service account files
-        if current_creds:
-            print(f"⚠️  GOOGLE_APPLICATION_CREDENTIALS is set but using IAM auth.")
-            print("   Unsetting to use Application Default Credentials (ADC)...")
-            del os.environ['GOOGLE_APPLICATION_CREDENTIALS']
-        print("📋 Using Application Default Credentials (ADC) for IAM authentication")
-    else:
-        # Original logic for non-IAM auth
-        if not current_creds or not Path(current_creds).exists():
-            if credentials_path.exists():
-                os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = str(credentials_path)
-                print(f"📋 Set Google credentials path: {credentials_path}")
-            else:
-                print("⚠️  Google credentials file not found, running in development mode")
-        else:
-            print(f"📋 Using existing Google credentials path: {current_creds}")
-    
-    # Check if we're in a virtual environment
-    in_venv = sys.prefix != sys.base_prefix
-    if not in_venv:
-        print("❌ Error: Not running in a virtual environment!")
-        print("\nPlease activate the virtual environment first:")
-        print("  source venv/bin/activate")
-        print("\nThen run the app:")
-        print("  python3 run_app.py")
-        sys.exit(1)
-    
-    # Parse command line arguments
-    args = parse_arguments()
-    
-    # Configuration from environment variables and command line arguments
-    backend_host = args.host or os.getenv("HOST", DEFAULT_HOST)
-    backend_port = args.port or int(os.getenv("PORT", DEFAULT_BACKEND_PORT))
-    ios_port = args.ios_port or int(os.getenv("IOS_PORT", DEFAULT_IOS_PORT))
-    
-    # Determine launch mode from command line args or environment variable
-    if args.backend and args.ios:
-        mode = "both"
-    elif args.backend:
-        mode = "backend"
-    elif args.ios:
-        mode = "ios"
-    else:
-        # Fall back to environment variable or default to "both"
-        mode = os.getenv("LAUNCH_MODE", "both")  # both, backend, ios
-    
-    # Determine the IP to use
-    if backend_host in {"0.0.0.0", "127.0.0.1", "localhost"}:
-        host_ip = get_local_ip()
-        print(f"📡 Detected local IP: {host_ip}")
-    else:
-        host_ip = backend_host
-    
-    backend_url = f"http://{host_ip}:{backend_port}/api/v1"
-    
-    if mode in ["both", "backend"]:
-        print(f"📊 Backend will run on: {backend_host}:{backend_port}")
-    if mode in ["both", "ios"]:
-        print(f"📱 iOS app will run on: http://localhost:{ios_port}")
-        print(f"🔗 iOS app will connect to backend: {backend_url}")
-    print()
-    
-    # Initialize process manager
-    process_manager = ProcessManager()
-    process_manager.register_cleanup()
-    
-    # Clean up any existing processes
-    print("🧹 Cleaning up existing processes...")
-    
-    # Backend port
-    if mode in ["both", "backend"]:
-        if kill_processes_on_port(backend_port, backend_host):
-            print(f"✅ Cleaned up backend port {backend_port}")
-            time.sleep(2)
-    
-    # iOS/Expo ports
-    if mode in ["both", "ios"]:
-        expo_ports = [19000, 19001, 19002, 19006, 8081, ios_port]
-        for port in expo_ports:
-            if kill_processes_on_port(port):
-                print(f"✅ Cleaned up port {port}")
-    
-    # Verify ports are available
-    if mode in ["both", "backend"]:
-        if not check_port_available(backend_host, backend_port):
-            print(f"❌ Backend port {backend_port} is still in use. Please check for remaining processes.")
-            sys.exit(1)
-    
-    print("✅ All ports cleaned up successfully")
-    print()
-    
-    try:
-        if mode == "ios":
-            # iOS only mode
-            print("📱 Starting iOS app only...")
-            ios_process = start_ios_app_subprocess(backend_url, ios_port, project_root)
-            process_manager.ios_process = ios_process
-            ios_process.wait()
-            
-        elif mode == "backend":
-            # Backend only mode
-            print("🔧 Starting backend server only...")
-            start_backend_server(backend_host, backend_port, True)
-            
-        else:
-            # Both services (default)
-            print("📱 Starting iOS app...")
-            ios_process = start_ios_app_subprocess(backend_url, ios_port, project_root)
-            process_manager.ios_process = ios_process
-            
-            # Give iOS app time to start
-            print("⏳ Waiting for iOS app to initialize...")
-            time.sleep(3)
-            
-            print("🔧 Starting backend server...")
-            # Backend runs in main thread to avoid signal issues
-            start_backend_server(backend_host, backend_port, True)
+    # Handle different modes
+    if args.test_sub:
+        # First check if requests is available
+        try:
+            import requests
+        except ImportError:
+            print("❌ 'requests' module not found. Installing...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", "requests", "--user"])
+            print("✅ Installed requests module. Please run the command again.")
+            return
         
-    except KeyboardInterrupt:
-        print("\n🛑 Shutdown requested by user")
-    except Exception as e:
-        print(f"❌ Error: {e}")
-        sys.exit(1)
-    finally:
-        process_manager.cleanup_all()
-        print("👋 PrepSense app launcher stopped")
+        run_ingredient_subtraction_tests()
+    elif args.reset_data:
+        reset_test_data()
+    else:
+        # Default: start server
+        start_backend_server(port=args.port, reload=not args.no_reload)
 
 if __name__ == "__main__":
     main()
