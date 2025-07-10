@@ -346,7 +346,189 @@ export default function RecipesScreen() {
       
       const data = await response.json();
       console.log('Fetched saved recipes:', data);
-      setSavedRecipes(data || []);
+      // Add mock recipes for testing
+      const mockRecipes: SavedRecipe[] = [
+        {
+          id: 'mock-1',
+          recipe_id: 100001,
+          recipe_title: 'Classic Spaghetti Carbonara',
+          recipe_image: 'https://img.spoonacular.com/recipes/715769-556x370.jpg',
+          recipe_data: {
+            id: 100001,
+            title: 'Classic Spaghetti Carbonara',
+            readyInMinutes: 30,
+            servings: 4,
+            summary: 'A classic Italian pasta dish made with eggs, cheese, and bacon. Quick, easy, and absolutely delicious!',
+            instructions: [
+              'Bring a large pot of salted water to boil and cook spaghetti according to package directions.',
+              'While pasta cooks, fry bacon until crispy. Remove and set aside.',
+              'In a bowl, whisk together eggs, grated Parmesan cheese, and black pepper.',
+              'When pasta is al dente, reserve 1 cup pasta water and drain.',
+              'Quickly toss hot pasta with bacon and fat, then remove from heat.',
+              'Add egg mixture and toss rapidly, adding pasta water as needed for creamy sauce.',
+              'Serve immediately with extra Parmesan and black pepper.'
+            ],
+            extendedIngredients: [
+              { name: 'spaghetti', amount: 400, unit: 'g' },
+              { name: 'bacon', amount: 200, unit: 'g' },
+              { name: 'eggs', amount: 4, unit: '' },
+              { name: 'Parmesan cheese', amount: 100, unit: 'g' },
+              { name: 'black pepper', amount: 1, unit: 'tsp' }
+            ]
+          },
+          rating: 'thumbs_up',
+          is_favorite: true,
+          source: 'spoonacular',
+          created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          updated_at: new Date(Date.now() - 86400000).toISOString(),
+        },
+        {
+          id: 'mock-2',
+          recipe_id: 100002,
+          recipe_title: 'Thai Green Curry Chicken',
+          recipe_image: 'https://img.spoonacular.com/recipes/663050-556x370.jpg',
+          recipe_data: {
+            id: 100002,
+            title: 'Thai Green Curry Chicken',
+            readyInMinutes: 45,
+            servings: 4,
+            summary: 'Authentic Thai green curry with tender chicken, vegetables, and aromatic herbs in coconut milk.',
+            instructions: [
+              'Heat oil in a large pan or wok over medium-high heat.',
+              'Add green curry paste and fry for 1-2 minutes until fragrant.',
+              'Add chicken pieces and stir-fry until they change color.',
+              'Pour in coconut milk and bring to a simmer.',
+              'Add vegetables, fish sauce, and palm sugar. Simmer for 15 minutes.',
+              'Add Thai basil leaves and lime juice just before serving.',
+              'Serve hot with jasmine rice.'
+            ],
+            extendedIngredients: [
+              { name: 'chicken breast', amount: 500, unit: 'g' },
+              { name: 'green curry paste', amount: 3, unit: 'tbsp' },
+              { name: 'coconut milk', amount: 400, unit: 'ml' },
+              { name: 'Thai basil', amount: 1, unit: 'cup' },
+              { name: 'fish sauce', amount: 2, unit: 'tbsp' },
+              { name: 'vegetables (eggplant, bamboo shoots)', amount: 300, unit: 'g' }
+            ]
+          },
+          rating: 'thumbs_up',
+          is_favorite: false,
+          source: 'spoonacular',
+          created_at: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+          updated_at: new Date(Date.now() - 172800000).toISOString(),
+        },
+        {
+          id: 'mock-3',
+          recipe_id: 100003,
+          recipe_title: 'Homemade Margherita Pizza',
+          recipe_image: 'https://img.spoonacular.com/recipes/680975-556x370.jpg',
+          recipe_data: {
+            id: 100003,
+            title: 'Homemade Margherita Pizza',
+            readyInMinutes: 120,
+            servings: 2,
+            summary: 'Classic Italian pizza with fresh mozzarella, basil, and homemade tomato sauce on a crispy crust.',
+            instructions: [
+              'Make pizza dough: Mix flour, yeast, salt, water, and olive oil. Knead for 10 minutes.',
+              'Let dough rise in a warm place for 1-2 hours until doubled in size.',
+              'Preheat oven to 250°C (480°F) with pizza stone if available.',
+              'Roll out dough to desired thickness.',
+              'Spread tomato sauce, leaving border for crust.',
+              'Add torn mozzarella and drizzle with olive oil.',
+              'Bake for 10-12 minutes until crust is golden and cheese bubbles.',
+              'Top with fresh basil leaves before serving.'
+            ],
+            extendedIngredients: [
+              { name: 'pizza dough', amount: 1, unit: 'batch' },
+              { name: 'tomato sauce', amount: 200, unit: 'ml' },
+              { name: 'fresh mozzarella', amount: 250, unit: 'g' },
+              { name: 'fresh basil', amount: 10, unit: 'leaves' },
+              { name: 'olive oil', amount: 2, unit: 'tbsp' }
+            ]
+          },
+          rating: 'neutral',
+          is_favorite: true,
+          source: 'spoonacular',
+          created_at: new Date(Date.now() - 259200000).toISOString(), // 3 days ago
+          updated_at: new Date(Date.now() - 259200000).toISOString(),
+        },
+        {
+          id: 'mock-4',
+          recipe_id: 100004,
+          recipe_title: 'Vegan Buddha Bowl',
+          recipe_image: 'https://img.spoonacular.com/recipes/1095753-556x370.jpg',
+          recipe_data: {
+            id: 100004,
+            title: 'Vegan Buddha Bowl',
+            readyInMinutes: 35,
+            servings: 2,
+            summary: 'Colorful and nutritious bowl packed with quinoa, roasted vegetables, chickpeas, and tahini dressing.',
+            instructions: [
+              'Cook quinoa according to package directions.',
+              'Preheat oven to 200°C (400°F).',
+              'Toss sweet potatoes and chickpeas with olive oil, cumin, and paprika.',
+              'Roast for 25 minutes until golden and crispy.',
+              'Steam or blanch broccoli until tender-crisp.',
+              'Make tahini dressing: whisk tahini, lemon juice, garlic, and water.',
+              'Assemble bowls with quinoa base, then arrange vegetables and chickpeas.',
+              'Drizzle with tahini dressing and sprinkle with seeds.'
+            ],
+            extendedIngredients: [
+              { name: 'quinoa', amount: 200, unit: 'g' },
+              { name: 'sweet potato', amount: 1, unit: 'large' },
+              { name: 'chickpeas', amount: 400, unit: 'g' },
+              { name: 'broccoli', amount: 200, unit: 'g' },
+              { name: 'tahini', amount: 3, unit: 'tbsp' },
+              { name: 'mixed seeds', amount: 2, unit: 'tbsp' }
+            ]
+          },
+          rating: 'thumbs_up',
+          is_favorite: false,
+          source: 'generated',
+          created_at: new Date(Date.now() - 345600000).toISOString(), // 4 days ago
+          updated_at: new Date(Date.now() - 345600000).toISOString(),
+        },
+        {
+          id: 'mock-5',
+          recipe_id: 100005,
+          recipe_title: 'Chocolate Lava Cake',
+          recipe_image: 'https://img.spoonacular.com/recipes/1096230-556x370.jpg',
+          recipe_data: {
+            id: 100005,
+            title: 'Chocolate Lava Cake',
+            readyInMinutes: 25,
+            servings: 4,
+            summary: 'Decadent individual chocolate cakes with a molten center. Perfect for special occasions!',
+            instructions: [
+              'Preheat oven to 200°C (400°F). Butter and flour 4 ramekins.',
+              'Melt chocolate and butter together in double boiler or microwave.',
+              'Whisk eggs, egg yolks, and sugar until thick and pale.',
+              'Fold chocolate mixture into egg mixture.',
+              'Sift in flour and fold gently until just combined.',
+              'Divide batter among ramekins, filling 3/4 full.',
+              'Bake for 12-14 minutes until edges are firm but center jiggles.',
+              'Let rest 1 minute, then invert onto plates. Serve immediately.'
+            ],
+            extendedIngredients: [
+              { name: 'dark chocolate', amount: 200, unit: 'g' },
+              { name: 'butter', amount: 150, unit: 'g' },
+              { name: 'eggs', amount: 2, unit: '' },
+              { name: 'egg yolks', amount: 2, unit: '' },
+              { name: 'sugar', amount: 60, unit: 'g' },
+              { name: 'flour', amount: 60, unit: 'g' }
+            ]
+          },
+          rating: 'thumbs_down',
+          is_favorite: false,
+          source: 'spoonacular',
+          created_at: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
+          updated_at: new Date(Date.now() - 432000000).toISOString(),
+        }
+      ];
+
+      // Combine real data with mock data
+      const combinedData = [...(data || []), ...mockRecipes];
+      setSavedRecipes(combinedData);
     } catch (error) {
       console.error('Error fetching saved recipes:', error);
       Alert.alert('Error', 'Failed to load saved recipes. Please try again.');
