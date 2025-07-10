@@ -330,9 +330,8 @@ The setup script (option 1) will guide you through:
 ```bash
 gcloud auth login                          # For CLI access
 gcloud auth application-default login       # For application access
-gcloud config set project adsp-34002-on02-prep-sense
+gcloud config set project <YOUR_PROJECT_ID>
 ```
-
 **Alternative: JSON Key Files (not recommended)**
 - Only use if ADC doesn't work in your environment
 - Place service account JSON in `config/` directory
