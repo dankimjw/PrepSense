@@ -1,5 +1,10 @@
 """FastAPI application entry point for the PrepSense backend gateway."""
 
+import sys
+import os
+# Add parent directory to Python path to handle imports when run from different locations
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
