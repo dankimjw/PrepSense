@@ -73,7 +73,7 @@ class UserPantryItem(BaseModel):
     unit_price: Optional[float]
     total_price: Optional[float]
     pantry_item_created_at: Optional[datetime]
-    used_quantity: Optional[int]
+    used_quantity: Optional[float]
     status: Optional[str]
     product_id: Optional[int]
     product_name: Optional[str]
