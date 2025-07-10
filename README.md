@@ -51,8 +51,12 @@ PrepSense/
 │   ├── app/           # Screen components
 │   ├── services/      # API integration
 │   └── components/    # Reusable UI components
+├── docs/              # Project documentation
 ├── tests/             # Test suites
-└── run_app.py         # Main launcher script
+├── run_app.py         # Main launcher script
+├── setup.py           # Initial setup script
+├── requirements.txt   # Python dependencies
+└── .env.template      # Environment template
 ```
 
 ## 🛠️ Common Commands
@@ -132,6 +136,10 @@ python cleanup.py
 - [Architecture Guide](./ios-app/docs/MODULAR_ARCHITECTURE.md)
 - [API Documentation](http://localhost:8000/docs) (when running)
 - [Test Documentation](./tests/ingredient-subtraction/README.md)
+- [Demo & Testing Guide](./docs/DEMO_TEST_GUIDE.md)
+- [Recipe Edge Cases](./docs/RECIPE_COMPLETION_EDGE_CASES.md)
+- [Stats Screen Design](./docs/STATS_SCREEN_NOTES.md)
+- [Migration Guides](./docs/MIGRATE_TO_ADC.md)
 
 ## 👥 Team
 
