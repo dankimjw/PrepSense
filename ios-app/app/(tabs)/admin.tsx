@@ -429,6 +429,81 @@ export default function AdminScreen() {
           <Text style={styles.queryButtonText}>📊 Test Database Queries</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Test Data Management Section */}
+      <View style={[styles.cleanupContainer, { marginTop: 20 }]}>
+        <Text style={styles.sectionTitle}>Test Data Management</Text>
+        <Text style={styles.cleanupDescription}>
+          Manage demo data for testing ingredient subtraction and recipe completion features.
+        </Text>
+        
+        {/* Reset Demo Data Button */}
+        <TouchableOpacity
+          style={[styles.testDataButton, { backgroundColor: '#FF9500' }]}
+          onPress={async () => {
+            Alert.alert(
+              'Reset Demo Data?',
+              'This will reset all demo pantry items and recipes to their default state for testing.',
+              [
+                { text: 'Cancel', style: 'cancel' },
+                { 
+                  text: 'Reset', 
+                  style: 'destructive',
+                  onPress: async () => {
+                    try {
+                      const response = await fetch(`${Config.API_BASE_URL}/demo/reset-data`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                      });
+                      
+                      if (response.ok) {
+                        const result = await response.json();
+                        Alert.alert('Success', `Demo data reset! Added ${result.pantry_items_count} pantry items and ${result.recipes_count} recipes.`);
+                      } else {
+                        throw new Error('Failed to reset demo data');
+                      }
+                    } catch (error) {
+                      Alert.alert('Error', 'Failed to reset demo data: ' + error.message);
+                    }
+                  }
+                }
+              ]
+            );
+          }}
+        >
+          <MaterialCommunityIcons name="restore" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+          <Text style={styles.cleanupButtonText}>Reset Demo Data</Text>
+        </TouchableOpacity>
+
+        {/* Run Subtraction Test Button */}
+        <TouchableOpacity
+          style={[styles.testDataButton, { backgroundColor: '#4CAF50', marginTop: 12 }]}
+          onPress={async () => {
+            try {
+              const response = await fetch(`${Config.API_BASE_URL}/demo/test-subtraction`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+              });
+              
+              if (response.ok) {
+                const result = await response.json();
+                Alert.alert(
+                  'Test Results',
+                  `Tests completed!\n\nPassed: ${result.passed}/${result.total}\nFailed: ${result.failed}\n\n${result.summary || 'Check console for details.'}`,
+                  [{ text: 'OK' }]
+                );
+              } else {
+                throw new Error('Failed to run tests');
+              }
+            } catch (error) {
+              Alert.alert('Error', 'Failed to run subtraction tests: ' + error.message);
+            }
+          }}
+        >
+          <MaterialCommunityIcons name="test-tube" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+          <Text style={styles.cleanupButtonText}>Run Subtraction Tests</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -960,5 +1035,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
+  },
+  testDataButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 12,
+    borderRadius: 8,
   },
 });
