@@ -286,12 +286,22 @@ class CrewAIService:
         4. For recipes needing extra ingredients, be specific (e.g., "eggs", "flour", "garlic cloves")
         5. If there are expiring items mentioned above, prioritize using them in your recipes
         
-        Return a JSON array of recipes. Each recipe should have:
-        - name: string (creative recipe name)
-        - ingredients: array of strings with quantities (e.g., "2 cups rice", "1 lb chicken breast", "3 cloves garlic")
-        - instructions: array of strings (5-8 detailed step-by-step cooking instructions)
+        Return a JSON array of recipes in Spoonacular format. Each recipe MUST have:
+        - id: string (unique identifier like "ai-recipe-1", "ai-recipe-2", etc.)
+        - title: string (creative recipe name)
+        - readyInMinutes: number (total cooking time in minutes)
+        - servings: number (how many servings this recipe makes)
+        - summary: string (brief description of the dish)
+        - extendedIngredients: array of ingredient objects, each with:
+          - id: number (1, 2, 3, etc.)
+          - name: string (ingredient name like "flour", "chicken breast")
+          - original: string (full description like "2 cups all-purpose flour")
+          - amount: number (quantity as a number)
+          - unit: string (measurement unit like "cup", "pound", "tablespoon")
+        - instructions: array of instruction objects, each with:
+          - number: number (step number: 1, 2, 3, etc.)
+          - step: string (the instruction text)
         - nutrition: object with calories (number) and protein (number in grams)
-        - time: number (cooking time in minutes)
         - meal_type: string (breakfast, lunch, dinner, or snack)
         - cuisine_type: string (e.g., italian, mexican, asian, american)
         - dietary_tags: array of strings (e.g., vegetarian, vegan, gluten-free)
@@ -309,9 +319,44 @@ class CrewAIService:
         - Include visual/sensory cues (e.g., "until golden brown", "until fragrant")
         - Be actionable and easy to follow
         
-        Example format:
-        - For available ingredient: "Chicken Breast" (exactly as shown in list)
-        - For missing ingredient: "eggs" (specific item needed)
+        Example of ONE recipe in the correct format:
+        {
+          "id": "ai-recipe-1",
+          "title": "Creamy Garlic Pasta",
+          "readyInMinutes": 25,
+          "servings": 4,
+          "summary": "A quick and delicious pasta dish with creamy garlic sauce",
+          "extendedIngredients": [
+            {
+              "id": 1,
+              "name": "pasta",
+              "original": "1 pound pasta",
+              "amount": 1,
+              "unit": "pound"
+            },
+            {
+              "id": 2,
+              "name": "garlic",
+              "original": "4 cloves garlic, minced",
+              "amount": 4,
+              "unit": "cloves"
+            }
+          ],
+          "instructions": [
+            {
+              "number": 1,
+              "step": "Bring a large pot of salted water to boil"
+            },
+            {
+              "number": 2,
+              "step": "Cook pasta according to package directions"
+            }
+          ],
+          "nutrition": {"calories": 420, "protein": 15},
+          "meal_type": "dinner",
+          "cuisine_type": "italian",
+          "dietary_tags": ["vegetarian"]
+        }
         
         CRITICAL ALLERGEN RULES:
         - You MUST exclude ANY recipe that contains the allergens listed above
@@ -536,7 +581,17 @@ class CrewAIService:
         logger.info(f"Pantry items for matching: {list(pantry_names)[:10]}")
         
         for recipe in recipes:
-            recipe_ingredients = recipe.get('ingredients', [])
+            # Handle both old format (ingredients array) and new format (extendedIngredients)
+            if 'extendedIngredients' in recipe:
+                # New Spoonacular format
+                recipe_ingredients = []
+                for ing in recipe.get('extendedIngredients', []):
+                    # Use the 'original' field which has the full description
+                    recipe_ingredients.append(ing.get('original', f"{ing.get('amount', '')} {ing.get('unit', '')} {ing.get('name', '')}"))
+            else:
+                # Old format fallback
+                recipe_ingredients = recipe.get('ingredients', [])
+                
             available_ingredients = []
             missing_ingredients = []
             
