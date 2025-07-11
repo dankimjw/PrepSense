@@ -365,7 +365,6 @@ class CrewAIService:
         - If allergens include "dairy", exclude milk, cheese, yogurt, butter, cream
         - If allergens include "gluten", exclude wheat, bread, pasta, flour
         - Double-check every ingredient against the allergen list
-        
         PREFERENCE RULES:
         - Prioritize recipes that match the user's favorite cuisines
         - Ensure recipes comply with dietary restrictions (e.g., if vegetarian, no meat)

@@ -3,7 +3,9 @@ Configuration settings for PrepSense backend application.
 """
 
 from typing import List, Optional
+from pydantic import Field, validator
 from pydantic_settings import BaseSettings
+import secrets
 
 
 class Settings(BaseSettings):
@@ -13,7 +15,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     
     # Security Configuration
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str = Field(default=None, env="SECRET_KEY")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
@@ -59,7 +61,6 @@ class Settings(BaseSettings):
     
     # Anthropic Configuration
     ANTHROPIC_API_KEY: Optional[str] = None
-    
     # Development Settings
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
@@ -68,6 +69,13 @@ class Settings(BaseSettings):
         """Pydantic configuration."""
         env_file = ".env"
         case_sensitive = True
+    
+    @validator("SECRET_KEY", pre=True)
+    def validate_secret_key(cls, v):
+        if not v:
+            # Generate a secure random key if none provided
+            return secrets.token_urlsafe(32)
+        return v
 
 
 # Create settings instance
