@@ -69,11 +69,6 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
             >
               {item.name}
             </Text>
-            {item.count && item.count > 1 && (
-              <View style={styles.itemCountBadge}>
-                <Text style={styles.itemCountText}>×{item.count}</Text>
-              </View>
-            )}
           </View>
           <View style={styles.itemAmountContainer}>
             <Text 
@@ -162,19 +157,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flexWrap: 'wrap',
-  },
-  itemCountBadge: {
-    backgroundColor: '#E5E7EB',
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    marginLeft: 6,
-    alignSelf: 'flex-start',
-  },
-  itemCountText: {
-    fontSize: 12,
-    color: '#4B5563',
-    fontWeight: '500',
   },
   itemAmountContainer: {
     flexShrink: 0,
