@@ -14,35 +14,19 @@ const { width: screenWidth } = Dimensions.get('window');
 interface StatsData {
   pantry: {
     totalItems: number;
+    expiredItems: number;
     expiringItems: number;
     recentlyAdded: number;
-    totalValue: number;
-    wastedItems: number;
-    mostUsedIngredients: { name: string; count: number }[];
+    topProducts: { name: string; count: number }[];
+    foodSavedKg: number;
+    co2SavedKg: number;
   };
   recipes: {
     cookedThisWeek: number;
     cookedThisMonth: number;
     totalCooked: number;
     favoriteRecipes: { name: string; count: number }[];
-    avgPrepTime: number;
     cookingStreak: number;
-    successRate: number;
-    avgCalories: number;
-    avgProtein: number;
-  };
-  shopping: {
-    frequency: string;
-    avgSpend: number;
-    mostPurchased: { name: string; count: number }[];
-    completionRate: number;
-    savings: number;
-  };
-  achievements: {
-    milestones: string[];
-    wasteReductionScore: number;
-    pantryOptimizationScore: number;
-    cookingStreakDays: number;
   };
 }
 
@@ -96,6 +80,12 @@ export default function StatsScreen() {
       const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       
       // Pantry stats
+      const expiredItems = pantryItems.filter(item => {
+        if (!item.expiration_date) return false;
+        const expDate = new Date(item.expiration_date);
+        return expDate < now;
+      }).length;
+      
       const expiringItems = pantryItems.filter(item => {
         if (!item.expiration_date) return false;
         const expDate = new Date(item.expiration_date);
@@ -107,17 +97,32 @@ export default function StatsScreen() {
         return addedDate >= oneWeekAgo;
       }).length;
       
-      // Calculate most used ingredients (mock data for now)
-      const ingredientCounts: { [key: string]: number } = {};
-      pantryItems.forEach(item => {
-        const category = item.category || 'Other';
-        ingredientCounts[category] = (ingredientCounts[category] || 0) + 1;
+      // Calculate top products by frequency
+      const productCounts: { [key: string]: number } = {};
+      const recentItems = pantryItems.filter(item => {
+        const addedDate = new Date(item.created_at || item.updated_at);
+        return addedDate >= oneMonthAgo;
       });
       
-      const mostUsedIngredients = Object.entries(ingredientCounts)
+      recentItems.forEach(item => {
+        const name = item.product_name || 'Unknown';
+        productCounts[name] = (productCounts[name] || 0) + 1;
+      });
+      
+      const topProducts = Object.entries(productCounts)
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
+      
+      // Calculate environmental impact
+      const unexpiredItems = pantryItems.filter(item => {
+        if (!item.expiration_date) return true;
+        const expDate = new Date(item.expiration_date);
+        return expDate >= now;
+      }).length;
+      
+      const foodSavedKg = Math.round(unexpiredItems * 0.3 * 10) / 10; // 0.3kg average per item
+      const co2SavedKg = Math.round(foodSavedKg * 2.5 * 10) / 10; // 2.5kg CO2 per kg food
       
       // Recipe stats
       const cookedThisWeek = recipes.filter(recipe => {
@@ -142,49 +147,23 @@ export default function StatsScreen() {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5);
       
-      // Shopping stats
-      const completedItems = shoppingList.filter((item: any) => item.checked).length;
-      const completionRate = shoppingList.length > 0 ? (completedItems / shoppingList.length) * 100 : 0;
-      
-      // Mock data for some stats that require more backend support
+      // Prepare stats data with real values
       const statsData: StatsData = {
         pantry: {
           totalItems: pantryItems.length,
+          expiredItems,
           expiringItems,
           recentlyAdded,
-          totalValue: pantryItems.length * 3.5, // Mock: $3.50 avg per item
-          wastedItems: 0, // Would need waste tracking
-          mostUsedIngredients,
+          topProducts,
+          foodSavedKg,
+          co2SavedKg,
         },
         recipes: {
           cookedThisWeek,
           cookedThisMonth,
           totalCooked: recipes.length,
           favoriteRecipes,
-          avgPrepTime: 35, // Mock data
           cookingStreak: calculateCookingStreak(recipes),
-          successRate: 95, // Mock data
-          avgCalories: 420, // Mock data
-          avgProtein: 25, // Mock data
-        },
-        shopping: {
-          frequency: 'Weekly',
-          avgSpend: 85.50, // Mock data
-          mostPurchased: [
-            { name: 'Milk', count: 12 },
-            { name: 'Eggs', count: 10 },
-            { name: 'Bread', count: 8 },
-            { name: 'Chicken', count: 7 },
-            { name: 'Vegetables', count: 15 },
-          ],
-          completionRate,
-          savings: pantryItems.length * 1.2, // Mock: saved $1.20 per item used
-        },
-        achievements: {
-          milestones: calculateMilestones(recipes.length, pantryItems.length),
-          wasteReductionScore: 85, // Mock data
-          pantryOptimizationScore: 78, // Mock data
-          cookingStreakDays: calculateCookingStreak(recipes),
         },
       };
       
@@ -368,7 +347,7 @@ export default function StatsScreen() {
         {renderMiniStat('Total Items', stats.pantry.totalItems, '#297A56')}
         {renderMiniStat('Recipes Made', stats.recipes.totalCooked, '#3B82F6')}
         {renderMiniStat('Streak', `${stats.recipes.cookingStreak}d`, '#F59E0B')}
-        {renderMiniStat('Saved', `$${stats.shopping.savings.toFixed(0)}`, '#10B981')}
+        {renderMiniStat('CO₂ Saved', `${stats.pantry.co2SavedKg}kg`, '#10B981')}
       </View>
 
       {/* Hot This Week Section */}
@@ -385,7 +364,7 @@ export default function StatsScreen() {
               <Text style={styles.hotThisWeekSubtitle}>You've cooked {stats.recipes.cookedThisWeek} recipes</Text>
             </View>
             <View style={styles.hotThisWeekBadge}>
-              <Text style={styles.hotThisWeekBadgeText}>+{Math.round(stats.shopping.savings)}pts</Text>
+              <Text style={styles.hotThisWeekBadgeText}>{stats.pantry.foodSavedKg}kg saved</Text>
             </View>
           </View>
         </LinearGradient>
@@ -399,17 +378,21 @@ export default function StatsScreen() {
             'Total Items',
             stats.pantry.totalItems,
             <MaterialCommunityIcons name="package-variant" size={24} color="#297A56" />,
-            '#297A56',
-            undefined,
-            { value: 12, isPositive: true }
+            '#297A56'
+          )}
+          {renderStatCard(
+            'Expired Items',
+            stats.pantry.expiredItems,
+            <Ionicons name="alert-circle" size={24} color="#DC2626" />,
+            '#DC2626',
+            stats.pantry.expiredItems === 0 ? '🥳 Great job!' : 'Need attention'
           )}
           {renderStatCard(
             'Expiring Soon',
             stats.pantry.expiringItems,
             <Ionicons name="warning" size={24} color="#F59E0B" />,
             '#F59E0B',
-            'Next 7 days',
-            { value: 5, isPositive: false }
+            'Next 7 days'
           )}
           {renderStatCard(
             'Recently Added',
@@ -418,29 +401,44 @@ export default function StatsScreen() {
             '#3B82F6',
             'Last 7 days'
           )}
-          {renderStatCard(
-            'Pantry Value',
-            `$${stats.pantry.totalValue.toFixed(2)}`,
-            <FontAwesome5 name="dollar-sign" size={24} color="#10B981" />,
-            '#10B981',
-            undefined,
-            { value: 8, isPositive: true }
-          )}
         </View>
 
-        {/* Most Used Ingredients */}
-        <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>Most Common Categories</Text>
-          {stats.pantry.mostUsedIngredients.map((item, index) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.listItemName}>{item.name}</Text>
-              <View style={styles.listItemRight}>
-                <Text style={styles.listItemCount}>{item.count} items</Text>
-                <View style={[styles.progressBar, { width: `${(item.count / stats.pantry.totalItems) * 100}%` }]} />
-              </View>
+        {/* Environmental Impact */}
+        <View style={styles.impactSection}>
+          <Text style={styles.subSectionTitle}>♻️ Environmental Impact</Text>
+          <View style={styles.impactGrid}>
+            <View style={styles.impactCard}>
+              <MaterialCommunityIcons name="food-apple" size={32} color="#10B981" />
+              <Text style={styles.impactValue}>{stats.pantry.foodSavedKg} kg</Text>
+              <Text style={styles.impactLabel}>Food Saved</Text>
             </View>
-          ))}
+            <View style={styles.impactCard}>
+              <MaterialCommunityIcons name="leaf" size={32} color="#10B981" />
+              <Text style={styles.impactValue}>{stats.pantry.co2SavedKg} kg</Text>
+              <Text style={styles.impactLabel}>CO₂ Saved</Text>
+            </View>
+          </View>
         </View>
+
+        {/* Top Products */}
+        {stats.pantry.topProducts.length > 0 && (
+          <View style={styles.subSection}>
+            <Text style={styles.subSectionTitle}>🎵 Pantry Top Hits This Month</Text>
+            {stats.pantry.topProducts.map((item, index) => {
+              const emojis = ['🥇', '🥈', '🥉', '🔥', '💥'];
+              return (
+                <View key={index} style={styles.listItem}>
+                  <Text style={styles.listItemName}>
+                    {emojis[index] || `#${index + 1}`} {item.name}
+                  </Text>
+                  <View style={styles.listItemRight}>
+                    <Text style={styles.listItemCount}>{item.count} times</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
 
       {/* Recipe & Cooking Stats Section */}
@@ -455,22 +453,24 @@ export default function StatsScreen() {
             'Recipes cooked'
           )}
           {renderStatCard(
+            'This Month',
+            stats.recipes.cookedThisMonth,
+            <Ionicons name="calendar-outline" size={24} color="#8B5CF6" />,
+            '#8B5CF6',
+            'Recipes cooked'
+          )}
+          {renderStatCard(
+            'Total Recipes',
+            stats.recipes.totalCooked,
+            <MaterialCommunityIcons name="chef-hat" size={24} color="#10B981" />,
+            '#10B981',
+            'All time'
+          )}
+          {renderStatCard(
             'Cooking Streak',
             `${stats.recipes.cookingStreak} days`,
             <Ionicons name="flame" size={24} color="#F59E0B" />,
             '#F59E0B'
-          )}
-          {renderStatCard(
-            'Avg Prep Time',
-            `${stats.recipes.avgPrepTime} min`,
-            <Ionicons name="time" size={24} color="#8B5CF6" />,
-            '#8B5CF6'
-          )}
-          {renderStatCard(
-            'Success Rate',
-            `${stats.recipes.successRate}%`,
-            <Ionicons name="checkmark-circle" size={24} color="#10B981" />,
-            '#10B981'
           )}
         </View>
 
@@ -516,54 +516,6 @@ export default function StatsScreen() {
           </View>
         )}
 
-        {/* Nutrition Overview */}
-        <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>Average Nutrition per Recipe</Text>
-          <View style={styles.nutritionGrid}>
-            {renderMiniStat('Calories', stats.recipes.avgCalories, '#F59E0B')}
-            {renderMiniStat('Protein', `${stats.recipes.avgProtein}g`, '#3B82F6')}
-            {renderMiniStat('Carbs', '45g', '#10B981')}
-            {renderMiniStat('Fat', '15g', '#8B5CF6')}
-          </View>
-        </View>
-      </View>
-
-      {/* Shopping Insights Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🛒 Shopping Insights</Text>
-        <View style={styles.statsGrid}>
-          {renderStatCard(
-            'Avg Spend',
-            `$${stats.shopping.avgSpend.toFixed(2)}`,
-            <FontAwesome5 name="receipt" size={24} color="#10B981" />,
-            '#10B981',
-            stats.shopping.frequency
-          )}
-          {renderStatCard(
-            'List Completion',
-            `${stats.shopping.completionRate.toFixed(0)}%`,
-            <Ionicons name="checkbox" size={24} color="#3B82F6" />,
-            '#3B82F6'
-          )}
-          {renderStatCard(
-            'Items Saved',
-            `$${stats.shopping.savings.toFixed(2)}`,
-            <MaterialCommunityIcons name="piggy-bank" size={24} color="#F59E0B" />,
-            '#F59E0B',
-            'From pantry use'
-          )}
-        </View>
-
-        {/* Most Purchased Items */}
-        <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>Frequently Purchased</Text>
-          {stats.shopping.mostPurchased.slice(0, 3).map((item, index) => (
-            <View key={index} style={styles.listItem}>
-              <Text style={styles.listItemName}>{item.name}</Text>
-              <Text style={styles.listItemCount}>{item.count} times</Text>
-            </View>
-          ))}
-        </View>
       </View>
 
       {/* Time-based Trends */}
@@ -598,38 +550,6 @@ export default function StatsScreen() {
         </ScrollView>
       </View>
 
-      {/* Achievements Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>🏆 Achievements & Scores</Text>
-        
-        {/* Score Cards */}
-        <View style={styles.scoresContainer}>
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>Waste Reduction</Text>
-            <View style={styles.scoreCircle}>
-              <Text style={styles.scoreValue}>{stats.achievements.wasteReductionScore}</Text>
-              <Text style={styles.scorePercent}>%</Text>
-            </View>
-          </View>
-          <View style={styles.scoreCard}>
-            <Text style={styles.scoreLabel}>Pantry Optimization</Text>
-            <View style={styles.scoreCircle}>
-              <Text style={styles.scoreValue}>{stats.achievements.pantryOptimizationScore}</Text>
-              <Text style={styles.scorePercent}>%</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Milestones */}
-        <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>Milestones Achieved</Text>
-          <View style={styles.achievementsContainer}>
-            {stats.achievements.milestones.map((milestone, index) => 
-              renderAchievement(milestone, index)
-            )}
-          </View>
-        </View>
-      </View>
 
       <View style={{ height: 100 }} />
     </ScrollView>
@@ -1030,5 +950,38 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  impactSection: {
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: '#E6F4EA',
+    borderRadius: 12,
+  },
+  impactGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginTop: 12,
+  },
+  impactCard: {
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
+    borderRadius: 12,
+    flex: 0.45,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  impactValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#10B981',
+    marginVertical: 8,
+  },
+  impactLabel: {
+    fontSize: 14,
+    color: '#666',
   },
 });
