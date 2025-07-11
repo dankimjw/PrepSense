@@ -165,11 +165,11 @@ async def get_pantry_status(
 
 
 @router.post("/reset-demo", summary="Reset demo data to original values")
-async def reset_demo_data(
+async def reset_demo_data_old(
     db_service = Depends(get_database_service)
 ) -> Dict[str, Any]:
     """
-    Reset all demo pantry items to their original quantities
+    Reset all demo pantry items to their original quantities (legacy endpoint)
     """
     try:
         # Import here to avoid circular imports
@@ -192,4 +192,136 @@ async def reset_demo_data(
         return {
             "success": False,
             "message": f"Error resetting demo data: {str(e)}"
+        }
+
+
+@router.post("/reset-data", summary="Reset demo data (new endpoint)")
+async def reset_demo_data(
+    db_service = Depends(get_database_service)
+) -> Dict[str, Any]:
+    """
+    Reset demo pantry items and recipes to default state
+    """
+    try:
+        # Import and run setup script
+        import subprocess
+        import sys
+        import os
+        
+        script_path = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "scripts",
+            "setup_demo_data.py"
+        )
+        
+        result = subprocess.run(
+            [sys.executable, script_path],
+            capture_output=True,
+            text=True
+        )
+        
+        if result.returncode == 0:
+            # Parse output to get counts
+            lines = result.stdout.split('\n')
+            pantry_count = 0
+            recipe_count = 0
+            
+            for line in lines:
+                if "Added:" in line or "Updated:" in line:
+                    pantry_count += 1
+                elif "Saved recipe:" in line:
+                    recipe_count += 1
+            
+            return {
+                "success": True,
+                "pantry_items_count": pantry_count,
+                "recipes_count": recipe_count,
+                "message": "Demo data reset successfully"
+            }
+        else:
+            raise Exception(result.stderr or "Failed to run setup script")
+            
+    except Exception as e:
+        logger.error(f"Error resetting demo data: {str(e)}")
+        return {
+            "success": False,
+            "pantry_items_count": 0,
+            "recipes_count": 0,
+            "message": f"Error: {str(e)}"
+        }
+
+
+@router.post("/test-subtraction", summary="Run ingredient subtraction tests")
+async def run_subtraction_tests(
+    db_service = Depends(get_database_service)
+) -> Dict[str, Any]:
+    """
+    Run automated tests for ingredient subtraction
+    """
+    try:
+        # Import and run test script  
+        import subprocess
+        import sys
+        import os
+        
+        test_script = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+            "tests",
+            "ingredient-subtraction",
+            "run_tests.py"
+        )
+        
+        if not os.path.exists(test_script):
+            # Try simple test
+            test_script = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),
+                "tests",
+                "ingredient-subtraction", 
+                "simple_test.py"
+            )
+        
+        result = subprocess.run(
+            [sys.executable, test_script],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        )
+        
+        # Parse test results
+        output_lines = result.stdout.split('\n')
+        passed = 0
+        failed = 0
+        total = 0
+        
+        for line in output_lines:
+            if "PASSED" in line:
+                passed += 1
+                total += 1
+            elif "FAILED" in line:
+                failed += 1
+                total += 1
+        
+        summary = []
+        if passed > 0:
+            summary.append(f"✅ {passed} tests passed")
+        if failed > 0:
+            summary.append(f"❌ {failed} tests failed")
+            
+        return {
+            "success": result.returncode == 0,
+            "passed": passed,
+            "failed": failed,
+            "total": total,
+            "summary": "\n".join(summary) if summary else "Test results logged to console",
+            "output": result.stdout if failed > 0 else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error running tests: {str(e)}")
+        return {
+            "success": False,
+            "passed": 0,
+            "failed": 0,
+            "total": 0,
+            "summary": f"Error running tests: {str(e)}"
         }
