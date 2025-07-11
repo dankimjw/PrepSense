@@ -1,6 +1,6 @@
 // app/(tabs)/stats.tsx - Part of the PrepSense mobile app
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, RefreshControl, Dimensions, TouchableOpacity, Modal, FlatList, Pressable } from 'react-native';
 import { MaterialCommunityIcons, Ionicons, FontAwesome5 } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { fetchPantryItems } from '../../services/api';
@@ -30,6 +30,17 @@ interface StatsData {
   };
 }
 
+interface PantryItem {
+  pantry_item_id: string;
+  product_name: string;
+  quantity: number;
+  unit_of_measurement: string;
+  expiration_date: string | null;
+  created_at: string;
+  updated_at: string;
+  category: string;
+}
+
 export default function StatsScreen() {
   const { token, isAuthenticated } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +48,10 @@ export default function StatsScreen() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
   const [recipes, setRecipes] = useState<any[]>([]);
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalTitle, setModalTitle] = useState('');
+  const [modalItems, setModalItems] = useState<PantryItem[]>([]);
 
   useEffect(() => {
     loadStats();
@@ -47,7 +62,8 @@ export default function StatsScreen() {
       setIsLoading(true);
       
       // Fetch pantry items
-      const pantryItems = await fetchPantryItems(111); // Demo user ID
+      const fetchedPantryItems = await fetchPantryItems(111); // Demo user ID
+      setPantryItems(fetchedPantryItems); // Store for modal use
       
       // Fetch user recipes
       let fetchedRecipes = [];
@@ -95,26 +111,26 @@ export default function StatsScreen() {
       }
       
       // Pantry stats
-      const expiredItems = pantryItems.filter(item => {
+      const expiredItems = fetchedPantryItems.filter(item => {
         if (!item.expiration_date) return false;
         const expDate = new Date(item.expiration_date);
         return expDate < now;
       }).length;
       
-      const expiringItems = pantryItems.filter(item => {
+      const expiringItems = fetchedPantryItems.filter(item => {
         if (!item.expiration_date) return false;
         const expDate = new Date(item.expiration_date);
         return expDate <= oneWeekFromNow && expDate >= now;
       }).length;
       
-      const recentlyAdded = pantryItems.filter(item => {
+      const recentlyAdded = fetchedPantryItems.filter(item => {
         const addedDate = new Date(item.created_at || item.updated_at);
         return addedDate >= timeAgo;
       }).length;
       
       // Calculate top products by frequency
       const productCounts: { [key: string]: number } = {};
-      const recentItems = pantryItems.filter(item => {
+      const recentItems = fetchedPantryItems.filter(item => {
         const addedDate = new Date(item.created_at || item.updated_at);
         return addedDate >= timeAgo;
       });
@@ -130,7 +146,7 @@ export default function StatsScreen() {
         .slice(0, 5);
       
       // Calculate environmental impact
-      const unexpiredItems = pantryItems.filter(item => {
+      const unexpiredItems = fetchedPantryItems.filter(item => {
         if (!item.expiration_date) return true;
         const expDate = new Date(item.expiration_date);
         return expDate >= now;
@@ -165,7 +181,7 @@ export default function StatsScreen() {
       // Prepare stats data with real values
       const statsData: StatsData = {
         pantry: {
-          totalItems: pantryItems.length,
+          totalItems: fetchedPantryItems.length,
           expiredItems,
           expiringItems,
           recentlyAdded,
@@ -230,32 +246,123 @@ export default function StatsScreen() {
     return milestones;
   };
 
-  const renderStatCard = (title: string, value: string | number, icon: any, color: string, subtitle?: string, trend?: { value: number; isPositive: boolean }) => (
-    <View style={[styles.statCard, { borderLeftColor: color }]}>
-      <View style={styles.statCardHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
-          {icon}
+  const showItemsModal = (title: string, filterType: 'expired' | 'expiring' | 'recent') => {
+    setModalTitle(title);
+    
+    const now = new Date();
+    const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    let timeAgo;
+    
+    if (timeRange === 'week') {
+      timeAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (timeRange === 'month') {
+      timeAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else {
+      timeAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    }
+    
+    let filteredItems: PantryItem[] = [];
+    
+    switch (filterType) {
+      case 'expired':
+        filteredItems = pantryItems.filter(item => {
+          if (!item.expiration_date) return false;
+          const expDate = new Date(item.expiration_date);
+          return expDate < now;
+        });
+        break;
+      case 'expiring':
+        filteredItems = pantryItems.filter(item => {
+          if (!item.expiration_date) return false;
+          const expDate = new Date(item.expiration_date);
+          return expDate <= oneWeekFromNow && expDate >= now;
+        });
+        break;
+      case 'recent':
+        filteredItems = pantryItems.filter(item => {
+          const addedDate = new Date(item.created_at || item.updated_at);
+          return addedDate >= timeAgo;
+        });
+        break;
+    }
+    
+    setModalItems(filteredItems);
+    setModalVisible(true);
+  };
+
+  const getDaysUntilExpiration = (expirationDate: string | null) => {
+    if (!expirationDate) return null;
+    const now = new Date();
+    const expDate = new Date(expirationDate);
+    const diffTime = expDate.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const renderStatCard = (
+    title: string, 
+    value: string | number, 
+    icon: any, 
+    color: string, 
+    subtitle?: string, 
+    trend?: { value: number; isPositive: boolean },
+    onPress?: () => void
+  ) => {
+    const CardContent = (
+      <>
+        <View style={styles.statCardHeader}>
+          <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+            {icon}
+          </View>
+          <View style={styles.statCardTitleContainer}>
+            <Text style={styles.statCardTitle}>{title}</Text>
+            {trend && (
+              <View style={styles.trendContainer}>
+                <Ionicons 
+                  name={trend.isPositive ? "trending-up" : "trending-down"} 
+                  size={16} 
+                  color={trend.isPositive ? "#10B981" : "#EF4444"} 
+                />
+                <Text style={[styles.trendText, { color: trend.isPositive ? "#10B981" : "#EF4444" }]}>
+                  {trend.value}%
+                </Text>
+              </View>
+            )}
+          </View>
         </View>
-        <View style={styles.statCardTitleContainer}>
-          <Text style={styles.statCardTitle}>{title}</Text>
-          {trend && (
-            <View style={styles.trendContainer}>
-              <Ionicons 
-                name={trend.isPositive ? "trending-up" : "trending-down"} 
-                size={16} 
-                color={trend.isPositive ? "#10B981" : "#EF4444"} 
-              />
-              <Text style={[styles.trendText, { color: trend.isPositive ? "#10B981" : "#EF4444" }]}>
-                {trend.value}%
-              </Text>
-            </View>
-          )}
-        </View>
+        <Text style={[styles.statCardValue, { color }]}>{value}</Text>
+        {subtitle && <Text style={styles.statCardSubtitle}>{subtitle}</Text>}
+        {onPress && (
+          <View style={styles.tapIndicator}>
+            <Text style={styles.tapText}>Tap to see items</Text>
+          </View>
+        )}
+      </>
+    );
+
+    if (onPress) {
+      return (
+        <TouchableOpacity 
+          style={[styles.statCard, { borderLeftColor: color }]}
+          onPress={onPress}
+          activeOpacity={0.7}
+        >
+          {CardContent}
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View style={[styles.statCard, { borderLeftColor: color }]}>
+        {CardContent}
       </View>
-      <Text style={[styles.statCardValue, { color }]}>{value}</Text>
-      {subtitle && <Text style={styles.statCardSubtitle}>{subtitle}</Text>}
-    </View>
-  );
+    );
+  };
 
   const renderMiniStat = (label: string, value: string | number, color: string) => (
     <View style={styles.miniStat}>
@@ -457,21 +564,27 @@ export default function StatsScreen() {
             stats.pantry.expiredItems,
             <Ionicons name="alert-circle" size={24} color="#DC2626" />,
             '#DC2626',
-            stats.pantry.expiredItems === 0 ? '🥳 Great job!' : 'Need attention'
+            stats.pantry.expiredItems === 0 ? '🥳 Great job!' : 'Need attention',
+            undefined,
+            stats.pantry.expiredItems > 0 ? () => showItemsModal('Expired Items', 'expired') : undefined
           )}
           {renderStatCard(
             'Expiring Soon',
             stats.pantry.expiringItems,
             <Ionicons name="warning" size={24} color="#F59E0B" />,
             '#F59E0B',
-            'Next 7 days'
+            'Next 7 days',
+            undefined,
+            stats.pantry.expiringItems > 0 ? () => showItemsModal('Expiring Soon', 'expiring') : undefined
           )}
           {renderStatCard(
             'Recently Added',
             stats.pantry.recentlyAdded,
             <Ionicons name="add-circle" size={24} color="#3B82F6" />,
             '#3B82F6',
-            timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'Last year'
+            timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'Last year',
+            undefined,
+            stats.pantry.recentlyAdded > 0 ? () => showItemsModal('Recently Added', 'recent') : undefined
           )}
         </View>
 
@@ -624,6 +737,85 @@ export default function StatsScreen() {
         </ScrollView>
       </View>
 
+      {/* Modal for showing item details */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{modalTitle}</Text>
+              <TouchableOpacity
+                onPress={() => setModalVisible(false)}
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+            
+            {modalItems.length === 0 ? (
+              <View style={styles.emptyModalContent}>
+                <Text style={styles.emptyModalText}>No items to display</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={modalItems}
+                keyExtractor={(item) => item.pantry_item_id}
+                renderItem={({ item }) => {
+                  const daysUntilExp = getDaysUntilExpiration(item.expiration_date);
+                  const isExpired = daysUntilExp !== null && daysUntilExp < 0;
+                  const isExpiringSoon = daysUntilExp !== null && daysUntilExp <= 7 && daysUntilExp >= 0;
+                  
+                  return (
+                    <View style={styles.modalItem}>
+                      <View style={styles.modalItemHeader}>
+                        <Text style={styles.modalItemName}>{item.product_name}</Text>
+                        <Text style={styles.modalItemQuantity}>
+                          {item.quantity} {item.unit_of_measurement}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.modalItemDetails}>
+                        {item.category && (
+                          <Text style={styles.modalItemCategory}>{item.category}</Text>
+                        )}
+                        
+                        {item.expiration_date && (
+                          <View style={styles.modalItemExpiration}>
+                            <Text style={[
+                              styles.modalItemExpirationText,
+                              isExpired && styles.modalItemExpired,
+                              isExpiringSoon && styles.modalItemExpiringSoon
+                            ]}>
+                              {isExpired 
+                                ? `Expired ${Math.abs(daysUntilExp)} days ago`
+                                : isExpiringSoon
+                                ? `Expires in ${daysUntilExp} day${daysUntilExp !== 1 ? 's' : ''}`
+                                : `Expires: ${formatDate(item.expiration_date)}`
+                              }
+                            </Text>
+                          </View>
+                        )}
+                        
+                        {modalTitle === 'Recently Added' && (
+                          <Text style={styles.modalItemAdded}>
+                            Added: {formatDate(item.created_at || item.updated_at)}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                }}
+                style={styles.modalList}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
 
       <View style={{ height: 100 }} />
     </ScrollView>
@@ -1057,5 +1249,114 @@ const styles = StyleSheet.create({
   impactLabel: {
     fontSize: 14,
     color: '#666',
+  },
+  tapIndicator: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+  },
+  tapText: {
+    fontSize: 12,
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalList: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  modalItem: {
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+  },
+  modalItemHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  modalItemName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1F2937',
+    flex: 1,
+  },
+  modalItemQuantity: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  modalItemDetails: {
+    gap: 4,
+  },
+  modalItemCategory: {
+    fontSize: 12,
+    color: '#666',
+    backgroundColor: '#e5e5e5',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+  },
+  modalItemExpiration: {
+    marginTop: 4,
+  },
+  modalItemExpirationText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  modalItemExpired: {
+    color: '#DC2626',
+    fontWeight: '600',
+  },
+  modalItemExpiringSoon: {
+    color: '#F59E0B',
+    fontWeight: '600',
+  },
+  modalItemAdded: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+  },
+  emptyModalContent: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyModalText: {
+    fontSize: 16,
+    color: '#999',
   },
 });
