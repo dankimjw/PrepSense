@@ -53,6 +53,7 @@ export default function StatsScreen() {
   const [modalTitle, setModalTitle] = useState('');
   const [modalItems, setModalItems] = useState<PantryItem[]>([]);
   const [cookingHistory, setCookingHistory] = useState<any>(null);
+  const [isMetric, setIsMetric] = useState(true); // Default to metric
 
   useEffect(() => {
     loadStats();
@@ -350,6 +351,56 @@ export default function StatsScreen() {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
+  // Conversion functions
+  const kgToLbs = (kg: number) => kg * 2.20462;
+  const gToOz = (g: number) => g * 0.035274;
+  const mlToFlOz = (ml: number) => ml * 0.033814;
+  const lToGal = (l: number) => l * 0.264172;
+  
+  const formatWeight = (kg: number) => {
+    if (isMetric) {
+      return `${kg} kg`;
+    } else {
+      return `${Math.round(kgToLbs(kg) * 10) / 10} lbs`;
+    }
+  };
+
+  const formatCO2 = (kg: number) => {
+    if (isMetric) {
+      return `${kg} kg`;
+    } else {
+      return `${Math.round(kgToLbs(kg) * 10) / 10} lbs`;
+    }
+  };
+
+  const formatQuantity = (quantity: number, unit: string): string => {
+    const lowerUnit = unit.toLowerCase();
+    
+    if (!isMetric) {
+      // Convert metric to imperial
+      if (lowerUnit === 'kg') {
+        return `${Math.round(kgToLbs(quantity) * 10) / 10} lbs`;
+      } else if (lowerUnit === 'g') {
+        const oz = gToOz(quantity);
+        if (oz >= 16) {
+          return `${Math.round((oz / 16) * 10) / 10} lbs`;
+        }
+        return `${Math.round(oz * 10) / 10} oz`;
+      } else if (lowerUnit === 'ml') {
+        const flOz = mlToFlOz(quantity);
+        if (flOz >= 128) {
+          return `${Math.round(lToGal(quantity / 1000) * 10) / 10} gal`;
+        }
+        return `${Math.round(flOz * 10) / 10} fl oz`;
+      } else if (lowerUnit === 'l') {
+        return `${Math.round(lToGal(quantity) * 10) / 10} gal`;
+      }
+    }
+    
+    // Return original if metric or not a convertible unit
+    return `${quantity} ${unit}`;
+  };
+
   const renderStatCard = (
     title: string, 
     value: string | number, 
@@ -612,6 +663,26 @@ export default function StatsScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+        
+        {/* Unit Toggle */}
+        <View style={styles.unitToggleContainer}>
+          <TouchableOpacity 
+            style={[styles.unitToggle, isMetric && styles.unitToggleActive]}
+            onPress={() => setIsMetric(true)}
+          >
+            <Text style={[styles.unitToggleText, isMetric && styles.unitToggleTextActive]}>
+              Metric
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.unitToggle, !isMetric && styles.unitToggleActive]}
+            onPress={() => setIsMetric(false)}
+          >
+            <Text style={[styles.unitToggleText, !isMetric && styles.unitToggleTextActive]}>
+              Imperial
+            </Text>
+          </TouchableOpacity>
+        </View>
       </LinearGradient>
 
       {/* Quick Stats Overview */}
@@ -619,7 +690,7 @@ export default function StatsScreen() {
         {renderMiniStat('Total Items', stats.pantry.totalItems, '#297A56')}
         {renderMiniStat('Recipes Made', stats.recipes.totalCooked, '#3B82F6')}
         {renderMiniStat('Streak', `${stats.recipes.cookingStreak}d`, '#F59E0B')}
-        {renderMiniStat('CO₂ Saved', `${stats.pantry.co2SavedKg}kg`, '#10B981')}
+        {renderMiniStat('CO₂ Saved', formatCO2(stats.pantry.co2SavedKg), '#10B981')}
       </View>
 
       {/* Hot This Week Section */}
@@ -636,7 +707,7 @@ export default function StatsScreen() {
               <Text style={styles.hotThisWeekSubtitle}>You've cooked {stats.recipes.cookedThisWeek} recipes</Text>
             </View>
             <View style={styles.hotThisWeekBadge}>
-              <Text style={styles.hotThisWeekBadgeText}>{stats.pantry.foodSavedKg}kg saved</Text>
+              <Text style={styles.hotThisWeekBadgeText}>{formatWeight(stats.pantry.foodSavedKg)} saved</Text>
             </View>
           </View>
         </LinearGradient>
@@ -690,12 +761,12 @@ export default function StatsScreen() {
           <View style={styles.impactGrid}>
             <View style={styles.impactCard}>
               <MaterialCommunityIcons name="food-apple" size={32} color="#10B981" />
-              <Text style={styles.impactValue}>{stats.pantry.foodSavedKg} kg</Text>
+              <Text style={styles.impactValue}>{formatWeight(stats.pantry.foodSavedKg)}</Text>
               <Text style={styles.impactLabel}>Food Saved</Text>
             </View>
             <View style={styles.impactCard}>
               <MaterialCommunityIcons name="leaf" size={32} color="#10B981" />
-              <Text style={styles.impactValue}>{stats.pantry.co2SavedKg} kg</Text>
+              <Text style={styles.impactValue}>{formatCO2(stats.pantry.co2SavedKg)}</Text>
               <Text style={styles.impactLabel}>CO₂ Saved</Text>
             </View>
           </View>
@@ -890,7 +961,7 @@ export default function StatsScreen() {
                       <View style={styles.modalItemHeader}>
                         <Text style={styles.modalItemName}>{item.product_name}</Text>
                         <Text style={styles.modalItemQuantity}>
-                          {item.quantity} {item.unit_of_measurement}
+                          {formatQuantity(item.quantity, item.unit_of_measurement)}
                         </Text>
                       </View>
                       
@@ -1226,6 +1297,32 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
   },
   periodTabTextActive: {
+    color: '#297A56',
+  },
+  unitToggleContainer: {
+    flexDirection: 'row',
+    marginTop: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 20,
+    padding: 3,
+    alignSelf: 'center',
+    width: 160,
+  },
+  unitToggle: {
+    flex: 1,
+    paddingVertical: 6,
+    borderRadius: 17,
+    alignItems: 'center',
+  },
+  unitToggleActive: {
+    backgroundColor: '#fff',
+  },
+  unitToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  unitToggleTextActive: {
     color: '#297A56',
   },
   subSectionHeader: {
