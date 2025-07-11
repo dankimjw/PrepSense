@@ -70,55 +70,92 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [fetchItems, isInitialized]);
 
   const addItems = async (newItems: Item[]) => {
+    // Generate temporary IDs for immediate UI update
+    const tempItems = newItems.map((item, index) => ({
+      ...item,
+      id: item.id || `temp-${Date.now()}-${index}`,
+      addedDate: item.addedDate || new Date().toISOString(),
+    }));
+
+    // Immediately update the UI (optimistic update)
+    setItems(prevItems => [...prevItems, ...tempItems]);
+
+    // Save to backend in the background
     try {
-      // Add unique IDs and timestamps to new items
-      const processedItems = await Promise.all(
-        newItems.map(async (item) => {
+      const savedItems = await Promise.all(
+        tempItems.map(async (item, index) => {
           try {
             const savedItem = await savePantryItem(111, {
               ...item,
-              id: item.id || undefined, // Let the server generate the ID for new items
+              id: undefined, // Let the server generate the ID
             });
             
             return {
-              ...savedItem,
-              id: savedItem.id.toString(),
-              item_name: savedItem.item_name,
-              quantity_amount: savedItem.quantity_amount,
-              quantity_unit: savedItem.quantity_unit,
-              expected_expiration: savedItem.expected_expiration,
-              category: savedItem.category,
-              addedDate: savedItem.addedDate || new Date().toISOString(),
+              tempId: item.id,
+              savedItem: {
+                ...savedItem,
+                id: savedItem.id.toString(),
+                item_name: savedItem.item_name,
+                quantity_amount: savedItem.quantity_amount,
+                quantity_unit: savedItem.quantity_unit,
+                expected_expiration: savedItem.expected_expiration,
+                category: savedItem.category,
+                addedDate: savedItem.addedDate || new Date().toISOString(),
+              }
             };
           } catch (error) {
             console.error('Error saving item:', error);
-            // Return the original item so it still gets added to local state
-            return item;
+            return null;
           }
         })
       );
 
-      // Update local state with the saved items
+      // Update items with real IDs from backend
       setItems(prevItems => {
-        const existingIds = new Set(prevItems.map(item => item.id));
-        const uniqueNewItems = processedItems.filter(item => !existingIds.has(item.id));
-        return [...prevItems, ...uniqueNewItems];
+        const updatedItems = [...prevItems];
+        savedItems.forEach(result => {
+          if (result) {
+            const index = updatedItems.findIndex(item => item.id === result.tempId);
+            if (index !== -1) {
+              updatedItems[index] = result.savedItem;
+            }
+          }
+        });
+        return updatedItems;
       });
 
-      return processedItems;
+      // Refresh the entire list to ensure consistency
+      // Do it immediately after backend sync completes
+      fetchItems().catch(console.error);
+
+      return savedItems.filter(item => item !== null).map(item => item!.savedItem);
     } catch (error) {
       console.error('Error adding items:', error);
+      // Remove the temp items if backend save failed
+      setItems(prevItems => 
+        prevItems.filter(item => !tempItems.some(tempItem => tempItem.id === item.id))
+      );
       Alert.alert('Error', 'Failed to save items to the server');
       throw error;
     }
   };
 
   const removeItem = async (id: string) => {
+    // Store the item in case we need to restore it
+    const removedItem = items.find(item => item.id === id);
+    
+    // Immediately remove from UI (optimistic update)
+    setItems(prevItems => prevItems.filter(item => item.id !== id));
+    
     try {
+      // Delete from backend
       await deletePantryItem(id);
-      setItems(prevItems => prevItems.filter(item => item.id !== id));
     } catch (error) {
       console.error('Error deleting item:', error);
+      // Restore the item if backend deletion failed
+      if (removedItem) {
+        setItems(prevItems => [...prevItems, removedItem]);
+      }
       Alert.alert('Error', 'Failed to delete item from the server');
       throw error;
     }
