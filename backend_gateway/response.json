@@ -1,0 +1,1 @@
+{"detail":"Failed to process message: Invalid format specifier ' 1,\n              \"name\": \"pasta\",\n              \"original\": \"1 pound pasta\",\n              \"amount\": 1,\n              \"unit\": \"pound\"\n            ' for object of type 'str'"}

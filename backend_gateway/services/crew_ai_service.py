@@ -24,7 +24,8 @@ class CrewAIService:
         self.recipe_service = RecipeService()
         
         # Initialize OpenAI
-        openai.api_key = os.getenv("OPENAI_API_KEY")
+        from backend_gateway.core.config_utils import get_openai_api_key
+        openai.api_key = get_openai_api_key()
         
         # Initialize agents only if CrewAI is available
         if CREWAI_AVAILABLE:

@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     # Spoonacular Configuration
     SPOONACULAR_API_KEY: Optional[str] = None
     
+    # Anthropic Configuration
+    ANTHROPIC_API_KEY: Optional[str] = None
+    
     # Development Settings
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"

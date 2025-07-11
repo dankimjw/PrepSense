@@ -38,8 +38,13 @@ except Exception as e:
     # raise RuntimeError(f"Error loading environment variables: {str(e)}")
 
 # Set OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
+from backend_gateway.core.config_utils import get_openai_api_key
+openai.api_key = get_openai_api_key()
 client = openai  #  use the openai module directly
+if openai.api_key:
+    print("Successfully loaded OpenAI API key")
+else:
+    print("Warning: OpenAI API key not found")
 
 app = FastAPI(
     title="PrepSense Gateway API",
@@ -92,6 +97,10 @@ app.include_router(demo_router, prefix=f"{settings.API_V1_STR}", tags=["Demo"])
 # Import cooking history router
 from backend_gateway.routers.cooking_history_router import router as cooking_history_router
 app.include_router(cooking_history_router, prefix=f"{settings.API_V1_STR}", tags=["Cooking History"])
+
+# Import hybrid chat router (combines OpenAI generation with CrewAI evaluation)
+from backend_gateway.routers.hybrid_chat_router import router as hybrid_chat_router
+app.include_router(hybrid_chat_router, prefix=f"{settings.API_V1_STR}", tags=["Hybrid Chat"])
 
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router
