@@ -246,7 +246,7 @@ export default function StatsScreen() {
     return milestones;
   };
 
-  const showItemsModal = (title: string, filterType: 'expired' | 'expiring' | 'recent') => {
+  const showItemsModal = (title: string, filterType: 'expired' | 'expiring' | 'recent' | 'all') => {
     setModalTitle(title);
     
     const now = new Date();
@@ -264,6 +264,28 @@ export default function StatsScreen() {
     let filteredItems: PantryItem[] = [];
     
     switch (filterType) {
+      case 'all':
+        // Sort all items by expiration date (expired first, then expiring soon, then others)
+        filteredItems = [...pantryItems].sort((a, b) => {
+          if (!a.expiration_date && !b.expiration_date) return 0;
+          if (!a.expiration_date) return 1;
+          if (!b.expiration_date) return -1;
+          
+          const dateA = new Date(a.expiration_date).getTime();
+          const dateB = new Date(b.expiration_date).getTime();
+          const nowTime = now.getTime();
+          
+          // If both expired, show most recently expired first
+          if (dateA < nowTime && dateB < nowTime) {
+            return dateB - dateA;
+          }
+          // If one is expired, show it first
+          if (dateA < nowTime) return -1;
+          if (dateB < nowTime) return 1;
+          // Otherwise sort by expiration date (soonest first)
+          return dateA - dateB;
+        });
+        break;
       case 'expired':
         filteredItems = pantryItems.filter(item => {
           if (!item.expiration_date) return false;
@@ -557,7 +579,10 @@ export default function StatsScreen() {
             'Total Items',
             stats.pantry.totalItems,
             <MaterialCommunityIcons name="package-variant" size={24} color="#297A56" />,
-            '#297A56'
+            '#297A56',
+            undefined,
+            undefined,
+            () => showItemsModal('All Pantry Items', 'all')
           )}
           {renderStatCard(
             'Expired Items',
@@ -761,10 +786,30 @@ export default function StatsScreen() {
                 <Text style={styles.emptyModalText}>No items to display</Text>
               </View>
             ) : (
-              <FlatList
-                data={modalItems}
-                keyExtractor={(item) => item.pantry_item_id}
-                renderItem={({ item }) => {
+              <>
+                {modalTitle === 'All Pantry Items' && (
+                  <View style={styles.modalSummary}>
+                    <View style={styles.modalSummaryRow}>
+                      <View style={styles.modalSummaryItem}>
+                        <Text style={styles.modalSummaryValue}>{stats?.pantry.totalItems || 0}</Text>
+                        <Text style={styles.modalSummaryLabel}>Total Items</Text>
+                      </View>
+                      <View style={styles.modalSummaryItem}>
+                        <Text style={[styles.modalSummaryValue, { color: '#DC2626' }]}>{stats?.pantry.expiredItems || 0}</Text>
+                        <Text style={styles.modalSummaryLabel}>Expired</Text>
+                      </View>
+                      <View style={styles.modalSummaryItem}>
+                        <Text style={[styles.modalSummaryValue, { color: '#F59E0B' }]}>{stats?.pantry.expiringItems || 0}</Text>
+                        <Text style={styles.modalSummaryLabel}>Expiring Soon</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+                
+                <FlatList
+                  data={modalItems}
+                  keyExtractor={(item) => item.pantry_item_id}
+                  renderItem={({ item }) => {
                   const daysUntilExp = getDaysUntilExpiration(item.expiration_date);
                   const isExpired = daysUntilExp !== null && daysUntilExp < 0;
                   const isExpiringSoon = daysUntilExp !== null && daysUntilExp <= 7 && daysUntilExp >= 0;
@@ -800,7 +845,7 @@ export default function StatsScreen() {
                           </View>
                         )}
                         
-                        {modalTitle === 'Recently Added' && (
+                        {(modalTitle === 'Recently Added' || modalTitle === 'All Pantry Items') && (
                           <Text style={styles.modalItemAdded}>
                             Added: {formatDate(item.created_at || item.updated_at)}
                           </Text>
@@ -808,10 +853,11 @@ export default function StatsScreen() {
                       </View>
                     </View>
                   );
-                }}
-                style={styles.modalList}
-                showsVerticalScrollIndicator={false}
-              />
+                  }}
+                  style={styles.modalList}
+                  showsVerticalScrollIndicator={false}
+                />
+              </>
             )}
           </View>
         </View>
@@ -1358,5 +1404,28 @@ const styles = StyleSheet.create({
   emptyModalText: {
     fontSize: 16,
     color: '#999',
+  },
+  modalSummary: {
+    padding: 20,
+    backgroundColor: '#f5f5f5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  modalSummaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  modalSummaryItem: {
+    alignItems: 'center',
+  },
+  modalSummaryValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1F2937',
+  },
+  modalSummaryLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 4,
   },
 });
