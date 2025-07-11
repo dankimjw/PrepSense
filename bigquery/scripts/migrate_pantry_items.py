@@ -29,7 +29,7 @@ def migrate_pantry_items():
         sys.exit(1)
     
     pg_config = {
-        'host': os.getenv('POSTGRES_HOST', '35.184.61.42'),
+        'host': os.getenv('POSTGRES_HOST'),  # Required env var
         'port': int(os.getenv('POSTGRES_PORT', '5432')),
         'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
         'user': os.getenv('POSTGRES_USER', 'postgres'),
@@ -58,7 +58,7 @@ def migrate_pantry_items():
         brand_name,
         food_category as category,
         'manual' as source
-    FROM `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
+    FROM `{}.Inventory.user_pantry_full`".format(os.getenv('GCP_PROJECT_ID', 'your-project-id')) + """
     WHERE user_id = 111
     """
     
