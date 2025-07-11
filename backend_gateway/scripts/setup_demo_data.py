@@ -96,16 +96,16 @@ def setup_demo_pantry_items(db_service, pantry_service):
             "expiration_date": (datetime.now() + timedelta(days=730)).date()
         },
         {
-            "product_name": "Pasta (Spaghetti)",
-            "quantity": 1,  # 1 pound
-            "unit_of_measurement": "lb",
+            "product_name": "Pasta",
+            "quantity": 500,  # 500g to ensure enough for recipe
+            "unit_of_measurement": "g",
             "category": "Test",
             "expiration_date": (datetime.now() + timedelta(days=365)).date()
         },
         
         # Count items
         {
-            "product_name": "Large Eggs",
+            "product_name": "Eggs",
             "quantity": 12,
             "unit_of_measurement": "each",
             "category": "Test",
@@ -215,12 +215,12 @@ def setup_demo_recipes(db_service):
     # Demo Recipe 1: Simple Pasta (tests weight and volume conversions)
     recipe1 = {
         "id": "demo-pasta-recipe",
-        "title": "Classic Spaghetti Carbonara",
+        "title": "Simple Pasta with Olive Oil",
         "image": "https://img.spoonacular.com/recipes/715769-556x370.jpg",
-        "readyInMinutes": 30,
+        "readyInMinutes": 20,
         "servings": 4,
         "sourceUrl": "https://demo.recipe",
-        "summary": "A classic Italian pasta dish perfect for testing ingredient subtraction",
+        "summary": "A simple pasta dish that uses exact pantry items for testing",
         "instructions": [
             {
                 "number": 1,
@@ -228,52 +228,45 @@ def setup_demo_recipes(db_service):
             },
             {
                 "number": 2,
-                "step": "While pasta cooks, whisk eggs with salt and pepper in a bowl."
+                "step": "Drain pasta and toss with olive oil."
             },
             {
                 "number": 3,
-                "step": "Cook bacon until crispy, reserve fat."
+                "step": "Season with salt and black pepper to taste."
             },
             {
                 "number": 4,
-                "step": "Toss hot pasta with egg mixture and bacon fat to create creamy sauce."
+                "step": "Serve immediately while hot."
             }
         ],
         "extendedIngredients": [
             {
                 "id": 1,
-                "name": "pasta",
-                "original": "400g pasta (spaghetti)",
+                "name": "Pasta",
+                "original": "400g pasta",
                 "amount": 400,
                 "unit": "g"
             },
             {
                 "id": 2,
-                "name": "eggs",
-                "original": "4 large eggs",
-                "amount": 4,
-                "unit": "each"
+                "name": "Olive Oil",
+                "original": "60ml olive oil",
+                "amount": 60,
+                "unit": "ml"
             },
             {
                 "id": 3,
-                "name": "olive oil",
-                "original": "2 tablespoons olive oil",
-                "amount": 2,
-                "unit": "tbsp"
+                "name": "Salt",
+                "original": "5g salt",
+                "amount": 5,
+                "unit": "g"
             },
             {
                 "id": 4,
-                "name": "salt",
-                "original": "1 teaspoon salt",
-                "amount": 1,
-                "unit": "tsp"
-            },
-            {
-                "id": 5,
-                "name": "black pepper",
-                "original": "1/2 teaspoon black pepper",
-                "amount": 0.5,
-                "unit": "tsp"
+                "name": "Black Pepper",
+                "original": "2g black pepper",
+                "amount": 2,
+                "unit": "g"
             }
         ]
     }
@@ -362,12 +355,12 @@ def setup_demo_recipes(db_service):
     # Demo Recipe 3: Mixed units recipe
     recipe3 = {
         "id": "demo-chicken-recipe",
-        "title": "Lemon Herb Roasted Chicken",
+        "title": "Simple Roasted Chicken",
         "image": "https://img.spoonacular.com/recipes/638420-556x370.jpg",
         "readyInMinutes": 60,
         "servings": 4,
         "sourceUrl": "https://demo.recipe",
-        "summary": "A simple roasted chicken to test mixed unit conversions",
+        "summary": "A simple roasted chicken using exact pantry items",
         "instructions": [
             {
                 "number": 1,
@@ -379,7 +372,7 @@ def setup_demo_recipes(db_service):
             },
             {
                 "number": 3,
-                "step": "Drizzle with olive oil and lemon juice."
+                "step": "Drizzle with olive oil."
             },
             {
                 "number": 4,
@@ -389,31 +382,31 @@ def setup_demo_recipes(db_service):
         "extendedIngredients": [
             {
                 "id": 1,
-                "name": "chicken breast",
+                "name": "Chicken Breast",
                 "original": "1.5 pounds chicken breast",
                 "amount": 1.5,
                 "unit": "lb"
             },
             {
                 "id": 2,
-                "name": "olive oil",
+                "name": "Olive Oil",
                 "original": "1/4 cup olive oil",
                 "amount": 0.25,
                 "unit": "cup"
             },
             {
                 "id": 3,
-                "name": "salt",
-                "original": "2 teaspoons salt",
-                "amount": 2,
-                "unit": "tsp"
+                "name": "Salt",
+                "original": "10g salt",
+                "amount": 10,
+                "unit": "g"
             },
             {
                 "id": 4,
-                "name": "black pepper",
-                "original": "1 teaspoon black pepper",
-                "amount": 1,
-                "unit": "tsp"
+                "name": "Black Pepper",
+                "original": "5g black pepper",
+                "amount": 5,
+                "unit": "g"
             }
         ]
     }
