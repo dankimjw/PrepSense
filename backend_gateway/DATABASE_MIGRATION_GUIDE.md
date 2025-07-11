@@ -71,12 +71,12 @@ python configure_database.py
 
 # Or manually add to .env:
 DB_TYPE=postgres
-POSTGRES_HOST=35.184.61.42  # Your Cloud SQL IP
+POSTGRES_HOST=<your-cloud-sql-ip>  # Your Cloud SQL IP
 POSTGRES_PORT=5432
-POSTGRES_DATABASE=prepsense
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your-secure-password
-CLOUD_SQL_CONNECTION_NAME=adsp-34002-on02-prep-sense:us-central1:prepsense-postgres
+POSTGRES_DATABASE=<your-database-name>
+POSTGRES_USER=<your-database-user>
+POSTGRES_PASSWORD=<your-secure-password>
+CLOUD_SQL_CONNECTION_NAME=<project-id>:<region>:<instance-name>
 ```
 
 ### 5. Test the Connection
@@ -103,14 +103,14 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8001
 ```bash
 # Add a team member
 gcloud sql users create teammate@uchicago.edu \
-  --instance=prepsense-postgres \
+  --instance=<your-instance-name> \
   --type=CLOUD_IAM_USER \
-  --project=adsp-34002-on02-prep-sense
+  --project=<your-project-id>
 
 # Team member connects using:
-gcloud sql connect prepsense-postgres \
-  --user=teammate@uchicago.edu \
-  --database=prepsense
+gcloud sql connect <your-instance-name> \
+  --user=teammate@example.com \
+  --database=<your-database-name>
 ```
 
 ## Production Considerations
@@ -134,13 +134,13 @@ POSTGRES_HOST=127.0.0.1
 ```bash
 # Create on-demand backup
 gcloud sql backups create \
-  --instance=prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense
+  --instance=<your-instance-name> \
+  --project=<your-project-id>
 
 # List backups
 gcloud sql backups list \
-  --instance=prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense
+  --instance=<your-instance-name> \
+  --project=<your-project-id>
 ```
 
 ### 3. Monitoring

@@ -28,8 +28,15 @@ def migrate_pantry_items():
         logger.error("Please set it using: export POSTGRES_PASSWORD='your-password'")
         sys.exit(1)
     
+    # Ensure all required environment variables are set
+    postgres_host = os.getenv('POSTGRES_HOST')
+    if not postgres_host:
+        logger.error("POSTGRES_HOST environment variable is required")
+        logger.error("Please set it using: export POSTGRES_HOST='your-cloud-sql-ip'")
+        sys.exit(1)
+    
     pg_config = {
-        'host': os.getenv('POSTGRES_HOST', '35.184.61.42'),
+        'host': postgres_host,
         'port': int(os.getenv('POSTGRES_PORT', '5432')),
         'database': os.getenv('POSTGRES_DATABASE', 'prepsense'),
         'user': os.getenv('POSTGRES_USER', 'postgres'),
@@ -58,8 +65,12 @@ def migrate_pantry_items():
         brand_name,
         food_category as category,
         'manual' as source
-    FROM `adsp-34002-on02-prep-sense.Inventory.user_pantry_full`
-    WHERE user_id = 111
+    FROM `{}.Inventory.user_pantry_full`
+    WHERE user_id = {}
+    """.format(
+        os.getenv('GCP_PROJECT_ID', 'your-project-id'),
+        os.getenv('MIGRATION_USER_ID', '111')
+    )
     """
     
     items = bq_service.execute_query(query)
