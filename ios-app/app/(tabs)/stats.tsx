@@ -36,10 +36,11 @@ export default function StatsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
+  const [recipes, setRecipes] = useState<any[]>([]);
 
   useEffect(() => {
     loadStats();
-  }, []);
+  }, [timeRange]); // Reload stats when time range changes
 
   const loadStats = async () => {
     try {
@@ -49,7 +50,7 @@ export default function StatsScreen() {
       const pantryItems = await fetchPantryItems(111); // Demo user ID
       
       // Fetch user recipes
-      let recipes = [];
+      let fetchedRecipes = [];
       try {
         if (token && isAuthenticated) {
           const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
@@ -61,7 +62,7 @@ export default function StatsScreen() {
           
           if (response.ok) {
             const data = await response.json();
-            recipes = data.recipes || [];
+            fetchedRecipes = data.recipes || [];
           }
         }
       } catch (error) {
@@ -69,15 +70,29 @@ export default function StatsScreen() {
         // Continue with empty recipes array
       }
       
+      setRecipes(fetchedRecipes); // Store recipes in state for chart generation
+      
       // Get shopping list data from AsyncStorage
       const shoppingListData = await AsyncStorage.getItem('@PrepSense_ShoppingList');
       const shoppingList = shoppingListData ? JSON.parse(shoppingListData) : [];
       
-      // Calculate stats
+      // Calculate stats based on selected time range
       const now = new Date();
       const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      
+      // Adjust time ago based on selected period
+      let timeAgo;
+      let daysAgo;
+      if (timeRange === 'week') {
+        timeAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        daysAgo = 7;
+      } else if (timeRange === 'month') {
+        timeAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        daysAgo = 30;
+      } else { // year
+        timeAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+        daysAgo = 365;
+      }
       
       // Pantry stats
       const expiredItems = pantryItems.filter(item => {
@@ -94,14 +109,14 @@ export default function StatsScreen() {
       
       const recentlyAdded = pantryItems.filter(item => {
         const addedDate = new Date(item.created_at || item.updated_at);
-        return addedDate >= oneWeekAgo;
+        return addedDate >= timeAgo;
       }).length;
       
       // Calculate top products by frequency
       const productCounts: { [key: string]: number } = {};
       const recentItems = pantryItems.filter(item => {
         const addedDate = new Date(item.created_at || item.updated_at);
-        return addedDate >= oneMonthAgo;
+        return addedDate >= timeAgo;
       });
       
       recentItems.forEach(item => {
@@ -125,19 +140,19 @@ export default function StatsScreen() {
       const co2SavedKg = Math.round(foodSavedKg * 2.5 * 10) / 10; // 2.5kg CO2 per kg food
       
       // Recipe stats
-      const cookedThisWeek = recipes.filter(recipe => {
+      const cookedThisWeek = fetchedRecipes.filter(recipe => {
         const cookedDate = new Date(recipe.created_at);
-        return cookedDate >= oneWeekAgo;
+        return cookedDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
       }).length;
       
-      const cookedThisMonth = recipes.filter(recipe => {
+      const cookedThisMonth = fetchedRecipes.filter(recipe => {
         const cookedDate = new Date(recipe.created_at);
-        return cookedDate >= oneMonthAgo;
+        return cookedDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
       }).length;
       
       // Calculate favorite recipes
       const recipeCounts: { [key: string]: number } = {};
-      recipes.forEach(recipe => {
+      fetchedRecipes.forEach(recipe => {
         const title = recipe.recipe_title || 'Unknown Recipe';
         recipeCounts[title] = (recipeCounts[title] || 0) + 1;
       });
@@ -161,9 +176,9 @@ export default function StatsScreen() {
         recipes: {
           cookedThisWeek,
           cookedThisMonth,
-          totalCooked: recipes.length,
+          totalCooked: fetchedRecipes.length,
           favoriteRecipes,
-          cookingStreak: calculateCookingStreak(recipes),
+          cookingStreak: calculateCookingStreak(fetchedRecipes),
         },
       };
       
@@ -278,20 +293,77 @@ export default function StatsScreen() {
     );
   }
 
-  // Mock data for charts
-  const cookingFrequencyData = {
-    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-    datasets: [{
-      data: [2, 1, 3, 2, 4, 3, 5],
-    }],
+  // Generate cooking frequency data based on time range
+  const generateCookingFrequencyData = () => {
+    const now = new Date();
+    const labels: string[] = [];
+    const data: number[] = [];
+    
+    if (timeRange === 'week') {
+      // Last 7 days
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+        labels.push(dayNames[date.getDay()]);
+        
+        // Count recipes cooked on this day
+        const dayStart = new Date(date);
+        dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date);
+        dayEnd.setHours(23, 59, 59, 999);
+        
+        const count = stats?.recipes.totalCooked ? 
+          recipes.filter(recipe => {
+            const cookedDate = new Date(recipe.created_at);
+            return cookedDate >= dayStart && cookedDate <= dayEnd;
+          }).length : 0;
+        
+        data.push(count);
+      }
+    } else if (timeRange === 'month') {
+      // Last 4 weeks
+      for (let i = 3; i >= 0; i--) {
+        const weekStart = new Date(now.getTime() - (i * 7 + 6) * 24 * 60 * 60 * 1000);
+        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+        labels.push(`Week ${4-i}`);
+        
+        const count = stats?.recipes.totalCooked ? 
+          recipes.filter(recipe => {
+            const cookedDate = new Date(recipe.created_at);
+            return cookedDate >= weekStart && cookedDate <= weekEnd;
+          }).length : 0;
+        
+        data.push(count);
+      }
+    } else { // year
+      // Last 12 months
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      for (let i = 11; i >= 0; i--) {
+        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(monthNames[monthDate.getMonth()]);
+        
+        const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+        const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+        
+        const count = stats?.recipes.totalCooked ? 
+          recipes.filter(recipe => {
+            const cookedDate = new Date(recipe.created_at);
+            return cookedDate >= monthStart && cookedDate <= monthEnd;
+          }).length : 0;
+        
+        data.push(count);
+      }
+    }
+    
+    return {
+      labels,
+      datasets: [{
+        data: data.length > 0 ? data : [0, 0, 0, 0, 0, 0, 0],
+      }],
+    };
   };
 
-  const nutritionData = {
-    labels: ['Calories', 'Protein', 'Carbs', 'Fat'],
-    datasets: [{
-      data: [420, 25, 45, 15],
-    }],
-  };
+  const cookingFrequencyData = generateCookingFrequencyData();
 
   return (
     <ScrollView 
@@ -399,7 +471,7 @@ export default function StatsScreen() {
             stats.pantry.recentlyAdded,
             <Ionicons name="add-circle" size={24} color="#3B82F6" />,
             '#3B82F6',
-            'Last 7 days'
+            timeRange === 'week' ? 'Last 7 days' : timeRange === 'month' ? 'Last 30 days' : 'Last year'
           )}
         </View>
 
@@ -423,7 +495,7 @@ export default function StatsScreen() {
         {/* Top Products */}
         {stats.pantry.topProducts.length > 0 && (
           <View style={styles.subSection}>
-            <Text style={styles.subSectionTitle}>🎵 Pantry Top Hits This Month</Text>
+            <Text style={styles.subSectionTitle}>🎵 Pantry Top Hits {timeRange === 'week' ? 'This Week' : timeRange === 'month' ? 'This Month' : 'This Year'}</Text>
             {stats.pantry.topProducts.map((item, index) => {
               const emojis = ['🥇', '🥈', '🥉', '🔥', '💥'];
               return (
@@ -521,13 +593,15 @@ export default function StatsScreen() {
       {/* Time-based Trends */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>📊 Cooking Trends</Text>
-        <Text style={styles.chartTitle}>Weekly Cooking Frequency</Text>
+        <Text style={styles.chartTitle}>
+          {timeRange === 'week' ? 'Daily' : timeRange === 'month' ? 'Weekly' : 'Monthly'} Cooking Frequency
+        </Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <LineChart
             data={cookingFrequencyData}
             width={screenWidth - 40}
             height={200}
-            yAxisSuffix=" recipes"
+            yAxisSuffix={timeRange === 'week' ? '' : ''}
             chartConfig={{
               backgroundColor: '#ffffff',
               backgroundGradientFrom: '#ffffff',
