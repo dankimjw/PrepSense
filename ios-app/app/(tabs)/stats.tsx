@@ -52,6 +52,7 @@ export default function StatsScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const [modalTitle, setModalTitle] = useState('');
   const [modalItems, setModalItems] = useState<PantryItem[]>([]);
+  const [cookingHistory, setCookingHistory] = useState<any>(null);
 
   useEffect(() => {
     loadStats();
@@ -87,6 +88,25 @@ export default function StatsScreen() {
       }
       
       setRecipes(fetchedRecipes); // Store recipes in state for chart generation
+      
+      // Fetch cooking history from the new endpoint
+      let cookingHistoryData = null;
+      try {
+        const historyDays = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 365;
+        const historyResponse = await fetch(`${Config.API_BASE_URL}/cooking-history/trends?user_id=111&days=${historyDays}`, {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (historyResponse.ok) {
+          cookingHistoryData = await historyResponse.json();
+          setCookingHistory(cookingHistoryData);
+        }
+      } catch (error) {
+        console.error('Error fetching cooking history:', error);
+        // Continue without cooking history
+      }
       
       // Get shopping list data from AsyncStorage
       const shoppingListData = await AsyncStorage.getItem('@PrepSense_ShoppingList');
@@ -155,16 +175,20 @@ export default function StatsScreen() {
       const foodSavedKg = Math.round(unexpiredItems * 0.3 * 10) / 10; // 0.3kg average per item
       const co2SavedKg = Math.round(foodSavedKg * 2.5 * 10) / 10; // 2.5kg CO2 per kg food
       
-      // Recipe stats
-      const cookedThisWeek = fetchedRecipes.filter(recipe => {
-        const cookedDate = new Date(recipe.created_at);
-        return cookedDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      }).length;
+      // Recipe stats - use cooking history if available
+      const cookedThisWeek = cookingHistoryData?.summary?.days_cooked_this_week || 
+        fetchedRecipes.filter(recipe => {
+          const cookedDate = new Date(recipe.created_at);
+          return cookedDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        }).length;
       
-      const cookedThisMonth = fetchedRecipes.filter(recipe => {
-        const cookedDate = new Date(recipe.created_at);
-        return cookedDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      }).length;
+      const cookedThisMonth = cookingHistoryData?.summary?.days_cooked_this_month || 
+        fetchedRecipes.filter(recipe => {
+          const cookedDate = new Date(recipe.created_at);
+          return cookedDate >= new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        }).length;
+      
+      const cookingStreak = cookingHistoryData?.summary?.cooking_streak || calculateCookingStreak(fetchedRecipes);
       
       // Calculate favorite recipes
       const recipeCounts: { [key: string]: number } = {};
@@ -194,7 +218,7 @@ export default function StatsScreen() {
           cookedThisMonth,
           totalCooked: fetchedRecipes.length,
           favoriteRecipes,
-          cookingStreak: calculateCookingStreak(fetchedRecipes),
+          cookingStreak,
         },
       };
       
@@ -428,59 +452,106 @@ export default function StatsScreen() {
     const labels: string[] = [];
     const data: number[] = [];
     
-    if (timeRange === 'week') {
-      // Last 7 days
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-      for (let i = 6; i >= 0; i--) {
-        const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
-        labels.push(dayNames[date.getDay()]);
+    // If we have cooking history data from pantry_history, use that
+    if (cookingHistory && cookingHistory.daily_counts && Object.keys(cookingHistory.daily_counts).length > 0) {
+      if (timeRange === 'week') {
+        // Last 7 days
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateStr = date.toISOString().split('T')[0];
+          labels.push(dayNames[date.getDay()]);
+          data.push(cookingHistory.daily_counts[dateStr] || 0);
+        }
+      } else if (timeRange === 'month') {
+        // Group by week for last 4 weeks
+        const weekCounts = [0, 0, 0, 0];
+        for (let i = 27; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          const dateStr = date.toISOString().split('T')[0];
+          const weekIndex = Math.floor(i / 7);
+          if (cookingHistory.daily_counts[dateStr]) {
+            weekCounts[3 - weekIndex] += cookingHistory.daily_counts[dateStr];
+          }
+        }
+        for (let i = 0; i < 4; i++) {
+          labels.push(`Week ${i + 1}`);
+          data.push(weekCounts[i]);
+        }
+      } else { // year
+        // Group by month
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthCounts: { [key: string]: number } = {};
         
-        // Count recipes cooked on this day
-        const dayStart = new Date(date);
-        dayStart.setHours(0, 0, 0, 0);
-        const dayEnd = new Date(date);
-        dayEnd.setHours(23, 59, 59, 999);
+        Object.entries(cookingHistory.daily_counts).forEach(([dateStr, count]) => {
+          const date = new Date(dateStr);
+          const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+          monthCounts[monthKey] = (monthCounts[monthKey] || 0) + (count as number);
+        });
         
-        const count = stats?.recipes.totalCooked ? 
-          recipes.filter(recipe => {
-            const cookedDate = new Date(recipe.created_at);
-            return cookedDate >= dayStart && cookedDate <= dayEnd;
-          }).length : 0;
-        
-        data.push(count);
+        for (let i = 11; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthKey = `${monthDate.getFullYear()}-${monthDate.getMonth()}`;
+          labels.push(monthNames[monthDate.getMonth()]);
+          data.push(monthCounts[monthKey] || 0);
+        }
       }
-    } else if (timeRange === 'month') {
-      // Last 4 weeks
-      for (let i = 3; i >= 0; i--) {
-        const weekStart = new Date(now.getTime() - (i * 7 + 6) * 24 * 60 * 60 * 1000);
-        const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
-        labels.push(`Week ${4-i}`);
-        
-        const count = stats?.recipes.totalCooked ? 
-          recipes.filter(recipe => {
-            const cookedDate = new Date(recipe.created_at);
-            return cookedDate >= weekStart && cookedDate <= weekEnd;
-          }).length : 0;
-        
-        data.push(count);
-      }
-    } else { // year
-      // Last 12 months
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      for (let i = 11; i >= 0; i--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(monthNames[monthDate.getMonth()]);
-        
-        const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-        const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
-        
-        const count = stats?.recipes.totalCooked ? 
-          recipes.filter(recipe => {
-            const cookedDate = new Date(recipe.created_at);
-            return cookedDate >= monthStart && cookedDate <= monthEnd;
-          }).length : 0;
-        
-        data.push(count);
+    } else {
+      // Fallback to user_recipes data
+      if (timeRange === 'week') {
+        // Last 7 days
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+          labels.push(dayNames[date.getDay()]);
+          
+          // Count recipes cooked on this day
+          const dayStart = new Date(date);
+          dayStart.setHours(0, 0, 0, 0);
+          const dayEnd = new Date(date);
+          dayEnd.setHours(23, 59, 59, 999);
+          
+          const count = stats?.recipes.totalCooked ? 
+            recipes.filter(recipe => {
+              const cookedDate = new Date(recipe.created_at);
+              return cookedDate >= dayStart && cookedDate <= dayEnd;
+            }).length : 0;
+          
+          data.push(count);
+        }
+      } else if (timeRange === 'month') {
+        // Last 4 weeks
+        for (let i = 3; i >= 0; i--) {
+          const weekStart = new Date(now.getTime() - (i * 7 + 6) * 24 * 60 * 60 * 1000);
+          const weekEnd = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+          labels.push(`Week ${4-i}`);
+          
+          const count = stats?.recipes.totalCooked ? 
+            recipes.filter(recipe => {
+              const cookedDate = new Date(recipe.created_at);
+              return cookedDate >= weekStart && cookedDate <= weekEnd;
+            }).length : 0;
+          
+          data.push(count);
+        }
+      } else { // year
+        // Last 12 months
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        for (let i = 11; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          labels.push(monthNames[monthDate.getMonth()]);
+          
+          const monthStart = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+          const monthEnd = new Date(monthDate.getFullYear(), monthDate.getMonth() + 1, 0);
+          
+          const count = stats?.recipes.totalCooked ? 
+            recipes.filter(recipe => {
+              const cookedDate = new Date(recipe.created_at);
+              return cookedDate >= monthStart && cookedDate <= monthEnd;
+            }).length : 0;
+          
+          data.push(count);
+        }
       }
     }
     
