@@ -33,8 +33,6 @@ export function CustomHeader({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
-  const [isCleaningUp, setIsCleaningUp] = useState(false);
   
   const isAdmin = user?.is_admin;
   
@@ -132,36 +130,13 @@ export function CustomHeader({
             </Pressable>
           )}
           {shouldShowAdmin && (
-            <View>
-              <Pressable 
-                hitSlop={12} 
-                onPress={() => setShowAdminMenu(!showAdminMenu)}
-                style={styles.iconButton}
-              >
-                <Ionicons name="shield-outline" size={22} color="#1b6b45" />
-              </Pressable>
-              
-              {/* Popup admin menu */}
-              {showAdminMenu && (
-                <View style={styles.adminMenuContainer}>
-                  {/* Admin Settings option */}
-                  <Pressable 
-                    style={styles.adminMenuItem}
-                    onPress={() => {
-                      setShowAdminMenu(false);
-                      router.push('/(tabs)/admin');
-                    }}
-                  >
-                    <View style={styles.adminMenuIcon}>
-                      <Ionicons name="settings-outline" size={16} color="#FFFFFF" />
-                    </View>
-                    <Text style={styles.adminMenuText}>Admin Panel</Text>
-                  </Pressable>
-                  
-
-                </View>
-              )}
-            </View>
+            <Pressable 
+              hitSlop={12} 
+              onPress={() => router.push('/(tabs)/admin')}
+              style={styles.iconButton}
+            >
+              <Ionicons name="shield-outline" size={22} color="#1b6b45" />
+            </Pressable>
           )}
           <Pressable 
             hitSlop={12} 
