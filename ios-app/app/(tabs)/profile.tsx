@@ -1,9 +1,10 @@
 // app/(tabs)/profile.tsx - Part of the PrepSense mobile app
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, TouchableOpacity, Image } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
 import { Config } from '../../config';
+import { Ionicons } from '@expo/vector-icons';
 
 interface UserProfilePreference {
   household_size?: number | null;
@@ -259,6 +260,21 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 80,
+    height: 80,
+    marginBottom: 20,
+  },
+  logoText: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#297A56',
+    marginTop: 8,
   },
   avatar: {
     width: 120,
