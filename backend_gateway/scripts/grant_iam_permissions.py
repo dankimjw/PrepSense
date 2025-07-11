@@ -10,14 +10,25 @@ import os
 def grant_permissions(user_email):
     """Grant necessary permissions to an IAM user"""
     
-    # Get password from environment or secrets file
-    password = os.getenv('POSTGRES_PASSWORD', '***REMOVED***')
+    # Get password from environment
+    password = os.getenv('POSTGRES_PASSWORD')
+    if not password:
+        print("Error: POSTGRES_PASSWORD environment variable is required")
+        print("Please set it using: export POSTGRES_PASSWORD='your-password'")
+        sys.exit(1)
     
     try:
         # Connect as postgres user
+        # Get connection details from environment
+        host = os.getenv('POSTGRES_HOST')
+        if not host:
+            print("Error: POSTGRES_HOST environment variable is required")
+            print("Please set it using: export POSTGRES_HOST='your-cloud-sql-ip'")
+            sys.exit(1)
+            
         conn = psycopg2.connect(
-            host='***REMOVED***',
-            port=5432,
+            host=host,
+            port=int(os.getenv('POSTGRES_PORT', '5432')),
             database='prepsense',
             user='postgres',
             password=password,
