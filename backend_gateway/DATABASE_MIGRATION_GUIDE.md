@@ -23,7 +23,7 @@ This guide explains how to migrate PrepSense from BigQuery to PostgreSQL (Cloud 
 
 ```bash
 gcloud sql instances describe prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense \
+  --project=<your-project-id> \
   --format="table(state,ipAddresses[0].ipAddress)"
 ```
 
@@ -36,7 +36,7 @@ Once the instance is ready:
 ```bash
 # Get the IP address
 IP_ADDRESS=$(gcloud sql instances describe prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense \
+  --project=<your-project-id> \
   --format="value(ipAddresses[0].ipAddress)")
 
 # Import schema
@@ -71,12 +71,12 @@ python configure_database.py
 
 # Or manually add to .env:
 DB_TYPE=postgres
-POSTGRES_HOST=***REMOVED***  # Your Cloud SQL IP
+POSTGRES_HOST=<your-cloud-sql-ip>  # Your Cloud SQL IP
 POSTGRES_PORT=5432
 POSTGRES_DATABASE=prepsense
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=your-secure-password
-CLOUD_SQL_CONNECTION_NAME=adsp-34002-on02-prep-sense:us-central1:prepsense-postgres
+CLOUD_SQL_CONNECTION_NAME=<your-project-id>:<region>:<instance-name>
 ```
 
 ### 5. Test the Connection
@@ -105,7 +105,7 @@ uvicorn app:app --reload --host 0.0.0.0 --port 8001
 gcloud sql users create teammate@uchicago.edu \
   --instance=prepsense-postgres \
   --type=CLOUD_IAM_USER \
-  --project=adsp-34002-on02-prep-sense
+  --project=<your-project-id>
 
 # Team member connects using:
 gcloud sql connect prepsense-postgres \
@@ -135,12 +135,12 @@ POSTGRES_HOST=127.0.0.1
 # Create on-demand backup
 gcloud sql backups create \
   --instance=prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense
+  --project=<your-project-id>
 
 # List backups
 gcloud sql backups list \
   --instance=prepsense-postgres \
-  --project=adsp-34002-on02-prep-sense
+  --project=<your-project-id>
 ```
 
 ### 3. Monitoring
