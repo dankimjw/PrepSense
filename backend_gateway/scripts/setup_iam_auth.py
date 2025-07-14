@@ -8,9 +8,9 @@ import os
 import subprocess
 import sys
 
-PROJECT_ID = "adsp-34002-on02-prep-sense"
-INSTANCE_NAME = "prepsense-postgres"
-DATABASE_NAME = "prepsense"
+PROJECT_ID = os.getenv('GCP_PROJECT_ID', 'your-project-id')
+INSTANCE_NAME = os.getenv('CLOUD_SQL_INSTANCE', 'your-instance-name')
+DATABASE_NAME = os.getenv('POSTGRES_DATABASE', 'your-database-name')
 
 def run_command(cmd, check=True):
     """Run command and return result"""
@@ -67,7 +67,11 @@ SELECT usename, usesuper FROM pg_user WHERE usename LIKE '%@%';
         return False
     
     # Get host from environment variable
-    postgres_host = os.getenv('POSTGRES_HOST', '35.184.61.42')
+    postgres_host = os.getenv('POSTGRES_HOST')
+    if not postgres_host:
+        print("Error: POSTGRES_HOST environment variable is required")
+        print("Please set it using: export POSTGRES_HOST='your-cloud-sql-ip'")
+        return False
     
     print(f"   PGPASSWORD=$POSTGRES_PASSWORD psql -h {postgres_host} -U postgres -d {DATABASE_NAME} < grant_iam_permissions.sql")
     
@@ -92,9 +96,9 @@ access_token = credentials.token
 
 # Connect using the access token as password
 conn = psycopg2.connect(
-    host=os.getenv('POSTGRES_HOST', '35.184.61.42'),  # or 127.0.0.1 if using proxy
-    database='prepsense',
-    user='danielk7@uchicago.edu',  # Your IAM email
+    host=os.getenv('POSTGRES_HOST'),  # or 127.0.0.1 if using proxy
+    database=os.getenv('POSTGRES_DATABASE', 'your-database'),
+    user='your-email@domain.edu',  # Your IAM email
     password=access_token,  # Use token as password
     sslmode='require'
 )
