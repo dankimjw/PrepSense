@@ -116,7 +116,7 @@ async def startup_event():
         logger.error(f"Failed to create default user: {e}")
         # Continue startup even if default user creation fails
 
-@app.get("/health", tags=["Health Check"])
+@app.get(f"{settings.API_V1_STR}/health", tags=["Health Check"])
 async def health_check():
     """Perform a health check and return environment status."""
     env_status = {
