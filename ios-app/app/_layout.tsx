@@ -117,7 +117,8 @@ function AppContent() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <ToastProvider>
-        <ItemsProvider>
+        <UserPreferencesProvider>
+          <ItemsProvider>
           <View style={styles.container}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -258,7 +259,8 @@ function AppContent() {
             />
           </Stack>
         </View>
-        </ItemsProvider>
+          </ItemsProvider>
+        </UserPreferencesProvider>
       </ToastProvider>
     </ThemeProvider>
   );
