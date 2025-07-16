@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Config } from '../../config';
 import GradientText from './GradientText';
 import { useAuth } from '../../context/AuthContext';
+import UserPreferencesModal from './UserPreferencesModal';
 
 type CustomHeaderProps = {
   title?: string;
@@ -33,6 +34,7 @@ export function CustomHeader({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
+  const [preferencesVisible, setPreferencesVisible] = useState(false);
   
   const isAdmin = user?.is_admin;
   
@@ -129,6 +131,13 @@ export function CustomHeader({
               </View>
             </Pressable>
           )}
+          <Pressable 
+            hitSlop={12} 
+            onPress={() => setPreferencesVisible(true)}
+            style={styles.iconButton}
+          >
+            <Ionicons name="person-circle-outline" size={22} color="#1b6b45" />
+          </Pressable>
           {shouldShowAdmin && (
             <Pressable 
               hitSlop={12} 
@@ -147,6 +156,12 @@ export function CustomHeader({
           </Pressable>
         </View>
       </View>
+      
+      {/* User Preferences Modal */}
+      <UserPreferencesModal
+        visible={preferencesVisible}
+        onClose={() => setPreferencesVisible(false)}
+      />
     </View>
   );
 }
