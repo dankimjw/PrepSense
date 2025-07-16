@@ -1,6 +1,6 @@
 // app/utils/facts.ts - Part of the PrepSense mobile app
 // Food facts categorized for loading screen rotation
-export const foodFacts = [
+const foodFacts = [
   { category: 'Green fact', text: 'Eating one plant-based meal a day can save over 200,000 gallons of water a year.' },
   { category: 'Did you know?', text: 'Broccoli stems and leaves are just as edible as the florets—and often thrown away!' },
   { category: 'Smart choice', text: 'Nearly 1/3 of all food produced globally is wasted. Planning meals helps cut this drastically.' },
@@ -33,3 +33,5 @@ export const foodFacts = [
   { category: 'Sustainable Practices', text: 'Adopting a more plant-based diet: This can reduce the environmental impact of food production.' },
   { category: 'Sustainable Practices', text: 'Consuming locally sourced food: This reduces transportation emissions and supports local economies.' },
 ]; 
+
+export default foodFacts;
