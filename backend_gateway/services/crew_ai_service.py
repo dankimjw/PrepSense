@@ -10,6 +10,7 @@ from backend_gateway.services.user_recipes_service import UserRecipesService
 from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class RecipeAdvisor:
     """Single agent that combines recipe recommendation logic"""
@@ -141,14 +142,25 @@ class CrewAIService:
         Returns:
             Dict containing response, recipes, and pantry items
         """
+        logger.info("="*60)
+        logger.info(f"🚀 STARTING CHAT PROCESS for user {user_id}")
+        logger.info(f"📝 Message: '{message}'")
+        logger.info(f"⚙️  Use preferences: {use_preferences}")
+        logger.info("="*60)
+        
         try:
             # Step 1: Fetch pantry items and user preferences
+            logger.info("\n📦 STEP 1: Fetching pantry items...")
             pantry_items = await self._fetch_pantry_items(user_id)
+            logger.info(f"✅ Found {len(pantry_items)} total pantry items")
             
             # Only fetch preferences if we're using them
             if use_preferences:
+                logger.info("\n👤 Fetching user preferences...")
                 user_preferences = await self._fetch_user_preferences(user_id)
+                logger.info(f"✅ Preferences loaded: {user_preferences}")
             else:
+                logger.info("\n⏭️  Skipping user preferences (use_preferences=False)")
                 user_preferences = {
                     'dietary_preference': [],
                     'allergens': [],
@@ -156,36 +168,57 @@ class CrewAIService:
                 }
             
             # Step 2: Filter non-expired items
+            logger.info("\n🔍 STEP 2: Filtering valid (non-expired) items...")
             valid_items = self._filter_valid_items(pantry_items)
+            logger.info(f"✅ {len(valid_items)} valid items out of {len(pantry_items)} total")
             
             # Step 3: Use RecipeAdvisor to analyze pantry
+            logger.info("\n🧠 STEP 3: Analyzing pantry with RecipeAdvisor...")
             pantry_analysis = self.recipe_advisor.analyze_pantry(pantry_items)
+            logger.info(f"✅ Analysis complete:")
+            logger.info(f"   - Expiring soon: {len(pantry_analysis['expiring_soon'])} items")
+            logger.info(f"   - Expired: {len(pantry_analysis['expired'])} items")
+            logger.info(f"   - Protein sources: {len(pantry_analysis['protein_sources'])} items")
+            logger.info(f"   - Staples: {len(pantry_analysis['staples'])} items")
             
             # Step 4: Check saved recipes first
+            logger.info("\n💾 STEP 4: Checking saved recipes...")
             saved_recipes = await self._get_matching_saved_recipes(user_id, valid_items)
+            logger.info(f"✅ Found {len(saved_recipes)} matching saved recipes")
             
             # Step 5: Generate new recipes with AI (fewer if we have saved matches)
             num_ai_recipes = 5 - len(saved_recipes) if len(saved_recipes) < 5 else 2
+            logger.info(f"\n🤖 STEP 5: Generating {num_ai_recipes} AI recipes...")
             ai_recipes = await self._generate_recipes(valid_items, message, user_preferences, num_ai_recipes)
+            logger.info(f"✅ Generated {len(ai_recipes)} AI recipes")
             
             # Step 6: Combine and rank all recipes
+            logger.info("\n🔀 STEP 6: Combining recipe sources...")
             all_recipes = self._combine_recipe_sources(saved_recipes, ai_recipes)
-            logger.info(f"Combined recipes: {len(saved_recipes)} saved + {len(ai_recipes)} AI = {len(all_recipes)} total")
+            logger.info(f"✅ Combined: {len(saved_recipes)} saved + {len(ai_recipes)} AI = {len(all_recipes)} total")
             
             # Step 7: Evaluate recipes with advisor
+            logger.info("\n📊 STEP 7: Evaluating recipes...")
             for recipe in all_recipes:
                 recipe['evaluation'] = self.recipe_advisor.evaluate_recipe_fit(recipe, user_preferences, pantry_analysis)
+            logger.info(f"✅ Evaluated all {len(all_recipes)} recipes")
             
+            logger.info("\n🏆 STEP 8: Ranking recipes...")
             ranked_recipes = self._rank_recipes(all_recipes, valid_items, user_preferences)
+            if ranked_recipes:
+                logger.info(f"✅ Top recipe: '{ranked_recipes[0]['name']}' (score: {ranked_recipes[0].get('match_score', 0):.2f})")
             
-            # Step 8: Generate advice and format response
+            # Step 9: Generate advice and format response
+            logger.info("\n💬 STEP 9: Formatting response...")
             advice = self.recipe_advisor.generate_advice(ranked_recipes, pantry_analysis, message)
             response = self._format_response(ranked_recipes, valid_items, message, user_preferences)
             
             if advice:
                 response = f"{response}\n\n💡 {advice}"
+                logger.info(f"✅ Added advice: {advice}")
             
-            logger.info(f"Returning {len(ranked_recipes)} recipes to user")
+            logger.info(f"\n🎯 FINAL: Returning {len(ranked_recipes)} recipes to user")
+            logger.info("="*60)
             
             return {
                 "response": response,
@@ -200,7 +233,7 @@ class CrewAIService:
     
     async def _fetch_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
         """Fetch pantry items from database."""
-        logger.info(f"Fetching pantry items for user_id: {user_id}")
+        logger.info(f"🔍 Fetching pantry items for user_id: {user_id}")
         
         query = """
             SELECT *
@@ -209,20 +242,30 @@ class CrewAIService:
             ORDER BY expiration_date ASC
         """
         params = {"user_id": user_id}
+        logger.info(f"📤 Executing query: user_pantry_full for user {user_id}")
         
         results = self.db_service.execute_query(query, params)
-        logger.info(f"Found {len(results)} pantry items for user {user_id}")
+        logger.info(f"📦 Found {len(results)} pantry items for user {user_id}")
         
         # Log the product names for debugging
         if results:
-            product_names = [item.get('product_name', 'Unknown') for item in results[:5]]
-            logger.info(f"Sample items: {product_names}")
+            product_names = [item.get('product_name', 'Unknown') for item in results[:10]]
+            logger.info(f"📋 Sample items: {', '.join(product_names)}")
+            
+            # Log categories
+            categories = {}
+            for item in results:
+                cat = item.get('category', 'Unknown')
+                categories[cat] = categories.get(cat, 0) + 1
+            logger.info(f"📊 Categories: {categories}")
+        else:
+            logger.warning(f"⚠️  No pantry items found for user {user_id}")
         
         return results
     
     async def _fetch_user_preferences(self, user_id: int) -> Dict[str, Any]:
         """Fetch user preferences from database."""
-        logger.info(f"Fetching preferences for user_id: {user_id}")
+        logger.info(f"👤 Fetching preferences for user_id: {user_id}")
         
         query = """
             SELECT *
@@ -231,6 +274,7 @@ class CrewAIService:
             LIMIT 1
         """
         params = {"user_id": user_id}
+        logger.info(f"📤 Executing query: user_preferences for user {user_id}")
         
         results = self.db_service.execute_query(query, params)
         if results and results[0].get('preferences'):
@@ -241,10 +285,13 @@ class CrewAIService:
                 'allergens': prefs_data.get('allergens', []),
                 'cuisine_preference': prefs_data.get('cuisine_preferences', [])
             }
-            logger.info(f"Found preferences: dietary={preferences.get('dietary_preference', [])}, allergens={preferences.get('allergens', [])}")
+            logger.info(f"✅ Found preferences:")
+            logger.info(f"   - Dietary: {preferences.get('dietary_preference', [])}")
+            logger.info(f"   - Allergens: {preferences.get('allergens', [])}")
+            logger.info(f"   - Cuisines: {preferences.get('cuisine_preference', [])}")
             return preferences
         else:
-            logger.info(f"No preferences found for user {user_id}, using defaults")
+            logger.warning(f"⚠️  No preferences found for user {user_id}, using defaults")
             return {
                 'dietary_preference': [],
                 'allergens': [],
@@ -316,10 +363,14 @@ class CrewAIService:
     
     async def _generate_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any], num_recipes: int = 5) -> List[Dict[str, Any]]:
         """Generate recipes using OpenAI based on pantry items, user message, and preferences."""
+        logger.info(f"🤖 Starting recipe generation for {num_recipes} recipes")
+        logger.info(f"📝 User message: '{message}'")
+        
         # Check if this is an expiring items query
         is_expiring_query = any(phrase in message.lower() for phrase in [
             'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
         ])
+        logger.info(f"🕒 Is expiring query: {is_expiring_query}")
         
         # If asking about expiring items, prioritize those
         if is_expiring_query:
@@ -409,6 +460,10 @@ class CrewAIService:
         
         try:
             # Call OpenAI to generate recipes
+            logger.info("📞 Calling OpenAI API...")
+            logger.info(f"🔑 API key available: {bool(openai.api_key)}")
+            logger.info(f"📋 Prompt length: {len(prompt)} characters")
+            
             client = openai.OpenAI(api_key=openai.api_key)
             response = client.chat.completions.create(
                 model="gpt-3.5-turbo",
@@ -420,7 +475,9 @@ class CrewAIService:
                 max_tokens=2000
             )
             
+            logger.info("✅ OpenAI API call successful")
             recipes_text = response.choices[0].message.content.strip()
+            logger.info(f"📄 Response length: {len(recipes_text)} characters")
             
             # Clean up the response if it has markdown code blocks
             if recipes_text.startswith('```json'):
@@ -429,7 +486,7 @@ class CrewAIService:
                 recipes_text = recipes_text[:-3]
             
             all_recipes = json.loads(recipes_text)
-            logger.info(f"Generated {len(all_recipes)} recipes using OpenAI")
+            logger.info(f"✅ Generated {len(all_recipes)} recipes using OpenAI")
             
             # Log first recipe to check if instructions are included
             if all_recipes:
@@ -586,13 +643,15 @@ class CrewAIService:
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rank recipes based on practical factors and advisor evaluation."""
+        logger.info(f"🏆 Ranking {len(recipes)} recipes...")
+        
         # Enhanced ranking with advisor insights:
         # 1. Saved recipes the user likes
         # 2. Recipes using expiring ingredients
         # 3. Recipes you can make without shopping
         # 4. Good nutritional balance
         # 5. High match score
-        return sorted(recipes, key=lambda r: (
+        ranked = sorted(recipes, key=lambda r: (
             r.get('source') == 'saved' and r.get('user_rating') == 'thumbs_up',  # User's liked recipes first
             r.get('source') == 'saved' and r.get('is_favorite', False),  # Then favorites
             r.get('evaluation', {}).get('uses_expiring', False),  # Prioritize expiring ingredients
@@ -601,6 +660,16 @@ class CrewAIService:
             r.get('match_score', 0),  # High ingredient match
             -r.get('missing_count', 999)  # Fewer missing ingredients
         ), reverse=True)
+        
+        # Log top 3 recipes
+        for i, recipe in enumerate(ranked[:3]):
+            logger.info(f"  #{i+1}: {recipe['name']}")
+            logger.info(f"      - Source: {recipe.get('source', 'unknown')}")
+            logger.info(f"      - Match score: {recipe.get('match_score', 0):.2f}")
+            logger.info(f"      - Missing items: {recipe.get('missing_count', 0)}")
+            logger.info(f"      - Uses expiring: {recipe.get('evaluation', {}).get('uses_expiring', False)}")
+        
+        return ranked
     
     
     def _clean_ingredient_name(self, ingredient: str) -> str:
@@ -729,6 +798,9 @@ class CrewAIService:
                 return "Great news! 🎉 You don't have any items expiring in the next 7 days. Your pantry is well-managed!"
         
         if not recipes:
+            logger.error("❌ NO RECIPES FOUND! This shouldn't happen.")
+            logger.error(f"   - Valid items: {len(items)}")
+            logger.error(f"   - Message: '{message}'")
             return "I couldn't find any recipes matching your request with your current pantry items. Would you like some shopping suggestions?"
         
         # Check if user wants recipes with only available ingredients
