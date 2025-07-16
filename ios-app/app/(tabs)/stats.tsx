@@ -63,6 +63,62 @@ export default function StatsScreen() {
     try {
       setIsLoading(true);
       
+      // Fetch comprehensive stats from new endpoint
+      const statsResponse = await fetch(`${Config.API_BASE_URL}/stats/comprehensive?user_id=111&timeframe=${timeRange}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (statsResponse.ok) {
+        const comprehensiveStats = await statsResponse.json();
+        
+        // Use the comprehensive stats data
+        const { pantry, recipes, sustainability } = comprehensiveStats;
+        
+        // Set cooking history if available
+        if (recipes.cooking_history) {
+          setCookingHistory({
+            summary: {
+              days_cooked_this_week: recipes.cooking_history.cooked_this_week,
+              days_cooked_this_month: recipes.cooking_history.cooked_this_month,
+              cooking_streak: recipes.cooking_history.current_streak
+            }
+          });
+        }
+        
+        // Prepare stats data from comprehensive response
+        const statsData: StatsData = {
+          pantry: {
+            totalItems: pantry.summary.total_items,
+            expiredItems: pantry.summary.expired_items,
+            expiringItems: pantry.summary.expiring_soon,
+            recentlyAdded: pantry.summary.recently_added,
+            topProducts: pantry.top_products?.map(p => ({ name: p.product_name, count: p.purchase_count })) || [],
+            foodSavedKg: sustainability.food_saved_kg,
+            co2SavedKg: sustainability.co2_saved_kg,
+          },
+          recipes: {
+            cookedThisWeek: recipes.cooking_history.cooked_this_week,
+            cookedThisMonth: recipes.cooking_history.cooked_this_month,
+            totalCooked: recipes.total_recipes,
+            favoriteRecipes: recipes.favorite_recipes || [],
+            cookingStreak: recipes.cooking_history.current_streak,
+          },
+        };
+        
+        setStats(statsData);
+        
+        // Still fetch pantry items for modal display
+        const fetchedPantryItems = await fetchPantryItems(111);
+        setPantryItems(fetchedPantryItems);
+        
+        return; // Exit early since we got all data from comprehensive endpoint
+      }
+      
+      // Fallback to original logic if new endpoint fails
+      console.warn('Comprehensive stats endpoint failed, falling back to individual endpoints');
+      
       // Fetch pantry items
       const fetchedPantryItems = await fetchPantryItems(111); // Demo user ID
       setPantryItems(fetchedPantryItems); // Store for modal use

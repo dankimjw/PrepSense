@@ -48,7 +48,7 @@ function AddButton() {
   }
 
   // Don't render the buttons on certain screens
-  if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin' || pathname === '/chat-modal')) {
+  if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin' || pathname === '/chat-modal' || pathname === '/receipt-scanner')) {
     return null;
   }
 
@@ -60,6 +60,11 @@ function AddButton() {
   const handleAddFoodItem = () => {
     toggleModal();
     setTimeout(() => router.push('/add-item'), 200);
+  };
+
+  const handleScanReceipt = () => {
+    toggleModal();
+    setTimeout(() => router.push('/receipt-scanner'), 200);
   };
   
   const toggleModal = () => {
@@ -274,6 +279,21 @@ function AddButton() {
                 <View style={styles.addOptionContent}>
                   <Ionicons name="fast-food" size={18} color="#297A56" />
                   <Text style={styles.suggestionText}>Add Food Item</Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+            
+            {/* Scan Receipt Option */}
+            <View style={styles.addOptionWrapper}>
+              <View style={styles.suggestionSwatch} />
+              <TouchableOpacity
+                style={styles.suggestionBubble}
+                onPress={handleScanReceipt}
+                activeOpacity={0.8}
+              >
+                <View style={styles.addOptionContent}>
+                  <Ionicons name="receipt" size={18} color="#297A56" />
+                  <Text style={styles.suggestionText}>Scan Receipt</Text>
                 </View>
               </TouchableOpacity>
             </View>

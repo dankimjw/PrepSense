@@ -69,6 +69,8 @@ export default function RecipeSpoonacularDetail() {
   const [missingIngredients, setMissingIngredients] = useState<Set<number>>(new Set());
   const [pantryItems, setPantryItems] = useState<any[]>([]);
   const [isSaved, setIsSaved] = useState(false);
+  const [rating, setRating] = useState<'thumbs_up' | 'thumbs_down' | 'neutral'>('neutral');
+  const [isSaving, setIsSaving] = useState(false);
   
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -249,7 +251,17 @@ export default function RecipeSpoonacularDetail() {
           {
             text: 'Add to Shopping List',
             onPress: () => {
-              handleAddToShoppingList();
+              const missingIngredientsList = recipe.extendedIngredients
+                .filter(ing => missingIngredients.has(ing.id))
+                .map(ing => ing.original);
+              
+              router.push({
+                pathname: '/select-ingredients',
+                params: { 
+                  ingredients: JSON.stringify(missingIngredientsList),
+                  recipeName: recipe.title
+                }
+              });
             }
           },
           {
@@ -350,6 +362,8 @@ export default function RecipeSpoonacularDetail() {
     if (!recipe) return;
     
     try {
+      setIsSaving(true);
+      
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
         method: 'POST',
         headers: {
@@ -361,17 +375,28 @@ export default function RecipeSpoonacularDetail() {
           recipe_image: recipe.image,
           recipe_data: recipe,
           source: 'spoonacular',
-          rating: 'neutral',
+          rating: rating,
+          is_favorite: !isSaved, // Toggle favorite
         }),
       });
 
       if (response.ok) {
-        setIsSaved(true);
-        Alert.alert('Success', 'Recipe saved to your collection!');
+        setIsSaved(!isSaved);
       } else {
         const error = await response.json();
         if (error.detail?.includes('already saved')) {
-          setIsSaved(true);
+          // Recipe already saved, toggle favorite
+          const toggleResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/favorite`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          if (toggleResponse.ok) {
+            setIsSaved(!isSaved);
+          } else {
+            throw new Error('Failed to update favorite status');
+          }
         } else {
           Alert.alert('Error', 'Failed to save recipe. Please try again.');
         }
@@ -379,6 +404,72 @@ export default function RecipeSpoonacularDetail() {
     } catch (error) {
       console.error('Error saving recipe:', error);
       Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRating = async (newRating: 'thumbs_up' | 'thumbs_down') => {
+    if (!recipe) return;
+    
+    try {
+      setIsSaving(true);
+      
+      // Toggle rating - if same rating clicked, set to neutral
+      const finalRating = rating === newRating ? 'neutral' : newRating;
+
+      // First ensure recipe is saved
+      const saveResponse = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          recipe_title: recipe.title,
+          recipe_image: recipe.image,
+          recipe_data: recipe,
+          source: 'spoonacular',
+          rating: finalRating,
+          is_favorite: isSaved,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const error = await saveResponse.json();
+        if (error.detail?.includes('already saved')) {
+          // Recipe already saved, update rating
+          const updateResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/rating`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              rating: finalRating,
+            }),
+          });
+          if (!updateResponse.ok) {
+            throw new Error('Failed to update rating');
+          }
+        } else {
+          throw new Error('Failed to save recipe');
+        }
+      }
+
+      setRating(finalRating);
+      
+      if (finalRating !== 'neutral') {
+        Alert.alert(
+          'Rating Saved',
+          `Your ${finalRating === 'thumbs_up' ? 'positive' : 'negative'} feedback helps improve future recommendations!`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      Alert.alert('Error', 'Failed to update rating. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -411,16 +502,41 @@ export default function RecipeSpoonacularDetail() {
         >
           <Ionicons name="arrow-back" size={24} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.bookmarkButton}
-          onPress={handleSaveRecipe}
-        >
-          <Ionicons 
-            name={isSaved ? "bookmark" : "bookmark-outline"} 
-            size={24} 
-            color="#fff" 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.ratingButton, rating === 'thumbs_up' && styles.ratingButtonActive]}
+            onPress={() => handleRating('thumbs_up')}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name="thumbs-up" 
+              size={20} 
+              color={rating === 'thumbs_up' ? "#297A56" : "#fff"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.ratingButton, rating === 'thumbs_down' && styles.ratingButtonActive]}
+            onPress={() => handleRating('thumbs_down')}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name="thumbs-down" 
+              size={20} 
+              color={rating === 'thumbs_down' ? "#DC2626" : "#fff"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.bookmarkButton}
+            onPress={handleSaveRecipe}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name={isSaved ? "bookmark" : "bookmark-outline"} 
+              size={22} 
+              color={isSaved ? "#297A56" : "#fff"} 
+            />
+          </TouchableOpacity>
+        </View>
         <View style={styles.recipeHeader}>
           <Text style={styles.recipeTitle}>{recipe.title}</Text>
           <View style={styles.recipeMetrics}>
@@ -507,7 +623,19 @@ export default function RecipeSpoonacularDetail() {
             {missingIngredients.size > 0 && (
               <TouchableOpacity 
                 style={styles.addToShoppingListButton}
-                onPress={handleAddToShoppingList}
+                onPress={() => {
+                  const missingIngredientsList = recipe.extendedIngredients
+                    .filter(ing => missingIngredients.has(ing.id))
+                    .map(ing => ing.original);
+                  
+                  router.push({
+                    pathname: '/select-ingredients',
+                    params: { 
+                      ingredients: JSON.stringify(missingIngredientsList),
+                      recipeName: recipe.title
+                    }
+                  });
+                }}
               >
                 <Ionicons name="cart-outline" size={20} color="#fff" />
                 <Text style={styles.addToShoppingListText}>
@@ -698,16 +826,33 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  bookmarkButton: {
+  headerActions: {
     position: 'absolute',
     top: 10,
     right: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ratingButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  ratingButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  bookmarkButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
   },
   recipeHeader: {
     position: 'absolute',

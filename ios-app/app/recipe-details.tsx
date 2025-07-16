@@ -12,11 +12,12 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
-import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem, completeRecipe, RecipeIngredient } from '../services/api';
+import { Recipe, generateRecipeImage, addToShoppingList, ShoppingListItem, completeRecipe, RecipeIngredient, fetchPantryItems, PantryItem } from '../services/api';
 import { Config } from '../config';
 import { useAuth } from '../context/AuthContext';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -28,6 +29,12 @@ export default function RecipeDetailsScreen() {
   const [imageError, setImageError] = useState<string | null>(null);
   const [useGenerated, setUseGenerated] = useState(true); // Default to AI generated images
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+  const [isLoadingPantry, setIsLoadingPantry] = useState(false);
+  const [isCompletingRecipe, setIsCompletingRecipe] = useState(false);
+  const [rating, setRating] = useState<'thumbs_up' | 'thumbs_down' | 'neutral'>('neutral');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (params.recipe) {
@@ -59,6 +66,18 @@ export default function RecipeDetailsScreen() {
       setImageError('Failed to generate recipe image');
     } finally {
       setImageLoading(false);
+    }
+  };
+
+  const loadPantryItems = async () => {
+    try {
+      setIsLoadingPantry(true);
+      const items = await fetchPantryItems(111); // TODO: Get actual user ID
+      setPantryItems(items);
+    } catch (error) {
+      console.error('Error loading pantry items:', error);
+    } finally {
+      setIsLoadingPantry(false);
     }
   };
 
@@ -159,7 +178,13 @@ export default function RecipeDetailsScreen() {
           {
             text: 'Add to Shopping List',
             onPress: () => {
-              handleAddToShoppingList();
+              router.push({
+                pathname: '/select-ingredients',
+                params: { 
+                  ingredients: JSON.stringify(recipe.missing_ingredients),
+                  recipeName: recipe.name
+                }
+              });
             }
           },
           {
@@ -262,56 +287,33 @@ export default function RecipeDetailsScreen() {
     }
   };
 
-  const handleQuickComplete = () => {
-    if (recipe.missing_ingredients.length > 0) {
-      Alert.alert(
-        'Missing Ingredients',
-        `You are missing ${recipe.missing_ingredients.length} ingredient${recipe.missing_ingredients.length > 1 ? 's' : ''}. Are you sure you want to mark this recipe as completed? This will subtract available ingredients from your pantry.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Add to Shopping List',
-            onPress: () => handleAddToShoppingList()
-          },
-          {
-            text: 'Complete Anyway',
-            style: 'destructive',
-            onPress: () => performQuickComplete()
-          }
-        ]
-      );
-    } else {
-      Alert.alert(
-        'Complete Recipe',
-        'This will subtract the ingredients from your pantry. Are you sure?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Complete',
-            onPress: () => performQuickComplete()
-          }
-        ]
-      );
+  const handleQuickComplete = async () => {
+    // Load pantry items if not already loaded
+    if (pantryItems.length === 0) {
+      await loadPantryItems();
     }
+    
+    // Show the completion modal
+    setShowCompletionModal(true);
   };
 
-  const performQuickComplete = async () => {
+  const handleRecipeCompletionConfirm = async (ingredientUsages: any[]) => {
     try {
-      // Parse ingredients to extract quantities
-      const parsedIngredients = parseIngredientsList(recipe.ingredients);
+      setIsCompletingRecipe(true);
       
-      // Convert recipe ingredients to the format needed by the API
-      // Only include available ingredients (not missing ones)
-      const ingredients: RecipeIngredient[] = parsedIngredients
-        .filter(parsed => recipe.available_ingredients.some(
-          avail => avail.toLowerCase().includes(parsed.name.toLowerCase()) ||
-                   parsed.name.toLowerCase().includes(avail.toLowerCase())
-        ))
-        .map(parsed => ({
-          ingredient_name: parsed.name,
-          quantity: parsed.quantity,
-          unit: parsed.unit,
+      // Convert ingredient usages to the format needed by the API
+      const ingredients: RecipeIngredient[] = ingredientUsages
+        .filter(usage => usage.selectedAmount > 0)
+        .map(usage => ({
+          ingredient_name: usage.ingredientName,
+          quantity: usage.selectedAmount,
+          unit: usage.requestedUnit,
         }));
+
+      if (ingredients.length === 0) {
+        Alert.alert('No Ingredients Selected', 'Please select at least some ingredients to use.');
+        return;
+      }
 
       const result = await completeRecipe({
         user_id: 111, // TODO: Get actual user ID
@@ -326,7 +328,7 @@ export default function RecipeDetailsScreen() {
       if (result.insufficient_items && result.insufficient_items.length > 0) {
         alertTitle = 'Recipe Completed with Warnings ⚠️';
         const insufficientList = result.insufficient_items.map(
-          item => `• ${item.ingredient}: needed ${item.needed} ${item.unit}, had ${item.available}`
+          item => `• ${item.ingredient}: needed ${item.needed} ${item.needed_unit}, had ${item.consumed}`
         ).join('\n');
         alertMessage += `\n\nInsufficient quantities:\n${insufficientList}`;
       }
@@ -334,6 +336,9 @@ export default function RecipeDetailsScreen() {
       if (result.errors && result.errors.length > 0) {
         alertMessage += `\n\nErrors:\n${result.errors.join('\n')}`;
       }
+
+      // Close modal first
+      setShowCompletionModal(false);
 
       Alert.alert(
         alertTitle,
@@ -350,34 +355,30 @@ export default function RecipeDetailsScreen() {
     } catch (error) {
       console.error('Error completing recipe:', error);
       Alert.alert('Error', 'Failed to update pantry. Please try again.');
+    } finally {
+      setIsCompletingRecipe(false);
     }
   };
 
   const handleToggleFavorite = async () => {
-    if (!isAuthenticated || !token) {
-      Alert.alert('Sign In Required', 'Please sign in to save favorite recipes.', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Sign In', onPress: () => router.push('/sign-in') }
-      ]);
-      return;
-    }
-
     try {
+      setIsSaving(true);
+      const recipeId = generateRecipeId(recipe.name);
+
       if (!isFavorite) {
         // First save the recipe to user's collection
         const saveResponse = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
           },
           body: JSON.stringify({
-            recipe_id: generateRecipeId(recipe.name), // Generate consistent ID from name
+            recipe_id: recipeId,
             recipe_title: recipe.name,
             recipe_image: generatedImageUrl || '',
             recipe_data: recipe,
-            source: 'chat',
-            rating: 'neutral',
+            source: 'generated',
+            rating: rating,
             is_favorite: true,
           }),
         });
@@ -385,31 +386,102 @@ export default function RecipeDetailsScreen() {
         if (!saveResponse.ok) {
           const error = await saveResponse.json();
           if (error.detail?.includes('already saved')) {
-            // Recipe already saved, just update favorite status
-            // TODO: Update favorite status for existing recipe
+            // Recipe already saved, just toggle favorite
+            const toggleResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+            });
+            if (!toggleResponse.ok) {
+              throw new Error('Failed to update favorite status');
+            }
           } else {
             throw new Error('Failed to save recipe');
           }
         }
-
         setIsFavorite(true);
-        Alert.alert(
-          'Added to Favorites',
-          'This recipe has been saved to your favorites and will be used to improve future recommendations.',
-          [{ text: 'Great!' }]
-        );
       } else {
-        // TODO: Remove from favorites (need recipe ID from saved recipes)
+        // Toggle favorite status
+        const toggleResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        if (!toggleResponse.ok) {
+          throw new Error('Failed to update favorite status');
+        }
         setIsFavorite(false);
-        Alert.alert(
-          'Removed from Favorites',
-          'This recipe has been removed from your favorites.',
-          [{ text: 'OK' }]
-        );
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
       Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleRating = async (newRating: 'thumbs_up' | 'thumbs_down') => {
+    try {
+      setIsSaving(true);
+      const recipeId = generateRecipeId(recipe.name);
+      
+      // Toggle rating - if same rating clicked, set to neutral
+      const finalRating = rating === newRating ? 'neutral' : newRating;
+
+      // First ensure recipe is saved
+      const saveResponse = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipeId,
+          recipe_title: recipe.name,
+          recipe_image: generatedImageUrl || '',
+          recipe_data: recipe,
+          source: 'generated',
+          rating: finalRating,
+          is_favorite: isFavorite,
+        }),
+      });
+
+      if (!saveResponse.ok) {
+        const error = await saveResponse.json();
+        if (error.detail?.includes('already saved')) {
+          // Recipe already saved, update rating
+          const updateResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              rating: finalRating,
+            }),
+          });
+          if (!updateResponse.ok) {
+            throw new Error('Failed to update rating');
+          }
+        } else {
+          throw new Error('Failed to save recipe');
+        }
+      }
+
+      setRating(finalRating);
+      
+      if (finalRating !== 'neutral') {
+        Alert.alert(
+          'Rating Saved',
+          `Your ${finalRating === 'thumbs_up' ? 'positive' : 'negative'} feedback helps improve future recommendations!`,
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      Alert.alert('Error', 'Failed to update rating. Please try again.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -424,13 +496,41 @@ export default function RecipeDetailsScreen() {
           <Ionicons name="arrow-back" size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Recipe Details</Text>
-        <TouchableOpacity style={styles.favoriteButton} onPress={handleToggleFavorite}>
-          <Ionicons 
-            name={isFavorite ? "heart" : "heart-outline"} 
-            size={24} 
-            color={isFavorite ? "#FF4444" : "#333"} 
-          />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity 
+            style={[styles.ratingButton, rating === 'thumbs_up' && styles.ratingButtonActive]} 
+            onPress={() => handleRating('thumbs_up')}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name="thumbs-up" 
+              size={20} 
+              color={rating === 'thumbs_up' ? "#297A56" : "#666"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.ratingButton, rating === 'thumbs_down' && styles.ratingButtonActive]} 
+            onPress={() => handleRating('thumbs_down')}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name="thumbs-down" 
+              size={20} 
+              color={rating === 'thumbs_down' ? "#DC2626" : "#666"} 
+            />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={styles.favoriteButton} 
+            onPress={handleToggleFavorite}
+            disabled={isSaving}
+          >
+            <Ionicons 
+              name={isFavorite ? "bookmark" : "bookmark-outline"} 
+              size={22} 
+              color={isFavorite ? "#297A56" : "#333"} 
+            />
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -501,6 +601,8 @@ export default function RecipeDetailsScreen() {
             <View style={styles.ingredientGroup}>
               <Text style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
               {recipe.ingredients.map((ingredient, index) => {
+                // Simply check if this exact ingredient string is in the available list
+                // The backend already does the smart matching
                 const isAvailable = recipe.available_ingredients.includes(ingredient);
                 return (
                   <View key={index} style={styles.ingredientItem}>
@@ -610,6 +712,16 @@ export default function RecipeDetailsScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Recipe Completion Modal */}
+      <RecipeCompletionModal
+        visible={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+        onConfirm={handleRecipeCompletionConfirm}
+        recipe={recipe}
+        pantryItems={pantryItems}
+        loading={isCompletingRecipe}
+      />
     </View>
   );
 }
@@ -653,14 +765,34 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
+    textAlign: 'center',
+    marginHorizontal: 10,
   },
-  favoriteButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  ratingButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#f0f0f0',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  ratingButtonActive: {
+    backgroundColor: '#E8F5F0',
+  },
+  favoriteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 4,
   },
   content: {
     flex: 1,
