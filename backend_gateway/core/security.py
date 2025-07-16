@@ -62,13 +62,44 @@ def get_current_user(
     
     # Development mode: accept mock token
     if token == "mock-admin-token-for-prototype":
-        return {
-            "user_id": 111,  # Samantha Smith's user ID in BigQuery
-            "email": "samantha.smith@prepsense.com",
-            "first_name": "Samantha",
-            "last_name": "Smith",
-            "is_admin": True
+        # Check for DEMO_USER_ID environment variable
+        import os
+        demo_user_id = os.getenv("DEMO_USER_ID", "samantha-1")
+        
+        # Map demo user IDs to user data
+        demo_users = {
+            "samantha-1": {
+                "user_id": 1,
+                "email": "samantha@prepsense.com",
+                "first_name": "Samantha",
+                "last_name": "Smith",
+                "is_admin": True
+            },
+            "john-2": {
+                "user_id": 2,
+                "email": "john@prepsense.com",
+                "first_name": "John",
+                "last_name": "Doe",
+                "is_admin": False
+            },
+            "jane-3": {
+                "user_id": 3,
+                "email": "jane@prepsense.com",
+                "first_name": "Jane",
+                "last_name": "Johnson",
+                "is_admin": False
+            },
+            "bob-4": {
+                "user_id": 4,
+                "email": "bob@prepsense.com",
+                "first_name": "Bob",
+                "last_name": "Wilson",
+                "is_admin": False
+            }
         }
+        
+        # Return the demo user based on environment variable
+        return demo_users.get(demo_user_id, demo_users["samantha-1"])
     
     try:
         payload = jwt.decode(

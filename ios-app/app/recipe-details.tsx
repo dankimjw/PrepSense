@@ -491,10 +491,6 @@ export default function RecipeDetailsScreen() {
               <Ionicons name="checkmark-circle" size={20} color="#297A56" />
               <Text style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
             </View>
-            <View style={styles.metricItem}>
-              <Ionicons name="star" size={20} color="#F59E0B" />
-              <Text style={styles.metricText}>{recipe.expected_joy || 75}% joy</Text>
-            </View>
           </View>
 
           {/* Ingredients Section */}
