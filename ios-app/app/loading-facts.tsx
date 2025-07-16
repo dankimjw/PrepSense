@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { useRouter, useLocalSearchParams, Stack } from 'expo-router';
-import { foodFacts } from './utils/facts';
+import foodFacts from './utils/facts';
 import { CustomHeader } from './components/CustomHeader';
 import * as FileSystem from 'expo-file-system';
 import { Buffer } from 'buffer';
