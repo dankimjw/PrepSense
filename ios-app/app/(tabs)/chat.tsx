@@ -79,9 +79,6 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
           <Text style={styles.recipeMatch}>
             📊 {Math.round(recipe.match_score * 100)}% match
           </Text>
-          <Text style={styles.recipeEnjoyment}>
-            ⭐ {recipe.expected_joy || 75}% joy
-          </Text>
         </View>
         
         {recipe.available_ingredients.length > 0 && (
@@ -521,11 +518,6 @@ const styles = StyleSheet.create({
   recipeMatch: {
     fontSize: 12,
     color: '#297A56',
-    fontWeight: '600',
-  },
-  recipeEnjoyment: {
-    fontSize: 12,
-    color: '#F59E0B',
     fontWeight: '600',
   },
   ingredientSection: {

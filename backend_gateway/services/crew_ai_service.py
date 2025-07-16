@@ -1,94 +1,133 @@
 import os
 import logging
+import json
 from typing import List, Dict, Any
 from datetime import datetime
 import openai
 
-# Try to import CrewAI, but don't fail if it's not installed
-try:
-    from crewai import Agent, Task, Crew, Process
-    CREWAI_AVAILABLE = True
-except ImportError:
-    CREWAI_AVAILABLE = False
-    Agent = Task = Crew = Process = None
-
 from backend_gateway.services.recipe_service import RecipeService
+from backend_gateway.services.user_recipes_service import UserRecipesService
 from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
+class RecipeAdvisor:
+    """Single agent that combines recipe recommendation logic"""
+    
+    def __init__(self):
+        self.role = "Intelligent Recipe Advisor"
+        self.goal = "Recommend the best recipes based on pantry items, preferences, and context"
+        
+    def analyze_pantry(self, pantry_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Analyze pantry for insights like expiring items, common ingredients, etc."""
+        from datetime import datetime, timedelta
+        today = datetime.now().date()
+        
+        analysis = {
+            'total_items': len(pantry_items),
+            'expiring_soon': [],
+            'expired': [],
+            'categories': {},
+            'protein_sources': [],
+            'staples': []
+        }
+        
+        for item in pantry_items:
+            # Check expiration
+            if item.get('expiration_date'):
+                exp_date = datetime.strptime(str(item['expiration_date']), '%Y-%m-%d').date()
+                days_until = (exp_date - today).days
+                
+                if days_until < 0:
+                    analysis['expired'].append(item)
+                elif days_until <= 7:
+                    analysis['expiring_soon'].append({
+                        'name': item['product_name'],
+                        'days': days_until,
+                        'date': exp_date
+                    })
+            
+            # Categorize items
+            product_name = item.get('product_name', '').lower()
+            category = item.get('category', 'other')
+            
+            if category not in analysis['categories']:
+                analysis['categories'][category] = []
+            analysis['categories'][category].append(product_name)
+            
+            # Identify proteins
+            if any(protein in product_name for protein in ['chicken', 'beef', 'pork', 'fish', 'tofu', 'beans', 'eggs']):
+                analysis['protein_sources'].append(product_name)
+            
+            # Identify staples
+            if any(staple in product_name for staple in ['rice', 'pasta', 'bread', 'potato', 'flour']):
+                analysis['staples'].append(product_name)
+        
+        return analysis
+    
+    def evaluate_recipe_fit(self, recipe: Dict[str, Any], user_preferences: Dict[str, Any], pantry_analysis: Dict[str, Any]) -> Dict[str, Any]:
+        """Evaluate how well a recipe fits the user's needs"""
+        evaluation = {
+            'uses_expiring': False,
+            'nutritional_balance': 'unknown',
+            'meal_variety': 'standard',
+            'cooking_complexity': 'medium'
+        }
+        
+        # Check if recipe uses expiring ingredients
+        recipe_ingredients = ' '.join(recipe.get('ingredients', [])).lower()
+        for expiring in pantry_analysis['expiring_soon']:
+            if expiring['name'].lower() in recipe_ingredients:
+                evaluation['uses_expiring'] = True
+                break
+        
+        # Evaluate nutritional balance (simple check)
+        if any(protein in recipe_ingredients for protein in pantry_analysis['protein_sources']):
+            if any(veg in recipe_ingredients for veg in ['vegetable', 'salad', 'broccoli', 'carrot', 'spinach']):
+                evaluation['nutritional_balance'] = 'good'
+            else:
+                evaluation['nutritional_balance'] = 'fair'
+        
+        # Estimate cooking complexity
+        instructions = recipe.get('instructions', [])
+        if len(instructions) <= 4:
+            evaluation['cooking_complexity'] = 'easy'
+        elif len(instructions) > 8:
+            evaluation['cooking_complexity'] = 'complex'
+        
+        return evaluation
+    
+    def generate_advice(self, recipes: List[Dict[str, Any]], pantry_analysis: Dict[str, Any], message: str) -> str:
+        """Generate contextual advice about the recipes"""
+        advice_parts = []
+        
+        # Expiring items advice
+        if pantry_analysis['expiring_soon'] and 'expir' in message.lower():
+            advice_parts.append(f"I found {len(pantry_analysis['expiring_soon'])} items expiring soon and prioritized recipes using them.")
+        
+        # Variety advice
+        if len(set(r.get('cuisine_type', 'various') for r in recipes[:3])) >= 3:
+            advice_parts.append("I've included diverse cuisine options for variety.")
+        
+        # Quick meal advice
+        quick_recipes = [r for r in recipes if r.get('time', 999) <= 20]
+        if quick_recipes and any(word in message.lower() for word in ['quick', 'fast', 'easy']):
+            advice_parts.append(f"I found {len(quick_recipes)} quick recipes (20 min or less).")
+        
+        return " ".join(advice_parts)
+
+
 class CrewAIService:
     def __init__(self):
-        """Initialize the CrewAI service with necessary components."""
+        """Initialize the AI recipe service."""
         self.db_service = get_database_service()
         self.recipe_service = RecipeService()
+        self.user_recipes_service = UserRecipesService(self.db_service)
+        self.recipe_advisor = RecipeAdvisor()
         
         # Initialize OpenAI
         from backend_gateway.core.config_utils import get_openai_api_key
         openai.api_key = get_openai_api_key()
-        
-        # Initialize agents only if CrewAI is available
-        if CREWAI_AVAILABLE:
-            self._initialize_agents()
-        else:
-            logger.warning("CrewAI not installed. Using simplified chat service.")
-    
-    def _initialize_agents(self):
-        """Initialize all the CrewAI agents."""
-        
-        # Pantry Scan Agent
-        self.pantry_scan_agent = Agent(
-            role='Pantry Scanner',
-            goal='Fetch and identify all available items in the user\'s pantry',
-            backstory='You are an expert at quickly scanning and cataloging pantry items.',
-            verbose=True,
-            allow_delegation=False
-        )
-        
-        # Filter Agent
-        self.filter_agent = Agent(
-            role='Expiration Checker',
-            goal='Filter out expired items from the pantry list',
-            backstory='You are meticulous about food safety and expiration dates.',
-            verbose=True,
-            allow_delegation=False
-        )
-        
-        # Recipe Search Agent
-        self.recipe_search_agent = Agent(
-            role='Recipe Finder',
-            goal='Find recipes that can be made with available pantry items',
-            backstory='You are a culinary expert who can suggest creative recipes.',
-            verbose=True,
-            allow_delegation=False
-        )
-        
-        # Nutritional Agent
-        self.nutritional_agent = Agent(
-            role='Nutritionist',
-            goal='Evaluate the nutritional content of recipes',
-            backstory='You are a certified nutritionist focused on balanced meals.',
-            verbose=True,
-            allow_delegation=False
-        )
-        
-        # Preference Agent
-        self.preference_agent = Agent(
-            role='Dietary Preference Checker',
-            goal='Ensure recipes match user dietary preferences',
-            backstory='You understand various dietary restrictions and preferences.',
-            verbose=True,
-            allow_delegation=False
-        )
-        
-        # Decision Agent
-        self.decision_agent = Agent(
-            role='Recipe Recommender',
-            goal='Select and format the best recipe recommendations',
-            backstory='You are an expert at making final recipe recommendations.',
-            verbose=True,
-            allow_delegation=False
-        )
     
     async def process_message(self, user_id: int, message: str, use_preferences: bool = True) -> Dict[str, Any]:
         """
@@ -97,15 +136,11 @@ class CrewAIService:
         Args:
             user_id: The user's ID
             message: The user's message
+            use_preferences: Whether to use user preferences
             
         Returns:
             Dict containing response, recipes, and pantry items
         """
-        if not CREWAI_AVAILABLE:
-            # Use simplified fallback implementation
-            logger.info("Using fallback chat implementation")
-            return await self._fallback_process_message(user_id, message)
-            
         try:
             # Step 1: Fetch pantry items and user preferences
             pantry_items = await self._fetch_pantry_items(user_id)
@@ -123,28 +158,45 @@ class CrewAIService:
             # Step 2: Filter non-expired items
             valid_items = self._filter_valid_items(pantry_items)
             
-            # Step 3: Search for recipes based on message context and preferences
-            recipes = await self._search_recipes(valid_items, message, user_preferences)
+            # Step 3: Use RecipeAdvisor to analyze pantry
+            pantry_analysis = self.recipe_advisor.analyze_pantry(pantry_items)
             
-            # Step 4: Evaluate and rank recipes with enjoyment scores
-            ranked_recipes = self._rank_recipes(recipes, valid_items, user_preferences)
+            # Step 4: Check saved recipes first
+            saved_recipes = await self._get_matching_saved_recipes(user_id, valid_items)
             
-            # Step 5: Format response
+            # Step 5: Generate new recipes with AI (fewer if we have saved matches)
+            num_ai_recipes = 5 - len(saved_recipes) if len(saved_recipes) < 5 else 2
+            ai_recipes = await self._generate_recipes(valid_items, message, user_preferences, num_ai_recipes)
+            
+            # Step 6: Combine and rank all recipes
+            all_recipes = self._combine_recipe_sources(saved_recipes, ai_recipes)
+            
+            # Step 7: Evaluate recipes with advisor
+            for recipe in all_recipes:
+                recipe['evaluation'] = self.recipe_advisor.evaluate_recipe_fit(recipe, user_preferences, pantry_analysis)
+            
+            ranked_recipes = self._rank_recipes(all_recipes, valid_items, user_preferences)
+            
+            # Step 8: Generate advice and format response
+            advice = self.recipe_advisor.generate_advice(ranked_recipes, pantry_analysis, message)
             response = self._format_response(ranked_recipes, valid_items, message, user_preferences)
+            
+            if advice:
+                response = f"{response}\n\n💡 {advice}"
             
             return {
                 "response": response,
-                "recipes": ranked_recipes[:5],  # Top 5 recipes for more variety
+                "recipes": ranked_recipes[:5],  # Top 5 recipes
                 "pantry_items": valid_items,
                 "user_preferences": user_preferences
             }
             
         except Exception as e:
-            logger.error(f"Error in CrewAI service: {str(e)}")
+            logger.error(f"Error in AI recipe service: {str(e)}")
             raise
     
     async def _fetch_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
-        """Fetch pantry items from BigQuery."""
+        """Fetch pantry items from database."""
         logger.info(f"Fetching pantry items for user_id: {user_id}")
         
         query = """
@@ -166,7 +218,7 @@ class CrewAIService:
         return results
     
     async def _fetch_user_preferences(self, user_id: int) -> Dict[str, Any]:
-        """Fetch user preferences from BigQuery."""
+        """Fetch user preferences from database."""
         logger.info(f"Fetching preferences for user_id: {user_id}")
         
         query = """
@@ -212,8 +264,55 @@ class CrewAIService:
         
         return valid_items
     
-    async def _search_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Generate recipes dynamically using OpenAI based on pantry items, user message, and preferences."""
+    async def _get_matching_saved_recipes(self, user_id: int, pantry_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Get user's saved recipes that match current pantry items."""
+        try:
+            # Get matching recipes from saved collection
+            matched_recipes = await self.user_recipes_service.match_recipes_with_pantry(
+                user_id=user_id,
+                pantry_items=pantry_items,
+                limit=5
+            )
+            
+            # Convert to standard recipe format
+            standardized_recipes = []
+            for recipe in matched_recipes:
+                recipe_data = recipe.get('recipe_data', {})
+                
+                # Extract relevant fields from saved recipe
+                standardized = {
+                    'name': recipe['title'],
+                    'ingredients': recipe_data.get('ingredients', []),
+                    'instructions': recipe_data.get('instructions', []),
+                    'nutrition': recipe_data.get('nutrition', {'calories': 0, 'protein': 0}),
+                    'time': recipe_data.get('time', 30),
+                    'meal_type': recipe_data.get('meal_type', 'dinner'),
+                    'cuisine_type': recipe_data.get('cuisine_type', 'various'),
+                    'dietary_tags': recipe_data.get('dietary_tags', []),
+                    'available_ingredients': recipe['matched_ingredients'],
+                    'missing_ingredients': recipe['missing_ingredients'],
+                    'missing_count': len(recipe['missing_ingredients']),
+                    'available_count': len(recipe['matched_ingredients']),
+                    'match_score': recipe['match_score'],
+                    'allergens_present': [],
+                    'matched_preferences': [],
+                    'source': 'saved',
+                    'saved_recipe_id': recipe['id'],
+                    'is_favorite': recipe['is_favorite'],
+                    'user_rating': recipe['rating']
+                }
+                
+                standardized_recipes.append(standardized)
+            
+            logger.info(f"Found {len(standardized_recipes)} matching saved recipes")
+            return standardized_recipes
+            
+        except Exception as e:
+            logger.error(f"Error getting saved recipes: {str(e)}")
+            return []
+    
+    async def _generate_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any], num_recipes: int = 5) -> List[Dict[str, Any]]:
+        """Generate recipes using OpenAI based on pantry items, user message, and preferences."""
         # Check if this is an expiring items query
         is_expiring_query = any(phrase in message.lower() for phrase in [
             'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
@@ -269,7 +368,7 @@ class CrewAIService:
         """
         
         prompt = f"""
-        You are a creative chef. Generate 5-8 recipes based on ONLY these available ingredients:
+        You are a creative chef. Generate {num_recipes} recipes based on ONLY these available ingredients:
         {', '.join(available_ingredients)}
         
         User request: {message}
@@ -298,54 +397,28 @@ class CrewAIService:
         - dietary_tags: array of strings (e.g., vegetarian, vegan, gluten-free)
         
         IMPORTANT for ingredients:
-        - Include realistic quantities/amounts for each ingredient
-        - Use standard measurements (cups, tablespoons, pounds, ounces, etc.)
-        - For items from pantry, estimate reasonable amounts
-        - Example: "2 chicken breasts", "1 can (14 oz) diced tomatoes", "2 tablespoons olive oil"
+        - Include exact quantities (e.g., "2 cups", "1 lb", "3 tablespoons")
+        - Be specific about preparation (e.g., "diced", "sliced", "minced")
+        - List all ingredients, including those from the pantry
         
-        IMPORTANT: Instructions should be:
-        - Specific with temperatures, times, and techniques
-        - Include prep steps (chopping, measuring, etc.)
-        - Mention cooking vessels and tools needed
-        - Include visual/sensory cues (e.g., "until golden brown", "until fragrant")
-        - Be actionable and easy to follow
-        
-        Example format:
-        - For available ingredient: "Chicken Breast" (exactly as shown in list)
-        - For missing ingredient: "eggs" (specific item needed)
-        
-        CRITICAL ALLERGEN RULES:
-        - You MUST exclude ANY recipe that contains the allergens listed above
-        - If allergens include "nuts", exclude ALL tree nuts and peanuts
-        - If allergens include "dairy", exclude milk, cheese, yogurt, butter, cream
-        - If allergens include "gluten", exclude wheat, bread, pasta, flour
-        - Double-check every ingredient against the allergen list
-        
-        PREFERENCE RULES:
-        - Prioritize recipes that match the user's favorite cuisines
-        - Ensure recipes comply with dietary restrictions (e.g., if vegetarian, no meat)
-        
-        Return ONLY the JSON array, no other text.
+        Return ONLY the JSON array, no other text or markdown.
         """
         
         try:
-            # Use OpenAI to generate recipes
-            client = openai.OpenAI(api_key=openai.api_key)
-            response = client.chat.completions.create(
+            # Call OpenAI to generate recipes
+            response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
                 messages=[
-                    {"role": "system", "content": "You are a helpful chef that creates recipes. Always return valid JSON."},
+                    {"role": "system", "content": "You are a creative chef who generates recipes in JSON format."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.8,
-                max_tokens=1500
+                temperature=0.7,
+                max_tokens=2000
             )
             
-            # Parse the response
-            import json
             recipes_text = response.choices[0].message.content.strip()
             
-            # Try to extract JSON if there's extra text
+            # Clean up the response if it has markdown code blocks
             if recipes_text.startswith('```json'):
                 recipes_text = recipes_text[7:]
             if recipes_text.endswith('```'):
@@ -365,213 +438,21 @@ class CrewAIService:
         except Exception as e:
             logger.error(f"Error generating recipes with OpenAI: {str(e)}")
             # Fallback to some basic recipes if OpenAI fails
-            all_recipes = [
-            # Breakfast recipes
-            {
-                'name': 'Banana Smoothie',
-                'ingredients': ['2 ripe bananas', '1 cup milk', '1 tablespoon honey (optional)', 'pinch of cinnamon (optional)'],
-                'instructions': [
-                    "Peel 2 ripe bananas and break into chunks",
-                    "Add banana chunks to blender with 1 cup of cold milk",
-                    "Add 1 tablespoon honey and a pinch of cinnamon (optional)",
-                    "Blend on high speed for 60-90 seconds until smooth and creamy",
-                    "Pour into glasses and serve immediately",
-                    "Optional: garnish with banana slices or a sprinkle of cinnamon"
-                ],
-                'nutrition': {'calories': 200, 'protein': 8},
-                'time': 5,
-                'meal_type': 'breakfast'
-            },
-            {
-                'name': 'Chicken and Milk Scramble',
-                'ingredients': ['4 oz chicken breast', '2 tablespoons milk', '3 large eggs', '1 tablespoon oil', 'salt and pepper to taste'],
-                'instructions': [
-                    "Dice chicken breast into small, bite-sized pieces",
-                    "Beat 3 eggs with 2 tablespoons of milk in a bowl",
-                    "Heat 1 tablespoon oil in a non-stick pan over medium heat",
-                    "Cook chicken pieces for 4-5 minutes until fully cooked",
-                    "Pour egg mixture over chicken and let sit for 30 seconds",
-                    "Gently scramble with a spatula until eggs are just set",
-                    "Season with salt and pepper, serve immediately"
-                ],
-                'nutrition': {'calories': 350, 'protein': 30},
-                'time': 15,
-                'meal_type': 'breakfast'
-            },
-            # Lunch/Dinner recipes
-            {
-                'name': 'Simple Grilled Chicken',
-                'ingredients': ['2 chicken breasts (6 oz each)', '1 teaspoon salt', '1/2 teaspoon black pepper', '1 tablespoon olive oil'],
-                'instructions': [
-                    "Remove chicken breasts from refrigerator 15 minutes before cooking",
-                    "Pat chicken dry with paper towels and season both sides with salt and pepper",
-                    "Preheat grill or grill pan to medium-high heat (about 375-400°F)",
-                    "Lightly oil the grill grates to prevent sticking",
-                    "Place chicken on grill and cook for 6-7 minutes without moving",
-                    "Flip chicken and cook for another 6-7 minutes until internal temp reaches 165°F",
-                    "Remove from heat and let rest for 5 minutes before slicing",
-                    "Serve with your favorite sides"
-                ],
-                'nutrition': {'calories': 300, 'protein': 35},
-                'time': 20,
-                'meal_type': 'dinner'
-            },
-            {
-                'name': 'Chicken Milk Soup',
-                'ingredients': ['chicken breast', 'milk', 'onion'],
-                'nutrition': {'calories': 250, 'protein': 25},
-                'time': 25,
-                'meal_type': 'dinner'
-            },
-            {
-                'name': 'Banana Chicken Stir-fry',
-                'ingredients': ['chicken breast', 'bananas', 'soy sauce'],
-                'nutrition': {'calories': 400, 'protein': 30},
-                'time': 18,
-                'meal_type': 'dinner'
-            },
-            # More complex recipes
-            {
-                'name': 'Pasta with Tomato Sauce',
-                'ingredients': ['pasta', 'tomatoes', 'garlic', 'olive oil'],
-                'nutrition': {'calories': 450, 'protein': 15},
-                'time': 30,
-                'meal_type': 'dinner'
-            },
-            {
-                'name': 'Chicken Caesar Salad',
-                'ingredients': ['chicken breast', 'lettuce', 'parmesan', 'caesar dressing'],
-                'nutrition': {'calories': 350, 'protein': 28},
-                'time': 15,
-                'meal_type': 'lunch'
-            },
-            {
-                'name': 'Pancakes',
-                'ingredients': ['milk', 'flour', 'eggs', 'sugar'],
-                'nutrition': {'calories': 300, 'protein': 10},
-                'time': 20,
-                'meal_type': 'breakfast'
-            },
-            # Additional recipes with common ingredients
-            {
-                'name': 'Scrambled Eggs',
-                'ingredients': ['eggs', 'butter', 'milk'],
-                'nutrition': {'calories': 180, 'protein': 12},
-                'time': 10,
-                'meal_type': 'breakfast'
-            },
-            {
-                'name': 'Rice Bowl',
-                'ingredients': ['rice', 'vegetables', 'soy sauce'],
-                'nutrition': {'calories': 350, 'protein': 8},
-                'time': 25,
-                'meal_type': 'dinner'
-            },
-            {
-                'name': 'Vegetable Stir Fry',
-                'ingredients': ['vegetables', 'oil', 'garlic', 'soy sauce'],
-                'nutrition': {'calories': 200, 'protein': 5},
-                'time': 15,
-                'meal_type': 'dinner'
-            },
-            {
-                'name': 'Fruit Salad',
-                'ingredients': ['apples', 'bananas', 'oranges'],
-                'nutrition': {'calories': 150, 'protein': 2},
-                'time': 10,
-                'meal_type': 'breakfast'
-            },
-            {
-                'name': 'Toast with Butter',
-                'ingredients': ['bread', 'butter'],
-                'nutrition': {'calories': 150, 'protein': 4},
-                'time': 5,
-                'meal_type': 'breakfast'
-            },
-            {
-                'name': 'Simple Omelette',
-                'ingredients': ['eggs', 'cheese', 'butter'],
-                'nutrition': {'calories': 250, 'protein': 18},
-                'time': 10,
-                'meal_type': 'breakfast'
-            }
-            ]
+            all_recipes = []
         
-        # Filter recipes based on message context if needed
-        filtered_recipes = []
-        message_lower = message.lower()
+        # Process recipes to identify available vs missing ingredients
+        processed_recipes = []
+        pantry_names = [self._clean_ingredient_name(item['product_name']) for item in pantry_items if item.get('product_name')]
         
-        # If user specified a meal type, filter accordingly
-        if 'breakfast' in message_lower:
-            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'breakfast']
-        elif 'lunch' in message_lower:
-            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'lunch']
-        elif 'dinner' in message_lower:
-            filtered_recipes = [r for r in all_recipes if r.get('meal_type') == 'dinner']
-        else:
-            # Return all recipes if no specific meal mentioned
-            filtered_recipes = all_recipes
-        
-        # If no recipes match the filter, return all recipes
-        if not filtered_recipes:
-            filtered_recipes = all_recipes
-            
-        return filtered_recipes
-    
-    def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Rank recipes based on available ingredients, preferences, and calculate enjoyment score."""
-        # Create a mapping of lowercase names to original pantry items for cleaning
-        pantry_map = {}
-        for item in pantry_items:
-            if item.get('product_name'):
-                pantry_map[item['product_name'].lower()] = item['product_name']
-        
-        pantry_names = set(pantry_map.keys())
-        
-        # Get user preferences
-        dietary_prefs = set(p.lower() for p in user_preferences.get('dietary_preference', []))
-        cuisine_prefs = set(c.lower() for c in user_preferences.get('cuisine_preference', []))
-        allergens = set(a.lower() for a in user_preferences.get('allergens', []))
-        
-        # Log pantry items for debugging
-        logger.info(f"Pantry items for matching: {list(pantry_names)[:10]}")
-        
-        for recipe in recipes:
-            recipe_ingredients = recipe.get('ingredients', [])
+        for recipe in all_recipes:
             available_ingredients = []
             missing_ingredients = []
             
-            for ingredient in recipe_ingredients:
-                ingredient_lower = ingredient.lower()
-                
-                # Extract the ingredient name from quantity string (e.g., "2 cups rice" -> "rice")
-                # Remove common measurements
-                ingredient_name = ingredient_lower
-                for measure in ['cups', 'cup', 'tablespoons', 'tablespoon', 'tbsp', 'teaspoons', 'teaspoon', 'tsp', 
-                               'pounds', 'pound', 'lbs', 'lb', 'ounces', 'ounce', 'oz', 'cloves', 'clove',
-                               'cans', 'can', 'bunch', 'bunches', 'piece', 'pieces', 'large', 'medium', 'small']:
-                    ingredient_name = ingredient_name.replace(measure, '')
-                
-                # Remove numbers and parentheses content
-                import re
-                ingredient_name = re.sub(r'\([^)]*\)', '', ingredient_name)  # Remove (6 oz each) etc
-                ingredient_name = re.sub(r'\d+', '', ingredient_name)  # Remove numbers
-                ingredient_name = ingredient_name.strip()
-                
-                # Check for exact match or partial match
+            # Check each recipe ingredient against pantry
+            for ingredient in recipe.get('ingredients', []):
                 found = False
                 for pantry_item in pantry_names:
-                    # Use cleaned ingredient name for matching
-                    if ingredient_name == pantry_item:
-                        # Keep the original ingredient with quantity for available items
-                        available_ingredients.append(ingredient)
-                        found = True
-                        break
-                    # Then check if ingredient is in pantry item name or vice versa
-                    elif (ingredient_name in pantry_item or 
-                          pantry_item in ingredient_name or
-                          self._is_similar_ingredient(ingredient_name, pantry_item)):
-                        # Keep the original ingredient with quantity for available items
+                    if self._is_similar_ingredient(pantry_item, ingredient):
                         available_ingredients.append(ingredient)
                         found = True
                         break
@@ -579,178 +460,204 @@ class CrewAIService:
                 if not found:
                     missing_ingredients.append(ingredient)
             
-            recipe['available_ingredients'] = available_ingredients
-            recipe['missing_ingredients'] = missing_ingredients
-            recipe['missing_count'] = len(missing_ingredients)
-            recipe['available_count'] = len(available_ingredients)
-            recipe['match_score'] = len(available_ingredients) / len(recipe_ingredients) if recipe_ingredients else 0
+            # Calculate match score and expected joy
+            total_ingredients = len(recipe.get('ingredients', []))
+            available_count = len(available_ingredients)
+            missing_count = len(missing_ingredients)
+            match_score = available_count / total_ingredients if total_ingredients > 0 else 0
             
-            # Calculate expected joy score (0-100)
-            joy_score = 50  # Base score
-            
-            # Boost if it matches cuisine preferences
-            recipe_cuisine = recipe.get('cuisine_type', '').lower()
-            if recipe_cuisine and recipe_cuisine in cuisine_prefs:
-                joy_score += 20
-            
-            # Boost if it matches dietary preferences
-            recipe_dietary = set(tag.lower() for tag in recipe.get('dietary_tags', []))
-            if dietary_prefs and recipe_dietary.intersection(dietary_prefs):
-                joy_score += 15
-            
-            # Penalty if it contains allergens
-            recipe_ingredients_lower = set(ing.lower() for ing in recipe_ingredients)
-            contains_allergens = []
-            
-            # More comprehensive allergen checking
+            # Check for allergens
+            allergens_present = []
             for allergen in allergens:
-                allergen_lower = allergen.lower()
-                for ingredient in recipe_ingredients_lower:
-                    # Check for exact match or if allergen is contained in ingredient
-                    if allergen_lower in ingredient or self._is_allergen_in_ingredient(allergen_lower, ingredient):
-                        contains_allergens.append(allergen)
+                for ingredient in recipe.get('ingredients', []):
+                    if self._is_allergen_in_ingredient(allergen, ingredient):
+                        allergens_present.append(allergen)
                         break
             
-            if contains_allergens:
-                joy_score -= 50  # Major penalty for allergens
-                recipe['allergens_present'] = contains_allergens
-            else:
-                recipe['allergens_present'] = []
             
-            # Boost based on ingredient availability
-            joy_score += int(recipe['match_score'] * 15)
+            # Add extra fields
+            recipe['available_ingredients'] = available_ingredients
+            recipe['missing_ingredients'] = missing_ingredients
+            recipe['missing_count'] = missing_count
+            recipe['available_count'] = available_count
+            recipe['match_score'] = round(match_score, 2)
+            recipe['allergens_present'] = allergens_present
             
-            # Ensure score is between 0 and 100
-            recipe['expected_joy'] = max(0, min(100, joy_score))
+            # Check matched preferences
+            matched_prefs = []
+            if recipe.get('cuisine_type', '').lower() in [c.lower() for c in cuisine_prefs]:
+                matched_prefs.append(f"Cuisine: {recipe['cuisine_type']}")
+            for tag in recipe.get('dietary_tags', []):
+                if tag.lower() in [d.lower() for d in dietary_prefs]:
+                    matched_prefs.append(f"Diet: {tag}")
+            recipe['matched_preferences'] = matched_prefs
             
-            # Track which preferences were matched
-            recipe['matched_preferences'] = []
-            if recipe_cuisine and recipe_cuisine in cuisine_prefs:
-                recipe['matched_preferences'].append(f"{recipe_cuisine} cuisine")
-            if dietary_prefs and recipe_dietary.intersection(dietary_prefs):
-                recipe['matched_preferences'].extend(list(recipe_dietary.intersection(dietary_prefs)))
+            processed_recipes.append(recipe)
         
-        # Sort by joy score first, then by missing ingredients
-        return sorted(recipes, key=lambda x: (-x.get('expected_joy', 0), x.get('missing_count', 999)))
+        return processed_recipes
+    
+    def _combine_recipe_sources(self, saved_recipes: List[Dict[str, Any]], ai_recipes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Combine saved and AI-generated recipes, removing duplicates."""
+        all_recipes = []
+        recipe_names = set()
+        
+        # Add saved recipes first (they're personalized)
+        for recipe in saved_recipes:
+            recipe_name_lower = recipe['name'].lower().strip()
+            if recipe_name_lower not in recipe_names:
+                recipe_names.add(recipe_name_lower)
+                all_recipes.append(recipe)
+        
+        # Add AI recipes if they're not duplicates
+        for recipe in ai_recipes:
+            recipe_name_lower = recipe['name'].lower().strip()
+            # Check for similar names
+            is_duplicate = False
+            for existing_name in recipe_names:
+                if recipe_name_lower in existing_name or existing_name in recipe_name_lower:
+                    is_duplicate = True
+                    break
+            
+            if not is_duplicate:
+                recipe_names.add(recipe_name_lower)
+                recipe['source'] = 'ai_generated'
+                all_recipes.append(recipe)
+        
+        return all_recipes
+    
+    def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """Rank recipes based on practical factors and advisor evaluation."""
+        # Enhanced ranking with advisor insights:
+        # 1. Saved recipes the user likes
+        # 2. Recipes using expiring ingredients
+        # 3. Recipes you can make without shopping
+        # 4. Good nutritional balance
+        # 5. High match score
+        return sorted(recipes, key=lambda r: (
+            r.get('source') == 'saved' and r.get('user_rating') == 'thumbs_up',  # User's liked recipes first
+            r.get('source') == 'saved' and r.get('is_favorite', False),  # Then favorites
+            r.get('evaluation', {}).get('uses_expiring', False),  # Prioritize expiring ingredients
+            r.get('missing_count', 999) == 0,  # Recipes you can make now
+            r.get('evaluation', {}).get('nutritional_balance') == 'good',  # Well-balanced meals
+            r.get('match_score', 0),  # High ingredient match
+            -r.get('missing_count', 999)  # Fewer missing ingredients
+        ), reverse=True)
+    
     
     def _clean_ingredient_name(self, ingredient: str) -> str:
-        """Clean ingredient name by removing brand names and simplifying."""
-        # Remove size/weight info after dash
-        clean_name = ingredient.split('–')[0].strip() if '–' in ingredient else ingredient
+        """Clean ingredient name for better matching."""
+        # Remove brand info, sizes, etc.
+        cleaned = ingredient.lower().strip()
         
-        # Common brand names to remove
-        brand_patterns = [
-            'Muir Glen', 'Ancient Harvest', 'Trader Joe\'s', 'Kirkland', 'Great Value',
-            'Nature\'s Own', 'Kraft', 'Heinz', 'Campbell\'s', 'Del Monte', 'Hunt\'s',
-            'Barilla', 'Ronzoni', 'Progresso', 'Swanson', 'Ocean Spray', 'Minute Maid',
-            'Tropicana', 'Simply', 'Organic', 'Natural', 'Premium', 'Select', 'Choice'
-        ]
+        # Remove size/weight patterns
+        import re
+        cleaned = re.sub(r'\d+\.?\d*\s*(oz|lb|g|kg|ml|l|cups?|tsp|tbsp|tablespoons?|teaspoons?)', '', cleaned)
+        cleaned = re.sub(r'–.*', '', cleaned)  # Remove anything after dash
+        cleaned = re.sub(r'\(.*?\)', '', cleaned)  # Remove parentheses
         
-        # Remove brand names
-        for brand in brand_patterns:
-            clean_name = clean_name.replace(brand, '').strip()
+        # Remove common modifiers
+        modifiers = ['fresh', 'frozen', 'dried', 'canned', 'organic', 'chopped', 'diced', 'sliced', 'minced']
+        for mod in modifiers:
+            cleaned = cleaned.replace(mod, '')
         
-        # Remove extra spaces
-        clean_name = ' '.join(clean_name.split())
-        
-        # Capitalize properly
-        return clean_name.title()
+        return cleaned.strip()
     
     def _is_allergen_in_ingredient(self, allergen: str, ingredient: str) -> bool:
         """Check if an allergen is present in an ingredient."""
-        # Common allergen mappings
-        allergen_mappings = {
-            'nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio', 'macadamia', 'brazil nut'],
-            'dairy': ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'whey', 'casein', 'lactose'],
-            'eggs': ['egg', 'eggs', 'egg white', 'egg yolk', 'mayonnaise'],
-            'gluten': ['wheat', 'barley', 'rye', 'bread', 'pasta', 'flour', 'crackers', 'cereal'],
-            'shellfish': ['shrimp', 'crab', 'lobster', 'prawns', 'crawfish', 'crayfish'],
-            'soy': ['soy', 'soybean', 'tofu', 'tempeh', 'edamame', 'miso'],
-            'peanuts': ['peanut', 'peanuts', 'peanut butter'],
-            'tree nuts': ['almond', 'cashew', 'walnut', 'pecan', 'hazelnut', 'pistachio'],
+        allergen_lower = allergen.lower()
+        ingredient_lower = ingredient.lower()
+        
+        # Map common allergens to ingredient patterns
+        allergen_patterns = {
+            'dairy': ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'whey', 'casein', 'lactose'],
+            'nuts': ['almond', 'walnut', 'pecan', 'cashew', 'pistachio', 'hazelnut', 'macadamia', 'pine nut'],
+            'peanuts': ['peanut'],
+            'eggs': ['egg'],
+            'soy': ['soy', 'tofu', 'tempeh', 'edamame', 'miso'],
+            'gluten': ['wheat', 'flour', 'bread', 'pasta', 'barley', 'rye', 'couscous', 'bulgur'],
+            'shellfish': ['shrimp', 'crab', 'lobster', 'scallop', 'oyster', 'clam', 'mussel'],
+            'fish': ['salmon', 'tuna', 'cod', 'tilapia', 'bass', 'trout', 'sardine', 'anchovy']
         }
         
-        # Check if allergen is a category
-        if allergen in allergen_mappings:
-            return any(specific in ingredient for specific in allergen_mappings[allergen])
+        # Check direct match or pattern match
+        if allergen_lower in ingredient_lower:
+            return True
         
-        # Direct check for specific allergens
-        return allergen in ingredient
+        # Check mapped patterns
+        patterns = allergen_patterns.get(allergen_lower, [])
+        return any(pattern in ingredient_lower for pattern in patterns)
     
     def _is_similar_ingredient(self, ingredient1: str, ingredient2: str) -> bool:
-        """Check if two ingredients are similar (e.g., 'chicken' and 'chicken breast')."""
-        # Common ingredient variations
-        similar_pairs = [
-            ('chicken', 'chicken breast'),
-            ('chicken', 'chicken thigh'),
-            ('milk', 'whole milk'),
-            ('milk', '2% milk'),
-            ('banana', 'bananas'),
-            ('egg', 'eggs'),
-            ('onion', 'onions'),
-            ('salt', 'sea salt'),
-            ('pepper', 'black pepper'),
-            ('rice', 'long-grain white rice'),
-            ('beans', 'black beans'),
-            ('olive oil', 'extra-virgin olive oil'),
-            ('oil', 'olive oil'),
-        ]
+        """Check if two ingredients are similar enough to be considered the same."""
+        # Clean both ingredients
+        clean1 = self._clean_ingredient_name(ingredient1)
+        clean2 = self._clean_ingredient_name(ingredient2)
         
-        # Check direct pairs
-        for pair in similar_pairs:
-            if (ingredient1 in pair and ingredient2 in pair) or \
-               (ingredient2 in pair and ingredient1 in pair):
-                return True
-        
-        # Check if one is a substring of the other (for things like "black beans – 15 oz")
-        if ingredient1 in ingredient2 or ingredient2 in ingredient1:
+        # Direct match
+        if clean1 == clean2:
             return True
+        
+        # Check if one contains the other
+        if clean1 in clean2 or clean2 in clean1:
+            return True
+        
+        # Check common variations
+        variations = {
+            'chicken': ['chicken breast', 'chicken thigh', 'chicken wing'],
+            'beef': ['ground beef', 'beef steak', 'beef roast'],
+            'tomato': ['tomatoes', 'cherry tomatoes', 'roma tomatoes'],
+            'onion': ['onions', 'red onion', 'yellow onion', 'white onion']
+        }
+        
+        for base, variants in variations.items():
+            if (base in clean1 or any(v in clean1 for v in variants)) and \
+               (base in clean2 or any(v in clean2 for v in variants)):
+                return True
         
         return False
     
     def _format_response(self, recipes: List[Dict[str, Any]], items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any]) -> str:
-        """Format the final response message with preference info."""
-        
-        # Check if user is asking about expiring items
+        """Format a natural language response based on the recipes found."""
+        # Check if this is an expiring items query
         is_expiring_query = any(phrase in message.lower() for phrase in [
             'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
         ])
         
         if is_expiring_query:
-            # Get items expiring soon (within 7 days)
+            # Find items expiring within 7 days
             from datetime import datetime, timedelta
             today = datetime.now().date()
-            expiring_soon = []
+            expiring_items = []
             
             for item in items:
-                if item.get('expiration_date'):
+                if item.get('expiration_date') and item.get('product_name'):
                     exp_date = datetime.strptime(str(item['expiration_date']), '%Y-%m-%d').date()
                     days_until_expiry = (exp_date - today).days
                     if 0 <= days_until_expiry <= 7:
-                        expiring_soon.append({
-                            'name': item.get('product_name', 'Unknown item'),
-                            'days': days_until_expiry,
-                            'date': exp_date.strftime('%B %d')
+                        expiring_items.append({
+                            'name': item['product_name'],
+                            'date': exp_date.strftime('%b %d'),
+                            'days': days_until_expiry
                         })
             
-            if expiring_soon:
+            if expiring_items:
                 # Sort by days until expiry
-                expiring_soon.sort(key=lambda x: x['days'])
+                expiring_items.sort(key=lambda x: x['days'])
                 
-                # Remove duplicates while preserving order
-                seen = set()
+                # Remove duplicates based on name
+                seen_names = set()
                 unique_expiring = []
-                for item in expiring_soon:
-                    if item['name'] not in seen:
-                        seen.add(item['name'])
+                for item in expiring_items:
+                    if item['name'] not in seen_names:
+                        seen_names.add(item['name'])
                         unique_expiring.append(item)
                 
-                response = f"🚨 You have {len(unique_expiring)} items expiring soon:\n\n"
-                for item in unique_expiring[:10]:  # Show top 10
+                response = f"⚠️ You have {len(unique_expiring)} items expiring soon:\n\n"
+                
+                # Show up to 10 items
+                for item in unique_expiring[:10]:
                     if item['days'] == 0:
                         response += f"• {item['name']} - Expires TODAY!\n"
-                    elif item['days'] == 1:
-                        response += f"• {item['name']} - Expires tomorrow\n"
                     else:
                         response += f"• {item['name']} - Expires in {item['days']} days ({item['date']})\n"
                 
@@ -788,6 +695,9 @@ class CrewAIService:
                 pref_text = f" I've considered your {' and '.join(pref_parts)}"
             pref_text += allergen_text + "."
         
+        # Check if we have saved recipes
+        saved_recipe_count = sum(1 for r in recipes if r.get('source') == 'saved')
+        
         if wants_available_only:
             # Filter for recipes with no missing ingredients
             perfect_match_recipes = [r for r in recipes if r.get('missing_count', 0) == 0]
@@ -798,233 +708,8 @@ class CrewAIService:
         else:
             response = f"Based on your pantry items, here are my recommendations!{pref_text}"
         
+        # Add note about saved recipes
+        if saved_recipe_count > 0:
+            response += f"\n\n✨ Including {saved_recipe_count} recipe{'s' if saved_recipe_count > 1 else ''} from your saved collection!"
+        
         return response
-    
-    async def _fallback_process_message(self, user_id: int, message: str) -> Dict[str, Any]:
-        """Fallback implementation when CrewAI is not available."""
-        try:
-            # Fetch pantry items
-            pantry_items = await self._fetch_pantry_items(user_id)
-            
-            # Fetch user preferences
-            user_preferences = await self._fetch_user_preferences(user_id)
-            
-            # Get some recipe suggestions based on message
-            if not pantry_items:
-                return {
-                    "response": "I notice your pantry is empty. Would you like me to suggest some essential items to stock up on?",
-                    "recipes": [],
-                    "pantry_items": [],
-                    "user_preferences": user_preferences
-                }
-            
-            # Simple keyword matching for different queries
-            message_lower = message.lower()
-            
-            # Check for expiring items query first
-            if any(phrase in message_lower for phrase in ['expiring', 'expire', 'going bad', 'use soon', 'about to expire']):
-                # Use the same format_response method which handles expiring queries
-                response = self._format_response([], pantry_items, message, user_preferences)
-                return {
-                    "response": response,
-                    "recipes": [],  # We could generate recipes for expiring items here
-                    "pantry_items": pantry_items[:10],
-                    "user_preferences": user_preferences
-                }
-            elif any(word in message_lower for word in ['dinner', 'lunch', 'breakfast', 'meal', 'cook', 'make']):
-                # Get unique ingredient names from ALL pantry items
-                ingredients_set = set()
-                for item in pantry_items:  # Use ALL items, not just first 10
-                    if item.get('product_name'):
-                        # Clean up the ingredient name
-                        name = item['product_name'].strip()
-                        # Remove size/quantity info if present
-                        if '–' in name:
-                            name = name.split('–')[0].strip()
-                        ingredients_set.add(name)
-                
-                # Convert to sorted list for consistent ordering
-                ingredients = sorted(list(ingredients_set))
-                
-                # Generate simple response
-                response = f"Based on your {len(ingredients)} unique pantry items, here are some recipe suggestions! "
-                
-                # Create more diverse recipes based on actual ingredients
-                simple_recipes = []
-                
-                # Check what types of ingredients we have
-                has_corn = any('corn' in ing.lower() for ing in ingredients)
-                has_tomatoes = any('tomato' in ing.lower() for ing in ingredients)
-                has_pasta = any('pasta' in ing.lower() or 'noodle' in ing.lower() for ing in ingredients)
-                has_rice = any('rice' in ing.lower() for ing in ingredients)
-                has_protein = any(any(p in ing.lower() for p in ['chicken', 'beef', 'pork', 'fish', 'tofu', 'beans']) for ing in ingredients)
-                
-                # Recipe 1: Based on corn and tomatoes if available
-                if has_corn and has_tomatoes:
-                    recipe_ingredients = [ing for ing in ingredients if 'corn' in ing.lower() or 'tomato' in ing.lower()][:3]
-                    recipe_ingredients.extend([ing for ing in ingredients if ing not in recipe_ingredients][:2])
-                    simple_recipes.append({
-                        "name": "Mexican-Style Corn & Tomato Skillet",
-                        "description": "A vibrant dish combining corn and tomatoes with spices",
-                        "ingredients": recipe_ingredients[:5],
-                        "instructions": [
-                            "Heat 2 tablespoons oil in a large skillet over medium-high heat",
-                            "Add corn kernels and cook for 3-4 minutes until lightly charred",
-                            "Add diced tomatoes and cook for another 2-3 minutes",
-                            "Season with cumin, chili powder, salt, and pepper",
-                            "Stir in any additional vegetables and cook until tender",
-                            "Squeeze fresh lime juice over the mixture",
-                            "Garnish with cilantro and serve hot"
-                        ],
-                        "nutrition": {"calories": 320, "protein": 12},
-                        "time": 25,
-                        "available_ingredients": recipe_ingredients[:4],
-                        "missing_ingredients": ["Cumin", "Chili powder", "Lime"],
-                        "missing_count": 3,
-                        "available_count": 4,
-                        "match_score": 0.57,
-                        "expected_joy": 82,
-                        "cuisine_type": "Mexican",
-                        "dietary_tags": ["vegetarian"],
-                        "allergens_present": [],
-                        "matched_preferences": []
-                    })
-                
-                # Recipe 2: Stir-fry with available vegetables
-                veggie_ingredients = [ing for ing in ingredients if any(v in ing.lower() for v in ['corn', 'tomato', 'pepper', 'onion', 'broccoli', 'carrot'])][:4]
-                if len(veggie_ingredients) < 4:
-                    veggie_ingredients.extend([ing for ing in ingredients if ing not in veggie_ingredients][:4-len(veggie_ingredients)])
-                
-                simple_recipes.append({
-                    "name": "Garden Vegetable Stir-Fry",
-                    "description": "Quick and healthy vegetable stir-fry with available produce",
-                    "ingredients": veggie_ingredients[:5],
-                    "instructions": [
-                        "Prep all vegetables by washing and cutting into uniform pieces",
-                        "Heat 2 tablespoons oil in a wok or large skillet over high heat",
-                        "Add harder vegetables first (carrots, broccoli) and stir-fry for 2 minutes",
-                        "Add softer vegetables (peppers, tomatoes) and cook for another 2 minutes",
-                        "Push vegetables to the sides and add minced garlic and ginger to center",
-                        "Stir-fry aromatics for 30 seconds until fragrant",
-                        "Toss everything together with soy sauce and sesame oil",
-                        "Serve immediately over rice or noodles"
-                    ],
-                    "nutrition": {"calories": 280, "protein": 8},
-                    "time": 20,
-                    "available_ingredients": veggie_ingredients[:4],
-                    "missing_ingredients": ["Soy sauce", "Ginger", "Garlic"],
-                    "missing_count": 3,
-                    "available_count": 4,
-                    "match_score": 0.57,
-                    "expected_joy": 78,
-                    "cuisine_type": "Asian",
-                    "dietary_tags": ["vegetarian", "vegan"],
-                    "allergens_present": [],
-                    "matched_preferences": []
-                })
-                
-                # Recipe 3: Comfort food option
-                comfort_ingredients = ingredients[5:10] if len(ingredients) > 10 else ingredients[:5]
-                simple_recipes.append({
-                    "name": "Hearty One-Pot Meal",
-                    "description": "Comforting dish using your pantry staples",
-                    "ingredients": comfort_ingredients,
-                    "instructions": [
-                        "Heat 2 tablespoons oil in a large Dutch oven or heavy pot",
-                        "Brown any protein ingredients over medium-high heat, then set aside",
-                        "In the same pot, sauté onions and garlic until softened",
-                        "Add remaining vegetables and cook for 5 minutes",
-                        "Return protein to pot and add 4 cups of stock or water",
-                        "Add bay leaves and bring to a simmer",
-                        "Cover and cook for 25-30 minutes until everything is tender",
-                        "Season with salt, pepper, and herbs to taste before serving"
-                    ],
-                    "nutrition": {"calories": 420, "protein": 18},
-                    "time": 35,
-                    "available_ingredients": comfort_ingredients[:3],
-                    "missing_ingredients": ["Stock", "Bay leaves"],
-                    "missing_count": 2,
-                    "available_count": 3,
-                    "match_score": 0.6,
-                    "expected_joy": 85,
-                    "cuisine_type": "American",
-                    "dietary_tags": [],
-                    "allergens_present": [],
-                    "matched_preferences": []
-                })
-                
-                # Add variety by using different ingredient combinations
-                if len(ingredients) > 15:
-                    # Recipe 4: Using middle ingredients
-                    middle_ingredients = ingredients[10:15]
-                    simple_recipes.append({
-                        "name": "Creative Fusion Bowl",
-                        "description": "Mix and match your pantry items for a unique meal",
-                        "ingredients": middle_ingredients,
-                        "instructions": [
-                            "Cook 1 cup of quinoa or rice in 2 cups water/broth for 15-20 minutes",
-                            "While grains cook, dice vegetables into 1/2 inch pieces for even cooking",
-                            "Heat 2 tablespoons oil in a large skillet or wok over medium-high heat",
-                            "If using protein, season with salt and pepper, cook 5-7 minutes until golden",
-                            "Remove protein and set aside, keeping warm under foil",
-                            "Add harder vegetables (carrots, broccoli) first, cook 3-4 minutes",
-                            "Add softer vegetables (peppers, zucchini), cook another 2-3 minutes",
-                            "Mix 2 tbsp soy sauce with 1 tbsp honey and 1 tsp sesame oil for sauce",
-                            "Return protein to pan, add sauce, toss everything for 1 minute",
-                            "Serve over cooked grains, garnish with sesame seeds or green onions"
-                        ],
-                        "nutrition": {"calories": 380, "protein": 15},
-                        "time": 30,
-                        "available_ingredients": middle_ingredients[:4],
-                        "missing_ingredients": ["Soy sauce", "Honey", "Sesame oil"],
-                        "missing_count": 3,
-                        "available_count": 4,
-                        "match_score": 0.57,
-                        "expected_joy": 75,
-                        "cuisine_type": "Fusion",
-                        "dietary_tags": [],
-                        "allergens_present": [],
-                        "matched_preferences": []
-                    })
-                
-                # Rank recipes using the same ranking function
-                ranked_recipes = self._rank_recipes(simple_recipes, pantry_items, user_preferences)
-                
-                # Filter out recipes with allergens
-                safe_recipes = [r for r in ranked_recipes if not r.get('allergens_present', [])]
-                
-                # If all recipes contain allergens, return a message
-                if not safe_recipes and ranked_recipes:
-                    response = "I found some recipes, but they all contain ingredients you're allergic to. Let me find alternatives..."
-                    safe_recipes = []
-                
-                # Format response with preferences
-                formatted_response = self._format_response(safe_recipes[:5], pantry_items, message, user_preferences)
-                
-                return {
-                    "response": formatted_response,
-                    "recipes": safe_recipes[:5],
-                    "pantry_items": pantry_items[:10],
-                    "user_preferences": user_preferences
-                }
-            else:
-                # General response
-                return {
-                    "response": f"You currently have {len(pantry_items)} items in your pantry. What would you like to know about them?",
-                    "recipes": [],
-                    "pantry_items": pantry_items[:10],
-                    "user_preferences": user_preferences
-                }
-                
-        except Exception as e:
-            logger.error(f"Error in fallback chat: {str(e)}")
-            return {
-                "response": "I'm having trouble accessing your pantry data. Please try again later.",
-                "recipes": [],
-                "pantry_items": [],
-                "user_preferences": {
-                    "dietary_preference": [],
-                    "allergens": [],
-                    "cuisine_preference": []
-                }
-            }

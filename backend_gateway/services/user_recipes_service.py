@@ -332,3 +332,124 @@ class UserRecipesService:
         except Exception as e:
             logger.error(f"Error getting recipe stats: {str(e)}")
             raise
+    
+    async def match_recipes_with_pantry(
+        self,
+        user_id: int,
+        pantry_items: List[Dict[str, Any]],
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """Match user's saved recipes with current pantry items"""
+        try:
+            # Get user's saved recipes (prioritize favorites and liked)
+            query = """
+            SELECT 
+                id,
+                recipe_title,
+                recipe_image,
+                recipe_data,
+                rating,
+                is_favorite,
+                source,
+                created_at
+            FROM user_recipes
+            WHERE user_id = %(user_id)s
+            ORDER BY 
+                is_favorite DESC,
+                CASE rating 
+                    WHEN 'thumbs_up' THEN 1
+                    WHEN 'neutral' THEN 2
+                    WHEN 'thumbs_down' THEN 3
+                END,
+                created_at DESC
+            LIMIT %(limit)s
+            """
+            
+            recipes = self.db_service.execute_query(query, {
+                "user_id": user_id,
+                "limit": limit * 2  # Get more to filter
+            })
+            
+            if not recipes:
+                return []
+            
+            # Extract pantry ingredient names for matching
+            pantry_ingredients = set()
+            for item in pantry_items:
+                if item.get('product_name'):
+                    # Clean ingredient name
+                    name = item['product_name'].lower().strip()
+                    # Remove size/weight info
+                    if '–' in name:
+                        name = name.split('–')[0].strip()
+                    pantry_ingredients.add(name)
+            
+            matched_recipes = []
+            
+            for recipe in recipes:
+                recipe_data = recipe.get('recipe_data', {})
+                
+                # Extract ingredients from recipe
+                recipe_ingredients = []
+                if 'ingredients' in recipe_data:
+                    # Handle both string and dict ingredient formats
+                    for ing in recipe_data['ingredients']:
+                        if isinstance(ing, str):
+                            recipe_ingredients.append(ing.lower())
+                        elif isinstance(ing, dict) and 'name' in ing:
+                            recipe_ingredients.append(ing['name'].lower())
+                
+                # Count matching ingredients
+                matched_ingredients = []
+                missing_ingredients = []
+                
+                for ingredient in recipe_ingredients:
+                    found = False
+                    # Check if any pantry item matches this ingredient
+                    for pantry_item in pantry_ingredients:
+                        if pantry_item in ingredient or ingredient in pantry_item:
+                            matched_ingredients.append(ingredient)
+                            found = True
+                            break
+                    
+                    if not found:
+                        missing_ingredients.append(ingredient)
+                
+                # Calculate match score
+                total_ingredients = len(recipe_ingredients)
+                if total_ingredients > 0:
+                    match_score = len(matched_ingredients) / total_ingredients
+                    
+                    # Include recipe with match info
+                    matched_recipe = {
+                        "id": recipe['id'],
+                        "title": recipe['recipe_title'],
+                        "image": recipe['recipe_image'],
+                        "source": recipe['source'],
+                        "rating": recipe['rating'],
+                        "is_favorite": recipe['is_favorite'],
+                        "match_score": round(match_score, 2),
+                        "matched_ingredients": matched_ingredients,
+                        "missing_ingredients": missing_ingredients,
+                        "total_ingredients": total_ingredients,
+                        "can_make": len(missing_ingredients) == 0,
+                        "recipe_data": recipe_data
+                    }
+                    
+                    # Only include recipes with reasonable match
+                    if match_score > 0.3:  # At least 30% ingredients available
+                        matched_recipes.append(matched_recipe)
+            
+            # Sort by match score and user preference
+            matched_recipes.sort(key=lambda x: (
+                x['can_make'],  # Recipes you can make first
+                x['is_favorite'],  # Then favorites
+                x['rating'] == 'thumbs_up',  # Then liked recipes
+                x['match_score']  # Then by match score
+            ), reverse=True)
+            
+            return matched_recipes[:limit]
+            
+        except Exception as e:
+            logger.error(f"Error matching recipes with pantry: {str(e)}")
+            raise

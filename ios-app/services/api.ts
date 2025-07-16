@@ -36,7 +36,6 @@ export interface Recipe {
   missing_count: number;
   available_count: number;
   match_score: number;
-  expected_joy: number;
   cuisine_type?: string;
   dietary_tags?: string[];
   allergens_present?: string[];
