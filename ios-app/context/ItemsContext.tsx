@@ -201,17 +201,23 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           const updatedItem = { ...itemToUpdate, ...updates, count: 1 };
           const savedItem = await savePantryItem(111, updatedItem);
           
+          // Transform the API response to match the UI format
+          const transformedItem = {
+            ...itemToUpdate,
+            ...updates,
+            id: (savedItem.pantry_item_id || savedItem.id || id).toString(),
+            item_name: savedItem.product_name || updates.item_name || itemToUpdate.item_name,
+            quantity_amount: savedItem.quantity || updates.quantity_amount || itemToUpdate.quantity_amount,
+            quantity_unit: savedItem.unit_of_measurement || updates.quantity_unit || itemToUpdate.quantity_unit,
+            expected_expiration: savedItem.expiration_date || updates.expected_expiration || itemToUpdate.expected_expiration,
+            category: savedItem.category || updates.category || itemToUpdate.category,
+            count: 1,
+            addedDate: itemToUpdate.addedDate
+          };
+          
           setItems(prevItems =>
             prevItems.map(item =>
-              item.id === id ? {
-                ...savedItem,
-                id: savedItem.id.toString(),
-                item_name: savedItem.item_name,
-                quantity_amount: savedItem.quantity_amount,
-                quantity_unit: savedItem.quantity_unit,
-                expected_expiration: savedItem.expected_expiration,
-                category: savedItem.category,
-              } : item
+              item.id === id ? transformedItem : item
             )
           );
           
@@ -233,17 +239,23 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
           const updatedItem = { ...itemToUpdate, ...updates, count: 1 };
           const savedItem = await savePantryItem(111, updatedItem);
           
+          // Transform the API response to match the UI format
+          const transformedItem = {
+            ...itemToUpdate,
+            ...updates,
+            id: (savedItem.pantry_item_id || savedItem.id || id).toString(),
+            item_name: savedItem.product_name || updates.item_name || itemToUpdate.item_name,
+            quantity_amount: savedItem.quantity || updates.quantity_amount || itemToUpdate.quantity_amount,
+            quantity_unit: savedItem.unit_of_measurement || updates.quantity_unit || itemToUpdate.quantity_unit,
+            expected_expiration: savedItem.expiration_date || updates.expected_expiration || itemToUpdate.expected_expiration,
+            category: savedItem.category || updates.category || itemToUpdate.category,
+            count: 1,
+            addedDate: itemToUpdate.addedDate
+          };
+          
           setItems(prevItems =>
             prevItems.map(item =>
-              item.id === id ? {
-                ...savedItem,
-                id: savedItem.id.toString(),
-                item_name: savedItem.item_name,
-                quantity_amount: savedItem.quantity_amount,
-                quantity_unit: savedItem.quantity_unit,
-                expected_expiration: savedItem.expected_expiration,
-                category: savedItem.category,
-              } : item
+              item.id === id ? transformedItem : item
             )
           );
           
@@ -254,17 +266,23 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         const updatedItem = { ...itemToUpdate, ...updates };
         const savedItem = await savePantryItem(111, updatedItem);
         
+        // Transform the API response to match the UI format
+        const transformedItem = {
+          ...itemToUpdate,
+          ...updates,
+          id: (savedItem.pantry_item_id || savedItem.id || id).toString(),
+          item_name: savedItem.product_name || updates.item_name || itemToUpdate.item_name,
+          quantity_amount: savedItem.quantity || updates.quantity_amount || itemToUpdate.quantity_amount,
+          quantity_unit: savedItem.unit_of_measurement || updates.quantity_unit || itemToUpdate.quantity_unit,
+          expected_expiration: savedItem.expiration_date || updates.expected_expiration || itemToUpdate.expected_expiration,
+          category: savedItem.category || updates.category || itemToUpdate.category,
+          count: updates.count || itemToUpdate.count || 1,
+          addedDate: itemToUpdate.addedDate
+        };
+        
         setItems(prevItems =>
           prevItems.map(item =>
-            item.id === id ? {
-              ...savedItem,
-              id: savedItem.id.toString(),
-              item_name: savedItem.item_name,
-              quantity_amount: savedItem.quantity_amount,
-              quantity_unit: savedItem.quantity_unit,
-              expected_expiration: savedItem.expected_expiration,
-              category: savedItem.category,
-            } : item
+            item.id === id ? transformedItem : item
           )
         );
         
