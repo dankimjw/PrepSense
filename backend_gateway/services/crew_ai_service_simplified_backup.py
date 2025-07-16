@@ -170,7 +170,6 @@ class CrewAIService:
             
             # Step 6: Combine and rank all recipes
             all_recipes = self._combine_recipe_sources(saved_recipes, ai_recipes)
-            logger.info(f"Combined recipes: {len(saved_recipes)} saved + {len(ai_recipes)} AI = {len(all_recipes)} total")
             
             # Step 7: Evaluate recipes with advisor
             for recipe in all_recipes:
@@ -184,8 +183,6 @@ class CrewAIService:
             
             if advice:
                 response = f"{response}\n\n💡 {advice}"
-            
-            logger.info(f"Returning {len(ranked_recipes)} recipes to user")
             
             return {
                 "response": response,
@@ -409,8 +406,7 @@ class CrewAIService:
         
         try:
             # Call OpenAI to generate recipes
-            client = openai.OpenAI(api_key=openai.api_key)
-            response = client.chat.completions.create(
+            response = await openai.ChatCompletion.acreate(
                 model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": "You are a creative chef who generates recipes in JSON format."},
@@ -442,62 +438,7 @@ class CrewAIService:
         except Exception as e:
             logger.error(f"Error generating recipes with OpenAI: {str(e)}")
             # Fallback to some basic recipes if OpenAI fails
-            all_recipes = [
-                {
-                    'name': 'Simple Chicken Dinner',
-                    'ingredients': ['2 chicken breasts', '2 cups vegetables', '2 tbsp olive oil', 'salt and pepper'],
-                    'instructions': [
-                        'Preheat oven to 375°F (190°C)',
-                        'Season chicken breasts with salt and pepper',
-                        'Heat olive oil in an oven-safe skillet over medium-high heat',
-                        'Sear chicken for 3-4 minutes per side until golden',
-                        'Add vegetables around chicken and transfer to oven',
-                        'Bake for 15-20 minutes until chicken reaches 165°F internally',
-                        'Let rest 5 minutes before serving'
-                    ],
-                    'nutrition': {'calories': 350, 'protein': 35},
-                    'time': 30,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'american',
-                    'dietary_tags': ['gluten-free']
-                },
-                {
-                    'name': 'Quick Pasta with Vegetables',
-                    'ingredients': ['8 oz pasta', '2 cups mixed vegetables', '3 cloves garlic', '3 tbsp olive oil'],
-                    'instructions': [
-                        'Bring a large pot of salted water to boil',
-                        'Cook pasta according to package directions',
-                        'Meanwhile, heat olive oil in a large skillet',
-                        'Add minced garlic and cook until fragrant',
-                        'Add vegetables and sauté until tender-crisp',
-                        'Drain pasta and toss with vegetables',
-                        'Season with salt, pepper, and herbs'
-                    ],
-                    'nutrition': {'calories': 400, 'protein': 12},
-                    'time': 20,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'italian',
-                    'dietary_tags': ['vegetarian']
-                },
-                {
-                    'name': 'Hearty Vegetable Stir-Fry',
-                    'ingredients': ['3 cups mixed vegetables', '2 tbsp oil', '2 tbsp soy sauce', '1 tsp ginger'],
-                    'instructions': [
-                        'Heat oil in a wok or large skillet over high heat',
-                        'Add harder vegetables first (carrots, broccoli)',
-                        'Stir-fry for 2-3 minutes',
-                        'Add softer vegetables (peppers, mushrooms)',
-                        'Add ginger and stir-fry another 2 minutes',
-                        'Add soy sauce and toss to coat',
-                        'Serve immediately over rice'
-                    ],
-                    'nutrition': {'calories': 250, 'protein': 8},
-                    'time': 15,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'asian',
-                    'dietary_tags': ['vegetarian', 'vegan']
-                }
-            ]
+            all_recipes = []
         
         # Process recipes to identify available vs missing ingredients
         processed_recipes = []
