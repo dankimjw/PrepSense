@@ -3,13 +3,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Dimensions, View, Modal, Text, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useState, useRef } from 'react';
-import UserPreferencesModal from './UserPreferencesModal';
 
 // Get screen width to calculate tab positions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const TAB_BAR_HEIGHT = 72; // From tab bar styles
 const FAB_SIZE = 48; // Reduced from 56
 const FAB_MARGIN = 16;
+
+const suggestedMessages = [
+  "Go to chat",
+  "What can I make for dinner?",
+  "What can I make with only ingredients I have?",
+  "What's good for breakfast?",
+  "Show me healthy recipes",
+  "Quick meals under 20 minutes",
+  "What's expiring soon?",
+  "Low calorie recipes",
+  "High protein meals",
+];
 
 function AddButton() {
   const router = useRouter();
@@ -22,10 +33,19 @@ function AddButton() {
   }
   
   const [modalVisible, setModalVisible] = useState(false);
-  const [preferencesVisible, setPreferencesVisible] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   
   // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
   const modalFadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnims = useRef(
+    suggestedMessages.map(() => new Animated.Value(-50))
+  ).current;
+  
+  // Ensure animations are initialized
+  if (!fadeAnim || !slideAnims || slideAnims.length === 0) {
+    return null;
+  }
 
   // Don't render the buttons on certain screens
   if (pathname && (pathname === '/add-item' || pathname === '/upload-photo' || pathname === '/(tabs)/admin' || pathname === '/chat-modal')) {
@@ -45,6 +65,15 @@ function AddButton() {
   const toggleModal = () => {
     const newState = !modalVisible;
     
+    // Close lightbulb suggestions if open
+    if (newState && showSuggestions) {
+      setShowSuggestions(false);
+      fadeAnim.setValue(0);
+      slideAnims.forEach(anim => {
+        if (anim) anim.setValue(-50);
+      });
+    }
+    
     if (newState) {
       setModalVisible(true);
       Animated.timing(modalFadeAnim, {
@@ -63,25 +92,136 @@ function AddButton() {
       });
     }
   };
-
-  const openPreferences = () => {
-    setPreferencesVisible(true);
+  
+  const toggleSuggestions = () => {
+    const newState = !showSuggestions;
+    setShowSuggestions(newState);
+    
+    if (!fadeAnim || !slideAnims) return;
+    
+    // Close add modal if open
+    if (newState && modalVisible) {
+      setModalVisible(false);
+      modalFadeAnim.setValue(0);
+    }
+    
+    if (newState) {
+      // Reset slide animations to starting position
+      slideAnims.forEach(anim => {
+        if (anim) anim.setValue(-50);
+      });
+      
+      // Animate in
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        ...slideAnims.map((anim, index) =>
+          anim ? Animated.timing(anim, {
+            toValue: 0,
+            duration: 300,
+            delay: index * 30, // Reduced delay for more items
+            useNativeDriver: true,
+          }) : null
+        ).filter(Boolean),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        ...slideAnims.map((anim) =>
+          anim ? Animated.timing(anim, {
+            toValue: -50,
+            duration: 200,
+            useNativeDriver: true,
+          }) : null
+        ).filter(Boolean),
+      ]).start(() => {
+        // Reset animations after closing
+        fadeAnim.setValue(0);
+        slideAnims.forEach(anim => {
+          if (anim) anim.setValue(-50);
+        });
+      });
+    }
+  };
+  
+  const handleSuggestionPress = (suggestion: string) => {
+    setShowSuggestions(false);
+    
+    if (suggestion === "Go to chat") {
+      // Navigate to chat modal without a suggestion
+      router.push('/chat-modal');
+    } else {
+      // Navigate to chat modal with the suggestion
+      router.push({
+        pathname: '/chat-modal',
+        params: { suggestion }
+      });
+    }
   };
 
   return (
     <>
-      {/* Preferences Button - Always visible */}
+      {/* Lightbulb Button - Always visible */}
       <TouchableOpacity
-        style={styles.preferencesFab}
-        onPress={openPreferences}
+        style={styles.lightbulbFab}
+        onPress={toggleSuggestions}
         activeOpacity={0.8}
       >
         <Ionicons 
-          name="settings" 
+          name={showSuggestions ? "bulb" : "bulb-outline"} 
           size={24} 
           color="#fff" 
         />
       </TouchableOpacity>
+      
+      {/* Floating Suggestions */}
+      {showSuggestions && (
+        <>
+          {/* Invisible overlay to detect outside clicks */}
+          <Pressable 
+            style={styles.dismissOverlay} 
+            onPress={() => setShowSuggestions(false)} 
+          />
+          
+          <Animated.View 
+            style={[
+              styles.suggestionsContainer,
+              { opacity: fadeAnim }
+            ]}
+          >
+            {suggestedMessages.map((suggestion, index) => (
+              <Animated.View
+                key={index}
+                style={[
+                  styles.suggestionWrapper,
+                  {
+                    transform: [{ translateX: slideAnims[index] }]
+                  }
+                ]}
+              >
+                {/* Individual background swatch */}
+                <View style={styles.suggestionSwatch} />
+                
+                <TouchableOpacity
+                  style={styles.suggestionBubble}
+                  onPress={() => handleSuggestionPress(suggestion)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.suggestionText}>{suggestion}</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            ))}
+          </Animated.View>
+        </>
+      )}
       
       {/* Add Button */}
       <Pressable
@@ -110,42 +250,36 @@ function AddButton() {
           >
             {/* Add Image Option */}
             <View style={styles.addOptionWrapper}>
-              <View style={styles.optionSwatch} />
+              <View style={styles.suggestionSwatch} />
               <TouchableOpacity
-                style={styles.optionBubble}
+                style={styles.suggestionBubble}
                 onPress={handleAddImage}
                 activeOpacity={0.8}
               >
                 <View style={styles.addOptionContent}>
                   <Ionicons name="image" size={18} color="#297A56" />
-                  <Text style={styles.optionText}>Add Image</Text>
+                  <Text style={styles.suggestionText}>Add Image</Text>
                 </View>
               </TouchableOpacity>
             </View>
             
             {/* Add Food Item Option */}
             <View style={styles.addOptionWrapper}>
-              <View style={styles.optionSwatch} />
+              <View style={styles.suggestionSwatch} />
               <TouchableOpacity
-                style={styles.optionBubble}
+                style={styles.suggestionBubble}
                 onPress={handleAddFoodItem}
                 activeOpacity={0.8}
               >
                 <View style={styles.addOptionContent}>
                   <Ionicons name="fast-food" size={18} color="#297A56" />
-                  <Text style={styles.optionText}>Add Food Item</Text>
+                  <Text style={styles.suggestionText}>Add Food Item</Text>
                 </View>
               </TouchableOpacity>
             </View>
           </Animated.View>
         </>
       )}
-
-      {/* User Preferences Modal */}
-      <UserPreferencesModal
-        visible={preferencesVisible}
-        onClose={() => setPreferencesVisible(false)}
-      />
     </>
   );
 }
@@ -186,24 +320,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  preferencesFab: {
+  lightbulbFab: {
     position: 'absolute',
     bottom: TAB_BAR_HEIGHT + FAB_SIZE + FAB_MARGIN * 2 + 8,
     right: FAB_MARGIN,
     width: FAB_SIZE,
     height: FAB_SIZE,
     borderRadius: FAB_SIZE / 2,
-    backgroundColor: 'rgba(107, 114, 128, 0.85)',
+    backgroundColor: 'rgba(245, 158, 11, 0.85)',
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 8,
-    shadowColor: '#6B7280',
+    shadowColor: '#F59E0B',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 10,
   },
-  optionSwatch: {
+  suggestionsContainer: {
+    position: 'absolute',
+    bottom: TAB_BAR_HEIGHT + FAB_MARGIN,
+    right: FAB_SIZE + FAB_MARGIN + 8,
+    zIndex: 9,
+    width: 240,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
+  suggestionWrapper: {
+    marginBottom: 6,
+    marginRight: 6,
+    position: 'relative',
+  },
+  suggestionSwatch: {
     position: 'absolute',
     top: -5,
     left: -5,
@@ -212,7 +361,7 @@ const styles = StyleSheet.create({
     borderRadius: 23,
     backgroundColor: 'rgba(0, 0, 0, 0.08)',
   },
-  optionBubble: {
+  suggestionBubble: {
     backgroundColor: '#fff',
     borderRadius: 18,
     paddingHorizontal: 14,
@@ -225,7 +374,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5,
   },
-  optionText: {
+  suggestionText: {
     fontSize: 13,
     color: '#297A56',
     fontWeight: '500',
