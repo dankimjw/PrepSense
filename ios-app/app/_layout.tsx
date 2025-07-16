@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
-import { ConfigurationError } from './components/ConfigurationError';
+import ConfigurationError from './components/ConfigurationError';
 import { ToastProvider } from '../hooks/useToast';
 
 const styles = StyleSheet.create({

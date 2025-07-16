@@ -5,7 +5,7 @@ import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable } 
 import React, { useState } from 'react';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { CustomHeader } from '../components/CustomHeader';
-import { AddButton } from '../components/AddButton';
+import AddButton from '../components/AddButton';
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   // Filter out the admin, profile, and add tabs from the routes
