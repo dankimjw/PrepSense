@@ -1,349 +1,439 @@
 # PrepSense Test Plan
 
-## Overview
-This test plan covers all features in the PrepSense app for debugging and quality assurance. Each section includes test cases, expected results, and common issues to check.
+## Comprehensive Testing Guide for v2.0 Features
 
-## Test Environment Setup
+This document outlines the testing procedures for all features in PrepSense v2.0.
 
-### Prerequisites
-- [ ] PostgreSQL database running with demo users created
-- [ ] Backend server running (`python run_app.py`)
-- [ ] iOS simulator or device ready
-- [ ] `.env` file configured with correct `DEMO_USER_ID`
-- [ ] Network connectivity between iOS app and backend
+## Pre-Testing Setup
 
-### Test Users
-- **Samantha** (samantha-1): Admin user for demo
-- **John** (john-2): Regular user
-- **Jane** (jane-3): Regular user  
-- **Bob** (bob-4): Regular user
-
----
-
-## 1. Authentication & User Management
-
-### 1.1 Login Flow
-- [ ] **Test**: App launches with mock authentication
-- [ ] **Expected**: Automatically logged in as user from `DEMO_USER_ID`
-- [ ] **Debug Check**: Verify correct user ID in API calls
-
-### 1.2 User Profile
-- [ ] **Test**: View user profile information
-- [ ] **Expected**: Shows correct name, email, preferences
-- [ ] **Debug Check**: Check `/api/v1/users/me` endpoint response
-
----
-
-## 2. Pantry Management
-
-### 2.1 View Pantry Items
-- [ ] **Test**: Navigate to Pantry tab
-- [ ] **Expected**: Display all items for current user
-- [ ] **Debug Check**: 
-  - API call to `/api/v1/pantry/{user_id}/items`
-  - Verify PostgreSQL query returns correct user's items
-
-### 2.2 Add Pantry Item
-- [ ] **Test**: Add new item manually
-- [ ] **Input**: Item name, quantity, unit, expiration date
-- [ ] **Expected**: Item appears in pantry list
-- [ ] **Debug Check**:
-  - POST to `/api/v1/pantry/items`
-  - Database insert in `pantry_items` table
-  - UI updates without refresh
-
-### 2.3 Barcode Scanning
-- [ ] **Test**: Scan product barcode
-- [ ] **Expected**: Product details auto-populate
-- [ ] **Debug Check**:
-  - Camera permissions
-  - Barcode API integration
-  - Product lookup in `products` table
-
-### 2.4 Edit Pantry Item
-- [ ] **Test**: Update quantity, expiration date
-- [ ] **Expected**: Changes persist
-- [ ] **Debug Check**:
-  - PUT to `/api/v1/pantry/items/{item_id}`
-  - Optimistic UI update
-
-### 2.5 Delete Pantry Item
-- [ ] **Test**: Remove item from pantry
-- [ ] **Expected**: Item removed, confirmation shown
-- [ ] **Debug Check**:
-  - DELETE to `/api/v1/pantry/items/{item_id}`
-  - Soft delete vs hard delete logic
-
-### 2.6 Expiration Tracking
-- [ ] **Test**: View items by expiration status
-- [ ] **Expected**: Color coding (red=expired, yellow=expiring soon)
-- [ ] **Debug Check**: Date comparison logic
-
----
-
-## 3. Recipe Recommendations
-
-### 3.1 Get AI Recommendations
-- [ ] **Test**: Tap "Get Recommendations" button
-- [ ] **Expected**: Mix of saved recipes and AI-generated recipes
-- [ ] **Debug Check**:
-  - POST to `/api/v1/recipes/recommendations`
-  - CrewAI/RecipeAdvisor agent execution
-  - Response time (<5 seconds)
-
-### 3.2 Recipe Filtering
-- [ ] **Test**: Filter by dietary preferences
-- [ ] **Expected**: Only matching recipes shown
-- [ ] **Debug Check**:
-  - User preferences loaded correctly
-  - Filter logic in recommendation engine
-
-### 3.3 Recipe Details
-- [ ] **Test**: Tap on recipe card
-- [ ] **Expected**: Full recipe with ingredients, instructions
-- [ ] **Debug Check**:
-  - Spoonacular API integration
-  - Ingredient matching with pantry
-
-### 3.4 Pantry Match Indicator
-- [ ] **Test**: View ingredient availability
-- [ ] **Expected**: Green=have, Red=missing, Yellow=partial
-- [ ] **Debug Check**: Pantry comparison algorithm
-
----
-
-## 4. My Recipes (Saved Recipes)
-
-### 4.1 Save Recipe
-- [ ] **Test**: Save recipe from recommendations
-- [ ] **Expected**: Recipe added to "My Recipes"
-- [ ] **Debug Check**:
-  - POST to `/api/v1/user-recipes`
-  - `user_recipes` table insert
-
-### 4.2 View Saved Recipes
-- [ ] **Test**: Navigate to My Recipes section
-- [ ] **Expected**: Grid/list of saved recipes
-- [ ] **Debug Check**:
-  - GET `/api/v1/user-recipes`
-  - Pagination if >20 recipes
-
-### 4.3 Favorite Recipe
-- [ ] **Test**: Mark recipe as favorite
-- [ ] **Expected**: Star icon filled, sorts to top
-- [ ] **Debug Check**:
-  - PUT `/api/v1/user-recipes/{recipe_id}/favorite`
-  - `is_favorite` field update
-
-### 4.4 Delete Saved Recipe
-- [ ] **Test**: Remove from saved recipes
-- [ ] **Expected**: Recipe removed from list
-- [ ] **Debug Check**: Soft delete implementation
-
-### 4.5 Recipe Notes
-- [ ] **Test**: Add/edit personal notes on recipe
-- [ ] **Expected**: Notes persist across sessions
-- [ ] **Debug Check**: JSONB field storage
-
----
-
-## 5. Shopping List
-
-### 5.1 Generate Shopping List
-- [ ] **Test**: Create list from recipe
-- [ ] **Expected**: Missing ingredients added to list
-- [ ] **Debug Check**:
-  - Ingredient subtraction logic
-  - Quantity calculations
-
-### 5.2 Manual Add to List
-- [ ] **Test**: Add custom items
-- [ ] **Expected**: Items appear in list
-- [ ] **Debug Check**: Shopping list API endpoints
-
-### 5.3 Check Off Items
-- [ ] **Test**: Mark items as purchased
-- [ ] **Expected**: Visual indication, move to completed
-- [ ] **Debug Check**: State persistence
-
-### 5.4 Add to Pantry
-- [ ] **Test**: Move purchased items to pantry
-- [ ] **Expected**: Items removed from list, added to pantry
-- [ ] **Debug Check**: Transaction handling
-
----
-
-## 6. User Preferences
-
-### 6.1 Dietary Restrictions
-- [ ] **Test**: Set vegetarian, vegan, gluten-free, etc.
-- [ ] **Expected**: Preferences saved and applied
-- [ ] **Debug Check**:
-  - PUT `/api/v1/users/preferences`
-  - Recipe filtering respects preferences
-
-### 6.2 Cuisine Preferences
-- [ ] **Test**: Select favorite cuisines
-- [ ] **Expected**: Recommendations prioritize selections
-- [ ] **Debug Check**: Preference weighting in AI
-
-### 6.3 Notification Settings
-- [ ] **Test**: Toggle expiration alerts
-- [ ] **Expected**: Settings persist
-- [ ] **Debug Check**: Local storage + backend sync
-
----
-
-## 7. Search & Discovery
-
-### 7.1 Recipe Search
-- [ ] **Test**: Search recipes by name/ingredient
-- [ ] **Expected**: Relevant results from Spoonacular
-- [ ] **Debug Check**:
-  - Search API rate limiting
-  - Result caching
-
-### 7.2 Ingredient Search
-- [ ] **Test**: Search while adding pantry items
-- [ ] **Expected**: Autocomplete suggestions
-- [ ] **Debug Check**: Product database queries
-
----
-
-## 8. Admin Features
-
-### 8.1 Admin Panel Access
-- [ ] **Test**: Access admin tab (admin users only)
-- [ ] **Expected**: User management interface
-- [ ] **Debug Check**: Role-based access control
-
-### 8.2 BigQuery Tester
-- [ ] **Test**: Execute SQL queries
-- [ ] **Expected**: Results displayed (PostgreSQL now)
-- [ ] **Debug Check**:
-  - Query validation
-  - Read-only enforcement
-
-### 8.3 User Management
-- [ ] **Test**: View all users, toggle admin status
-- [ ] **Expected**: Changes reflected immediately
-- [ ] **Debug Check**: Permission checks
-
----
-
-## 9. Performance & Edge Cases
-
-### 9.1 Offline Handling
-- [ ] **Test**: Disable network, use app
-- [ ] **Expected**: Graceful degradation, cached data shown
-- [ ] **Debug Check**: Error boundaries, retry logic
-
-### 9.2 Large Pantry
-- [ ] **Test**: Add 100+ items
-- [ ] **Expected**: Smooth scrolling, search works
-- [ ] **Debug Check**: Pagination, virtualization
-
-### 9.3 Concurrent Updates
-- [ ] **Test**: Two users modify same pantry
-- [ ] **Expected**: Last write wins, no corruption
-- [ ] **Debug Check**: Database transaction logs
-
-### 9.4 Session Timeout
-- [ ] **Test**: Leave app idle for extended period
-- [ ] **Expected**: Re-authentication or refresh
-- [ ] **Debug Check**: Token expiration handling
-
----
-
-## 10. Integration Points
-
-### 10.1 Spoonacular API
-- [ ] **Test**: Recipe search and details
-- [ ] **Expected**: <2 second response
-- [ ] **Debug Check**: API key validity, rate limits
-
-### 10.2 OpenAI API
-- [ ] **Test**: AI recipe generation
-- [ ] **Expected**: Coherent recipe output
-- [ ] **Debug Check**: Token usage, fallback handling
-
-### 10.3 PostgreSQL Connection
-- [ ] **Test**: Database queries under load
-- [ ] **Expected**: Connection pooling works
-- [ ] **Debug Check**: Connection leaks, timeouts
-
----
-
-## Common Debug Commands
-
-### Backend Logs
+### 1. Environment Setup
 ```bash
-# View real-time logs
-tail -f backend.log
+# Backend
+cd /Users/danielkim/_Capstone/PrepSense
+source venv/bin/activate
+python run_app.py
 
-# Check for errors
-grep ERROR backend.log
-
-# Database queries
-grep "SELECT\|INSERT\|UPDATE\|DELETE" backend.log
+# Frontend (new terminal)
+cd ios-app
+npx expo start --ios
 ```
 
-### Database Checks
-```sql
--- Check user's pantry items
-SELECT * FROM pantry_items WHERE pantry_id IN 
-  (SELECT pantry_id FROM pantries WHERE user_id = 1);
+### 2. Verify Services
+- Backend API: http://localhost:8001/docs
+- iOS App: Should launch in simulator
+- Database: PostgreSQL should be running
 
--- View recent recipes
-SELECT * FROM user_recipes WHERE user_id = 1 
-ORDER BY saved_at DESC LIMIT 10;
+---
 
--- Check for orphaned records
-SELECT * FROM pantry_items WHERE pantry_id NOT IN 
-  (SELECT pantry_id FROM pantries);
-```
+## Feature Test Cases
 
-### iOS Debug
-```javascript
-// In React Native Debugger
-console.log(JSON.stringify(apiResponse, null, 2));
+### 1. OCR Receipt Scanner
 
-// Check AsyncStorage
-AsyncStorage.getAllKeys().then(console.log);
-```
+#### Test Case 1.1: Camera Capture
+**Steps**:
+1. Open app → Tap "+" button
+2. Select "Scan Receipt"
+3. Tap "Take Photo"
+4. Capture a receipt image
+5. Wait for processing
+
+**Expected Results**:
+- ✅ Camera opens correctly
+- ✅ Image captures and displays
+- ✅ "Scanning receipt..." overlay appears
+- ✅ Items are extracted and displayed
+
+#### Test Case 1.2: Gallery Selection
+**Steps**:
+1. Open app → Tap "+" button
+2. Select "Scan Receipt"
+3. Tap "Choose from Gallery"
+4. Select a receipt image
+5. Review extracted items
+
+**Expected Results**:
+- ✅ Gallery opens
+- ✅ Selected image displays
+- ✅ Items extracted with name, quantity, unit
+- ✅ Categories auto-assigned
+
+#### Test Case 1.3: Edit Scanned Items
+**Steps**:
+1. After scanning, tap edit icon on any item
+2. Change name to "Test Item"
+3. Change quantity to 5
+4. Change unit to "kg"
+5. Tap "Save"
+
+**Expected Results**:
+- ✅ Edit modal opens
+- ✅ Changes reflect in list
+- ✅ Original items unchanged
+
+#### Test Case 1.4: Add to Pantry
+**Steps**:
+1. Deselect one item
+2. Tap "Add X Items"
+3. Check pantry tab
+
+**Expected Results**:
+- ✅ Only selected items added
+- ✅ Success message appears
+- ✅ Items appear in pantry with correct details
+
+---
+
+### 2. Recipe Completion Modal
+
+#### Test Case 2.1: Basic Completion
+**Steps**:
+1. Navigate to any recipe with available ingredients
+2. Tap "Quick Complete"
+3. Leave sliders at default (100%)
+4. Tap "Complete Recipe"
+
+**Expected Results**:
+- ✅ Modal shows all available ingredients
+- ✅ Quantities display correctly
+- ✅ Pantry updates with reduced quantities
+- ✅ Success message shows summary
+
+#### Test Case 2.2: Partial Usage
+**Steps**:
+1. Open recipe → "Quick Complete"
+2. Adjust first ingredient to 50%
+3. Adjust second ingredient to 0%
+4. Complete recipe
+
+**Expected Results**:
+- ✅ Only 50% deducted from first item
+- ✅ Nothing deducted from second item
+- ✅ Other items deducted 100%
+
+#### Test Case 2.3: Insufficient Quantities
+**Steps**:
+1. Find recipe with limited ingredients
+2. Quick Complete
+3. Set usage > available amount
+4. Complete
+
+**Expected Results**:
+- ✅ Warning shows for insufficient items
+- ✅ Available amount used
+- ✅ Item reaches 0 in pantry
+
+---
+
+### 3. Bookmark & Rating System
+
+#### Test Case 3.1: Bookmark Recipe
+**Steps**:
+1. Open any recipe detail
+2. Tap bookmark icon
+3. Navigate away and return
+4. Check bookmark state
+
+**Expected Results**:
+- ✅ Icon changes to filled bookmark
+- ✅ State persists after navigation
+- ✅ Recipe saved to user collection
+
+#### Test Case 3.2: Rate Recipe
+**Steps**:
+1. Open recipe detail
+2. Tap thumbs up
+3. Tap thumbs up again (toggle off)
+4. Tap thumbs down
+
+**Expected Results**:
+- ✅ Thumbs up highlights green
+- ✅ Second tap returns to neutral
+- ✅ Thumbs down highlights red
+- ✅ Only one rating active at a time
+
+#### Test Case 3.3: Rating Persistence
+**Steps**:
+1. Rate a recipe thumbs up
+2. Close app completely
+3. Reopen and find same recipe
+4. Check rating state
+
+**Expected Results**:
+- ✅ Rating persists
+- ✅ Correct icon highlighted
+
+---
+
+### 4. Enhanced Unit Validation
+
+#### Test Case 4.1: Count Unit Validation
+**Steps**:
+1. Edit pantry item
+2. Select "each" as unit
+3. Try entering 1.5
+4. Try entering 2
+
+**Expected Results**:
+- ✅ Error for decimal with "each"
+- ✅ Whole number accepted
+- ✅ Clear error message
+
+#### Test Case 4.2: Unit Switching
+**Steps**:
+1. Edit item with 2.5 kg
+2. Switch to "package"
+3. Observe prompt
+
+**Expected Results**:
+- ✅ Alert about rounding
+- ✅ Quantity rounds to 3
+- ✅ Can proceed or cancel
+
+#### Test Case 4.3: Range Validation
+**Steps**:
+1. Set unit to "ml"
+2. Enter 15000
+3. Observe warning
+
+**Expected Results**:
+- ✅ Suggestion to use liters
+- ✅ Can still save if desired
+
+---
+
+### 5. AI Meal Type Detection
+
+#### Test Case 5.1: Breakfast Query
+**Steps**:
+1. Open chat
+2. Type "What can I make for breakfast?"
+3. Review suggestions
+
+**Expected Results**:
+- ✅ Breakfast recipes returned
+- ✅ No dinner/dessert recipes
+
+#### Test Case 5.2: Dinner Query
+**Steps**:
+1. Chat: "Quick dinner ideas"
+2. Review results
+
+**Expected Results**:
+- ✅ Dinner-appropriate recipes
+- ✅ 20-30 minute cook times
+
+---
+
+### 6. Stats Dashboard
+
+#### Test Case 6.1: Time Period Switching
+**Steps**:
+1. Navigate to Stats tab
+2. Select "Week"
+3. Select "Month"
+4. Select "Year"
+
+**Expected Results**:
+- ✅ Data updates for each period
+- ✅ Charts redraw
+- ✅ Counts change appropriately
+
+#### Test Case 6.2: Pantry Analytics
+**Steps**:
+1. Stats tab
+2. Check pantry section
+3. Tap "Total Items"
+
+**Expected Results**:
+- ✅ Correct item count
+- ✅ Modal shows all items
+- ✅ Expired items highlighted
+
+#### Test Case 6.3: Environmental Impact
+**Steps**:
+1. Check sustainability section
+2. Toggle metric/imperial
+3. Verify calculations
+
+**Expected Results**:
+- ✅ Food saved in kg/lbs
+- ✅ CO2 calculations update
+- ✅ Units convert correctly
+
+---
+
+### 7. User Preferences
+
+#### Test Case 7.1: Set Preferences
+**Steps**:
+1. Tap user icon in header
+2. Select "Vegetarian"
+3. Add "Nuts" allergy
+4. Select "Italian" cuisine
+5. Close modal
+
+**Expected Results**:
+- ✅ Selections save
+- ✅ Pills show correctly
+- ✅ Persists on reopen
+
+#### Test Case 7.2: Preference Impact
+**Steps**:
+1. Set vegetarian preference
+2. Open chat
+3. Ask for recipe suggestions
+
+**Expected Results**:
+- ✅ Only vegetarian recipes
+- ✅ No meat ingredients
+- ✅ Preferences mentioned in response
+
+---
+
+### 8. Shopping List Integration
+
+#### Test Case 8.1: Missing Ingredients Flow
+**Steps**:
+1. Open recipe with missing items
+2. Start cooking
+3. Select "Add to Shopping List"
+4. Select specific items
+5. Add to list
+
+**Expected Results**:
+- ✅ Routes to selection screen
+- ✅ Can toggle items
+- ✅ Only selected items added
+
+---
+
+## Performance Tests
+
+### Test P1: Receipt Scan Speed
+**Metric**: Time from image capture to results
+**Target**: < 5 seconds
+**Test**: Scan 5 different receipts, average time
+
+### Test P2: Stats Load Time
+**Metric**: Time to load comprehensive stats
+**Target**: < 2 seconds
+**Test**: Fresh load of stats page
+
+### Test P3: Recipe Search
+**Metric**: Chat response time
+**Target**: < 3 seconds
+**Test**: Submit 5 different queries
+
+---
+
+## Edge Cases
+
+### Edge Case 1: No Internet
+1. Disable WiFi
+2. Try OCR scan
+3. Try rating recipe
+
+**Expected**: Graceful error messages
+
+### Edge Case 2: Blurry Receipt
+1. Scan very blurry receipt
+2. Check extraction
+
+**Expected**: Error with retry option
+
+### Edge Case 3: Empty Pantry
+1. Clear all pantry items
+2. Check stats page
+3. Ask for recipes
+
+**Expected**: Appropriate empty states
+
+---
+
+## Regression Tests
+
+### Core Functionality
+- [ ] Add manual pantry item
+- [ ] Upload image for recognition
+- [ ] Basic recipe search
+- [ ] Shopping list add/remove
+- [ ] Recipe cooking mode
+- [ ] Pantry item editing
+- [ ] User authentication
 
 ---
 
 ## Bug Report Template
 
-When reporting issues, include:
+```markdown
+### Bug Description
+[Clear description of the issue]
 
-1. **User**: Which `DEMO_USER_ID` was used
-2. **Feature**: Which section of test plan
-3. **Steps**: Exact reproduction steps
-4. **Expected**: What should happen
-5. **Actual**: What actually happened
-6. **Logs**: Relevant backend/console logs
-7. **Screenshots**: If UI issue
+### Steps to Reproduce
+1. 
+2. 
+3. 
+
+### Expected Behavior
+[What should happen]
+
+### Actual Behavior
+[What actually happens]
+
+### Environment
+- iOS Version: 
+- Device/Simulator: 
+- Backend Running: Yes/No
+
+### Screenshots
+[If applicable]
+
+### Additional Context
+[Any other relevant information]
+```
 
 ---
 
-## Test Execution Tracking
+## Test Execution Checklist
 
-| Feature | Tester | Date | Pass/Fail | Notes |
-|---------|---------|------|-----------|-------|
-| Login | | | | |
-| Pantry View | | | | |
-| Add Item | | | | |
-| Recipes | | | | |
-| Shopping List | | | | |
-| Preferences | | | | |
-| Admin | | | | |
+### Pre-Release Testing
+- [ ] All feature test cases pass
+- [ ] Performance metrics met
+- [ ] Edge cases handled gracefully
+- [ ] No regression in core features
+- [ ] Documentation updated
+- [ ] CHANGELOG updated
+
+### Sign-off Criteria
+- Zero critical bugs
+- All high-priority features working
+- Performance within targets
+- User flows smooth
+- Error handling appropriate
 
 ---
 
-## Notes
-- Always test with fresh data after schema changes
-- Run `python create_demo_users.py` to reset test users
-- Check `.env` file for correct environment settings
-- Monitor backend logs during testing for errors
+## Known Issues
+
+1. **OCR Accuracy**: Depends on receipt quality
+   - Mitigation: Allow manual editing
+
+2. **Stats Calculation**: May be slow with large datasets
+   - Mitigation: Caching implemented
+
+3. **Image Loading**: Network dependent
+   - Mitigation: Placeholder images
+
+---
+
+## Test Environment Details
+
+- **Backend**: FastAPI on port 8001
+- **Database**: PostgreSQL (local)
+- **iOS**: Expo Go / Simulator
+- **Test User**: ID 111 (demo user)
+
+---
+
+Last Updated: January 2025
+Version: 2.0.0
