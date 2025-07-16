@@ -22,7 +22,7 @@ const suggestedMessages = [
   "High protein meals",
 ];
 
-export function AddButton() {
+function AddButton() {
   const router = useRouter();
   let pathname = '';
   
@@ -283,6 +283,8 @@ export function AddButton() {
     </>
   );
 }
+
+export default AddButton;
 
 const styles = StyleSheet.create({
   fab: {

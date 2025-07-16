@@ -19,7 +19,7 @@ interface ConfigurationErrorProps {
   onRetry?: () => void;
 }
 
-export function ConfigurationError({ status, onRetry }: ConfigurationErrorProps) {
+function ConfigurationError({ status, onRetry }: ConfigurationErrorProps) {
   const openDocs = () => {
     Linking.openURL('https://github.com/YOUR_REPO/PrepSense/blob/main/README.md');
   };
@@ -142,6 +142,8 @@ export function ConfigurationError({ status, onRetry }: ConfigurationErrorProps)
     </SafeAreaView>
   );
 }
+
+export default ConfigurationError;
 
 const styles = StyleSheet.create({
   container: {
