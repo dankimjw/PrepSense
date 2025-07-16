@@ -366,8 +366,25 @@ class CrewAIService:
         logger.info(f"🤖 Starting recipe generation for {num_recipes} recipes")
         logger.info(f"📝 User message: '{message}'")
         
+        # Detect meal type from user message
+        message_lower = message.lower()
+        meal_type = 'dinner'  # default
+        
+        if any(word in message_lower for word in ['breakfast', 'morning', 'brunch']):
+            meal_type = 'breakfast'
+        elif any(word in message_lower for word in ['lunch', 'midday', 'noon']):
+            meal_type = 'lunch'
+        elif any(word in message_lower for word in ['dinner', 'supper', 'evening']):
+            meal_type = 'dinner'
+        elif any(word in message_lower for word in ['snack', 'appetizer', 'treat']):
+            meal_type = 'snack'
+        elif any(word in message_lower for word in ['dessert', 'sweet', 'cake', 'cookie']):
+            meal_type = 'dessert'
+        
+        logger.info(f"🍽️ Detected meal type: {meal_type}")
+        
         # Check if this is an expiring items query
-        is_expiring_query = any(phrase in message.lower() for phrase in [
+        is_expiring_query = any(phrase in message_lower for phrase in [
             'expiring', 'expire', 'going bad', 'use soon', 'about to expire'
         ])
         logger.info(f"🕒 Is expiring query: {is_expiring_query}")
@@ -421,12 +438,23 @@ class CrewAIService:
         Please prioritize recipes that use these expiring ingredients!
         """
         
+        # Add meal type instruction
+        meal_type_instruction = ""
+        if meal_type != 'dinner':  # Only add specific instruction if not default
+            meal_type_examples = {
+                'breakfast': "Focus on breakfast dishes like eggs, pancakes, smoothies, oatmeal, breakfast sandwiches, etc.",
+                'lunch': "Focus on lunch dishes like sandwiches, salads, soups, wraps, light pasta dishes, etc.",
+                'snack': "Focus on snacks and appetizers like dips, finger foods, small bites, energy balls, etc.",
+                'dessert': "Focus on desserts like cakes, cookies, puddings, fruit-based sweets, ice cream, etc."
+            }
+            meal_type_instruction = f"\nIMPORTANT: User is looking for {meal_type.upper()} recipes! {meal_type_examples.get(meal_type, '')}\n"
+        
         prompt = f"""
         You are a creative chef. Generate {num_recipes} recipes based on ONLY these available ingredients:
         {', '.join(available_ingredients)}
         
         User request: {message}
-        {expiring_instruction}
+        {meal_type_instruction}{expiring_instruction}
         
         IMPORTANT User Preferences:
         - Dietary restrictions: {', '.join(dietary_prefs) if dietary_prefs else 'None'}
@@ -439,14 +467,15 @@ class CrewAIService:
         3. DO NOT assume common pantry items are available unless they're in the list
         4. For recipes needing extra ingredients, be specific (e.g., "eggs", "flour", "garlic cloves")
         5. If there are expiring items mentioned above, prioritize using them in your recipes
+        6. ALL recipes should be appropriate for {meal_type} time
         
         Return a JSON array of recipes. Each recipe should have:
-        - name: string (creative recipe name)
+        - name: string (creative recipe name appropriate for {meal_type})
         - ingredients: array of strings with quantities (e.g., "2 cups rice", "1 lb chicken breast", "3 cloves garlic")
         - instructions: array of strings (5-8 detailed step-by-step cooking instructions)
         - nutrition: object with calories (number) and protein (number in grams)
         - time: number (cooking time in minutes)
-        - meal_type: string (breakfast, lunch, dinner, or snack)
+        - meal_type: string (should be "{meal_type}" for all recipes)
         - cuisine_type: string (e.g., italian, mexican, asian, american)
         - dietary_tags: array of strings (e.g., vegetarian, vegan, gluten-free)
         
@@ -499,62 +528,137 @@ class CrewAIService:
         except Exception as e:
             logger.error(f"Error generating recipes with OpenAI: {str(e)}")
             # Fallback to some basic recipes if OpenAI fails
-            all_recipes = [
-                {
-                    'name': 'Simple Chicken Dinner',
-                    'ingredients': ['2 chicken breasts', '2 cups vegetables', '2 tbsp olive oil', 'salt and pepper'],
-                    'instructions': [
-                        'Preheat oven to 375°F (190°C)',
-                        'Season chicken breasts with salt and pepper',
-                        'Heat olive oil in an oven-safe skillet over medium-high heat',
-                        'Sear chicken for 3-4 minutes per side until golden',
-                        'Add vegetables around chicken and transfer to oven',
-                        'Bake for 15-20 minutes until chicken reaches 165°F internally',
-                        'Let rest 5 minutes before serving'
-                    ],
-                    'nutrition': {'calories': 350, 'protein': 35},
-                    'time': 30,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'american',
-                    'dietary_tags': ['gluten-free']
-                },
-                {
-                    'name': 'Quick Pasta with Vegetables',
-                    'ingredients': ['8 oz pasta', '2 cups mixed vegetables', '3 cloves garlic', '3 tbsp olive oil'],
-                    'instructions': [
-                        'Bring a large pot of salted water to boil',
-                        'Cook pasta according to package directions',
-                        'Meanwhile, heat olive oil in a large skillet',
-                        'Add minced garlic and cook until fragrant',
-                        'Add vegetables and sauté until tender-crisp',
-                        'Drain pasta and toss with vegetables',
-                        'Season with salt, pepper, and herbs'
-                    ],
-                    'nutrition': {'calories': 400, 'protein': 12},
-                    'time': 20,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'italian',
-                    'dietary_tags': ['vegetarian']
-                },
-                {
-                    'name': 'Hearty Vegetable Stir-Fry',
-                    'ingredients': ['3 cups mixed vegetables', '2 tbsp oil', '2 tbsp soy sauce', '1 tsp ginger'],
-                    'instructions': [
-                        'Heat oil in a wok or large skillet over high heat',
-                        'Add harder vegetables first (carrots, broccoli)',
-                        'Stir-fry for 2-3 minutes',
-                        'Add softer vegetables (peppers, mushrooms)',
-                        'Add ginger and stir-fry another 2 minutes',
-                        'Add soy sauce and toss to coat',
-                        'Serve immediately over rice'
-                    ],
-                    'nutrition': {'calories': 250, 'protein': 8},
-                    'time': 15,
-                    'meal_type': 'dinner',
-                    'cuisine_type': 'asian',
-                    'dietary_tags': ['vegetarian', 'vegan']
-                }
-            ]
+            # Create meal-type appropriate fallback recipes
+            if meal_type == 'breakfast':
+                all_recipes = [
+                    {
+                        'name': 'Scrambled Eggs with Toast',
+                        'ingredients': ['3 eggs', '2 slices bread', '1 tbsp butter', 'salt and pepper'],
+                        'instructions': [
+                            'Crack eggs into a bowl and whisk with salt and pepper',
+                            'Heat butter in a non-stick pan over medium-low heat',
+                            'Pour in eggs and stir gently with a spatula',
+                            'Continue stirring until eggs are softly set',
+                            'Meanwhile, toast bread slices',
+                            'Serve eggs on toast immediately'
+                        ],
+                        'nutrition': {'calories': 320, 'protein': 18},
+                        'time': 10,
+                        'meal_type': 'breakfast',
+                        'cuisine_type': 'american',
+                        'dietary_tags': []
+                    },
+                    {
+                        'name': 'Quick Oatmeal Bowl',
+                        'ingredients': ['1 cup oats', '2 cups milk', '1 banana', '2 tbsp honey'],
+                        'instructions': [
+                            'Bring milk to a simmer in a saucepan',
+                            'Add oats and reduce heat to low',
+                            'Cook for 5 minutes, stirring occasionally',
+                            'Slice banana while oats cook',
+                            'Remove from heat and stir in honey',
+                            'Top with sliced banana and serve'
+                        ],
+                        'nutrition': {'calories': 380, 'protein': 12},
+                        'time': 10,
+                        'meal_type': 'breakfast',
+                        'cuisine_type': 'american',
+                        'dietary_tags': ['vegetarian']
+                    }
+                ]
+            elif meal_type == 'lunch':
+                all_recipes = [
+                    {
+                        'name': 'Turkey Sandwich',
+                        'ingredients': ['4 slices bread', '6 oz turkey', '2 lettuce leaves', '1 tomato', '2 tbsp mayo'],
+                        'instructions': [
+                            'Toast bread slices if desired',
+                            'Spread mayo on two slices',
+                            'Layer turkey on one slice',
+                            'Add lettuce and sliced tomato',
+                            'Top with remaining bread slices',
+                            'Cut diagonally and serve'
+                        ],
+                        'nutrition': {'calories': 350, 'protein': 25},
+                        'time': 5,
+                        'meal_type': 'lunch',
+                        'cuisine_type': 'american',
+                        'dietary_tags': []
+                    },
+                    {
+                        'name': 'Garden Salad',
+                        'ingredients': ['4 cups mixed greens', '1 cucumber', '2 tomatoes', '2 tbsp dressing'],
+                        'instructions': [
+                            'Wash and dry salad greens',
+                            'Dice cucumber and tomatoes',
+                            'Combine greens and vegetables in a bowl',
+                            'Drizzle with dressing',
+                            'Toss well and serve'
+                        ],
+                        'nutrition': {'calories': 150, 'protein': 3},
+                        'time': 10,
+                        'meal_type': 'lunch',
+                        'cuisine_type': 'american',
+                        'dietary_tags': ['vegetarian', 'vegan']
+                    }
+                ]
+            else:  # Default dinner recipes
+                all_recipes = [
+                    {
+                        'name': 'Simple Chicken Dinner',
+                        'ingredients': ['2 chicken breasts', '2 cups vegetables', '2 tbsp olive oil', 'salt and pepper'],
+                        'instructions': [
+                            'Preheat oven to 375°F (190°C)',
+                            'Season chicken breasts with salt and pepper',
+                            'Heat olive oil in an oven-safe skillet over medium-high heat',
+                            'Sear chicken for 3-4 minutes per side until golden',
+                            'Add vegetables around chicken and transfer to oven',
+                            'Bake for 15-20 minutes until chicken reaches 165°F internally',
+                            'Let rest 5 minutes before serving'
+                        ],
+                        'nutrition': {'calories': 350, 'protein': 35},
+                        'time': 30,
+                        'meal_type': meal_type,
+                        'cuisine_type': 'american',
+                        'dietary_tags': ['gluten-free']
+                    },
+                    {
+                        'name': 'Quick Pasta with Vegetables',
+                        'ingredients': ['8 oz pasta', '2 cups mixed vegetables', '3 cloves garlic', '3 tbsp olive oil'],
+                        'instructions': [
+                            'Bring a large pot of salted water to boil',
+                            'Cook pasta according to package directions',
+                            'Meanwhile, heat olive oil in a large skillet',
+                            'Add minced garlic and cook until fragrant',
+                            'Add vegetables and sauté until tender-crisp',
+                            'Drain pasta and toss with vegetables',
+                            'Season with salt, pepper, and herbs'
+                        ],
+                        'nutrition': {'calories': 400, 'protein': 12},
+                        'time': 20,
+                        'meal_type': meal_type,
+                        'cuisine_type': 'italian',
+                        'dietary_tags': ['vegetarian']
+                    },
+                    {
+                        'name': 'Hearty Vegetable Stir-Fry',
+                        'ingredients': ['3 cups mixed vegetables', '2 tbsp oil', '2 tbsp soy sauce', '1 tsp ginger'],
+                        'instructions': [
+                            'Heat oil in a wok or large skillet over high heat',
+                            'Add harder vegetables first (carrots, broccoli)',
+                            'Stir-fry for 2-3 minutes',
+                            'Add softer vegetables (peppers, mushrooms)',
+                            'Add ginger and stir-fry another 2 minutes',
+                            'Add soy sauce and toss to coat',
+                            'Serve immediately over rice'
+                        ],
+                        'nutrition': {'calories': 250, 'protein': 8},
+                        'time': 15,
+                        'meal_type': meal_type,
+                        'cuisine_type': 'asian',
+                        'dietary_tags': ['vegetarian', 'vegan']
+                    }
+                ]
         
         # Process recipes to identify available vs missing ingredients
         processed_recipes = []

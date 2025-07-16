@@ -101,6 +101,59 @@ export default function EditPantryItem() {
       return false;
     }
 
+    // Unit-specific validation
+    const unit = form.quantity_unit.toLowerCase();
+    
+    // For count units, ensure whole numbers
+    if (['each', 'package', 'bag', 'case', 'carton', 'gross'].includes(unit)) {
+      if (!Number.isInteger(form.quantity_amount)) {
+        Alert.alert(
+          'Validation Error', 
+          `For ${form.quantity_unit}, please enter a whole number (e.g., 1, 2, 3).`
+        );
+        return false;
+      }
+    }
+    
+    // For weight/volume units, validate reasonable ranges
+    if (unit === 'mg' && form.quantity_amount > 1000000) {
+      Alert.alert(
+        'Validation Tip', 
+        'That\'s more than 1kg. Consider using grams or kilograms instead.'
+      );
+      return false;
+    }
+    
+    if (unit === 'ml' && form.quantity_amount > 10000) {
+      Alert.alert(
+        'Validation Tip', 
+        'That\'s more than 10 liters. Consider using liters instead.'
+      );
+      return false;
+    }
+    
+    if (unit === 'tsp' && form.quantity_amount > 48) {
+      Alert.alert(
+        'Validation Tip', 
+        'That\'s more than 1 cup. Consider using cups or tablespoons instead.'
+      );
+      return false;
+    }
+    
+    if (unit === 'tbsp' && form.quantity_amount > 16) {
+      Alert.alert(
+        'Validation Tip', 
+        'That\'s more than 1 cup. Consider using cups instead.'
+      );
+      return false;
+    }
+
+    // Validate maximum quantity
+    if (form.quantity_amount > 999999) {
+      Alert.alert('Validation Error', 'Quantity seems too large. Please check the value.');
+      return false;
+    }
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const expDate = new Date(form.expected_expiration);
@@ -248,7 +301,13 @@ export default function EditPantryItem() {
             onChangeText={(t) => {
               const cleaned = t.replace(/[^0-9.]/g, '');
               const parts = cleaned.split('.');
-              const formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+              let formatted = parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : cleaned;
+              
+              // For count units, don't allow decimal points
+              const unit = form.quantity_unit.toLowerCase();
+              if (['each', 'package', 'bag', 'case', 'carton', 'gross'].includes(unit)) {
+                formatted = formatted.split('.')[0]; // Remove decimal part
+              }
               
               setForm((f: Item) => ({ 
                 ...f, 
@@ -268,7 +327,23 @@ export default function EditPantryItem() {
             <UnitSelector
               value={form.quantity_unit}
               onValueChange={(unit) => {
-                setForm((f: Item) => ({ ...f, quantity_unit: unit }));
+                // If switching to a count unit and we have decimals, round to nearest integer
+                const isCountUnit = ['each', 'package', 'bag', 'case', 'carton', 'gross'].includes(unit.toLowerCase());
+                if (isCountUnit && form.quantity_amount % 1 !== 0) {
+                  const rounded = Math.round(form.quantity_amount);
+                  setForm((f: Item) => ({ 
+                    ...f, 
+                    quantity_unit: unit,
+                    quantity_amount: rounded,
+                    quantity_amount_text: rounded.toString()
+                  }));
+                  Alert.alert(
+                    'Quantity Adjusted', 
+                    `Rounded to ${rounded} for ${unit} unit.`
+                  );
+                } else {
+                  setForm((f: Item) => ({ ...f, quantity_unit: unit }));
+                }
                 setFocusedInput(null);
               }}
               style={[

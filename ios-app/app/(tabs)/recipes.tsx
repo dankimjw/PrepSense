@@ -854,12 +854,6 @@ export default function RecipesScreen() {
             <MaterialCommunityIcons name="close-circle" size={16} color="#F44336" />
             <Text style={styles.statText}>{recipe.missedIngredientCount || 0} missing</Text>
           </View>
-          {recipe.likes > 0 && (
-            <View style={styles.stat}>
-              <MaterialCommunityIcons name="heart" size={16} color="#E91E63" />
-              <Text style={styles.statText}>{recipe.likes}</Text>
-            </View>
-          )}
         </View>
       </View>
       <TouchableOpacity 

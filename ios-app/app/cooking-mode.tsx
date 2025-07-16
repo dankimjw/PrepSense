@@ -13,8 +13,9 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Recipe, completeRecipe, RecipeIngredient } from '../services/api';
+import { Recipe, completeRecipe, RecipeIngredient, fetchPantryItems, PantryItem } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
+import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 
 const { width } = Dimensions.get('window');
 
@@ -27,6 +28,9 @@ export default function CookingModeScreen() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [activeTimer, setActiveTimer] = useState<NodeJS.Timeout | null>(null);
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [pantryItems, setPantryItems] = useState<PantryItem[]>([]);
+  const [isLoadingPantry, setIsLoadingPantry] = useState(false);
 
   useEffect(() => {
     if (params.recipe) {
@@ -64,62 +68,87 @@ export default function CookingModeScreen() {
     }
   };
 
-  const handleCompleteRecipe = async () => {
-    Alert.alert(
-      'Complete Recipe',
-      'Have you finished cooking? This will remove the used ingredients from your pantry.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Yes, Complete',
-          style: 'default',
-          onPress: async () => {
-            setIsCompleting(true);
-            try {
-              // Parse ingredients to extract quantities
-              const parsedIngredients = parseIngredientsList(recipe.ingredients);
-              
-              // Convert recipe ingredients to the format needed by the API
-              // For cooking mode, we assume all ingredients are available since they started cooking
-              const ingredients: RecipeIngredient[] = parsedIngredients.map(parsed => ({
-                ingredient_name: parsed.name,
-                quantity: parsed.quantity,
-                unit: parsed.unit,
-              }));
+  const loadPantryItems = async () => {
+    try {
+      setIsLoadingPantry(true);
+      const items = await fetchPantryItems(111); // TODO: Get actual user ID
+      setPantryItems(items);
+    } catch (error) {
+      console.error('Error loading pantry items:', error);
+    } finally {
+      setIsLoadingPantry(false);
+    }
+  };
 
-              const result = await completeRecipe({
-                user_id: 111, // TODO: Get actual user ID
-                recipe_name: recipe.name,
-                ingredients: ingredients,
-              });
-              
-              // Handle response
-              let message = `${result.summary}\n\nEnjoy your meal!`;
-              
-              if (result.insufficient_items && result.insufficient_items.length > 0) {
-                message = `Some items had insufficient quantity but we've updated what was available.\n\n${result.summary}\n\nEnjoy your meal!`;
-              }
-              
-              Alert.alert(
-                'Recipe Completed! 🎉',
-                message,
-                [
-                  {
-                    text: 'OK',
-                    onPress: () => router.back(),
-                  },
-                ]
-              );
-            } catch (error) {
-              console.error('Error completing recipe:', error);
-              Alert.alert('Error', 'Failed to update pantry. Please try again.');
-            } finally {
-              setIsCompleting(false);
-            }
+  const handleCompleteRecipe = async () => {
+    // Load pantry items if not already loaded
+    if (pantryItems.length === 0) {
+      await loadPantryItems();
+    }
+    
+    // Show the completion modal
+    setShowCompletionModal(true);
+  };
+
+  const handleRecipeCompletionConfirm = async (ingredientUsages: any[]) => {
+    try {
+      setIsCompleting(true);
+      
+      // Convert ingredient usages to the format needed by the API
+      const ingredients: RecipeIngredient[] = ingredientUsages
+        .filter(usage => usage.selectedAmount > 0)
+        .map(usage => ({
+          ingredient_name: usage.ingredientName,
+          quantity: usage.selectedAmount,
+          unit: usage.requestedUnit,
+        }));
+
+      if (ingredients.length === 0) {
+        Alert.alert('No Ingredients Selected', 'Please select at least some ingredients to use.');
+        return;
+      }
+
+      const result = await completeRecipe({
+        user_id: 111, // TODO: Get actual user ID
+        recipe_name: recipe.name,
+        ingredients: ingredients,
+      });
+
+      // Handle different response scenarios
+      let alertTitle = 'Recipe Completed! 🎉';
+      let alertMessage = result.summary + '\n\nEnjoy your meal!';
+      
+      if (result.insufficient_items && result.insufficient_items.length > 0) {
+        alertTitle = 'Recipe Completed with Warnings ⚠️';
+        const insufficientList = result.insufficient_items.map(
+          item => `• ${item.ingredient}: needed ${item.needed} ${item.needed_unit}, had ${item.consumed}`
+        ).join('\n');
+        alertMessage = `Some items had insufficient quantity but we've updated what was available.\n\n${result.summary}\n\nInsufficient quantities:\n${insufficientList}\n\nEnjoy your meal!`;
+      }
+      
+      if (result.errors && result.errors.length > 0) {
+        alertMessage += `\n\nErrors:\n${result.errors.join('\n')}`;
+      }
+
+      // Close modal first
+      setShowCompletionModal(false);
+
+      Alert.alert(
+        alertTitle,
+        alertMessage,
+        [
+          {
+            text: 'OK',
+            onPress: () => router.back(),
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Error completing recipe:', error);
+      Alert.alert('Error', 'Failed to update pantry. Please try again.');
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   const handleExit = () => {
@@ -334,6 +363,16 @@ export default function CookingModeScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Recipe Completion Modal */}
+      <RecipeCompletionModal
+        visible={showCompletionModal}
+        onClose={() => setShowCompletionModal(false)}
+        onConfirm={handleRecipeCompletionConfirm}
+        recipe={recipe}
+        pantryItems={pantryItems}
+        loading={isCompleting}
+      />
     </SafeAreaView>
   );
 }
