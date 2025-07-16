@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
-import { ConfigurationError } from './components/ConfigurationError';
+import ConfigurationError from './components/ConfigurationError';
 import { ToastProvider } from '../hooks/useToast';
 
 const styles = StyleSheet.create({
@@ -117,7 +117,8 @@ function AppContent() {
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <ToastProvider>
-        <ItemsProvider>
+        <UserPreferencesProvider>
+          <ItemsProvider>
           <View style={styles.container}>
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -258,7 +259,8 @@ function AppContent() {
             />
           </Stack>
         </View>
-        </ItemsProvider>
+          </ItemsProvider>
+        </UserPreferencesProvider>
       </ToastProvider>
     </ThemeProvider>
   );
