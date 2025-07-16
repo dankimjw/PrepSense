@@ -69,6 +69,10 @@ app.include_router(pantry_router, prefix=f"{settings.API_V1_STR}", tags=["Pantry
 from backend_gateway.routers.chat_router import router as chat_router
 app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 
+# Import chat v2 router (CrewAI with multi-source recipes)
+from backend_gateway.routers.chat_v2_router import router as chat_v2_router
+app.include_router(chat_v2_router, prefix=f"{settings.API_V1_STR}", tags=["Chat V2"])
+
 # Import spoonacular router
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
 app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["Spoonacular Recipes"])

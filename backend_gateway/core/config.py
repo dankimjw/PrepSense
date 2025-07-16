@@ -60,6 +60,7 @@ class Settings(BaseSettings):
     # Development Settings
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
+    DEMO_USER_ID: Optional[str] = None
     
     class Config:
         """Pydantic configuration."""
