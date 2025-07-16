@@ -143,31 +143,36 @@ class EnvironmentValidator {
   }
 
   private async checkGoogleCredentials(): Promise<ValidationResult> {
-    // Check if we can reach the backend's BigQuery endpoint
+    // Check if we can reach the backend's health endpoint
     const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8001/api/v1';
     
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${apiUrl}/bigquery/tables`, {
+      const response = await fetch(`${apiUrl}/health`, {
         signal: controller.signal,
       });
       
       clearTimeout(timeoutId);
       
       if (response.ok) {
-        return {
-          isValid: true,
-          message: 'Backend has valid Google Cloud credentials',
-          status: 'OK',
-        };
-      } else if (response.status === 500 || response.status === 503) {
-        return {
-          isValid: false,
-          message: 'Backend Google Cloud credentials issue',
-          status: 'ERROR',
-        };
+        const data = await response.json();
+        const googleConfigured = data.environment?.google_cloud_configured;
+        
+        if (googleConfigured) {
+          return {
+            isValid: true,
+            message: 'Backend has valid Google Cloud credentials',
+            status: 'OK',
+          };
+        } else {
+          return {
+            isValid: false,
+            message: 'Backend Google Cloud credentials not configured',
+            status: 'WARNING',
+          };
+        }
       } else {
         return {
           isValid: false,
@@ -193,7 +198,7 @@ class EnvironmentValidator {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
-      const response = await fetch(`${apiUrl}/chat/send`, {
+      const response = await fetch(`${apiUrl}/chat/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
