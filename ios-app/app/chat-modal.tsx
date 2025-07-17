@@ -193,12 +193,18 @@ export default function ChatScreen() {
       {/* Modal Header */}
       <View style={styles.modalHeader}>
         <View style={styles.modalHeaderContent}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={24} color="#333" />
+          </TouchableOpacity>
           <Text style={styles.modalTitle}>Chat with AI Chef</Text>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.back()}
+            onPress={() => router.replace('/(tabs)')}
           >
-            <Ionicons name="close" size={28} color="#333" />
+            <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
         </View>
       </View>
@@ -419,6 +425,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     color: '#333',
+    flex: 1,
+    textAlign: 'center',
+  },
+  backButton: {
+    position: 'absolute',
+    left: 20,
+    padding: 4,
   },
   closeButton: {
     position: 'absolute',

@@ -50,29 +50,32 @@ async def get_comprehensive_stats(
                 COUNT(*) as total_items,
                 COUNT(CASE WHEN expiration_date < CURRENT_DATE THEN 1 END) as expired_items,
                 COUNT(CASE WHEN expiration_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' THEN 1 END) as expiring_soon,
-                COUNT(CASE WHEN created_at >= %(start_date)s THEN 1 END) as recently_added,
-                AVG(quantity) as avg_quantity
-            FROM user_pantry_full
-            WHERE user_id = %(user_id)s
+                COUNT(CASE WHEN pi.created_at >= %(start_date)s THEN 1 END) as recently_added,
+                AVG(pi.quantity) as avg_quantity
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
         ),
         category_breakdown AS (
             SELECT 
-                category,
+                pi.category,
                 COUNT(*) as count
-            FROM user_pantry_full
-            WHERE user_id = %(user_id)s
-            GROUP BY category
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            GROUP BY pi.category
             ORDER BY count DESC
             LIMIT 5
         ),
         frequent_items AS (
             SELECT 
-                product_name,
+                pi.product_name,
                 COUNT(*) as purchase_count
-            FROM user_pantry_full
-            WHERE user_id = %(user_id)s
-            AND created_at >= %(start_date)s
-            GROUP BY product_name
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            AND pi.created_at >= %(start_date)s
+            GROUP BY pi.product_name
             ORDER BY purchase_count DESC
             LIMIT 5
         )
@@ -95,13 +98,13 @@ async def get_comprehensive_stats(
         cooking_history_query = """
         WITH daily_cooking AS (
             SELECT 
-                DATE(created_at) as cook_date,
+                DATE(changed_at) as cook_date,
                 COUNT(*) as recipes_cooked
             FROM pantry_history
             WHERE user_id = %(user_id)s
-            AND action = 'completed_recipe'
-            AND created_at >= %(start_date)s
-            GROUP BY DATE(created_at)
+            AND change_source = 'recipe_completion'
+            AND changed_at >= %(start_date)s
+            GROUP BY DATE(changed_at)
         ),
         cooking_streak AS (
             SELECT 
@@ -120,15 +123,15 @@ async def get_comprehensive_stats(
             LIMIT 1
         )
         SELECT 
-            COUNT(DISTINCT DATE(created_at)) as days_cooked,
+            COUNT(DISTINCT DATE(changed_at)) as days_cooked,
             COUNT(*) as total_recipes_cooked,
             COALESCE((SELECT streak_length FROM streak_groups), 0) as current_streak,
-            COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as cooked_this_week,
-            COUNT(CASE WHEN created_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as cooked_this_month
+            COUNT(CASE WHEN changed_at >= CURRENT_DATE - INTERVAL '7 days' THEN 1 END) as cooked_this_week,
+            COUNT(CASE WHEN changed_at >= CURRENT_DATE - INTERVAL '30 days' THEN 1 END) as cooked_this_month
         FROM pantry_history
         WHERE user_id = %(user_id)s
-        AND action = 'completed_recipe'
-        AND created_at >= %(start_date)s
+        AND change_source = 'recipe_completion'
+        AND changed_at >= %(start_date)s
         """
         
         cooking_result = db_service.execute_query(cooking_history_query, {
@@ -140,11 +143,12 @@ async def get_comprehensive_stats(
         sustainability_query = """
         WITH waste_prevention AS (
             SELECT 
-                COUNT(CASE WHEN expiration_date >= CURRENT_DATE THEN 1 END) as unexpired_items,
-                COUNT(CASE WHEN action = 'completed_recipe' THEN 1 END) as items_used_in_recipes
-            FROM user_pantry_full up
-            LEFT JOIN pantry_history ph ON up.pantry_item_id = ph.pantry_item_id
-            WHERE up.user_id = %(user_id)s
+                COUNT(CASE WHEN pi.expiration_date >= CURRENT_DATE THEN 1 END) as unexpired_items,
+                COUNT(CASE WHEN ph.change_source = 'recipe_completion' THEN 1 END) as items_used_in_recipes
+            FROM pantry_items pi
+            JOIN pantries p ON pi.pantry_id = p.pantry_id
+            LEFT JOIN pantry_history ph ON pi.pantry_item_id = ph.pantry_item_id
+            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
         )
         SELECT 
             unexpired_items * 0.3 as food_saved_kg,  -- Avg 0.3kg per item
@@ -160,12 +164,13 @@ async def get_comprehensive_stats(
         # 5. Shopping Patterns
         shopping_patterns_query = """
         SELECT 
-            DATE_PART('dow', created_at) as day_of_week,
+            DATE_PART('dow', pi.created_at) as day_of_week,
             COUNT(*) as items_added
-        FROM user_pantry_full
-        WHERE user_id = %(user_id)s
-        AND created_at >= %(start_date)s
-        GROUP BY DATE_PART('dow', created_at)
+        FROM pantry_items pi
+        JOIN pantries p ON pi.pantry_id = p.pantry_id
+        WHERE p.user_id = %(user_id)s
+        AND pi.created_at >= %(start_date)s
+        GROUP BY DATE_PART('dow', pi.created_at)
         ORDER BY day_of_week
         """
         
@@ -233,8 +238,8 @@ async def get_user_milestones(
         WITH user_stats AS (
             SELECT 
                 (SELECT COUNT(*) FROM user_pantry_full WHERE user_id = %(user_id)s) as total_pantry_items,
-                (SELECT COUNT(*) FROM pantry_history WHERE user_id = %(user_id)s AND action = 'completed_recipe') as total_recipes_cooked,
-                (SELECT COUNT(DISTINCT DATE(created_at)) FROM pantry_history WHERE user_id = %(user_id)s AND action = 'completed_recipe') as days_cooked,
+                (SELECT COUNT(*) FROM pantry_history WHERE user_id = %(user_id)s AND change_source = 'recipe_completion') as total_recipes_cooked,
+                (SELECT COUNT(DISTINCT DATE(changed_at)) FROM pantry_history WHERE user_id = %(user_id)s AND change_source = 'recipe_completion') as days_cooked,
                 (SELECT COUNT(*) FROM user_recipes WHERE user_id = %(user_id)s AND is_favorite = true) as favorite_recipes,
                 (SELECT COUNT(*) FROM user_recipes WHERE user_id = %(user_id)s AND rating = 'thumbs_up') as liked_recipes
         )

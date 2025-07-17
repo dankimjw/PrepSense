@@ -63,7 +63,7 @@ pip install -r requirements.txt
 This installs:
 - **FastAPI**: Our web framework
 - **Uvicorn**: Server to run FastAPI
-- **Google Cloud libraries**: For BigQuery and Vision API
+- **Google Cloud libraries**: For Google Cloud Storage and Vision API
 - **And more!**
 
 ### Verify Installation

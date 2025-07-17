@@ -52,11 +52,6 @@ Here are curated resources to help you learn more about the technologies used in
 
 ## ☁️ Google Cloud Platform
 
-### BigQuery
-- **[BigQuery Quickstart](https://cloud.google.com/bigquery/docs/quickstarts)** - Get started
-- **[BigQuery for Data Analysts](https://www.youtube.com/watch?v=dPmTmgpQWXg)** - Video course
-- **[SQL for BigQuery](https://cloud.google.com/bigquery/docs/reference/standard-sql/query-syntax)** - Query reference
-
 ### Vision API
 - **[Vision API Overview](https://cloud.google.com/vision/docs/features-list)** - What it can do
 - **[Vision API Python Client](https://cloud.google.com/vision/docs/libraries#client-libraries-usage-python)** - Code examples

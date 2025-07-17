@@ -13,6 +13,7 @@ import {
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AddToPantryModal } from '../../components/modals/AddToPantryModal';
 
 interface ShoppingItem {
   id: string;
@@ -29,6 +30,8 @@ export default function ShoppingListScreen() {
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState('');
   const [isAddingItem, setIsAddingItem] = useState(false);
+  const [showAddToPantryModal, setShowAddToPantryModal] = useState(false);
+  const [selectedItemsForPantry, setSelectedItemsForPantry] = useState<ShoppingItem[]>([]);
   const insets = useSafeAreaInsets();
 
   // Load shopping list from storage
@@ -148,6 +151,24 @@ export default function ShoppingListScreen() {
     );
   };
 
+  const handleAddToPantry = () => {
+    const checkedItemsToAdd = items.filter(item => item.checked);
+    if (checkedItemsToAdd.length === 0) {
+      Alert.alert('No Items Selected', 'Please check items to add to pantry');
+      return;
+    }
+    setSelectedItemsForPantry(checkedItemsToAdd);
+    setShowAddToPantryModal(true);
+  };
+
+  const handlePantryAddComplete = (pantryItems: any[]) => {
+    // Remove checked items after they're added to pantry
+    setItems(items.filter(item => !item.checked));
+    setShowAddToPantryModal(false);
+    setSelectedItemsForPantry([]);
+    Alert.alert('Success', `Added ${pantryItems.length} items to pantry`);
+  };
+
   const uncheckedItems = items.filter(item => !item.checked);
   const checkedItems = items.filter(item => item.checked);
 
@@ -159,6 +180,11 @@ export default function ShoppingListScreen() {
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Text style={styles.headerTitle}>Shopping List</Text>
         <View style={styles.headerButtons}>
+          {checkedItems.length > 0 && (
+            <TouchableOpacity onPress={handleAddToPantry} style={styles.headerButton}>
+              <Ionicons name="add-circle-outline" size={24} color="#297A56" />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity onPress={clearCheckedItems} style={styles.headerButton}>
             <MaterialCommunityIcons name="broom" size={24} color="#297A56" />
           </TouchableOpacity>
@@ -301,6 +327,19 @@ export default function ShoppingListScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Add to Pantry Modal */}
+      {showAddToPantryModal && (
+        <AddToPantryModal
+          visible={showAddToPantryModal}
+          onClose={() => {
+            setShowAddToPantryModal(false);
+            setSelectedItemsForPantry([]);
+          }}
+          onConfirm={handlePantryAddComplete}
+          shoppingItems={selectedItemsForPantry}
+        />
+      )}
     </KeyboardAvoidingView>
   );
 }

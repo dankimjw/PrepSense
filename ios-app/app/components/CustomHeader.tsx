@@ -15,7 +15,6 @@ type CustomHeaderProps = {
   showChatButton?: boolean;
   showAdminButton?: boolean;
   showDbButton?: boolean;
-  showAIBulkEditButton?: boolean;
   onBackPress?: () => void;
   onRefresh?: () => void;
 };
@@ -26,7 +25,6 @@ export function CustomHeader({
   showChatButton = false, 
   showAdminButton = false,
   showDbButton = false,
-  showAIBulkEditButton = false,
   onBackPress,
   onRefresh
 }: CustomHeaderProps) {
@@ -55,7 +53,6 @@ export function CustomHeader({
   const shouldShowChat = showChatButton !== false;
   const shouldShowAdmin = showAdminButton !== false && isAdmin; // Re-added admin check
   const shouldShowDb = showDbButton !== false;
-  const shouldShowAIBulkEdit = showAIBulkEditButton !== false;
   
   // Cleanup functionality has been moved to the Admin screen
 
@@ -114,21 +111,6 @@ export function CustomHeader({
               style={styles.iconButton}
             >
               <Ionicons name="chatbubble-ellipses-outline" size={22} color="#1b6b45" />
-            </Pressable>
-          )}
-          {shouldShowAIBulkEdit && (
-            <Pressable 
-              hitSlop={12} 
-              onPress={() => router.push({
-                pathname: '/(tabs)',
-                params: { openAIBulkEdit: 'true' }
-              })}
-              style={styles.iconButton}
-            >
-              <View style={styles.aiIconContainer}>
-                <Ionicons name="sync-outline" size={24} color="#1b6b45" style={styles.aiIconBackground} />
-                <Ionicons name="bulb-outline" size={12} color="#1b6b45" style={styles.aiIconForeground} />
-              </View>
             </Pressable>
           )}
           <Pressable 
@@ -216,19 +198,6 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     paddingHorizontal: 4,
-  },
-  aiIconContainer: {
-    width: 24,
-    height: 24,
-    position: 'relative',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  aiIconBackground: {
-    position: 'absolute',
-  },
-  aiIconForeground: {
-    position: 'absolute',
   },
   adminMenuContainer: {
     position: 'absolute',

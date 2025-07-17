@@ -73,7 +73,19 @@ export default function RecipeDetailsScreen() {
     try {
       setIsLoadingPantry(true);
       const items = await fetchPantryItems(111); // TODO: Get actual user ID
-      setPantryItems(items);
+      
+      // Transform backend response to match frontend expectations
+      const transformedItems = items.map(item => ({
+        id: item.pantry_item_id || item.id,
+        item_name: item.product_name || item.item_name || 'Unknown Item',
+        quantity_amount: item.quantity || item.quantity_amount || 0,
+        quantity_unit: item.unit_of_measurement || item.quantity_unit || 'unit',
+        expected_expiration: item.expiration_date || item.expected_expiration,
+        category: item.food_category || item.category || 'Other',
+        ...item // Keep any additional fields
+      }));
+      
+      setPantryItems(transformedItems);
     } catch (error) {
       console.error('Error loading pantry items:', error);
     } finally {
@@ -498,6 +510,15 @@ export default function RecipeDetailsScreen() {
         <Text style={styles.headerTitle}>Recipe Details</Text>
         <View style={styles.headerActions}>
           <TouchableOpacity 
+            style={styles.closeButton}
+            onPress={() => {
+              // Navigate back to main screen or close modal
+              router.replace('/(tabs)');
+            }}
+          >
+            <Ionicons name="close" size={24} color="#333" />
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.ratingButton, rating === 'thumbs_up' && styles.ratingButtonActive]} 
             onPress={() => handleRating('thumbs_up')}
             disabled={isSaving}
@@ -773,6 +794,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  closeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
   ratingButton: {
     width: 36,

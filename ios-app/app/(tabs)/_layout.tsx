@@ -95,7 +95,6 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="PrepSense"
                 showBackButton={false}
-                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             );
@@ -113,7 +112,6 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="PrepSense"
                 showBackButton={false}
-                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -127,7 +125,6 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Statistics"
                 showBackButton={false}
-                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -163,7 +160,6 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Recipes"
                 showBackButton={false}
-                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )
@@ -177,7 +173,6 @@ export default function TabsLayout() {
               <CustomHeader 
                 title="Shopping List"
                 showBackButton={false}
-                showAIBulkEditButton={true}
                 showAdminButton={true}
               />
             )

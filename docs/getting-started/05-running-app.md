@@ -192,8 +192,7 @@ chmod +x start-app.sh
 - Use React Native debugger
 
 ### Database Monitoring:
-- Check BigQuery console
-- Verify data is being saved
+- Connect to the PostgreSQL database to verify data is being saved.
 
 ## 🛑 Shutting Down
 
