@@ -1,0 +1,206 @@
+{
+  "density_conversions": {
+    "flour": {
+      "name": "All-purpose flour",
+      "cup_to_grams": 125,
+      "tablespoon_to_grams": 7.8,
+      "notes": "Sifted flour is lighter (~115g/cup)"
+    },
+    "sugar": {
+      "name": "Granulated sugar",
+      "cup_to_grams": 200,
+      "tablespoon_to_grams": 12.5,
+      "notes": "Brown sugar is denser when packed"
+    },
+    "brown_sugar": {
+      "name": "Brown sugar (packed)",
+      "cup_to_grams": 220,
+      "tablespoon_to_grams": 13.75
+    },
+    "powdered_sugar": {
+      "name": "Powdered/Confectioner's sugar",
+      "cup_to_grams": 120,
+      "tablespoon_to_grams": 7.5
+    },
+    "butter": {
+      "name": "Butter",
+      "cup_to_grams": 227,
+      "tablespoon_to_grams": 14.2,
+      "stick_to_grams": 113,
+      "notes": "1 stick = 1/2 cup = 8 tablespoons"
+    },
+    "milk": {
+      "name": "Whole milk",
+      "cup_to_ml": 236.6,
+      "density_g_per_ml": 1.03,
+      "notes": "Skim milk is slightly denser"
+    },
+    "cream": {
+      "name": "Heavy cream",
+      "cup_to_ml": 236.6,
+      "density_g_per_ml": 1.01
+    },
+    "oil": {
+      "name": "Vegetable oil",
+      "cup_to_ml": 236.6,
+      "density_g_per_ml": 0.92,
+      "tablespoon_to_ml": 14.8
+    },
+    "olive_oil": {
+      "name": "Olive oil",
+      "cup_to_ml": 236.6,
+      "density_g_per_ml": 0.91,
+      "tablespoon_to_ml": 14.8
+    },
+    "honey": {
+      "name": "Honey",
+      "cup_to_grams": 340,
+      "tablespoon_to_grams": 21,
+      "density_g_per_ml": 1.44
+    },
+    "maple_syrup": {
+      "name": "Maple syrup",
+      "cup_to_grams": 320,
+      "tablespoon_to_grams": 20,
+      "density_g_per_ml": 1.35
+    },
+    "rice": {
+      "name": "White rice (uncooked)",
+      "cup_to_grams": 185,
+      "notes": "Cooked rice weighs ~200g/cup"
+    },
+    "oats": {
+      "name": "Rolled oats",
+      "cup_to_grams": 90,
+      "notes": "Steel-cut oats are denser"
+    },
+    "salt": {
+      "name": "Table salt",
+      "teaspoon_to_grams": 5.7,
+      "tablespoon_to_grams": 17.1,
+      "notes": "Kosher salt is less dense"
+    },
+    "baking_powder": {
+      "name": "Baking powder",
+      "teaspoon_to_grams": 4.8,
+      "tablespoon_to_grams": 14.4
+    },
+    "baking_soda": {
+      "name": "Baking soda",
+      "teaspoon_to_grams": 4.8,
+      "tablespoon_to_grams": 14.4
+    },
+    "cocoa_powder": {
+      "name": "Cocoa powder (unsweetened)",
+      "cup_to_grams": 100,
+      "tablespoon_to_grams": 6.25
+    },
+    "yogurt": {
+      "name": "Plain yogurt",
+      "cup_to_grams": 245,
+      "density_g_per_ml": 1.03
+    },
+    "sour_cream": {
+      "name": "Sour cream",
+      "cup_to_grams": 240,
+      "tablespoon_to_grams": 15
+    },
+    "peanut_butter": {
+      "name": "Peanut butter",
+      "cup_to_grams": 250,
+      "tablespoon_to_grams": 15.6
+    },
+    "chocolate_chips": {
+      "name": "Chocolate chips",
+      "cup_to_grams": 175,
+      "notes": "Mini chips are denser"
+    }
+  },
+  "common_conversions": {
+    "bread": {
+      "loaf_to_slices": 20,
+      "slice_weight_grams": 25,
+      "notes": "Standard sandwich bread"
+    },
+    "eggs": {
+      "large_egg_grams": 50,
+      "egg_white_grams": 30,
+      "egg_yolk_grams": 20,
+      "dozen_to_count": 12
+    },
+    "cheese": {
+      "slice_weight_grams": 20,
+      "cup_shredded_grams": 110,
+      "block_to_cups_shredded": 2
+    },
+    "pasta": {
+      "dry_to_cooked_ratio": 2.5,
+      "serving_dry_grams": 85,
+      "notes": "1 cup dry = 2.5 cups cooked"
+    },
+    "vegetables": {
+      "onion_medium_grams": 150,
+      "tomato_medium_grams": 120,
+      "potato_medium_grams": 200,
+      "carrot_medium_grams": 60,
+      "bell_pepper_medium_grams": 120
+    },
+    "fruits": {
+      "apple_medium_grams": 180,
+      "banana_medium_grams": 120,
+      "orange_medium_grams": 150,
+      "lemon_juice_per_lemon_ml": 45,
+      "lime_juice_per_lime_ml": 30
+    },
+    "nuts": {
+      "almonds_per_cup_grams": 140,
+      "walnuts_per_cup_grams": 120,
+      "pecans_per_cup_grams": 100
+    },
+    "can_sizes": {
+      "standard_can_ml": 400,
+      "standard_can_grams": 425,
+      "large_can_ml": 800,
+      "condensed_soup_ml": 295
+    }
+  },
+  "volume_to_volume": {
+    "cup_to_ml": 236.588,
+    "tablespoon_to_ml": 14.787,
+    "teaspoon_to_ml": 4.929,
+    "fluid_ounce_to_ml": 29.574,
+    "cup_to_tablespoons": 16,
+    "cup_to_teaspoons": 48,
+    "tablespoon_to_teaspoons": 3,
+    "gallon_to_cups": 16,
+    "quart_to_cups": 4,
+    "pint_to_cups": 2
+  },
+  "mass_to_mass": {
+    "pound_to_grams": 453.592,
+    "ounce_to_grams": 28.350,
+    "kilogram_to_grams": 1000,
+    "pound_to_ounces": 16
+  },
+  "special_conversions": {
+    "garlic": {
+      "clove_to_teaspoons_minced": 0.5,
+      "clove_to_grams": 5,
+      "head_to_cloves": 10
+    },
+    "herbs_fresh_to_dried_ratio": {
+      "default": 3,
+      "notes": "3:1 fresh to dried for most herbs"
+    },
+    "yeast": {
+      "packet_to_teaspoons": 2.25,
+      "packet_to_grams": 7,
+      "notes": "Standard active dry yeast packet"
+    },
+    "gelatin": {
+      "packet_to_tablespoons": 1,
+      "packet_to_grams": 7,
+      "notes": "Unflavored gelatin"
+    }
+  }
+}
