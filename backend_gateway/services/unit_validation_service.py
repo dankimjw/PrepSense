@@ -72,7 +72,20 @@ class UnitValidationService:
             Detailed validation result with suggestions
         """
         # Get food categorization
-        food_info = await self.food_db_service.categorize_food_item(item_name)
+        food_categorization = await self.food_db_service.categorize_food_item(item_name)
+        
+        # Convert to dict if it's a dataclass
+        if hasattr(food_categorization, '__dict__'):
+            food_info = {
+                'category': food_categorization.category,
+                'allowed_units': food_categorization.allowed_units,
+                'default_unit': food_categorization.default_unit,
+                'confidence': food_categorization.confidence
+            }
+        else:
+            food_info = food_categorization
+            
+        logger.info(f"Food categorization for {item_name}: category={food_info.get('category')}, allowed_units={food_info.get('allowed_units')}")
         
         # Normalize unit
         normalized_unit = self._normalize_unit(unit)
@@ -84,7 +97,7 @@ class UnitValidationService:
         
         # Check general validity
         validation_result = await self.food_db_service.validate_unit_for_item(
-            item_name, normalized_unit, food_info.get('category')
+            item_name, normalized_unit
         )
         
         # Enhance with quantity context
@@ -114,8 +127,13 @@ class UnitValidationService:
             Best unit suggestion with alternatives
         """
         # Get food categorization
-        food_info = await self.food_db_service.categorize_food_item(item_name)
-        category = food_info.get('category', 'general')
+        food_categorization = await self.food_db_service.categorize_food_item(item_name)
+        
+        # Convert to dict if it's a dataclass
+        if hasattr(food_categorization, '__dict__'):
+            category = food_categorization.category
+        else:
+            category = food_categorization.get('category', 'general')
         
         # Get base suggestions
         suggestions = self._get_unit_suggestions_by_category(category, item_name)

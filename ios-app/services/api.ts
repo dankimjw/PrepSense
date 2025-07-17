@@ -71,7 +71,7 @@ export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'
       product_name: item.item_name,
       quantity: item.quantity_amount,
       unit_of_measurement: item.quantity_unit,
-      expiration_date: item.expected_expiration,
+      expiration_date: item.expected_expiration ? item.expected_expiration.split('T')[0] : null, // Convert ISO string to date-only format
       category: item.category || 'Uncategorized',
     };
     

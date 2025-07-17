@@ -74,31 +74,56 @@ def create_preferences_tool(db_service):
         """Fetch user preferences and dietary restrictions"""
         try:
             user_id_int = int(user_id)
-            query = """
-            SELECT dietary_restrictions, allergens 
-            FROM user_preferences 
+            
+            # Get dietary preferences
+            dietary_query = """
+            SELECT preference FROM user_dietary_preferences 
             WHERE user_id = %(user_id)s
             """
+            dietary_results = db_service.execute_query(dietary_query, {"user_id": user_id_int})
+            dietary_prefs = [row['preference'] for row in dietary_results]
             
-            prefs = db_service.execute_query(query, {"user_id": user_id_int})
+            # Get allergens
+            allergen_query = """
+            SELECT allergen FROM user_allergens 
+            WHERE user_id = %(user_id)s
+            """
+            allergen_results = db_service.execute_query(allergen_query, {"user_id": user_id_int})
+            allergens = [row['allergen'] for row in allergen_results]
             
-            if not prefs:
-                return "No preferences found for user"
+            # Get cuisine preferences
+            cuisine_query = """
+            SELECT cuisine FROM user_cuisine_preferences 
+            WHERE user_id = %(user_id)s
+            """
+            cuisine_results = db_service.execute_query(cuisine_query, {"user_id": user_id_int})
+            cuisines = [row['cuisine'] for row in cuisine_results]
             
-            pref = prefs[0]
             result = "User Preferences:\n"
             
-            if pref.get('dietary_restrictions'):
-                result += f"Dietary Restrictions: {', '.join(pref['dietary_restrictions'])}\n"
+            if dietary_prefs:
+                result += f"Dietary Restrictions: {', '.join(dietary_prefs)}\n"
             else:
                 result += "Dietary Restrictions: None\n"
                 
-            if pref.get('allergens'):
-                result += f"Allergens: {', '.join(pref['allergens'])}\n"
+            if allergens:
+                result += f"Allergens: {', '.join(allergens)}\n"
             else:
                 result += "Allergens: None\n"
+                
+            if cuisines:
+                result += f"Cuisine Preferences: {', '.join(cuisines)}\n"
+            else:
+                result += "Cuisine Preferences: None specified\n"
             
-            return result
+            # Return both formatted text and structured data for other tools
+            import json
+            preferences_json = json.dumps({
+                'allergens': allergens, 
+                'dietary_restrictions': dietary_prefs
+            })
+            return result + f"\n[JSON]{preferences_json}[/JSON]"
+            
         except Exception as e:
             logger.error(f"Error fetching preferences: {e}")
             return f"Error fetching preferences: {str(e)}"
@@ -208,26 +233,80 @@ Instructions:
 
 
 def create_recipe_ranker_tool():
-    """Create a tool that ranks recipes"""
+    """Create a tool that ranks recipes with allergen filtering"""
     
-    def rank_recipes(recipes_json: str) -> str:
-        """Rank recipes based on various factors"""
+    def rank_recipes(recipes_and_preferences_json: str) -> str:
+        """Rank recipes based on various factors including allergen filtering"""
         try:
             import json
-            recipes = json.loads(recipes_json)
+            data = json.loads(recipes_and_preferences_json)
             
-            # Simple scoring based on available criteria
-            scored_recipes = []
+            # Extract recipes and preferences
+            if isinstance(data, list):
+                # Legacy format - just recipes
+                recipes = data
+                user_allergens = []
+                dietary_restrictions = []
+            else:
+                # New format with preferences
+                recipes = data.get('recipes', [])
+                preferences = data.get('preferences', {})
+                user_allergens = preferences.get('allergens', [])
+                dietary_restrictions = preferences.get('dietary_restrictions', [])
+            
+            # Convert allergens to lowercase for comparison
+            user_allergens_lower = [a.lower() for a in user_allergens]
+            
+            # Filter and score recipes
+            safe_recipes = []
+            excluded_recipes = []
+            
             for recipe in recipes:
-                score = 0
-                # Base score
-                score = 50
+                # Check for allergens
+                recipe_allergens = recipe.get('allergens_present', [])
+                recipe_ingredients = recipe.get('ingredients', [])
+                
+                # Check if recipe contains any user allergens
+                contains_allergen = False
+                allergen_found = None
+                
+                # Check explicit allergens
+                for allergen in recipe_allergens:
+                    if allergen.lower() in user_allergens_lower:
+                        contains_allergen = True
+                        allergen_found = allergen
+                        break
+                
+                # Also check ingredients for allergen keywords
+                if not contains_allergen:
+                    for ingredient in recipe_ingredients:
+                        ingredient_lower = ingredient.lower()
+                        for user_allergen in user_allergens_lower:
+                            if user_allergen in ingredient_lower:
+                                contains_allergen = True
+                                allergen_found = user_allergen
+                                break
+                        if contains_allergen:
+                            break
+                
+                # If recipe contains allergens, exclude it
+                if contains_allergen:
+                    excluded_recipes.append({
+                        'name': recipe.get('name', 'Unknown'),
+                        'reason': f'Contains {allergen_found}'
+                    })
+                    continue
+                
+                # Score the recipe
+                score = 50  # Base score
                 
                 # Bonus for saved recipes
                 if recipe.get('source') == 'saved':
                     score += 20
-                    if recipe.get('user_rating'):
-                        score += int(recipe['user_rating']) * 5
+                    if recipe.get('user_rating') == 'thumbs_up':
+                        score += 25
+                    elif recipe.get('is_favorite'):
+                        score += 30
                 
                 # Bonus for fewer missing ingredients
                 missing = len(recipe.get('missing_ingredients', []))
@@ -238,19 +317,47 @@ def create_recipe_ranker_tool():
                 elif missing <= 5:
                     score += 10
                 
+                # Bonus for matching dietary preferences
+                if recipe.get('dietary_tags'):
+                    for tag in recipe['dietary_tags']:
+                        if tag.lower() in [dr.lower() for dr in dietary_restrictions]:
+                            score += 15
+                
+                # Penalty for long cooking time
+                cook_time = recipe.get('time', 0)
+                if cook_time > 60:
+                    score -= 10
+                elif cook_time > 90:
+                    score -= 20
+                
                 recipe['score'] = score
-                scored_recipes.append(recipe)
+                safe_recipes.append(recipe)
             
             # Sort by score
-            scored_recipes.sort(key=lambda x: x['score'], reverse=True)
+            safe_recipes.sort(key=lambda x: x['score'], reverse=True)
             
             result = "Recipe Rankings:\n\n"
-            for i, recipe in enumerate(scored_recipes[:5], 1):
-                result += f"{i}. {recipe.get('name', 'Unknown')} (Score: {recipe['score']})\n"
-                result += f"   Source: {recipe.get('source', 'unknown')}\n"
-                if recipe.get('missing_ingredients'):
-                    result += f"   Missing: {len(recipe['missing_ingredients'])} ingredients\n"
-                result += "\n"
+            
+            if user_allergens:
+                result += f"User Allergens: {', '.join(user_allergens)}\n"
+                result += f"Excluded {len(excluded_recipes)} recipes containing allergens\n\n"
+            
+            if not safe_recipes:
+                result += "No safe recipes found after allergen filtering!\n"
+                if excluded_recipes:
+                    result += "\nExcluded recipes:\n"
+                    for exc in excluded_recipes[:5]:
+                        result += f"- {exc['name']} ({exc['reason']})\n"
+            else:
+                result += f"Safe Recipes ({len(safe_recipes)} found):\n\n"
+                for i, recipe in enumerate(safe_recipes[:5], 1):
+                    result += f"{i}. {recipe.get('name', 'Unknown')} (Score: {recipe['score']})\n"
+                    result += f"   Source: {recipe.get('source', 'unknown')}\n"
+                    if recipe.get('missing_ingredients'):
+                        result += f"   Missing: {len(recipe['missing_ingredients'])} ingredients\n"
+                    if recipe.get('time'):
+                        result += f"   Time: {recipe['time']} minutes\n"
+                    result += "\n"
             
             return result
             
@@ -261,5 +368,5 @@ def create_recipe_ranker_tool():
     return Tool(
         name="rank_recipes",
         func=rank_recipes,
-        description="Rank recipes based on match score and user preferences. Input should be JSON array of recipes."
+        description="Rank recipes based on match score and user preferences, filtering out allergens. Input should be JSON with recipes and preferences."
     )

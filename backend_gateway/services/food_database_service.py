@@ -64,6 +64,10 @@ class FoodDatabaseService:
                 r'\b(chicken|beef|pork|turkey|fish|salmon|tuna|shrimp|lamb)\b',
                 r'\b(breast|thigh|ground|fillet)\b'
             ],
+            'bakery': [
+                r'\b(bread|loaf|roll|bun|bagel|croissant|muffin|cake|pie|pastry|donut|cookie)\b',
+                r'\b(toast|baguette|focaccia|sourdough|wheat|rye|white bread)\b'
+            ],
             'dairy': [
                 r'\b(cheese|yogurt|butter|cream|sour cream|cottage cheese)\b'
             ],
@@ -111,6 +115,11 @@ class FoodDatabaseService:
                 'allowed': ['g', 'oz', 'lb', 'kg', 'ml', 'l', 'fl oz', 'cup', 'container', 'package'],
                 'default': 'oz',
                 'forbidden': ['each', 'piece', 'whole']
+            },
+            'bakery': {
+                'allowed': ['each', 'loaf', 'slice', 'piece', 'package', 'bag', 'g', 'oz', 'lb'],
+                'default': 'each',
+                'forbidden': ['ml', 'l', 'fl oz', 'cup', 'tbsp', 'tsp', 'gallon', 'pint', 'quart']
             },
             'snacks_bars': {
                 'allowed': ['each', 'piece', 'bar', 'package', 'box', 'g', 'oz'],
@@ -374,7 +383,7 @@ class FoodDatabaseService:
         
         unit_lower = unit.lower().strip()
         allowed_units = [u.lower() for u in categorization.allowed_units]
-        forbidden_units = [u.lower() for u in categorization.category_unit_mappings.get(categorization.category, {}).get('forbidden', [])]
+        forbidden_units = [u.lower() for u in self.category_unit_mappings.get(categorization.category, {}).get('forbidden', [])]
         
         is_valid = unit_lower in allowed_units
         is_forbidden = unit_lower in forbidden_units

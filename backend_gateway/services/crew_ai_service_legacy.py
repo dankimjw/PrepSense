@@ -88,7 +88,17 @@ class CrewAIServiceLegacy:
             verbose=True
         )
         
-        # 3. Recipe Advisor Agent
+        # 3. Recipe Ranker Agent
+        self.recipe_ranker = Agent(
+            role='Recipe Ranker',
+            goal='Rank recipes based on user preferences and filter out allergens',
+            backstory="""You are a nutrition expert who ensures recipes are safe and suitable
+            for users. You carefully check for allergens and rank recipes by suitability.""",
+            tools=[self.ranker_tool],
+            verbose=True
+        )
+        
+        # 4. Recipe Advisor Agent
         self.recipe_advisor = Agent(
             role='Recipe Advisor',
             goal='Provide helpful recipe recommendations',
@@ -131,6 +141,7 @@ class CrewAIServiceLegacy:
                 agents=[
                     self.pantry_analyst,
                     self.recipe_finder,
+                    self.recipe_ranker,
                     self.recipe_advisor
                 ],
                 tasks=tasks,
@@ -179,28 +190,53 @@ class CrewAIServiceLegacy:
             1. Use fetch_saved_recipes tool with input: {user_id}|pantry_items
             2. Generate 2 new recipes using generate_recipe tool with expiring ingredients
             3. Focus on practical, common dishes
+            4. Collect all recipes in a structured format
             
             The user asked: {message}
             """,
             agent=self.recipe_finder
         )
         
-        # Task 3: Create response
+        # Task 3: Rank recipes with allergen filtering
+        ranking_task = Task(
+            description=f"""
+            Rank the recipes found, ensuring allergen safety:
+            
+            1. Take the recipes from the previous task
+            2. Get user preferences and allergens from the pantry analysis
+            3. Use rank_recipes tool with JSON input containing both recipes and preferences
+            4. IMPORTANT: Filter out ANY recipes containing user allergens
+            5. Rank remaining recipes by suitability
+            
+            Input format for rank_recipes tool:
+            {{
+                "recipes": [<list of recipes>],
+                "preferences": {{
+                    "allergens": [<list from pantry analysis>],
+                    "dietary_restrictions": [<list from pantry analysis>]
+                }}
+            }}
+            """,
+            agent=self.recipe_ranker
+        )
+        
+        # Task 4: Create response
         response_task = Task(
             description=f"""
             Create a helpful response for the user who asked: "{message}"
             
-            Based on the pantry analysis and recipes found:
-            1. Recommend the best recipes and explain why
-            2. Mention if recipes use expiring ingredients
-            3. Be friendly and conversational
+            Based on the ranked recipes (with allergens filtered out):
+            1. Recommend ONLY the safe recipes from the ranking
+            2. Never recommend recipes that were excluded for allergens
+            3. Mention if recipes use expiring ingredients
+            4. Be friendly and conversational
             
             Format as clear, helpful advice.
             """,
             agent=self.recipe_advisor
         )
         
-        return [pantry_task, recipe_task, response_task]
+        return [pantry_task, recipe_task, ranking_task, response_task]
     
     def _get_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
         """Get pantry items for a user"""

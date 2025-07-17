@@ -127,21 +127,55 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
           return;
         }
 
-        // Calculate total available and max usable
-        let totalAvailable = 0;
-        const pantryItemsData = matchingItems.map(item => {
-          // Handle both field names
-          const available = item.quantity_amount || item.quantity || 0;
-          totalAvailable += available;
+        // Group matching items by expiration date to handle legitimate duplicates
+        const itemGroups = matchingItems.reduce((groups, item) => {
+          const expDate = item.expiration_date || 'no-expiration';
+          const key = `${expDate}`;
           
-          return {
-            id: item.id || item.pantry_item_id,
-            name: item.item_name || item.product_name || 'Unknown Item',
-            availableQuantity: available,
-            unit: item.quantity_unit || item.unit_of_measurement || 'unit',
-            maxUsable: available // For now, assume 1:1 conversion
-          };
-        });
+          if (!groups[key]) {
+            groups[key] = {
+              items: [],
+              totalQuantity: 0,
+              expirationDate: item.expiration_date,
+              unit: item.quantity_unit || item.unit_of_measurement || 'unit'
+            };
+          }
+          
+          groups[key].items.push(item);
+          groups[key].totalQuantity += parseFloat(item.quantity_amount || item.quantity || 0);
+          
+          return groups;
+        }, {});
+        
+        // Convert groups to pantry items data, sorted by expiration
+        let totalAvailable = 0;
+        const pantryItemsData = Object.entries(itemGroups)
+          .sort(([a], [b]) => {
+            // Sort by expiration date, earliest first
+            if (a === 'no-expiration') return 1;
+            if (b === 'no-expiration') return -1;
+            return new Date(a) - new Date(b);
+          })
+          .map(([expDate, group]) => {
+            totalAvailable += group.totalQuantity;
+            
+            // Create a display name that includes count if multiple items
+            const baseName = group.items[0].item_name || group.items[0].product_name || 'Unknown Item';
+            const displayName = group.items.length > 1 
+              ? `${baseName} (${group.items.length} items)`
+              : baseName;
+            
+            return {
+              id: group.items[0].id || group.items[0].pantry_item_id,
+              name: displayName,
+              availableQuantity: group.totalQuantity,
+              unit: group.unit,
+              maxUsable: group.totalQuantity,
+              expirationDate: group.expirationDate,
+              itemCount: group.items.length,
+              items: group.items // Keep reference to all items in this group
+            };
+          });
 
         const requestedAmount = parsed.quantity || 0;
         const maxPossible = Math.min(requestedAmount, totalAvailable);
@@ -255,11 +289,16 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
               <Text style={styles.availabilityText}>
                 Available from {usage.pantryItems.length} item{usage.pantryItems.length > 1 ? 's' : ''}:
               </Text>
-              {usage.pantryItems.map((item, itemIndex) => (
-                <Text key={itemIndex} style={styles.pantryItemText}>
-                  • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}
-                </Text>
-              ))}
+              {usage.pantryItems.map((item, itemIndex) => {
+                const expirationInfo = item.expirationDate 
+                  ? ` (exp: ${new Date(item.expirationDate).toLocaleDateString()})` 
+                  : '';
+                return (
+                  <Text key={itemIndex} style={styles.pantryItemText}>
+                    • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}{expirationInfo}
+                  </Text>
+                );
+              })}
             </View>
 
             <View style={styles.sliderContainer}>

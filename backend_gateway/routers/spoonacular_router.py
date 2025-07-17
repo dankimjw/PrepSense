@@ -18,6 +18,7 @@ class RecipeSearchByIngredientsRequest(BaseModel):
     number: int = Field(10, ge=1, le=100, description="Number of recipes to return")
     ranking: int = Field(1, ge=0, le=1, description="0 = maximize used ingredients, 1 = minimize missing ingredients")
     ignore_pantry: bool = Field(False, description="Whether to ignore typical pantry items")
+    intolerances: Optional[List[str]] = Field(None, description="List of allergens/intolerances to exclude (e.g., dairy, gluten, peanut)")
 
 
 class RecipeSearchComplexRequest(BaseModel):
@@ -26,6 +27,7 @@ class RecipeSearchComplexRequest(BaseModel):
     diet: Optional[str] = Field(None, description="Diet type")
     include_ingredients: Optional[List[str]] = Field(None, description="Ingredients that must be included")
     exclude_ingredients: Optional[List[str]] = Field(None, description="Ingredients to exclude")
+    intolerances: Optional[List[str]] = Field(None, description="List of allergens/intolerances to exclude (e.g., dairy, gluten, peanut)")
     max_ready_time: Optional[int] = Field(None, description="Maximum ready time in minutes")
     sort: Optional[str] = Field(None, description="Sort by (popularity, time, etc.)")
     number: int = Field(10, ge=1, le=100, description="Number of results")
@@ -36,6 +38,7 @@ class RecipeFromPantryRequest(BaseModel):
     user_id: int = Field(..., description="User ID to get pantry items from")
     max_missing_ingredients: int = Field(5, description="Maximum number of missing ingredients allowed")
     use_expiring_first: bool = Field(True, description="Prioritize items expiring soon")
+    intolerances: Optional[List[str]] = Field(None, description="List of allergens/intolerances to exclude (e.g., dairy, gluten, peanut)")
 
 
 router = APIRouter(
@@ -70,7 +73,8 @@ async def search_recipes_by_ingredients(
             ingredients=request.ingredients,
             number=request.number,
             ranking=request.ranking,
-            ignore_pantry=request.ignore_pantry
+            ignore_pantry=request.ignore_pantry,
+            intolerances=request.intolerances
         )
         return recipes
     except ValueError as e:
@@ -95,6 +99,7 @@ async def search_recipes_complex(
             diet=request.diet,
             include_ingredients=request.include_ingredients,
             exclude_ingredients=request.exclude_ingredients,
+            intolerances=request.intolerances,
             max_ready_time=request.max_ready_time,
             sort=request.sort,
             number=request.number,
@@ -230,7 +235,8 @@ async def get_random_recipes(
 async def search_recipes_from_pantry(
     request: RecipeFromPantryRequest,
     spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
-    pantry_service: PantryService = Depends(get_pantry_service)
+    pantry_service: PantryService = Depends(get_pantry_service),
+    db_service = Depends(get_database_service)
 ) -> Dict[str, Any]:
     """
     Find recipes based on user's pantry items, prioritizing expiring items
@@ -317,12 +323,29 @@ async def search_recipes_from_pantry(
         
         logger.info(f"Searching recipes with {len(cleaned_ingredients)} ingredients: {cleaned_ingredients}")
         
+        # Get user allergens from database if not provided
+        intolerances = request.intolerances
+        if intolerances is None:
+            try:
+                allergen_query = """
+                SELECT allergen FROM user_allergens 
+                WHERE user_id = %(user_id)s
+                """
+                allergen_results = db_service.execute_query(allergen_query, {"user_id": request.user_id})
+                intolerances = [row['allergen'] for row in allergen_results]
+                if intolerances:
+                    logger.info(f"Found user allergens: {intolerances}")
+            except Exception as e:
+                logger.warning(f"Could not fetch user allergens: {e}")
+                intolerances = []
+        
         # Search for recipes
         recipes = await spoonacular_service.search_recipes_by_ingredients(
             ingredients=cleaned_ingredients,  # Use cleaned ingredients without brand names
             number=20,
             ranking=1,  # Minimize missing ingredients
-            ignore_pantry=True
+            ignore_pantry=True,
+            intolerances=intolerances
         )
         
         # Filter by max missing ingredients
