@@ -42,8 +42,14 @@ export default function RecipeDetailsScreen() {
         const recipeData = JSON.parse(params.recipe as string);
         setRecipe(recipeData);
         
-        // Generate image for the recipe
-        generateImageForRecipe(recipeData.name, useGenerated);
+        // Check if recipe has a Spoonacular image
+        if (recipeData.image) {
+          setGeneratedImageUrl(recipeData.image);
+          setImageLoading(false);
+        } else {
+          // Only generate image if no Spoonacular image is available
+          generateImageForRecipe(recipeData.name, useGenerated);
+        }
       } catch (error) {
         console.error('Error parsing recipe data:', error);
       }
@@ -691,6 +697,15 @@ export default function RecipeDetailsScreen() {
                   <Text style={styles.quickCompleteText}>Quick Complete</Text>
                 </TouchableOpacity>
               </View>
+              
+              {/* Cook Without Tracking Button */}
+              <TouchableOpacity 
+                style={styles.cookWithoutTrackingButton}
+                onPress={() => navigateToCookingMode()}
+              >
+                <Ionicons name="restaurant-outline" size={20} color="#666" />
+                <Text style={styles.cookWithoutTrackingText}>Cook Without Tracking Ingredients</Text>
+              </TouchableOpacity>
 
               {recipe.missing_ingredients.length > 0 && (
                 <TouchableOpacity 
@@ -728,6 +743,15 @@ export default function RecipeDetailsScreen() {
               >
                 <Ionicons name="cart" size={20} color="#fff" />
                 <Text style={styles.addAllToListText}>Add to Shopping List</Text>
+              </TouchableOpacity>
+              
+              {/* Cook Without Tracking Option */}
+              <TouchableOpacity 
+                style={styles.cookWithoutTrackingButtonAlt}
+                onPress={() => navigateToCookingMode()}
+              >
+                <Ionicons name="restaurant-outline" size={20} color="#297A56" />
+                <Text style={styles.cookWithoutTrackingTextAlt}>Cook Without Tracking</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -1009,6 +1033,24 @@ const styles = StyleSheet.create({
   startCookingButtonDisabled: {
     backgroundColor: '#A0A0A0',
   },
+  cookWithoutTrackingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginTop: 12,
+    gap: 8,
+  },
+  cookWithoutTrackingText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   allMissingContainer: {
     alignItems: 'center',
     paddingHorizontal: 32,
@@ -1048,6 +1090,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginLeft: 8,
   },
+  cookWithoutTrackingButtonAlt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#297A56',
+    marginTop: 12,
+    gap: 8,
+  },
+  cookWithoutTrackingTextAlt: {
+    color: '#297A56',
+    fontSize: 16,
+    fontWeight: '500',
+  },
   addToListButton: {
     flexDirection: 'row',
     backgroundColor: '#f0f7f4',
@@ -1067,6 +1127,24 @@ const styles = StyleSheet.create({
   },
   startCookingButtonDisabled: {
     backgroundColor: '#A0A0A0',
+  },
+  cookWithoutTrackingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#f5f5f5',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    marginTop: 12,
+    gap: 8,
+  },
+  cookWithoutTrackingText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '500',
   },
   imagePlaceholder: {
     width: '100%',
