@@ -202,7 +202,7 @@ export default function ChatScreen() {
           <Text style={styles.modalTitle}>Chat with AI Chef</Text>
           <TouchableOpacity
             style={styles.closeButton}
-            onPress={() => router.replace('/(tabs)')}
+            onPress={() => router.back()}
           >
             <Ionicons name="close" size={24} color="#333" />
           </TouchableOpacity>
