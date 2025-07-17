@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { addPantryItem } from '../../services/api';
+import { savePantryItem } from '../../services/api';
 import { formatQuantity } from '../../utils/numberFormatting';
 
 // Food categories with their allowed unit types
@@ -210,14 +210,12 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
     try {
       const categoryInfo = FOOD_CATEGORIES.find(c => c.id === selectedCategory);
       
-      await addPantryItem({
-        user_id: 111, // TODO: Get actual user ID
-        product_name: itemName,
-        quantity: parseFloat(quantity),
-        unit_of_measurement: selectedUnit,
-        expiration_date: expirationDate.toISOString().split('T')[0],
-        food_category: categoryInfo?.label || 'Other',
-        notes: notes || undefined,
+      await savePantryItem(111, { // TODO: Get actual user ID
+        item_name: itemName,
+        quantity_amount: parseFloat(quantity),
+        quantity_unit: selectedUnit,
+        expected_expiration: expirationDate.toISOString(),
+        category: categoryInfo?.label || 'Other',
       });
 
       Alert.alert('Success', 'Item added to pantry!', [
