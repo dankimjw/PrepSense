@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { RecipeIngredient, PantryItem } from '../../services/api';
 import { parseIngredientsList } from '../../utils/ingredientParser';
+import { formatQuantity } from '../../utils/numberFormatting';
 
 interface IngredientUsage {
   ingredientName: string;
@@ -83,16 +84,33 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
         if (recipe.pantry_item_matches && recipe.pantry_item_matches[ingredient]) {
           // Use the pre-calculated matches from backend
           const backendMatches = recipe.pantry_item_matches[ingredient];
-          matchingItems = pantryItems.filter(item => 
-            backendMatches.some(match => match.pantry_item_id === item.id)
-          );
+          matchingItems = pantryItems.filter(item => {
+            // Handle both id formats (pantry_item_id from backend, id from transformed)
+            const itemId = item.id || item.pantry_item_id;
+            // Convert both to strings for comparison to handle type mismatches
+            return backendMatches.some(match => 
+              String(match.pantry_item_id) === String(itemId)
+            );
+          });
+          
+          // Debug logging
+          console.log(`Ingredient: ${ingredient}`);
+          console.log(`Backend matches:`, backendMatches);
+          console.log(`Pantry items:`, pantryItems.slice(0, 3)); // Log first 3 items to see structure
+          console.log(`Found pantry items:`, matchingItems);
         } else {
           // Fallback to local matching
           matchingItems = pantryItems.filter(item => {
-            if (!item.item_name || !parsed.name) return false;
-            const itemName = item.item_name.toLowerCase();
+            // Use item_name (transformed) or product_name (original)
+            const itemName = (item.item_name || item.product_name || '').toLowerCase();
             const parsedName = parsed.name.toLowerCase();
-            return itemName.includes(parsedName) || parsedName.includes(itemName);
+            
+            // More flexible matching
+            return itemName.includes(parsedName) || 
+                   parsedName.includes(itemName) ||
+                   // Also check for partial matches (e.g., "milk" matches "whole milk")
+                   itemName.split(' ').some(word => parsedName.includes(word)) ||
+                   parsedName.split(' ').some(word => itemName.includes(word));
           });
         }
 
@@ -112,14 +130,15 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
         // Calculate total available and max usable
         let totalAvailable = 0;
         const pantryItemsData = matchingItems.map(item => {
-          const available = item.quantity_amount || 0;
+          // Handle both field names
+          const available = item.quantity_amount || item.quantity || 0;
           totalAvailable += available;
           
           return {
-            id: item.id,
-            name: item.item_name,
+            id: item.id || item.pantry_item_id,
+            name: item.item_name || item.product_name || 'Unknown Item',
             availableQuantity: available,
-            unit: item.quantity_unit || 'unit',
+            unit: item.quantity_unit || item.unit_of_measurement || 'unit',
             maxUsable: available // For now, assume 1:1 conversion
           };
         });
@@ -215,7 +234,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
           <View style={styles.ingredientInfo}>
             <Text style={styles.ingredientName}>{usage.ingredientName}</Text>
             <Text style={styles.requestedAmount}>
-              Needs: {usage.requestedQuantity} {usage.requestedUnit}
+              Needs: {formatQuantity(usage.requestedQuantity)} {usage.requestedUnit}
             </Text>
             {usage.conversionNote && (
               <Text style={styles.conversionNote}>{usage.conversionNote}</Text>
@@ -238,15 +257,15 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
               </Text>
               {usage.pantryItems.map((item, itemIndex) => (
                 <Text key={itemIndex} style={styles.pantryItemText}>
-                  • {item.name}: {item.availableQuantity} {item.unit}
+                  • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}
                 </Text>
               ))}
             </View>
 
             <View style={styles.sliderContainer}>
               <Text style={styles.sliderLabel}>
-                Use: {usage.selectedAmount.toFixed(1)} {usage.requestedUnit} 
-                ({usagePercentage.toFixed(0)}% of recipe requirement)
+                Use: {formatQuantity(usage.selectedAmount)} {usage.requestedUnit} 
+                ({Math.round(usagePercentage)}% of recipe requirement)
               </Text>
               
               <Slider
@@ -259,13 +278,13 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
                 maximumTrackTintColor="#E5E7EB"
                 thumbStyle={styles.sliderThumb}
                 trackStyle={styles.sliderTrack}
-                step={0.1}
+                step={usage.requestedQuantity > 10 ? 1 : 0.1}
               />
               
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabelText}>0</Text>
                 <Text style={styles.sliderLabelText}>
-                  Max: {usage.maxPossible.toFixed(1)}
+                  Max: {formatQuantity(usage.maxPossible)}
                 </Text>
               </View>
             </View>
@@ -274,7 +293,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
               <View style={styles.shortfallWarning}>
                 <Ionicons name="warning" size={16} color="#F59E0B" />
                 <Text style={styles.shortfallText}>
-                  Short by {(usage.requestedQuantity - usage.selectedAmount).toFixed(1)} {usage.requestedUnit}
+                  Short by {formatQuantity(usage.requestedQuantity - usage.selectedAmount)} {usage.requestedUnit}
                 </Text>
               </View>
             )}

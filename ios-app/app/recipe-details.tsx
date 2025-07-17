@@ -18,6 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
+import { formatQuantity } from '../utils/numberFormatting';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -306,10 +307,8 @@ export default function RecipeDetailsScreen() {
   };
 
   const handleQuickComplete = async () => {
-    // Load pantry items if not already loaded
-    if (pantryItems.length === 0) {
-      await loadPantryItems();
-    }
+    // Always load pantry items to ensure we have the latest data
+    await loadPantryItems();
     
     // Show the completion modal
     setShowCompletionModal(true);
@@ -346,7 +345,7 @@ export default function RecipeDetailsScreen() {
       if (result.insufficient_items && result.insufficient_items.length > 0) {
         alertTitle = 'Recipe Completed with Warnings ⚠️';
         const insufficientList = result.insufficient_items.map(
-          item => `• ${item.ingredient}: needed ${item.needed} ${item.needed_unit}, had ${item.consumed}`
+          item => `• ${item.ingredient}: needed ${formatQuantity(item.needed)} ${item.needed_unit}, had ${formatQuantity(item.consumed)}`
         ).join('\n');
         alertMessage += `\n\nInsufficient quantities:\n${insufficientList}`;
       }
