@@ -26,6 +26,7 @@ const suggestedMessages = [
 // Extended Recipe type with image URL
 interface RecipeWithImage extends Recipe {
   imageUrl?: string;
+  image?: string; // Spoonacular image URL
 }
 
 // Recipe Card Component
@@ -34,24 +35,30 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
   const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
-    // Fetch image for the recipe
-    const fetchImage = async () => {
-      try {
-        const response = await generateRecipeImage(
-          recipe.name,
-          "professional food photography",
-          false // Use Unsplash for speed
-        );
-        setImageUrl(response.image_url);
-      } catch (error) {
-        console.error('Error fetching recipe image:', error);
-      } finally {
-        setImageLoading(false);
-      }
-    };
+    // Check if recipe has a Spoonacular image first
+    if (recipe.image) {
+      setImageUrl(recipe.image);
+      setImageLoading(false);
+    } else {
+      // Fallback to generating image if no Spoonacular image
+      const fetchImage = async () => {
+        try {
+          const response = await generateRecipeImage(
+            recipe.name,
+            "professional food photography",
+            false // Use Unsplash for speed
+          );
+          setImageUrl(response.image_url);
+        } catch (error) {
+          console.error('Error fetching recipe image:', error);
+        } finally {
+          setImageLoading(false);
+        }
+      };
 
-    fetchImage();
-  }, [recipe.name]);
+      fetchImage();
+    }
+  }, [recipe.name, recipe.image]);
 
   return (
     <TouchableOpacity style={styles.recipeCard} onPress={onPress}>
