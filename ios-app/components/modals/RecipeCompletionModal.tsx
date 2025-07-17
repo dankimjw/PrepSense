@@ -38,6 +38,12 @@ interface RecipeCompletionModalProps {
   recipe: {
     name: string;
     ingredients: string[];
+    pantry_item_matches?: Record<string, Array<{
+      pantry_item_id: number;
+      product_name: string;
+      quantity: number;
+      unit: string;
+    }>>;
   };
   pantryItems: PantryItem[];
   loading?: boolean;
@@ -67,16 +73,28 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
       const parsedIngredients = parseIngredientsList(recipe.ingredients);
       const usages: IngredientUsage[] = [];
 
-      parsedIngredients.forEach(parsed => {
-        if (!parsed.name) return;
+      recipe.ingredients.forEach((ingredient, idx) => {
+        const parsed = parsedIngredients[idx];
+        if (!parsed || !parsed.name) return;
 
-        // Find matching pantry items
-        const matchingItems = pantryItems.filter(item => {
-          if (!item.item_name || !parsed.name) return false;
-          const itemName = item.item_name.toLowerCase();
-          const parsedName = parsed.name.toLowerCase();
-          return itemName.includes(parsedName) || parsedName.includes(itemName);
-        });
+        // First check if we have pantry_item_matches from the backend
+        let matchingItems = [];
+        
+        if (recipe.pantry_item_matches && recipe.pantry_item_matches[ingredient]) {
+          // Use the pre-calculated matches from backend
+          const backendMatches = recipe.pantry_item_matches[ingredient];
+          matchingItems = pantryItems.filter(item => 
+            backendMatches.some(match => match.pantry_item_id === item.id)
+          );
+        } else {
+          // Fallback to local matching
+          matchingItems = pantryItems.filter(item => {
+            if (!item.item_name || !parsed.name) return false;
+            const itemName = item.item_name.toLowerCase();
+            const parsedName = parsed.name.toLowerCase();
+            return itemName.includes(parsedName) || parsedName.includes(itemName);
+          });
+        }
 
         if (matchingItems.length === 0) {
           // No matching items found

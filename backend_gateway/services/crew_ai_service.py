@@ -7,6 +7,7 @@ import openai
 
 from backend_gateway.services.recipe_service import RecipeService
 from backend_gateway.services.user_recipes_service import UserRecipesService
+from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
@@ -124,6 +125,7 @@ class CrewAIService:
         self.db_service = get_database_service()
         self.recipe_service = RecipeService()
         self.user_recipes_service = UserRecipesService(self.db_service)
+        self.spoonacular_service = SpoonacularService()
         self.recipe_advisor = RecipeAdvisor()
         
         # Initialize OpenAI
@@ -186,16 +188,16 @@ class CrewAIService:
             saved_recipes = await self._get_matching_saved_recipes(user_id, valid_items)
             logger.info(f"✅ Found {len(saved_recipes)} matching saved recipes")
             
-            # Step 5: Generate new recipes with AI (fewer if we have saved matches)
-            num_ai_recipes = 5 - len(saved_recipes) if len(saved_recipes) < 5 else 2
-            logger.info(f"\n🤖 STEP 5: Generating {num_ai_recipes} AI recipes...")
-            ai_recipes = await self._generate_recipes(valid_items, message, user_preferences, num_ai_recipes)
-            logger.info(f"✅ Generated {len(ai_recipes)} AI recipes")
+            # Step 5: Get Spoonacular recipes (fewer if we have saved matches)
+            num_spoon_recipes = 10 - len(saved_recipes) if len(saved_recipes) < 5 else 5
+            logger.info(f"\n🥄 STEP 5: Fetching {num_spoon_recipes} Spoonacular recipes...")
+            spoonacular_recipes = await self._get_spoonacular_recipes(valid_items, message, user_preferences, num_spoon_recipes)
+            logger.info(f"✅ Found {len(spoonacular_recipes)} Spoonacular recipes")
             
             # Step 6: Combine and rank all recipes
             logger.info("\n🔀 STEP 6: Combining recipe sources...")
-            all_recipes = self._combine_recipe_sources(saved_recipes, ai_recipes)
-            logger.info(f"✅ Combined: {len(saved_recipes)} saved + {len(ai_recipes)} AI = {len(all_recipes)} total")
+            all_recipes = self._combine_recipe_sources(saved_recipes, spoonacular_recipes)
+            logger.info(f"✅ Combined: {len(saved_recipes)} saved + {len(spoonacular_recipes)} Spoonacular = {len(all_recipes)} total")
             
             # Step 7: Evaluate recipes with advisor
             logger.info("\n📊 STEP 7: Evaluating recipes...")
@@ -361,10 +363,193 @@ class CrewAIService:
             logger.error(f"Error getting saved recipes: {str(e)}")
             return []
     
-    async def _generate_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any], num_recipes: int = 5) -> List[Dict[str, Any]]:
-        """Generate recipes using OpenAI based on pantry items, user message, and preferences."""
-        logger.info(f"🤖 Starting recipe generation for {num_recipes} recipes")
+    async def _get_spoonacular_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any], num_recipes: int = 10) -> List[Dict[str, Any]]:
+        """Get recipes from Spoonacular API based on pantry items."""
+        logger.info(f"🥄 Fetching Spoonacular recipes")
         logger.info(f"📝 User message: '{message}'")
+        
+        try:
+            # Extract ingredient names from pantry
+            ingredient_names = [item['product_name'] for item in pantry_items if item.get('product_name')]
+            
+            # If asking about expiring items, prioritize those
+            message_lower = message.lower()
+            if any(phrase in message_lower for phrase in ['expiring', 'expire', 'going bad', 'use soon']):
+                from datetime import datetime, timedelta
+                today = datetime.now().date()
+                expiring_items = []
+                
+                for item in pantry_items:
+                    if item.get('expiration_date') and item.get('product_name'):
+                        exp_date = datetime.strptime(str(item['expiration_date']), '%Y-%m-%d').date()
+                        days_until_expiry = (exp_date - today).days
+                        if 0 <= days_until_expiry <= 7:
+                            expiring_items.append(item['product_name'])
+                
+                # Put expiring items first
+                if expiring_items:
+                    ingredient_names = expiring_items + [i for i in ingredient_names if i not in expiring_items]
+            
+            # Search for recipes using Spoonacular
+            spoon_recipes = await self.spoonacular_service.search_recipes_by_ingredients(
+                ingredients=ingredient_names[:10],  # Limit to top 10 ingredients
+                number=num_recipes,
+                ranking=1,  # Minimize missing ingredients
+                ignore_pantry=True
+            )
+            
+            # Convert Spoonacular format to our standard format
+            processed_recipes = []
+            for spoon_recipe in spoon_recipes:
+                # Get detailed recipe information
+                try:
+                    detailed = await self.spoonacular_service.get_recipe_information(
+                        recipe_id=spoon_recipe['id'],
+                        include_nutrition=True
+                    )
+                    
+                    # Extract ingredients with quantities
+                    ingredients = []
+                    for ing in detailed.get('extendedIngredients', []):
+                        amount = ing.get('amount', 1)
+                        unit = ing.get('unit', '')
+                        name = ing.get('name', '')
+                        ingredients.append(f"{amount} {unit} {name}".strip())
+                    
+                    # Extract instructions
+                    instructions = []
+                    if 'analyzedInstructions' in detailed and detailed['analyzedInstructions']:
+                        for instruction_group in detailed['analyzedInstructions']:
+                            for step in instruction_group.get('steps', []):
+                                instructions.append(step.get('step', ''))
+                    
+                    # Build our standard recipe format
+                    recipe = {
+                        'name': detailed.get('title', spoon_recipe.get('title', 'Unknown Recipe')),
+                        'ingredients': ingredients,
+                        'instructions': instructions if instructions else ['No instructions available'],
+                        'nutrition': {
+                            'calories': detailed.get('nutrition', {}).get('nutrients', [{}])[0].get('amount', 0),
+                            'protein': next((n['amount'] for n in detailed.get('nutrition', {}).get('nutrients', []) if n.get('name') == 'Protein'), 0)
+                        },
+                        'time': detailed.get('readyInMinutes', 30),
+                        'meal_type': self._detect_meal_type(detailed.get('title', ''), message),
+                        'cuisine_type': detailed.get('cuisines', ['various'])[0] if detailed.get('cuisines') else 'various',
+                        'dietary_tags': detailed.get('diets', []),
+                        'spoonacular_id': spoon_recipe['id'],
+                        'image': detailed.get('image', spoon_recipe.get('image')),
+                        'source': 'spoonacular',
+                        'source_url': detailed.get('sourceUrl', ''),
+                        'servings': detailed.get('servings', 4),
+                        'missed_ingredients': spoon_recipe.get('missedIngredients', []),
+                        'used_ingredients': spoon_recipe.get('usedIngredients', [])
+                    }
+                    
+                    processed_recipes.append(recipe)
+                    
+                except Exception as e:
+                    logger.error(f"Error getting detailed recipe info for {spoon_recipe['id']}: {str(e)}")
+                    # Still include basic recipe info
+                    recipe = {
+                        'name': spoon_recipe.get('title', 'Unknown Recipe'),
+                        'ingredients': [f"{ing['original']}" for ing in spoon_recipe.get('missedIngredients', []) + spoon_recipe.get('usedIngredients', [])],
+                        'instructions': ['Please visit Spoonacular for detailed instructions'],
+                        'nutrition': {'calories': 0, 'protein': 0},
+                        'time': 30,
+                        'meal_type': self._detect_meal_type(spoon_recipe.get('title', ''), message),
+                        'cuisine_type': 'various',
+                        'dietary_tags': [],
+                        'spoonacular_id': spoon_recipe['id'],
+                        'image': spoon_recipe.get('image'),
+                        'source': 'spoonacular'
+                    }
+                    processed_recipes.append(recipe)
+            
+            # Process recipes to identify available vs missing ingredients (similar to AI recipes)
+            for recipe in processed_recipes:
+                available_ingredients = []
+                missing_ingredients = []
+                pantry_item_matches = {}
+                
+                # Check each recipe ingredient against pantry
+                for ingredient in recipe.get('ingredients', []):
+                    found = False
+                    matching_items = []
+                    
+                    for pantry_item in pantry_items:
+                        if pantry_item.get('product_name'):
+                            cleaned_pantry_name = self._clean_ingredient_name(pantry_item['product_name'])
+                            if self._is_similar_ingredient(cleaned_pantry_name, ingredient):
+                                matching_items.append({
+                                    'pantry_item_id': pantry_item.get('pantry_item_id'),
+                                    'product_name': pantry_item.get('product_name'),
+                                    'quantity': pantry_item.get('quantity', 0),
+                                    'unit': pantry_item.get('unit_of_measurement', 'unit')
+                                })
+                                found = True
+                    
+                    if found:
+                        available_ingredients.append(ingredient)
+                        pantry_item_matches[ingredient] = matching_items
+                    else:
+                        missing_ingredients.append(ingredient)
+                
+                # Calculate match score
+                total_ingredients = len(recipe.get('ingredients', []))
+                available_count = len(available_ingredients)
+                missing_count = len(missing_ingredients)
+                match_score = available_count / total_ingredients if total_ingredients > 0 else 0
+                
+                # Add extra fields
+                recipe['available_ingredients'] = available_ingredients
+                recipe['missing_ingredients'] = missing_ingredients
+                recipe['missing_count'] = missing_count
+                recipe['available_count'] = available_count
+                recipe['match_score'] = round(match_score, 2)
+                recipe['pantry_item_matches'] = pantry_item_matches
+                recipe['allergens_present'] = []  # Spoonacular provides allergen info differently
+                recipe['matched_preferences'] = []
+            
+            return processed_recipes
+            
+        except Exception as e:
+            logger.error(f"Error fetching Spoonacular recipes: {str(e)}")
+            # Return empty list on error
+            return []
+    
+    def _detect_meal_type(self, recipe_title: str, user_message: str) -> str:
+        """Detect meal type from recipe title and user message."""
+        title_lower = recipe_title.lower()
+        message_lower = user_message.lower()
+        
+        # Check user message first
+        if any(word in message_lower for word in ['breakfast', 'morning', 'brunch']):
+            return 'breakfast'
+        elif any(word in message_lower for word in ['lunch', 'midday', 'noon']):
+            return 'lunch'
+        elif any(word in message_lower for word in ['dinner', 'supper', 'evening']):
+            return 'dinner'
+        elif any(word in message_lower for word in ['snack', 'appetizer', 'treat']):
+            return 'snack'
+        elif any(word in message_lower for word in ['dessert', 'sweet', 'cake', 'cookie']):
+            return 'dessert'
+        
+        # Then check recipe title
+        if any(word in title_lower for word in ['pancake', 'waffle', 'omelette', 'egg', 'breakfast', 'cereal', 'oatmeal']):
+            return 'breakfast'
+        elif any(word in title_lower for word in ['sandwich', 'salad', 'soup', 'wrap']):
+            return 'lunch'
+        elif any(word in title_lower for word in ['dessert', 'cake', 'cookie', 'ice cream', 'pie', 'pudding']):
+            return 'dessert'
+        elif any(word in title_lower for word in ['snack', 'dip', 'chips', 'popcorn']):
+            return 'snack'
+        
+        return 'dinner'  # Default
+    
+    async def _generate_recipes(self, pantry_items: List[Dict[str, Any]], message: str, user_preferences: Dict[str, Any], num_recipes: int = 5) -> List[Dict[str, Any]]:
+        """DEPRECATED: Generate recipes using OpenAI. Use _get_spoonacular_recipes instead."""
+        logger.warning("⚠️ _generate_recipes is deprecated. Use _get_spoonacular_recipes instead.")
+        return []
         
         # Detect meal type from user message
         message_lower = message.lower()
@@ -495,7 +680,7 @@ class CrewAIService:
             
             client = openai.OpenAI(api_key=openai.api_key)
             response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o",
                 messages=[
                     {"role": "system", "content": "You are a creative chef who generates recipes in JSON format."},
                     {"role": "user", "content": prompt}
@@ -662,22 +847,33 @@ class CrewAIService:
         
         # Process recipes to identify available vs missing ingredients
         processed_recipes = []
-        pantry_names = [self._clean_ingredient_name(item['product_name']) for item in pantry_items if item.get('product_name')]
         
         for recipe in all_recipes:
             available_ingredients = []
             missing_ingredients = []
+            pantry_item_matches = {}  # Map ingredient to matching pantry items
             
             # Check each recipe ingredient against pantry
             for ingredient in recipe.get('ingredients', []):
                 found = False
-                for pantry_item in pantry_names:
-                    if self._is_similar_ingredient(pantry_item, ingredient):
-                        available_ingredients.append(ingredient)
-                        found = True
-                        break
+                matching_items = []
                 
-                if not found:
+                for pantry_item in pantry_items:
+                    if pantry_item.get('product_name'):
+                        cleaned_pantry_name = self._clean_ingredient_name(pantry_item['product_name'])
+                        if self._is_similar_ingredient(cleaned_pantry_name, ingredient):
+                            matching_items.append({
+                                'pantry_item_id': pantry_item.get('pantry_item_id'),
+                                'product_name': pantry_item.get('product_name'),
+                                'quantity': pantry_item.get('quantity', 0),
+                                'unit': pantry_item.get('unit_of_measurement', 'unit')
+                            })
+                            found = True
+                
+                if found:
+                    available_ingredients.append(ingredient)
+                    pantry_item_matches[ingredient] = matching_items
+                else:
                     missing_ingredients.append(ingredient)
             
             # Calculate match score and expected joy
@@ -702,6 +898,7 @@ class CrewAIService:
             recipe['available_count'] = available_count
             recipe['match_score'] = round(match_score, 2)
             recipe['allergens_present'] = allergens_present
+            recipe['pantry_item_matches'] = pantry_item_matches  # Include pantry item mapping
             
             # Check matched preferences
             matched_prefs = []
@@ -740,7 +937,8 @@ class CrewAIService:
             
             if not is_duplicate:
                 recipe_names.add(recipe_name_lower)
-                recipe['source'] = 'ai_generated'
+                if 'source' not in recipe:
+                    recipe['source'] = 'spoonacular'
                 all_recipes.append(recipe)
         
         return all_recipes
