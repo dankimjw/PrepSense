@@ -36,7 +36,7 @@ PrepSense is a smart pantry management application that helps you:
 The app consists of:
 - **Backend**: Python FastAPI server (`backend_gateway/`)
 - **Frontend**: React Native Expo app (`ios-app/`)
-- **Database**: BigQuery for data storage
+- **Database**: PostgreSQL for data storage
 - **AI Services**: Vision API for image recognition, CrewAI for recipe suggestions
 
 ## 💡 Tips for Beginners

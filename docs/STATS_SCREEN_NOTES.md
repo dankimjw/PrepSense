@@ -239,7 +239,7 @@ Based on UI reference images (UI_Notes_1.jpeg):
   - Example: "🎉 Great news! Nothing is expiring in the next 7 days. Your pantry is under control. 👏😎"
 
 ### Implementation Notes
-- Uses BigQuery for data processing
+- Uses the backend database for data processing
 - All calculations happen server-side for performance
 - Emoji-based UI elements for better engagement
 - Clear, conversational language for user feedback

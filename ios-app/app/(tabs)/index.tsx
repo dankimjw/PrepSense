@@ -23,8 +23,7 @@ import ConsumptionModal from '../../components/modals/ConsumptionModal';
 import { ExpirationDateModal } from '../../components/modals/ExpirationDateModal';
 import { PantryItemActionSheet } from '../../components/modals/PantryItemActionSheet';
 import EditItemModal from '../../components/modals/EditItemModal';
-import { AIBulkEditModal } from '../../components/modals/AIBulkEditModal';
-import { deletePantryItem, applyAIBulkCorrections, AIBulkEditRequest } from '../../services/api';
+import { deletePantryItem } from '../../services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const IndexScreen: React.FC = () => {
@@ -41,7 +40,6 @@ const IndexScreen: React.FC = () => {
   const [selectedItemForAction, setSelectedItemForAction] = useState<PantryItemData | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<PantryItemData | null>(null);
-  const [aiBulkEditModalVisible, setAIBulkEditModalVisible] = useState(false);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
@@ -124,14 +122,6 @@ const IndexScreen: React.FC = () => {
     }, [isLoading, isInitialized, fetchItems])
   );
 
-  // Handle opening AI bulk edit modal from navigation params
-  useEffect(() => {
-    if (params.openAIBulkEdit === 'true') {
-      setAIBulkEditModalVisible(true);
-      // Clear the param to prevent reopening
-      router.setParams({ openAIBulkEdit: undefined });
-    }
-  }, [params.openAIBulkEdit]);
 
 
   // Pull to refresh handler
@@ -238,56 +228,6 @@ const IndexScreen: React.FC = () => {
     }
   };
 
-  // Handle AI bulk corrections
-  const handleAIBulkCorrections = async (selectedItemIds: string[], options: any) => {
-    try {
-      // Show loading state
-      Alert.alert(
-        'Processing',
-        `Applying AI corrections to ${selectedItemIds.length} items...`,
-        [],
-        { cancelable: false }
-      );
-
-      const request: AIBulkEditRequest = {
-        item_ids: selectedItemIds,
-        options: {
-          correct_units: options.correctUnits,
-          update_categories: options.updateCategories,
-          estimate_expirations: options.estimateExpirations,
-          enable_recurring: options.enableRecurring,
-          recurring_options: options.recurringOptions,
-        },
-        user_id: 111, // TODO: Get from auth context
-      };
-
-      // TODO: Uncomment when backend endpoint is ready
-      // await applyAIBulkCorrections(request);
-      
-      // Mock implementation for now
-      console.log('AI Bulk Corrections Request:', request);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      Alert.alert(
-        'Coming Soon!', 
-        'The AI bulk correction feature is being implemented on the backend. Selected options:\n\n' +
-        `✓ Items selected: ${selectedItemIds.length}\n` +
-        `${options.correctUnits ? '✓ Correct units\n' : ''}` +
-        `${options.updateCategories ? '✓ Update categories\n' : ''}` +
-        `${options.estimateExpirations ? '✓ Estimate expirations\n' : ''}` +
-        `${options.enableRecurring ? '✓ Enable recurring shopping list\n' : ''}`,
-        [{ text: 'OK' }]
-      );
-      
-      setAIBulkEditModalVisible(false);
-      // fetchItems(); // Refresh when backend is ready
-    } catch (error) {
-      console.error('Error applying AI corrections:', error);
-      Alert.alert('Error', 'This feature is coming soon!');
-    }
-  };
 
   // Reset filters function
   const resetFilters = () => {
@@ -544,13 +484,6 @@ const IndexScreen: React.FC = () => {
         }}
       />
 
-      {/* AI Bulk Edit Modal */}
-      <AIBulkEditModal
-        visible={aiBulkEditModalVisible}
-        items={recentItems}
-        onClose={() => setAIBulkEditModalVisible(false)}
-        onApplyChanges={handleAIBulkCorrections}
-      />
     </View>
   );
 };

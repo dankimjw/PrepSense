@@ -34,8 +34,8 @@ gcloud config set project adsp-34002-on02-prep-sense
 # Activate virtual environment
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Test BigQuery connection
-python3 -c "from google.cloud import bigquery; client = bigquery.Client(); print('✅ ADC working!')"
+# Test Google Cloud Storage connection
+python3 -c "from google.cloud import storage; client = storage.Client(); print('✅ ADC working for Google Cloud Storage!')"
 ```
 
 ### 5. Run the Application
@@ -50,7 +50,7 @@ python3 run_app.py
 - Check that you're in the correct project: `gcloud config get-value project`
 
 ### "Permission denied" errors
-- Ensure your Google account has the necessary BigQuery permissions
+- Ensure your Google account has the necessary Google Cloud Storage permissions
 - Contact the project admin to grant you access
 
 ### Need to use different Google accounts
@@ -83,4 +83,4 @@ gcloud auth application-default login
 If you absolutely need to use a JSON key:
 1. Uncomment `GOOGLE_APPLICATION_CREDENTIALS` in `.env`
 2. Ensure the path points to your key file
-3. The BigQueryService will automatically use the key file
+3. The Google Cloud client libraries will automatically use the key file if the environment variable is set

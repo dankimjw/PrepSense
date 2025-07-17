@@ -48,8 +48,7 @@ class OCRResponse(BaseModel):
 
 def get_pantry_manager(db_service = Depends(get_database_service)) -> PantryItemManagerEnhanced:
     """Dependency to get PantryItemManager instance"""
-    categorization_service = PracticalFoodCategorizationService(db_service)
-    return PantryItemManagerEnhanced(db_service, categorization_service)
+    return PantryItemManagerEnhanced(db_service)
 
 
 @router.post("/scan-receipt", response_model=OCRResponse, summary="Scan receipt and extract items")

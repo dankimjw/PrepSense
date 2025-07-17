@@ -78,7 +78,6 @@
 ### Files Updated
 - `backend_gateway/scripts/setup_iam_auth.py`
 - `backend_gateway/scripts/grant_iam_permissions.py`
-- `bigquery/scripts/migrate_pantry_items.py`
 - `backend_gateway/DATABASE_MIGRATION_GUIDE.md`
 
 ---

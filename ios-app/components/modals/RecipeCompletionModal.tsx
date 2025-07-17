@@ -71,10 +71,12 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
         if (!parsed.name) return;
 
         // Find matching pantry items
-        const matchingItems = pantryItems.filter(item => 
-          item.item_name.toLowerCase().includes(parsed.name.toLowerCase()) ||
-          parsed.name.toLowerCase().includes(item.item_name.toLowerCase())
-        );
+        const matchingItems = pantryItems.filter(item => {
+          if (!item.item_name || !parsed.name) return false;
+          const itemName = item.item_name.toLowerCase();
+          const parsedName = parsed.name.toLowerCase();
+          return itemName.includes(parsedName) || parsedName.includes(itemName);
+        });
 
         if (matchingItems.length === 0) {
           // No matching items found
@@ -112,7 +114,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
           requestedQuantity: requestedAmount,
           requestedUnit: parsed.unit || 'unit',
           pantryItems: pantryItemsData,
-          selectedAmount: maxPossible,
+          selectedAmount: maxPossible > 0 ? maxPossible : 0, // Default to max if available
           maxPossible: maxPossible,
           conversionNote: pantryItemsData.length > 0 && 
             pantryItemsData[0].unit !== parsed.unit ? 
@@ -139,6 +141,28 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
   };
 
   const handleConfirm = () => {
+    // Check if any ingredients are available at all
+    const hasAvailableIngredients = ingredientUsages.some(usage => usage.maxPossible > 0);
+    
+    if (!hasAvailableIngredients) {
+      Alert.alert(
+        'No Ingredients Available',
+        'None of the recipe ingredients are available in your pantry. Would you like to add them to your shopping list?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Add to Shopping List', 
+            onPress: () => {
+              // Close modal and navigate to shopping list
+              onClose();
+              // You can add navigation to shopping list here
+            }
+          }
+        ]
+      );
+      return;
+    }
+    
     // Validate that we have some ingredients selected
     const hasSelectedIngredients = ingredientUsages.some(usage => usage.selectedAmount > 0);
     
