@@ -97,6 +97,10 @@ app.include_router(demo_router, prefix=f"{settings.API_V1_STR}", tags=["Demo"])
 from backend_gateway.routers.cooking_history_router import router as cooking_history_router
 app.include_router(cooking_history_router, prefix=f"{settings.API_V1_STR}", tags=["Cooking History"])
 
+# Import units router
+from backend_gateway.routers.units_router import router as units_router
+app.include_router(units_router, prefix=f"{settings.API_V1_STR}", tags=["Units"])
+
 # Import stats router
 from backend_gateway.routers.stats_router import router as stats_router
 app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["Statistics"])
