@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { getCategoryColor } from '../../utils/itemHelpers';
+import { formatQuantity } from '../../utils/numberFormatting';
 
 export interface PantryItemData {
   id: string;
@@ -75,7 +76,7 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
               style={styles.itemAmount}
               numberOfLines={1}
             >
-              {item.quantity_amount} {item.quantity_unit}
+              {formatQuantity(item.quantity_amount)} {item.quantity_unit}
             </Text>
           </View>
         </View>

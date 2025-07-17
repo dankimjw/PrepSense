@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Recipe, completeRecipe, RecipeIngredient, fetchPantryItems, PantryItem } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
+import { formatQuantity } from '../utils/numberFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -121,7 +122,7 @@ export default function CookingModeScreen() {
       if (result.insufficient_items && result.insufficient_items.length > 0) {
         alertTitle = 'Recipe Completed with Warnings ⚠️';
         const insufficientList = result.insufficient_items.map(
-          item => `• ${item.ingredient}: needed ${item.needed} ${item.needed_unit}, had ${item.consumed}`
+          item => `• ${item.ingredient}: needed ${formatQuantity(item.needed)} ${item.needed_unit}, had ${formatQuantity(item.consumed)}`
         ).join('\n');
         alertMessage = `Some items had insufficient quantity but we've updated what was available.\n\n${result.summary}\n\nInsufficient quantities:\n${insufficientList}\n\nEnjoy your meal!`;
       }
