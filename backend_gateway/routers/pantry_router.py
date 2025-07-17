@@ -144,8 +144,29 @@ async def add_pantry_item_for_specific_user(
         The newly created pantry item
     """
     try:
+        # Basic unit validation - check for common invalid combinations
+        unit_lower = item_data.unit_of_measurement.lower().strip()
+        item_lower = item_data.product_name.lower()
+        
+        # Simple validation rules
+        liquid_units = ['ml', 'l', 'liter', 'milliliter', 'gallon', 'quart', 'pint', 'fluid ounce', 'fl oz']
+        solid_items = ['bread', 'cookie', 'chip', 'cracker', 'cake', 'sandwich', 'bar']
+        
+        # Check if solid item is being measured with liquid unit
+        if any(solid in item_lower for solid in solid_items) and unit_lower in liquid_units:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": f"Solid items like {item_data.product_name} cannot be measured in liquid units",
+                    "suggestions": ["each", "piece", "loaf", "slice", "g", "oz", "lb"],
+                    "allowed_units": ["each", "piece", "loaf", "slice", "g", "oz", "lb", "package", "bag"]
+                }
+            )
+        
         new_item = await pantry_service.add_pantry_item(item_data=item_data, user_id=user_id)
         return new_item 
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except ValueError as ve:
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
@@ -165,8 +186,29 @@ async def add_pantry_item_for_user(
     numeric_user_id = 111  # TEMPORARY: Hardcode for user 111
         
     try:
+        # Basic unit validation - check for common invalid combinations
+        unit_lower = item_data.unit_of_measurement.lower().strip()
+        item_lower = item_data.product_name.lower()
+        
+        # Simple validation rules
+        liquid_units = ['ml', 'l', 'liter', 'milliliter', 'gallon', 'quart', 'pint', 'fluid ounce', 'fl oz']
+        solid_items = ['bread', 'cookie', 'chip', 'cracker', 'cake', 'sandwich', 'bar']
+        
+        # Check if solid item is being measured with liquid unit
+        if any(solid in item_lower for solid in solid_items) and unit_lower in liquid_units:
+            raise HTTPException(
+                status_code=422,
+                detail={
+                    "message": f"Solid items like {item_data.product_name} cannot be measured in liquid units",
+                    "suggestions": ["each", "piece", "loaf", "slice", "g", "oz", "lb"],
+                    "allowed_units": ["each", "piece", "loaf", "slice", "g", "oz", "lb", "package", "bag"]
+                }
+            )
+        
         new_item = await pantry_service.add_pantry_item(item_data=item_data, user_id=numeric_user_id)
         return new_item 
+    except HTTPException:
+        raise  # Re-raise HTTP exceptions as-is
     except ValueError as ve: # Example: if service validates and raises ValueError
         raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:

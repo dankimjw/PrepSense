@@ -87,13 +87,24 @@ export function parseIngredient(ingredientString: string): ParsedIngredient {
     // Parse unit if present
     if (match[2]) {
       const unitCandidate = match[2].toLowerCase();
-      unit = unitMappings[unitCandidate] || unitCandidate;
       
-      // Remove quantity and unit from name
-      name = cleaned.substring(match[0].length).trim();
+      // Check if this is actually a unit or part of the ingredient name
+      if (unitMappings[unitCandidate] || 
+          ['small', 'medium', 'large', 'whole'].includes(unitCandidate)) {
+        // It's a valid unit
+        unit = unitMappings[unitCandidate] || unitCandidate;
+        // Remove quantity and unit from name
+        name = cleaned.substring(match[0].length).trim();
+      } else {
+        // It's not a unit, it's part of the ingredient name
+        // Only remove the quantity, keep the rest as the name
+        name = cleaned.substring(match[1].length).trim();
+        unit = 'piece'; // Default unit for countable items
+      }
     } else {
       // No unit found, the rest is the name
       name = cleaned.substring(match[1].length).trim();
+      unit = 'piece'; // Default unit for countable items
     }
     
     // If name is empty, it means the whole string was quantity + unit

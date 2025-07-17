@@ -169,11 +169,11 @@ class PantryItemManager:
                 # Insert into pantry_items
                 pantry_item_query = """
                     INSERT INTO pantry_items
-                    (pantry_item_id, pantry_id, quantity, unit_of_measurement, 
+                    (pantry_item_id, pantry_id, product_name, category, quantity, unit_of_measurement, 
                      expiration_date, unit_price, total_price, created_at, 
                      used_quantity, status)
                     VALUES
-                    (%(pantry_item_id)s, %(pantry_id)s, %(quantity)s, %(unit)s, 
+                    (%(pantry_item_id)s, %(pantry_id)s, %(product_name)s, %(category)s, %(quantity)s, %(unit)s, 
                      %(exp_date)s, %(unit_price)s, %(total_price)s, CURRENT_TIMESTAMP, 
                      %(used_qty)s, %(status)s)
                 """
@@ -181,6 +181,8 @@ class PantryItemManager:
                 pantry_item_params = {
                     "pantry_item_id": pantry_item_id,
                     "pantry_id": pantry_id,
+                    "product_name": item.get('item_name', 'Unknown Item'),
+                    "category": item.get('category', 'Uncategorized'),
                     "quantity": float(item.get('quantity_amount', 1.0)),
                     "unit": item.get('quantity_unit', 'unit'),
                     "exp_date": exp_date_obj,
@@ -198,10 +200,10 @@ class PantryItemManager:
                 product_query = """
                     INSERT INTO products
                     (product_id, pantry_item_id, product_name, brand_name, 
-                     category, upc_code, created_at)
+                     category, created_at)
                     VALUES
                     (%(product_id)s, %(pantry_item_id)s, %(product_name)s, %(brand)s, 
-                     %(category)s, %(upc)s, CURRENT_TIMESTAMP)
+                     %(category)s, CURRENT_TIMESTAMP)
                 """
                 
                 product_params = {
@@ -210,7 +212,6 @@ class PantryItemManager:
                     "product_name": item.get('item_name', 'Unknown Item'),
                     "brand": item.get('brand', 'Generic'),
                     "category": item.get('category', 'Uncategorized'),
-                    "upc": item.get('upc_code', ''),  # Can be empty
                 }
                 
                 product_start = datetime.now()

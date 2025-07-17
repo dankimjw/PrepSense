@@ -8,6 +8,8 @@ import openai
 from backend_gateway.services.recipe_service import RecipeService
 from backend_gateway.services.user_recipes_service import UserRecipesService
 from backend_gateway.services.spoonacular_service import SpoonacularService
+from backend_gateway.services.openai_recipe_service import OpenAIRecipeService
+from backend_gateway.services.recipe_preference_scorer import RecipePreferenceScorer
 from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
@@ -126,6 +128,8 @@ class CrewAIService:
         self.recipe_service = RecipeService()
         self.user_recipes_service = UserRecipesService(self.db_service)
         self.spoonacular_service = SpoonacularService()
+        self.openai_service = OpenAIRecipeService()
+        self.preference_scorer = RecipePreferenceScorer(self.db_service)
         self.recipe_advisor = RecipeAdvisor()
         
         # Initialize OpenAI
@@ -390,12 +394,16 @@ class CrewAIService:
                 if expiring_items:
                     ingredient_names = expiring_items + [i for i in ingredient_names if i not in expiring_items]
             
-            # Search for recipes using Spoonacular
+            # Get user allergens from preferences
+            allergens = user_preferences.get('allergens', [])
+            
+            # Search for recipes using Spoonacular with allergen filtering
             spoon_recipes = await self.spoonacular_service.search_recipes_by_ingredients(
                 ingredients=ingredient_names[:10],  # Limit to top 10 ingredients
                 number=num_recipes,
                 ranking=1,  # Minimize missing ingredients
-                ignore_pantry=True
+                ignore_pantry=True,
+                intolerances=allergens if allergens else None
             )
             
             # Convert Spoonacular format to our standard format
@@ -944,32 +952,54 @@ class CrewAIService:
         return all_recipes
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Rank recipes based on practical factors and advisor evaluation."""
-        logger.info(f"🏆 Ranking {len(recipes)} recipes...")
+        """Rank recipes using advanced preference scoring system."""
+        logger.info(f"🏆 Ranking {len(recipes)} recipes with preference scorer...")
         
-        # Enhanced ranking with advisor insights:
-        # 1. Saved recipes the user likes
-        # 2. Recipes using expiring ingredients
-        # 3. Recipes you can make without shopping
-        # 4. Good nutritional balance
-        # 5. High match score
+        # Get user ID from preferences or pantry items
+        user_id = user_preferences.get('user_id')
+        if not user_id and pantry_items:
+            # Try to get user_id from pantry items (they should have it)
+            user_id = 111  # Default for now, should be passed properly
+        
+        # Score each recipe using the preference scorer
+        for recipe in recipes:
+            try:
+                score_result = self.preference_scorer.calculate_comprehensive_score(
+                    recipe=recipe,
+                    user_id=user_id,
+                    pantry_items=pantry_items,
+                    context={'season': 'current', 'meal_type': 'any'}
+                )
+                
+                # Add scoring results to recipe
+                recipe['preference_score'] = score_result['score']
+                recipe['score_reasoning'] = score_result['reasoning']
+                recipe['recommendation_level'] = score_result['recommendation_level']
+                recipe['score_components'] = score_result['components']
+                
+            except Exception as e:
+                logger.warning(f"Could not score recipe {recipe.get('name', 'unknown')}: {e}")
+                recipe['preference_score'] = 50.0  # Default middle score
+        
+        # Enhanced ranking with preference scores
         ranked = sorted(recipes, key=lambda r: (
-            r.get('source') == 'saved' and r.get('user_rating') == 'thumbs_up',  # User's liked recipes first
-            r.get('source') == 'saved' and r.get('is_favorite', False),  # Then favorites
+            r.get('preference_score', 0),  # Primary: Comprehensive preference score
+            r.get('source') == 'saved' and r.get('user_rating') == 'thumbs_up',  # User's liked recipes
             r.get('evaluation', {}).get('uses_expiring', False),  # Prioritize expiring ingredients
             r.get('missing_count', 999) == 0,  # Recipes you can make now
-            r.get('evaluation', {}).get('nutritional_balance') == 'good',  # Well-balanced meals
             r.get('match_score', 0),  # High ingredient match
             -r.get('missing_count', 999)  # Fewer missing ingredients
         ), reverse=True)
         
-        # Log top 3 recipes
+        # Log top 3 recipes with preference scores
         for i, recipe in enumerate(ranked[:3]):
             logger.info(f"  #{i+1}: {recipe['name']}")
+            logger.info(f"      - Preference score: {recipe.get('preference_score', 0):.1f}/100")
+            logger.info(f"      - Recommendation: {recipe.get('recommendation_level', 'Unknown')}")
             logger.info(f"      - Source: {recipe.get('source', 'unknown')}")
-            logger.info(f"      - Match score: {recipe.get('match_score', 0):.2f}")
             logger.info(f"      - Missing items: {recipe.get('missing_count', 0)}")
-            logger.info(f"      - Uses expiring: {recipe.get('evaluation', {}).get('uses_expiring', False)}")
+            if recipe.get('score_reasoning'):
+                logger.info(f"      - Why: {'; '.join(recipe['score_reasoning'][:2])}")
         
         return ranked
     
