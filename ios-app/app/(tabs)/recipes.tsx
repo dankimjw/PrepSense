@@ -356,8 +356,8 @@ export default function RecipesScreen() {
       
       const data = await response.json();
       console.log('Fetched saved recipes with filter:', myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
-      // Add mock recipes for testing
-      const mockRecipes: SavedRecipe[] = [
+      // Mock recipes removed to prevent 404 errors with invalid Spoonacular IDs
+      const mockRecipes: SavedRecipe[] = []; /*[
         {
           id: 'mock-1',
           recipe_id: 100001,
@@ -535,8 +535,10 @@ export default function RecipesScreen() {
           created_at: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
           updated_at: new Date(Date.now() - 432000000).toISOString(),
         }
-      ];
+      ];*/
 
+      // Mock recipes processing commented out
+      /*
       // Add status to mock recipes based on rating
       mockRecipes.forEach(recipe => {
         if (!recipe.status) {
@@ -547,7 +549,13 @@ export default function RecipesScreen() {
       
       // Filter mock recipes based on current tab and filter
       let filteredMockRecipes = mockRecipes;
+      */
       
+      // Use empty array instead of mock recipes
+      let filteredMockRecipes: SavedRecipe[] = [];
+      
+      // Mock recipes filtering commented out - no mock recipes to filter
+      /*
       // First filter by status (tab)
       if (myRecipesTab === 'saved') {
         filteredMockRecipes = mockRecipes.filter(recipe => recipe.status === 'saved');
@@ -565,6 +573,7 @@ export default function RecipesScreen() {
       }
       
       console.log('Mock recipes filtered:', filteredMockRecipes.length, 'out of', mockRecipes.length, 'for filter:', myRecipesFilter);
+      */
       
       // Combine real data with filtered mock data
       const combinedData = [...(data || []), ...filteredMockRecipes];
