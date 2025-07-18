@@ -58,43 +58,32 @@ export function isIngredientAvailable(ingredient: RecipeIngredient, pantryItems:
   const ingredientName = ingredient.name;
   const originalText = ingredient.original;
   
-  console.log(`\n--- Checking ingredient: "${ingredientName}" (original: "${originalText}") ---`);
-  
   // Normalize pantry items
   const normalizedPantryItems = pantryItems.map(item => ({
     ...item,
     normalized: normalizeIngredientName(item.product_name)
   }));
   
-  console.log('Normalized pantry items:', normalizedPantryItems.map(p => p.normalized));
-  
   // Try multiple matching strategies
   
   // 1. Direct normalized match
   const normalizedIngredient = normalizeIngredientName(ingredientName);
-  console.log(`Normalized ingredient: "${normalizedIngredient}"`);
-  
   if (normalizedPantryItems.some(item => item.normalized === normalizedIngredient)) {
-    console.log('✓ Direct match found!');
     return true;
   }
   
   // 2. Check if pantry item contains ingredient name
   if (normalizedPantryItems.some(item => item.normalized.includes(normalizedIngredient))) {
-    console.log('✓ Pantry item contains ingredient!');
     return true;
   }
   
   // 3. Check if ingredient name contains pantry item
   if (normalizedPantryItems.some(item => normalizedIngredient.includes(item.normalized))) {
-    console.log('✓ Ingredient contains pantry item!');
     return true;
   }
   
   // 4. Keyword matching
   const ingredientKeywords = extractKeyWords(ingredientName);
-  console.log(`Ingredient keywords: [${ingredientKeywords.join(', ')}]`);
-  
   const hasKeywordMatch = normalizedPantryItems.some(pantryItem => {
     return ingredientKeywords.some(keyword => 
       pantryItem.normalized.includes(keyword) || keyword.includes(pantryItem.normalized)
@@ -102,7 +91,6 @@ export function isIngredientAvailable(ingredient: RecipeIngredient, pantryItems:
   });
   
   if (hasKeywordMatch) {
-    console.log('✓ Keyword match found!');
     return true;
   }
   
@@ -111,9 +99,6 @@ export function isIngredientAvailable(ingredient: RecipeIngredient, pantryItems:
     const normalizedOriginal = normalizeIngredientName(originalText);
     const originalKeywords = extractKeyWords(originalText);
     
-    console.log(`Normalized original: "${normalizedOriginal}"`);
-    console.log(`Original keywords: [${originalKeywords.join(', ')}]`);
-    
     if (normalizedPantryItems.some(item => 
       item.normalized.includes(normalizedOriginal) || 
       normalizedOriginal.includes(item.normalized) ||
@@ -121,12 +106,10 @@ export function isIngredientAvailable(ingredient: RecipeIngredient, pantryItems:
         item.normalized.includes(keyword) || keyword.includes(item.normalized)
       )
     )) {
-      console.log('✓ Original text match found!');
       return true;
     }
   }
   
-  console.log('✗ No match found');
   return false;
 }
 

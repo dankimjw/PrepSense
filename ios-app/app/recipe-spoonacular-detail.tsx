@@ -122,7 +122,6 @@ export default function RecipeSpoonacularDetail() {
       if (!response.ok) throw new Error('Failed to fetch pantry items');
       
       const items = await response.json();
-      console.log('Fetched pantry items:', items);
       setPantryItems(items);
       
       // Check available ingredients if recipe is already loaded
@@ -131,30 +130,47 @@ export default function RecipeSpoonacularDetail() {
       }
     } catch (error) {
       console.error('Error fetching pantry items:', error);
-      // For debugging, add some mock pantry items
-      console.log('Using mock pantry items for testing');
-      const mockPantryItems = [
-        { product_name: 'Large Eggs' },
-        { product_name: 'Bacon Slices' },
-        { product_name: 'Bread Slices' },
-        { product_name: 'Whole Milk' },
-        { product_name: 'Cheddar Cheese' },
-        { product_name: 'Butter' },
-        { product_name: 'Salt' },
-        { product_name: 'Black Pepper' },
-        { product_name: 'Olive Oil' },
-        { product_name: 'Onion' },
-        { product_name: 'Garlic' },
-        { product_name: 'Chicken Breast' },
-        { product_name: 'Ground Beef' }
-      ];
-      setPantryItems(mockPantryItems);
-      
-      // Check available ingredients if recipe is already loaded
-      if (recipe) {
-        checkAvailableIngredients(recipe.extendedIngredients);
-      }
     }
+  };
+
+  const cleanInstructionText = (text: string): string => {
+    // Fix common text corruption patterns
+    let cleaned = text;
+    
+    // Fix "FILESTORAGE" -> "STORAGE"
+    cleaned = cleaned.replace(/FILESTORAGE/gi, 'STORAGE');
+    
+    // Fix "COOK'S FILE" -> "COOK'S TIP" or "COOK'S NOTE"
+    cleaned = cleaned.replace(/COOK'S FILE/gi, "COOK'S NOTE");
+    
+    // Add spaces before capital letters that follow lowercase letters without space
+    cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1. $2');
+    
+    // Fix multiple periods
+    cleaned = cleaned.replace(/\.{2,}/g, '.');
+    
+    // Add space after periods if missing
+    cleaned = cleaned.replace(/\.([A-Z])/g, '. $1');
+    
+    // Remove any file system or technical terms that shouldn't be in recipes
+    const technicalTerms = [
+      'FILE', 'FILESYSTEM', 'DATABASE', 'CACHE', 'BUFFER', 'MEMORY'
+    ];
+    
+    technicalTerms.forEach(term => {
+      // Only remove if it's a standalone word (not part of a larger word)
+      const regex = new RegExp(`\\b${term}\\b`, 'gi');
+      cleaned = cleaned.replace(regex, '');
+    });
+    
+    // Clean up extra spaces
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    // Fix spacing around punctuation
+    cleaned = cleaned.replace(/\s+([.,!?])/g, '$1');
+    cleaned = cleaned.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
+    
+    return cleaned;
   };
 
   const filterValidIngredients = (ingredients: RecipeDetail['extendedIngredients']) => {
@@ -191,15 +207,7 @@ export default function RecipeSpoonacularDetail() {
     // Filter out non-ingredients first
     const validIngredients = filterValidIngredients(recipeIngredients);
     
-    console.log('=== Checking Available Ingredients ===');
-    console.log('Valid recipe ingredients:', validIngredients.map(i => ({ id: i.id, name: i.name, original: i.original })));
-    console.log('Pantry items:', pantryItems.map(p => p.product_name));
-    
     const result = calculateIngredientAvailability(validIngredients, pantryItems);
-    
-    console.log('Ingredient availability result:', result);
-    console.log('Available ingredients:', Array.from(result.availableIngredients));
-    console.log('Missing ingredients:', Array.from(result.missingIngredients));
     
     // Validate that counts add up correctly
     if (!validateIngredientCounts(result)) {
@@ -736,7 +744,7 @@ export default function RecipeSpoonacularDetail() {
                   <View style={styles.stepNumber}>
                     <Text style={styles.stepNumberText}>{step.number}</Text>
                   </View>
-                  <Text style={styles.stepText}>{step.step}</Text>
+                  <Text style={styles.stepText}>{cleanInstructionText(step.step)}</Text>
                 </View>
               ))
             ) : (
