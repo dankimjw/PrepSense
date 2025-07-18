@@ -6,7 +6,7 @@ import openai
 import os
 
 from backend_gateway.services.crew_ai_service import CrewAIService
-from backend_gateway.services.nutrient_aware_crew_service import NutrientAwareCrewService
+# from backend_gateway.services.nutrient_aware_crew_service import NutrientAwareCrewService  # Temporarily disabled
 from backend_gateway.routers.users import get_current_active_user
 from backend_gateway.models.user import UserInDB
 
@@ -44,8 +44,8 @@ class ImageGenerationResponse(BaseModel):
 def get_crew_ai_service():
     return CrewAIService()
 
-def get_nutrient_aware_crew_service():
-    return NutrientAwareCrewService()
+# def get_nutrient_aware_crew_service():
+    # return NutrientAwareCrewService()
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
@@ -81,11 +81,11 @@ async def send_message(
             detail=f"Failed to process message: {str(e)}"
         )
 
-@router.post("/message-with-nutrition", response_model=ChatResponse)
-async def send_message_with_nutrition(
-    chat_message: ChatMessage,
-    nutrient_crew_service: NutrientAwareCrewService = Depends(get_nutrient_aware_crew_service)
-):
+# @router.post("/message-with-nutrition", response_model=ChatResponse)
+# async def send_message_with_nutrition(
+#     chat_message: ChatMessage,
+#     nutrient_crew_service: NutrientAwareCrewService = Depends(get_nutrient_aware_crew_service)
+# ):
     """
     Send a message to the AI assistant and get nutrient-aware recipe recommendations
     based on the user's pantry items and nutritional gaps.
