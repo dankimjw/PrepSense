@@ -1,0 +1,4 @@
+# Python dependencies for USDA nutrition database
+requests
+psycopg2-binary  # For PostgreSQL connection
+pandas  # Optional, for easier CSV handling
