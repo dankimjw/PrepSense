@@ -73,6 +73,10 @@ app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 from backend_gateway.routers.chat_v2_router import router as chat_v2_router
 app.include_router(chat_v2_router, prefix=f"{settings.API_V1_STR}", tags=["Chat V2"])
 
+# Import multi-agent router (CrewAI multi-agent implementation)
+from backend_gateway.routers.crew_ai_multi_agent_router import router as multi_agent_router
+app.include_router(multi_agent_router, prefix=f"{settings.API_V1_STR}", tags=["Multi-Agent Chat"])
+
 # Import streaming chat router (Optimized CrewAI with parallel processing)
 from backend_gateway.routers.chat_streaming_router import router as chat_streaming_router
 app.include_router(chat_streaming_router, tags=["Chat Streaming"])
