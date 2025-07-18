@@ -345,7 +345,7 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
-      console.log('Fetched saved recipes:', data);
+      console.log('Fetched saved recipes with filter:', myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
       // Add mock recipes for testing
       const mockRecipes: SavedRecipe[] = [
         {
@@ -526,8 +526,21 @@ export default function RecipesScreen() {
         }
       ];
 
-      // Combine real data with mock data
-      const combinedData = [...(data || []), ...mockRecipes];
+      // Filter mock recipes based on current filter
+      let filteredMockRecipes = mockRecipes;
+      
+      if (myRecipesFilter === 'favorites') {
+        filteredMockRecipes = mockRecipes.filter(recipe => recipe.is_favorite);
+      } else if (myRecipesFilter === 'thumbs_up') {
+        filteredMockRecipes = mockRecipes.filter(recipe => recipe.rating === 'thumbs_up');
+      } else if (myRecipesFilter === 'thumbs_down') {
+        filteredMockRecipes = mockRecipes.filter(recipe => recipe.rating === 'thumbs_down');
+      }
+      
+      console.log('Mock recipes filtered:', filteredMockRecipes.length, 'out of', mockRecipes.length, 'for filter:', myRecipesFilter);
+      
+      // Combine real data with filtered mock data
+      const combinedData = [...(data || []), ...filteredMockRecipes];
       setSavedRecipes(combinedData);
     } catch (error) {
       console.error('Error fetching saved recipes:', error);
@@ -751,6 +764,13 @@ export default function RecipesScreen() {
       fetchMyRecipes();
     }
   }, [activeTab, fetchRecipesFromPantry, selectedFilters, myRecipesFilter]);
+
+  // Add separate effect to handle filter changes on my-recipes tab
+  useEffect(() => {
+    if (activeTab === 'my-recipes') {
+      fetchMyRecipes();
+    }
+  }, [myRecipesFilter]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
