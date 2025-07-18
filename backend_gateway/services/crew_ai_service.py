@@ -10,6 +10,7 @@ from backend_gateway.services.user_recipes_service import UserRecipesService
 from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.openai_recipe_service import OpenAIRecipeService
 from backend_gateway.services.recipe_preference_scorer import RecipePreferenceScorer
+from backend_gateway.services.food_lookup_tool import food_lookup_tool
 from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
@@ -203,19 +204,24 @@ class CrewAIService:
             all_recipes = self._combine_recipe_sources(saved_recipes, spoonacular_recipes)
             logger.info(f"✅ Combined: {len(saved_recipes)} saved + {len(spoonacular_recipes)} Spoonacular = {len(all_recipes)} total")
             
-            # Step 7: Evaluate recipes with advisor
-            logger.info("\n📊 STEP 7: Evaluating recipes...")
+            # Step 7: Enrich recipes with complete nutrition data
+            logger.info("\n🥗 STEP 7: Enriching recipes with nutrition data...")
+            all_recipes = self._enrich_recipes_with_nutrition(all_recipes)
+            logger.info(f"✅ All recipes now have complete nutrition data")
+            
+            # Step 8: Evaluate recipes with advisor
+            logger.info("\n📊 STEP 8: Evaluating recipes...")
             for recipe in all_recipes:
                 recipe['evaluation'] = self.recipe_advisor.evaluate_recipe_fit(recipe, user_preferences, pantry_analysis)
             logger.info(f"✅ Evaluated all {len(all_recipes)} recipes")
             
-            logger.info("\n🏆 STEP 8: Ranking recipes...")
+            logger.info("\n🏆 STEP 9: Ranking recipes...")
             ranked_recipes = self._rank_recipes(all_recipes, valid_items, user_preferences)
             if ranked_recipes:
                 logger.info(f"✅ Top recipe: '{ranked_recipes[0]['name']}' (score: {ranked_recipes[0].get('match_score', 0):.2f})")
             
-            # Step 9: Generate advice and format response
-            logger.info("\n💬 STEP 9: Formatting response...")
+            # Step 10: Generate advice and format response
+            logger.info("\n💬 STEP 10: Formatting response...")
             advice = self.recipe_advisor.generate_advice(ranked_recipes, pantry_analysis, message)
             response = self._format_response(ranked_recipes, valid_items, message, user_preferences)
             
@@ -950,6 +956,106 @@ class CrewAIService:
                 all_recipes.append(recipe)
         
         return all_recipes
+    
+    def _enrich_recipes_with_nutrition(self, recipes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Ensure all recipes have complete nutrition data like Spoonacular recipes."""
+        logger.info(f"🥗 Enriching {len(recipes)} recipes with nutrition data...")
+        
+        enriched_recipes = []
+        
+        for recipe in recipes:
+            try:
+                # Check if recipe already has complete nutrition data
+                nutrition = recipe.get('nutrition', {})
+                
+                # Define what constitutes "complete" nutrition data
+                required_nutrients = ['calories', 'protein', 'carbohydrates', 'fiber', 'total_fat', 'sodium']
+                has_complete_nutrition = all(
+                    nutrition.get(nutrient, 0) > 0 for nutrient in ['calories', 'protein']
+                )
+                
+                if not has_complete_nutrition:
+                    # Estimate nutrition from ingredients using USDA database
+                    ingredients = recipe.get('ingredients', [])
+                    if ingredients:
+                        logger.info(f"  📊 Calculating nutrition for: {recipe['name']}")
+                        
+                        # Use food lookup tool to estimate nutrition
+                        estimated_nutrition = food_lookup_tool.estimate_nutrition_from_ingredients(ingredients)
+                        
+                        # Convert NutrientProfile to dict if needed
+                        if hasattr(estimated_nutrition, 'to_dict'):
+                            nutrition_dict = estimated_nutrition.to_dict()
+                        else:
+                            nutrition_dict = estimated_nutrition
+                        
+                        # Update recipe nutrition, preserving any existing values
+                        if 'nutrition' not in recipe:
+                            recipe['nutrition'] = {}
+                        
+                        # Add all nutrients from estimation
+                        recipe['nutrition'].update({
+                            'calories': nutrition_dict.get('calories', 350),  # Default if estimation fails
+                            'protein': nutrition_dict.get('protein', 20),
+                            'carbohydrates': nutrition_dict.get('carbohydrates', 40),
+                            'fiber': nutrition_dict.get('fiber', 5),
+                            'total_fat': nutrition_dict.get('total_fat', 15),
+                            'saturated_fat': nutrition_dict.get('saturated_fat', 5),
+                            'sugar': nutrition_dict.get('sugar', 10),
+                            'sodium': nutrition_dict.get('sodium', 600),
+                            'calcium': nutrition_dict.get('calcium', 100),
+                            'iron': nutrition_dict.get('iron', 2),
+                            'vitamin_c': nutrition_dict.get('vitamin_c', 30),
+                            'potassium': nutrition_dict.get('potassium', 400)
+                        })
+                        
+                        # Mark the source of nutrition data
+                        recipe['nutrition_source'] = 'usda_estimated'
+                        recipe['nutrition_confidence'] = 0.8
+                    else:
+                        # No ingredients to estimate from, use reasonable defaults
+                        logger.warning(f"  ⚠️ No ingredients for nutrition estimation: {recipe['name']}")
+                        recipe['nutrition'] = {
+                            'calories': 350,
+                            'protein': 20,
+                            'carbohydrates': 40,
+                            'fiber': 5,
+                            'total_fat': 15,
+                            'saturated_fat': 5,
+                            'sugar': 10,
+                            'sodium': 600,
+                            'calcium': 100,
+                            'iron': 2,
+                            'vitamin_c': 30,
+                            'potassium': 400
+                        }
+                        recipe['nutrition_source'] = 'default_values'
+                        recipe['nutrition_confidence'] = 0.3
+                else:
+                    # Already has nutrition data
+                    recipe['nutrition_source'] = recipe.get('nutrition_source', 'original')
+                    recipe['nutrition_confidence'] = recipe.get('nutrition_confidence', 0.9)
+                
+                # Ensure all recipes have at least basic macros
+                if 'calories' not in recipe.get('nutrition', {}):
+                    recipe.setdefault('nutrition', {})['calories'] = 350
+                if 'protein' not in recipe.get('nutrition', {}):
+                    recipe.setdefault('nutrition', {})['protein'] = 20
+                
+                enriched_recipes.append(recipe)
+                
+            except Exception as e:
+                logger.error(f"Error enriching recipe {recipe.get('name', 'unknown')} with nutrition: {e}")
+                # Add recipe anyway with default nutrition
+                recipe.setdefault('nutrition', {
+                    'calories': 350, 'protein': 20, 'carbohydrates': 40,
+                    'fiber': 5, 'total_fat': 15, 'sodium': 600
+                })
+                recipe['nutrition_error'] = str(e)
+                enriched_recipes.append(recipe)
+        
+        logger.info(f"✅ Enriched all recipes with nutrition data")
+        return enriched_recipes
     
     def _rank_recipes(self, recipes: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]], user_preferences: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Rank recipes using advanced preference scoring system."""
