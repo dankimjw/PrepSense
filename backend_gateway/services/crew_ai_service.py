@@ -1011,14 +1011,17 @@ class CrewAIService:
         
         # Remove size/weight patterns
         import re
-        cleaned = re.sub(r'\d+\.?\d*\s*(oz|lb|g|kg|ml|l|cups?|tsp|tbsp|tablespoons?|teaspoons?)', '', cleaned)
+        cleaned = re.sub(r'\d+\.?\d*\s*(oz|lbs?|g|kg|ml|l|cups?|tsp|tbsp|tablespoons?|teaspoons?)', '', cleaned)
         cleaned = re.sub(r'–.*', '', cleaned)  # Remove anything after dash
         cleaned = re.sub(r'\(.*?\)', '', cleaned)  # Remove parentheses
         
         # Remove common modifiers
-        modifiers = ['fresh', 'frozen', 'dried', 'canned', 'organic', 'chopped', 'diced', 'sliced', 'minced']
+        modifiers = ['fresh', 'frozen', 'dried', 'canned', 'organic', 'chopped', 'diced', 'sliced', 'minced', 'whole']
         for mod in modifiers:
             cleaned = cleaned.replace(mod, '')
+        
+        # Clean up extra whitespace
+        cleaned = ' '.join(cleaned.split())
         
         return cleaned.strip()
     
