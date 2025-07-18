@@ -20,6 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
+import { validateInstructions, getDefaultInstructions, isInappropriateContent } from '../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -134,6 +135,11 @@ export default function RecipeSpoonacularDetail() {
   };
 
   const cleanInstructionText = (text: string): string => {
+    // First check if the content is inappropriate
+    if (isInappropriateContent(text)) {
+      return '';
+    }
+    
     // Fix common text corruption patterns
     let cleaned = text;
     
@@ -169,6 +175,11 @@ export default function RecipeSpoonacularDetail() {
     // Fix spacing around punctuation
     cleaned = cleaned.replace(/\s+([.,!?])/g, '$1');
     cleaned = cleaned.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
+    
+    // Final check after cleaning
+    if (isInappropriateContent(cleaned)) {
+      return '';
+    }
     
     return cleaned;
   };
@@ -356,7 +367,9 @@ export default function RecipeSpoonacularDetail() {
     const recipeForCooking = {
       name: recipe.title,
       ingredients: recipe.extendedIngredients.map(ing => ing.original),
-      instructions: recipe.analyzedInstructions[0]?.steps.map(step => step.step) || [],
+      instructions: recipe.analyzedInstructions[0]?.steps
+        .map(step => cleanInstructionText(step.step))
+        .filter(text => text.length > 0) || getDefaultInstructions(recipe.title),
       nutrition: {
         calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
         protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
@@ -738,19 +751,29 @@ export default function RecipeSpoonacularDetail() {
 
         {activeTab === 'instructions' && (
           <View style={styles.instructionsContainer}>
-            {recipe.analyzedInstructions.length > 0 ? (
-              recipe.analyzedInstructions[0].steps.map((step, index) => (
-                <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
+            {recipe.analyzedInstructions.length > 0 && recipe.analyzedInstructions[0].steps.length > 0 ? (
+              recipe.analyzedInstructions[0].steps
+                .map((step, index) => {
+                  const cleanedText = cleanInstructionText(step.step);
+                  return cleanedText ? (
+                    <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
+                      <View style={styles.stepNumber}>
+                        <Text style={styles.stepNumberText}>{step.number}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{cleanedText}</Text>
+                    </View>
+                  ) : null;
+                })
+                .filter(Boolean)
+            ) : (
+              getDefaultInstructions(recipe.title).map((instruction, index) => (
+                <View key={`default-step-${index}`} style={styles.instructionStep}>
                   <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>{step.number}</Text>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
                   </View>
-                  <Text style={styles.stepText}>{cleanInstructionText(step.step)}</Text>
+                  <Text style={styles.stepText}>{instruction}</Text>
                 </View>
               ))
-            ) : (
-              <Text style={styles.noInstructions}>
-                No detailed instructions available. Please check the original recipe source.
-              </Text>
             )}
           </View>
         )}
