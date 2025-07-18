@@ -73,6 +73,10 @@ app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 from backend_gateway.routers.chat_v2_router import router as chat_v2_router
 app.include_router(chat_v2_router, prefix=f"{settings.API_V1_STR}", tags=["Chat V2"])
 
+# Import streaming chat router (Optimized CrewAI with parallel processing)
+from backend_gateway.routers.chat_streaming_router import router as chat_streaming_router
+app.include_router(chat_streaming_router, tags=["Chat Streaming"])
+
 # Import spoonacular router
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
 app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["Spoonacular Recipes"])
