@@ -14,11 +14,13 @@ class OpenAIRecipeService:
     """Generate allergen-free recipes using OpenAI"""
     
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if self.api_key:
+        try:
+            from ..core.config_utils import get_openai_api_key
+            self.api_key = get_openai_api_key()
             openai.api_key = self.api_key
-        else:
-            logger.warning("OpenAI API key not found")
+        except ValueError as e:
+            logger.warning(f"OpenAI service disabled: {str(e)}")
+            self.api_key = None
     
     async def generate_allergen_free_recipes(
         self,
