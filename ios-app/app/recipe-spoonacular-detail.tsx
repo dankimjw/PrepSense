@@ -19,6 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
+import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
 
 const { width } = Dimensions.get('window');
 
@@ -126,25 +127,15 @@ export default function RecipeSpoonacularDetail() {
   };
 
   const checkAvailableIngredients = (recipeIngredients: RecipeDetail['extendedIngredients']) => {
-    const available = new Set<number>();
-    const missing = new Set<number>();
+    const result = calculateIngredientAvailability(recipeIngredients, pantryItems);
     
-    recipeIngredients.forEach(ingredient => {
-      const ingredientName = ingredient.name.toLowerCase();
-      const isAvailable = pantryItems.some(pantryItem => {
-        const pantryName = pantryItem.product_name.toLowerCase();
-        return pantryName.includes(ingredientName) || ingredientName.includes(pantryName);
-      });
-      
-      if (isAvailable) {
-        available.add(ingredient.id);
-      } else {
-        missing.add(ingredient.id);
-      }
-    });
+    // Validate that counts add up correctly
+    if (!validateIngredientCounts(result)) {
+      console.warn('Ingredient count validation failed:', result);
+    }
     
-    setAvailableIngredients(available);
-    setMissingIngredients(missing);
+    setAvailableIngredients(result.availableIngredients);
+    setMissingIngredients(result.missingIngredients);
   };
 
   const handleAddToShoppingList = async () => {
