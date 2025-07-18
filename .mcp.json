@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "mcp-server-filesystem --root .",
+      "args": [],
+      "env": {}
+    },
+    "memory": {
+      "type": "sse",
+      "url": "http://localhost:8003/sse"
+    },
+    "sequential-thinking": {
+      "type": "sse",
+      "url": "http://localhost:8004/sse"
+    }
+  }
+}
