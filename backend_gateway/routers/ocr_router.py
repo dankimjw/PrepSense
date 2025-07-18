@@ -238,14 +238,11 @@ async def add_scanned_items(
                 expiration_date = datetime.now().date()
                 expiration_date = expiration_date.replace(day=expiration_date.day + expiration_days)
                 
-                # Add item to pantry
-                result = await pantry_manager.add_pantry_item(
+                # Add item to pantry using smart_add_item method
+                item_description = f"{item.quantity} {item.unit} {item.name}"
+                result = await pantry_manager.smart_add_item(
                     user_id=user_id,
-                    product_name=item.name,
-                    quantity=item.quantity,
-                    unit_of_measurement=item.unit,
-                    expiration_date=expiration_date.strftime("%Y-%m-%d"),
-                    category=item.category
+                    item_description=item_description
                 )
                 
                 if result["success"]:

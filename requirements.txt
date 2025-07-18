@@ -36,6 +36,7 @@ google-auth-oauthlib==1.2.0
 # PostgreSQL
 psycopg2-binary>=2.9.0
 sqlalchemy>=2.0.0
+asyncpg>=0.28.0  # For async PostgreSQL operations
 
 # Web scraping and parsing
 beautifulsoup4==4.12.3
