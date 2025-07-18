@@ -82,6 +82,13 @@ export default function RecipeSpoonacularDetail() {
     fetchPantryItems();
   }, [recipeId]);
 
+  // Check ingredients when pantryItems change
+  useEffect(() => {
+    if (recipe && pantryItems.length > 0) {
+      checkAvailableIngredients(recipe.extendedIngredients);
+    }
+  }, [pantryItems, recipe]);
+
   const fetchRecipeDetails = async () => {
     if (!recipeId) return;
 
@@ -115,6 +122,7 @@ export default function RecipeSpoonacularDetail() {
       if (!response.ok) throw new Error('Failed to fetch pantry items');
       
       const items = await response.json();
+      console.log('Fetched pantry items:', items);
       setPantryItems(items);
       
       // Check available ingredients if recipe is already loaded
@@ -123,11 +131,75 @@ export default function RecipeSpoonacularDetail() {
       }
     } catch (error) {
       console.error('Error fetching pantry items:', error);
+      // For debugging, add some mock pantry items
+      console.log('Using mock pantry items for testing');
+      const mockPantryItems = [
+        { product_name: 'Large Eggs' },
+        { product_name: 'Bacon Slices' },
+        { product_name: 'Bread Slices' },
+        { product_name: 'Whole Milk' },
+        { product_name: 'Cheddar Cheese' },
+        { product_name: 'Butter' },
+        { product_name: 'Salt' },
+        { product_name: 'Black Pepper' },
+        { product_name: 'Olive Oil' },
+        { product_name: 'Onion' },
+        { product_name: 'Garlic' },
+        { product_name: 'Chicken Breast' },
+        { product_name: 'Ground Beef' }
+      ];
+      setPantryItems(mockPantryItems);
+      
+      // Check available ingredients if recipe is already loaded
+      if (recipe) {
+        checkAvailableIngredients(recipe.extendedIngredients);
+      }
     }
   };
 
+  const filterValidIngredients = (ingredients: RecipeDetail['extendedIngredients']) => {
+    return ingredients
+      .filter((ingredient) => {
+        const lowerName = ingredient.name.toLowerCase();
+        const lowerOriginal = ingredient.original.toLowerCase();
+        
+        // Filter out items that are clearly not ingredients
+        const nonIngredientPatterns = [
+          'preparation time',
+          'cooking time',
+          'total time',
+          'servings',
+          'yield',
+          'ready in',
+          'prep time',
+          'cook time'
+        ];
+        
+        const isNonIngredient = nonIngredientPatterns.some(pattern => 
+          lowerName.includes(pattern) || lowerOriginal.includes(pattern)
+        );
+        
+        return !isNonIngredient;
+      })
+      // Remove duplicates based on ingredient name
+      .filter((ingredient, index, self) => 
+        index === self.findIndex(i => i.name === ingredient.name)
+      );
+  };
+
   const checkAvailableIngredients = (recipeIngredients: RecipeDetail['extendedIngredients']) => {
-    const result = calculateIngredientAvailability(recipeIngredients, pantryItems);
+    // Filter out non-ingredients first
+    const validIngredients = filterValidIngredients(recipeIngredients);
+    
+    console.log('=== Checking Available Ingredients ===');
+    console.log('Valid recipe ingredients:', validIngredients.map(i => ({ id: i.id, name: i.name, original: i.original })));
+    console.log('Pantry items:', pantryItems.map(p => p.product_name));
+    
+    const result = calculateIngredientAvailability(validIngredients, pantryItems);
+    
+    console.log('Ingredient availability result:', result);
+    console.log('Available ingredients:', Array.from(result.availableIngredients));
+    console.log('Missing ingredients:', Array.from(result.missingIngredients));
     
     // Validate that counts add up correctly
     if (!validateIngredientCounts(result)) {
@@ -145,9 +217,10 @@ export default function RecipeSpoonacularDetail() {
     }
     
     // When all ingredients are missing, use all ingredients
+    const validIngredients = filterValidIngredients(recipe.extendedIngredients);
     const ingredientsToAdd = missingIngredients.size > 0 
-      ? recipe.extendedIngredients.filter(ing => missingIngredients.has(ing.id))
-      : (availableIngredients.size === 0 ? recipe.extendedIngredients : []);
+      ? validIngredients.filter(ing => missingIngredients.has(ing.id))
+      : (availableIngredients.size === 0 ? validIngredients : []);
     
     if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
@@ -615,7 +688,7 @@ export default function RecipeSpoonacularDetail() {
               <TouchableOpacity 
                 style={styles.addToShoppingListButton}
                 onPress={() => {
-                  const missingIngredientsList = recipe.extendedIngredients
+                  const missingIngredientsList = filterValidIngredients(recipe.extendedIngredients)
                     .filter(ing => missingIngredients.has(ing.id))
                     .map(ing => ing.original);
                   
@@ -634,24 +707,24 @@ export default function RecipeSpoonacularDetail() {
                 </Text>
               </TouchableOpacity>
             )}
-            {recipe.extendedIngredients.map((ingredient, index) => {
-              const isAvailable = availableIngredients.has(ingredient.id);
-              return (
-                <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
-                  {isAvailable ? (
-                    <Ionicons name="checkmark-circle" size={20} color="#297A56" />
-                  ) : (
-                    <Ionicons name="close-circle" size={20} color="#EF4444" />
-                  )}
-                  <Text style={[styles.ingredientText, !isAvailable && styles.missingIngredientText]}>
-                    {ingredient.original}
-                  </Text>
-                  {isAvailable && (
-                    <Text style={styles.availableText}>In pantry</Text>
-                  )}
-                </View>
-              );
-            })}
+            {filterValidIngredients(recipe.extendedIngredients).map((ingredient, index) => {
+                const isAvailable = availableIngredients.has(ingredient.id);
+                return (
+                  <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
+                    {isAvailable ? (
+                      <Ionicons name="checkmark-circle" size={20} color="#297A56" />
+                    ) : (
+                      <Ionicons name="close-circle" size={20} color="#EF4444" />
+                    )}
+                    <Text style={[styles.ingredientText, !isAvailable && styles.missingIngredientText]}>
+                      {ingredient.original}
+                    </Text>
+                    {isAvailable && (
+                      <Text style={styles.availableText}>In pantry</Text>
+                    )}
+                  </View>
+                );
+              })}
           </View>
         )}
 
