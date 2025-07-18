@@ -1,0 +1,6811 @@
+{
+  "user_id": 111,
+  "items": [
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 11.36,
+      "unit": "l",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 3.0,
+      "unit": "gal",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 11.36,
+      "unit": "l",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "green peas frozen - updated",
+      "category": "Test",
+      "quantity": 51.0,
+      "unit": "oz",
+      "expiration_date": "2025-12-31T00:00:00",
+      "days_until_expiry": 166,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "chicken breast",
+      "category": "Meat",
+      "quantity": 17.0,
+      "unit": "lb",
+      "expiration_date": "2025-07-27T00:00:00",
+      "days_until_expiry": 9,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "test milk direct",
+      "category": "Uncategorized",
+      "quantity": 1.5,
+      "unit": "l",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 3.0,
+      "unit": "gal",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "bread",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "loaf",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "test milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "test apple",
+      "category": "Uncategorized",
+      "quantity": 3.0,
+      "unit": "each",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pasta (spaghetti)",
+      "category": "Test",
+      "quantity": 1.0,
+      "unit": "lb",
+      "expiration_date": "2026-07-07T00:00:00",
+      "days_until_expiry": 354,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pasta",
+      "category": "Test",
+      "quantity": 500.0,
+      "unit": "g",
+      "expiration_date": "2026-07-11T00:00:00",
+      "days_until_expiry": 358,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "eggs",
+      "category": "Test",
+      "quantity": 9.2,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "salt",
+      "category": "Test",
+      "quantity": 500.0,
+      "unit": "g",
+      "expiration_date": "2028-07-10T00:00:00",
+      "days_until_expiry": 1088,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "black pepper",
+      "category": "Test",
+      "quantity": 100.0,
+      "unit": "g",
+      "expiration_date": "2028-07-10T00:00:00",
+      "days_until_expiry": 1088,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "chicken breast",
+      "category": "Test",
+      "quantity": 1.88,
+      "unit": "lb",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "olive oil",
+      "category": "Test",
+      "quantity": 750.0,
+      "unit": "ml",
+      "expiration_date": "2026-01-07T00:00:00",
+      "days_until_expiry": 173,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "jif extra crunchy peanut butter",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "bunch",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "granulated sugar",
+      "category": "Test",
+      "quantity": 1000.0,
+      "unit": "g",
+      "expiration_date": "2027-07-11T00:00:00",
+      "days_until_expiry": 723,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "large eggs",
+      "category": "Test",
+      "quantity": 9.0,
+      "unit": "ea",
+      "expiration_date": "2025-07-21T00:00:00",
+      "days_until_expiry": 3,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Dairy",
+      "quantity": 5.0,
+      "unit": "gal",
+      "expiration_date": "2026-06-26T00:00:00",
+      "days_until_expiry": 343,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "black beans \u2013 15 oz",
+      "category": "Legumes",
+      "quantity": 2.0,
+      "unit": "can",
+      "expiration_date": "2027-05-28T00:00:00",
+      "days_until_expiry": 679,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "whole milk",
+      "category": "Test",
+      "quantity": 2000.0,
+      "unit": "ml",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "balsamic vinegar of modena",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2028-07-03T00:00:00",
+      "days_until_expiry": 1081,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "all-purpose flour",
+      "category": "Test",
+      "quantity": 1.88,
+      "unit": "kg",
+      "expiration_date": "2026-07-11T00:00:00",
+      "days_until_expiry": 358,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "roma tomatoes",
+      "category": "Test",
+      "quantity": 6.0,
+      "unit": "cup",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "vanilla extract",
+      "category": "Test",
+      "quantity": 4.0,
+      "unit": "floz",
+      "expiration_date": "2027-07-11T00:00:00",
+      "days_until_expiry": 723,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Dairy",
+      "quantity": 18.93,
+      "unit": "ea",
+      "expiration_date": "2025-08-22T00:00:00",
+      "days_until_expiry": 35,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "extra-virgin olive oil",
+      "category": "Fats & Oils",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2027-05-28T00:00:00",
+      "days_until_expiry": 679,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-12-03T00:00:00",
+      "days_until_expiry": 138,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "ancient harvest quinoa traditional",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2026-04-03T00:00:00",
+      "days_until_expiry": 259,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini cheese sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 11.36,
+      "unit": "l",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 3.0,
+      "unit": "gal",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "chicken breast",
+      "category": "Uncategorized",
+      "quantity": 2.5,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "gallon",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 11.36,
+      "unit": "l",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Uncategorized",
+      "quantity": 3.0,
+      "unit": "gal",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "ground beef",
+      "category": "Meat",
+      "quantity": 1.5,
+      "unit": "lb",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "kg",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "pacific organic low sodium chicken broth",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "yellow bell pepper",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "can",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic joe's o's",
+      "category": "Uncategorized",
+      "quantity": 15.0,
+      "unit": "oz can",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini cheese sandwich crackers",
+      "category": "Uncategorized",
+      "quantity": 7.5,
+      "unit": "oz box",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini peanut butter sandwich crackers",
+      "category": "Uncategorized",
+      "quantity": 7.5,
+      "unit": "oz box",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian linguine",
+      "category": "Uncategorized",
+      "quantity": 16.0,
+      "unit": "oz pack",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian macaroni",
+      "category": "Uncategorized",
+      "quantity": 16.0,
+      "unit": "oz pack",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian farfalle",
+      "category": "Uncategorized",
+      "quantity": 16.0,
+      "unit": "oz pack",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian fusilli",
+      "category": "Uncategorized",
+      "quantity": 16.0,
+      "unit": "oz pack",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's this blueberry walks into a bar cereal bars",
+      "category": "Uncategorized",
+      "quantity": 7.8,
+      "unit": "oz box",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's this strawberry walks into a bar cereal bars",
+      "category": "Uncategorized",
+      "quantity": 7.8,
+      "unit": "oz box",
+      "expiration_date": "2025-08-16T00:00:00",
+      "days_until_expiry": 29,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "bananas",
+      "category": "Produce",
+      "quantity": 2.63,
+      "unit": "ea",
+      "expiration_date": "2025-07-30T00:00:00",
+      "days_until_expiry": 12,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple - updated",
+      "category": "Test",
+      "quantity": 11.0,
+      "unit": "ea",
+      "expiration_date": "2025-12-31T00:00:00",
+      "days_until_expiry": 166,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 58.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "red apple",
+      "category": "Uncategorized",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-02T00:00:00",
+      "days_until_expiry": 15,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Dairy",
+      "quantity": 18.93,
+      "unit": "ea",
+      "expiration_date": "2025-08-22T00:00:00",
+      "days_until_expiry": 35,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "milk",
+      "category": "Dairy",
+      "quantity": 18.93,
+      "unit": "ea",
+      "expiration_date": "2025-08-22T00:00:00",
+      "days_until_expiry": 35,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "colavita extra virgin olive oil",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "domino sugar",
+      "category": "Unknown",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-03T00:00:00",
+      "days_until_expiry": 16,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "corn on the cob",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "broccoli",
+      "category": "Uncategorized",
+      "quantity": 1.0,
+      "unit": "ea",
+      "expiration_date": "2025-08-01T00:00:00",
+      "days_until_expiry": 14,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian linguine",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian fusilli",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian linguine",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian farfalle",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian macaroni",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian fusilli",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian farfalle",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian macaroni",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian fusilli",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian linguine",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian farfalle",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian macaroni",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian linguine",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian fusilli",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian farfalle",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's italian macaroni",
+      "category": "Pantry",
+      "quantity": 16.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini peanut butter sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's blueberry cereal bars",
+      "category": "Snacks",
+      "quantity": 7.8,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's strawberry cereal bars",
+      "category": "Snacks",
+      "quantity": 5.85,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's blueberry cereal bars",
+      "category": "Snacks",
+      "quantity": 7.8,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini cheese sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's strawberry cereal bars",
+      "category": "Snacks",
+      "quantity": 5.85,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini peanut butter sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's blueberry cereal bars",
+      "category": "Snacks",
+      "quantity": 7.8,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini cheese sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini peanut butter sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's strawberry cereal bars",
+      "category": "Snacks",
+      "quantity": 5.85,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's blueberry cereal bars",
+      "category": "Snacks",
+      "quantity": 7.8,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic mini cheese sandwich crackers",
+      "category": "Snacks",
+      "quantity": 7.5,
+      "unit": "g",
+      "expiration_date": "2026-07-26T00:00:00",
+      "days_until_expiry": 373,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic joe's o's",
+      "category": "Canned Goods",
+      "quantity": 15.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic joe's o's",
+      "category": "Canned Goods",
+      "quantity": 15.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic joe's o's",
+      "category": "Canned Goods",
+      "quantity": 15.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's organic joe's o's",
+      "category": "Canned Goods",
+      "quantity": 15.0,
+      "unit": "g",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    },
+    {
+      "name": "trader joe's strawberry cereal bars",
+      "category": "Snacks",
+      "quantity": 5.0,
+      "unit": "ea",
+      "expiration_date": "2025-07-26T00:00:00",
+      "days_until_expiry": 8,
+      "confidence_score": 1.0
+    }
+  ],
+  "last_updated": "2025-07-18T00:11:20.200646",
+  "total_items": 756
+}

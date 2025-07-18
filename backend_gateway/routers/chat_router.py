@@ -6,6 +6,7 @@ import openai
 import os
 
 from backend_gateway.services.crew_ai_service import CrewAIService
+from backend_gateway.services.nutrient_aware_crew_service import NutrientAwareCrewService
 from backend_gateway.routers.users import get_current_active_user
 from backend_gateway.models.user import UserInDB
 
@@ -21,6 +22,7 @@ class ChatMessage(BaseModel):
     message: str
     user_id: int = 111  # Default user for now
     use_preferences: bool = True  # Whether to use user preferences
+    include_nutrition: bool = False  # Whether to include nutrient gap awareness
 
 class ChatResponse(BaseModel):
     response: str
@@ -28,6 +30,7 @@ class ChatResponse(BaseModel):
     pantry_items: List[Dict[str, Any]] = []
     user_preferences: Dict[str, Any] = None
     show_preference_choice: bool = False
+    nutrient_analysis: Dict[str, Any] = None
 
 class ImageGenerationRequest(BaseModel):
     recipe_name: str
@@ -40,6 +43,9 @@ class ImageGenerationResponse(BaseModel):
 
 def get_crew_ai_service():
     return CrewAIService()
+
+def get_nutrient_aware_crew_service():
+    return NutrientAwareCrewService()
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
@@ -70,6 +76,43 @@ async def send_message(
         return response
     except Exception as e:
         logger.error(f"Error processing chat message: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process message: {str(e)}"
+        )
+
+@router.post("/message-with-nutrition", response_model=ChatResponse)
+async def send_message_with_nutrition(
+    chat_message: ChatMessage,
+    nutrient_crew_service: NutrientAwareCrewService = Depends(get_nutrient_aware_crew_service)
+):
+    """
+    Send a message to the AI assistant and get nutrient-aware recipe recommendations
+    based on the user's pantry items and nutritional gaps.
+    """
+    try:
+        logger.info(f"Processing nutrient-aware message: {chat_message.message}")
+        
+        # Check if this is the first message (to show preference choice)
+        show_preference_choice = len(chat_message.message) > 0 and not any(
+            word in chat_message.message.lower() 
+            for word in ['without preferences', 'ignore preferences', 'no preferences']
+        )
+        
+        response = await nutrient_crew_service.process_message_with_nutrition(
+            user_id=chat_message.user_id,
+            message=chat_message.message,
+            use_preferences=chat_message.use_preferences,
+            include_nutrient_gaps=chat_message.include_nutrition
+        )
+        
+        # Add preference choice flag for first message
+        if show_preference_choice and response.get('user_preferences'):
+            response['show_preference_choice'] = True
+        
+        return response
+    except Exception as e:
+        logger.error(f"Error processing nutrient-aware chat message: {str(e)}")
         raise HTTPException(
             status_code=500,
             detail=f"Failed to process message: {str(e)}"
