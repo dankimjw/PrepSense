@@ -113,6 +113,10 @@ app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["Statist
 from backend_gateway.routers.ocr_router import router as ocr_router
 app.include_router(ocr_router, prefix=f"{settings.API_V1_STR}", tags=["OCR"])
 
+# Import nutrition router
+from backend_gateway.routers.nutrition_router import router as nutrition_router
+app.include_router(nutrition_router, tags=["Nutrition"])
+
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router
 # app.include_router(recipe_image_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Images"])
