@@ -62,10 +62,37 @@ class SpoonacularService:
         recipes = results.get('results', [])
         
         # Add compatibility fields to match findByIngredients format
-        for recipe in recipes:
-            # Count used and missed ingredients (approximation)
-            recipe['usedIngredientCount'] = len([ing for ing in ingredients if any(ing.lower() in recipe.get('title', '').lower() for ing in ingredients)])
-            recipe['missedIngredientCount'] = max(0, 5 - recipe['usedIngredientCount'])  # Rough estimate
+        # Fetch bulk recipe information to get actual ingredients
+        recipe_ids = [str(recipe['id']) for recipe in recipes]
+        if recipe_ids:
+            bulk_info = await self.get_recipe_information_bulk(recipe_ids)
+            
+            # Calculate ingredient counts based on actual recipe ingredients
+            for recipe in recipes:
+                recipe_id = str(recipe['id'])
+                if recipe_id in bulk_info:
+                    full_recipe = bulk_info[recipe_id]
+                    # Count how many pantry ingredients are used in this recipe
+                    used_count = 0
+                    missed_count = 0
+                    
+                    if 'extendedIngredients' in full_recipe:
+                        pantry_set = {ing.lower() for ing in ingredients}
+                        
+                        for ing in full_recipe['extendedIngredients']:
+                            ing_name = ing.get('name', '').lower()
+                            # Check if this ingredient matches any pantry item
+                            if any(pantry_item in ing_name or ing_name in pantry_item for pantry_item in pantry_set):
+                                used_count += 1
+                            else:
+                                missed_count += 1
+                    
+                    recipe['usedIngredientCount'] = used_count
+                    recipe['missedIngredientCount'] = missed_count
+                else:
+                    # Fallback if bulk fetch failed for this recipe
+                    recipe['usedIngredientCount'] = 0
+                    recipe['missedIngredientCount'] = 0
             
         return recipes
     
@@ -202,6 +229,61 @@ class SpoonacularService:
             except Exception as e:
                 logger.error(f"Unexpected error getting recipe info: {type(e).__name__}: {str(e)}")
                 raise
+    
+    async def get_recipe_information_bulk(
+        self,
+        recipe_ids: List[str],
+        include_nutrition: bool = False
+    ) -> Dict[str, Dict[str, Any]]:
+        """
+        Get information for multiple recipes in a single request
+        
+        Args:
+            recipe_ids: List of recipe IDs to fetch
+            include_nutrition: Whether to include nutrition information
+            
+        Returns:
+            Dictionary mapping recipe IDs to their information
+        """
+        if not self.api_key:
+            raise ValueError("Spoonacular API key not configured")
+        
+        if not recipe_ids:
+            return {}
+        
+        # Spoonacular allows up to 100 recipes per bulk request
+        results = {}
+        batch_size = 100
+        
+        for i in range(0, len(recipe_ids), batch_size):
+            batch = recipe_ids[i:i+batch_size]
+            ids_param = ','.join(batch)
+            
+            params = {
+                "apiKey": self.api_key,
+                "ids": ids_param,
+                "includeNutrition": include_nutrition
+            }
+            
+            try:
+                async with httpx.AsyncClient(timeout=self.timeout) as client:
+                    response = await client.get(
+                        f"{self.base_url}/recipes/informationBulk",
+                        params=params
+                    )
+                    
+                    if response.status_code == 200:
+                        recipes = response.json()
+                        for recipe in recipes:
+                            results[str(recipe['id'])] = recipe
+                    else:
+                        logger.error(f"Error fetching bulk recipe info: {response.status_code}")
+                        
+            except Exception as e:
+                logger.error(f"Error in bulk recipe fetch: {str(e)}")
+                # Continue with partial results rather than failing completely
+        
+        return results
     
     async def search_recipes_complex(
         self,
