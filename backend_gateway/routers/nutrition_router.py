@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/nutrition", tags=["nutrition"])
 
 # Initialize services
-nutrient_crew_service = NutrientAwareCrewService()
+# nutrient_crew_service = NutrientAwareCrewService()  # Temporarily disabled
 nutrient_auditor_service = NutrientAuditorService()
 
 @router.post("/log-meal", response_model=LogMealResponse)
