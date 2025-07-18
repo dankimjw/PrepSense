@@ -83,8 +83,16 @@ export function validateInstructions(instructions: string[] | undefined): string
     const trimmed = instruction.trim();
     if (!trimmed) continue;
     
+    // Skip placeholder text from backend
+    if (trimmed.toLowerCase() === 'no instructions available') {
+      continue;
+    }
+    
     if (!isInappropriateContent(trimmed)) {
       validInstructions.push(trimmed);
+    } else {
+      // Debug: log what was filtered out
+      console.log('Filtered inappropriate instruction:', trimmed);
     }
   }
   
