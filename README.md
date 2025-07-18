@@ -1,6 +1,6 @@
-# PrepSense 🥗
+# PrepSense 🥗  
 
-AI-powered smart pantry management system - University of Chicago Capstone Project
+AI-powered smart pantry management system - University of Chicago Capstone Project 
 
 ## 🚀 Quick Start
 
@@ -8,7 +8,7 @@ AI-powered smart pantry management system - University of Chicago Capstone Proje
 - Python 3.8+
 - Node.js 16+
 - PostgreSQL database
-- iOS Simulator (Mac) or Expo Go app (mobile)
+- iOS Simulator (Mac) or Expo Go app (mobile) 
 
 ### Setup
 
@@ -144,3 +144,8 @@ python cleanup.py
 ## 👥 Team
 
 University of Chicago Capstone Project Team
+
+- Daniel Kim
+- Bonny Matthews
+- Prahalad Ravi
+- Akash Sannidhanam

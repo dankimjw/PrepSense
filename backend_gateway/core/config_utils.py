@@ -63,11 +63,18 @@ def get_openai_api_key() -> str:
         if api_key:
             return api_key
     
-    # Try default config file location
-    default_key_file = "config/openai_key.txt"
-    api_key = read_api_key_from_file(default_key_file)
-    if api_key:
-        return api_key
+    # Try default config file locations
+    default_locations = [
+        "config/openai_key.txt",           # When running from project root
+        "../config/openai_key.txt",        # When running from backend_gateway
+        "backend_gateway/config/openai_key.txt"  # Alternative path
+    ]
+    
+    for key_file in default_locations:
+        if os.path.exists(key_file):
+            api_key = read_api_key_from_file(key_file)
+            if api_key:
+                return api_key
     
     # No API key found
     raise ValueError(

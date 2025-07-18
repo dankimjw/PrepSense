@@ -144,20 +144,6 @@ function AppContent() {
                 animation: 'slide_from_bottom',
               }} 
             />
-            <Stack.Screen 
-              name="chat" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Chat with AI" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                ),
-                presentation: 'modal',
-                animation: 'slide_from_right',
-              }} 
-            />
 <Stack.Screen 
               name="confirm" 
               options={{ 

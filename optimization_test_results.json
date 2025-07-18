@@ -1,0 +1,30 @@
+{
+  "targets": {
+    "background_flows_under_1s": false,
+    "cache_system_working": true,
+    "streaming_working": false,
+    "streaming_under_5s": false
+  },
+  "score": 25.0,
+  "background_flows": {
+    "pantry_time": 0.5890998840332031,
+    "expiry_time": 0.0038840770721435547,
+    "pref_time": 0.9925591945648193,
+    "total_time": 1.585543155670166,
+    "success": true
+  },
+  "cache_system": {
+    "success": true,
+    "stats": {
+      "size": 1,
+      "hit_count": 1,
+      "miss_count": 1,
+      "hit_rate": 0.5,
+      "total_requests": 2
+    }
+  },
+  "streaming": {
+    "success": false,
+    "error": "__init__() missing 1 required positional argument: 'db_service'"
+  }
+}

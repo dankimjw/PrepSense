@@ -77,6 +77,10 @@ app.include_router(chat_v2_router, prefix=f"{settings.API_V1_STR}", tags=["Chat 
 from backend_gateway.routers.crew_ai_multi_agent_router import router as multi_agent_router
 app.include_router(multi_agent_router, prefix=f"{settings.API_V1_STR}", tags=["Multi-Agent Chat"])
 
+# Import streaming chat router (Optimized CrewAI with parallel processing)
+from backend_gateway.routers.chat_streaming_router import router as chat_streaming_router
+app.include_router(chat_streaming_router, tags=["Chat Streaming"])
+
 # Import spoonacular router
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
 app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["Spoonacular Recipes"])
@@ -112,6 +116,10 @@ app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["Statist
 # Import OCR router
 from backend_gateway.routers.ocr_router import router as ocr_router
 app.include_router(ocr_router, prefix=f"{settings.API_V1_STR}", tags=["OCR"])
+
+# Import nutrition router
+from backend_gateway.routers.nutrition_router import router as nutrition_router
+app.include_router(nutrition_router, tags=["Nutrition"])
 
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router

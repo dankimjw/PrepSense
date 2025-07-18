@@ -49,6 +49,12 @@ set_git_author.sh
 *.swo
 *~
 
+# MCP (Model Context Protocol) - local only
+.mcp.json
+scripts/setup_mcp_servers.sh
+scripts/setup_mcp_worktree.sh
+mcp-servers/
+
 # OS specific files
 .DS_Store
 Thumbs.db
@@ -56,6 +62,7 @@ Thumbs.db
 # Project specific
 .prepsense_config.json
 config/
+!backend_gateway/config/
 my_notes/
 test_assets/
 notebooks/.ipynb_checkpoints/
@@ -86,3 +93,6 @@ POSTGRES_SECRETS.md
 *_secrets.md
 secrets/
 credentials/
+
+# MCP local setup script (never commit)
+scripts/setup_mcp_servers.sh

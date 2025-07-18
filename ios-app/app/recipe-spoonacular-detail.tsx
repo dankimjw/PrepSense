@@ -19,6 +19,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../context/AuthContext';
 import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
+import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
+import { validateInstructions, getDefaultInstructions, isInappropriateContent } from '../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -81,6 +83,13 @@ export default function RecipeSpoonacularDetail() {
     fetchPantryItems();
   }, [recipeId]);
 
+  // Check ingredients when pantryItems change
+  useEffect(() => {
+    if (recipe && pantryItems.length > 0) {
+      checkAvailableIngredients(recipe.extendedIngredients);
+    }
+  }, [pantryItems, recipe]);
+
   const fetchRecipeDetails = async () => {
     if (!recipeId) return;
 
@@ -125,26 +134,99 @@ export default function RecipeSpoonacularDetail() {
     }
   };
 
-  const checkAvailableIngredients = (recipeIngredients: RecipeDetail['extendedIngredients']) => {
-    const available = new Set<number>();
-    const missing = new Set<number>();
+  const cleanInstructionText = (text: string): string => {
+    // First check if the content is inappropriate
+    if (isInappropriateContent(text)) {
+      return '';
+    }
     
-    recipeIngredients.forEach(ingredient => {
-      const ingredientName = ingredient.name.toLowerCase();
-      const isAvailable = pantryItems.some(pantryItem => {
-        const pantryName = pantryItem.product_name.toLowerCase();
-        return pantryName.includes(ingredientName) || ingredientName.includes(pantryName);
-      });
-      
-      if (isAvailable) {
-        available.add(ingredient.id);
-      } else {
-        missing.add(ingredient.id);
-      }
+    // Fix common text corruption patterns
+    let cleaned = text;
+    
+    // Fix "FILESTORAGE" -> "STORAGE"
+    cleaned = cleaned.replace(/FILESTORAGE/gi, 'STORAGE');
+    
+    // Fix "COOK'S FILE" -> "COOK'S TIP" or "COOK'S NOTE"
+    cleaned = cleaned.replace(/COOK'S FILE/gi, "COOK'S NOTE");
+    
+    // Add spaces before capital letters that follow lowercase letters without space
+    cleaned = cleaned.replace(/([a-z])([A-Z])/g, '$1. $2');
+    
+    // Fix multiple periods
+    cleaned = cleaned.replace(/\.{2,}/g, '.');
+    
+    // Add space after periods if missing
+    cleaned = cleaned.replace(/\.([A-Z])/g, '. $1');
+    
+    // Remove any file system or technical terms that shouldn't be in recipes
+    const technicalTerms = [
+      'FILE', 'FILESYSTEM', 'DATABASE', 'CACHE', 'BUFFER', 'MEMORY'
+    ];
+    
+    technicalTerms.forEach(term => {
+      // Only remove if it's a standalone word (not part of a larger word)
+      const regex = new RegExp(`\\b${term}\\b`, 'gi');
+      cleaned = cleaned.replace(regex, '');
     });
     
-    setAvailableIngredients(available);
-    setMissingIngredients(missing);
+    // Clean up extra spaces
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    // Fix spacing around punctuation
+    cleaned = cleaned.replace(/\s+([.,!?])/g, '$1');
+    cleaned = cleaned.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
+    
+    // Final check after cleaning
+    if (isInappropriateContent(cleaned)) {
+      return '';
+    }
+    
+    return cleaned;
+  };
+
+  const filterValidIngredients = (ingredients: RecipeDetail['extendedIngredients']) => {
+    return ingredients
+      .filter((ingredient) => {
+        const lowerName = ingredient.name.toLowerCase();
+        const lowerOriginal = ingredient.original.toLowerCase();
+        
+        // Filter out items that are clearly not ingredients
+        const nonIngredientPatterns = [
+          'preparation time',
+          'cooking time',
+          'total time',
+          'servings',
+          'yield',
+          'ready in',
+          'prep time',
+          'cook time'
+        ];
+        
+        const isNonIngredient = nonIngredientPatterns.some(pattern => 
+          lowerName.includes(pattern) || lowerOriginal.includes(pattern)
+        );
+        
+        return !isNonIngredient;
+      })
+      // Remove duplicates based on ingredient name
+      .filter((ingredient, index, self) => 
+        index === self.findIndex(i => i.name === ingredient.name)
+      );
+  };
+
+  const checkAvailableIngredients = (recipeIngredients: RecipeDetail['extendedIngredients']) => {
+    // Filter out non-ingredients first
+    const validIngredients = filterValidIngredients(recipeIngredients);
+    
+    const result = calculateIngredientAvailability(validIngredients, pantryItems);
+    
+    // Validate that counts add up correctly
+    if (!validateIngredientCounts(result)) {
+      console.warn('Ingredient count validation failed:', result);
+    }
+    
+    setAvailableIngredients(result.availableIngredients);
+    setMissingIngredients(result.missingIngredients);
   };
 
   const handleAddToShoppingList = async () => {
@@ -154,9 +236,10 @@ export default function RecipeSpoonacularDetail() {
     }
     
     // When all ingredients are missing, use all ingredients
+    const validIngredients = filterValidIngredients(recipe.extendedIngredients);
     const ingredientsToAdd = missingIngredients.size > 0 
-      ? recipe.extendedIngredients.filter(ing => missingIngredients.has(ing.id))
-      : (availableIngredients.size === 0 ? recipe.extendedIngredients : []);
+      ? validIngredients.filter(ing => missingIngredients.has(ing.id))
+      : (availableIngredients.size === 0 ? validIngredients : []);
     
     if (ingredientsToAdd.length === 0) {
       Alert.alert('Shopping List', 'All ingredients are already in your pantry!');
@@ -284,7 +367,9 @@ export default function RecipeSpoonacularDetail() {
     const recipeForCooking = {
       name: recipe.title,
       ingredients: recipe.extendedIngredients.map(ing => ing.original),
-      instructions: recipe.analyzedInstructions[0]?.steps.map(step => step.step) || [],
+      instructions: recipe.analyzedInstructions[0]?.steps
+        .map(step => cleanInstructionText(step.step))
+        .filter(text => text.length > 0) || getDefaultInstructions(recipe.title),
       nutrition: {
         calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
         protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
@@ -624,7 +709,7 @@ export default function RecipeSpoonacularDetail() {
               <TouchableOpacity 
                 style={styles.addToShoppingListButton}
                 onPress={() => {
-                  const missingIngredientsList = recipe.extendedIngredients
+                  const missingIngredientsList = filterValidIngredients(recipe.extendedIngredients)
                     .filter(ing => missingIngredients.has(ing.id))
                     .map(ing => ing.original);
                   
@@ -643,42 +728,52 @@ export default function RecipeSpoonacularDetail() {
                 </Text>
               </TouchableOpacity>
             )}
-            {recipe.extendedIngredients.map((ingredient, index) => {
-              const isAvailable = availableIngredients.has(ingredient.id);
-              return (
-                <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
-                  {isAvailable ? (
-                    <Ionicons name="checkmark-circle" size={20} color="#297A56" />
-                  ) : (
-                    <Ionicons name="close-circle" size={20} color="#EF4444" />
-                  )}
-                  <Text style={[styles.ingredientText, !isAvailable && styles.missingIngredientText]}>
-                    {ingredient.original}
-                  </Text>
-                  {isAvailable && (
-                    <Text style={styles.availableText}>In pantry</Text>
-                  )}
-                </View>
-              );
-            })}
+            {filterValidIngredients(recipe.extendedIngredients).map((ingredient, index) => {
+                const isAvailable = availableIngredients.has(ingredient.id);
+                return (
+                  <View key={`ingredient-${ingredient.id}-${index}`} style={styles.ingredientItem}>
+                    {isAvailable ? (
+                      <Ionicons name="checkmark-circle" size={20} color="#297A56" />
+                    ) : (
+                      <Ionicons name="close-circle" size={20} color="#EF4444" />
+                    )}
+                    <Text style={[styles.ingredientText, !isAvailable && styles.missingIngredientText]}>
+                      {ingredient.original}
+                    </Text>
+                    {isAvailable && (
+                      <Text style={styles.availableText}>In pantry</Text>
+                    )}
+                  </View>
+                );
+              })}
           </View>
         )}
 
         {activeTab === 'instructions' && (
           <View style={styles.instructionsContainer}>
-            {recipe.analyzedInstructions.length > 0 ? (
-              recipe.analyzedInstructions[0].steps.map((step, index) => (
-                <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
+            {recipe.analyzedInstructions.length > 0 && recipe.analyzedInstructions[0].steps.length > 0 ? (
+              recipe.analyzedInstructions[0].steps
+                .map((step, index) => {
+                  const cleanedText = cleanInstructionText(step.step);
+                  return cleanedText ? (
+                    <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
+                      <View style={styles.stepNumber}>
+                        <Text style={styles.stepNumberText}>{step.number}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{cleanedText}</Text>
+                    </View>
+                  ) : null;
+                })
+                .filter(Boolean)
+            ) : (
+              getDefaultInstructions(recipe.title).map((instruction, index) => (
+                <View key={`default-step-${index}`} style={styles.instructionStep}>
                   <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>{step.number}</Text>
+                    <Text style={styles.stepNumberText}>{index + 1}</Text>
                   </View>
-                  <Text style={styles.stepText}>{step.step}</Text>
+                  <Text style={styles.stepText}>{instruction}</Text>
                 </View>
               ))
-            ) : (
-              <Text style={styles.noInstructions}>
-                No detailed instructions available. Please check the original recipe source.
-              </Text>
             )}
           </View>
         )}

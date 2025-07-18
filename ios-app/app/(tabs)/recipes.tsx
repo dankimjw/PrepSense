@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
 import { useAuth } from '../../context/AuthContext';
+import { calculateIngredientAvailability, validateIngredientCounts } from '../../utils/ingredientMatcher';
 
 const { width } = Dimensions.get('window');
 
@@ -73,6 +74,7 @@ export default function RecipesScreen() {
   const [activeTab, setActiveTab] = useState<'pantry' | 'discover' | 'my-recipes'>('pantry');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down' | 'favorites'>('all');
+  const [myRecipesTab, setMyRecipesTab] = useState<'saved' | 'cooked'>('saved');
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showSortModal, setShowSortModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -134,59 +136,33 @@ export default function RecipesScreen() {
     );
   };
 
-  // Recalculate ingredient counts based on actual pantry items
+  // Recalculate ingredient counts based on actual pantry items using standardized matching
   const recalculateIngredientCounts = (recipe: Recipe, pantryItems: string[]) => {
-    // Create a normalized pantry lookup for faster matching
-    const normalizedPantry = pantryItems.map(item => {
-      // Remove brand names and clean up the ingredient name
-      const parts = item.toLowerCase().trim().split(/\s+/);
-      // Take the last 1-2 meaningful words (usually the actual ingredient)
-      if (parts.length > 2) {
-        return parts.slice(-2).join(' ');
-      }
-      return item.toLowerCase().trim();
-    });
-
-    let usedCount = 0;
-    let missedCount = 0;
-
-    // Helper function to check if an ingredient is in the pantry
-    const isInPantry = (ingredientName: string) => {
-      const normalizedIngredient = ingredientName.toLowerCase().trim();
-      
-      // Extract key words from the ingredient (remove adjectives like "fresh", "chopped", etc.)
-      const keyWords = normalizedIngredient
-        .replace(/\b(fresh|dried|chopped|minced|sliced|diced|whole|ground|powdered|grated)\b/g, '')
-        .trim()
-        .split(/\s+/)
-        .filter(word => word.length > 2); // Filter out small words
-
-      // Check if any pantry item matches the ingredient
-      return normalizedPantry.some(pantryItem => {
-        // Direct match
-        if (pantryItem === normalizedIngredient) return true;
-        
-        // Check if pantry item contains any key words from the ingredient
-        return keyWords.some(word => pantryItem.includes(word));
-      });
-    };
-
-    // Count all ingredients (both used and missed)
+    // Convert pantry items to the expected format
+    const pantryItemObjects = pantryItems.map(item => ({ product_name: item }));
+    
+    // Combine all ingredients into a single array with the expected format
     const allIngredients = [
       ...(recipe.usedIngredients || []),
       ...(recipe.missedIngredients || [])
-    ];
+    ].map((ingredient, index) => ({
+      id: ingredient.id || index, // Use ingredient ID or fallback to index
+      name: ingredient.name,
+      original: ingredient.original || ingredient.name // Use original text if available
+    }));
 
-    // Recalculate based on actual pantry
-    allIngredients.forEach(ingredient => {
-      if (isInPantry(ingredient.name)) {
-        usedCount++;
-      } else {
-        missedCount++;
-      }
-    });
+    // Use the standardized ingredient matching utility
+    const result = calculateIngredientAvailability(allIngredients, pantryItemObjects);
+    
+    // Validate that counts add up correctly
+    if (!validateIngredientCounts(result)) {
+      console.warn('Ingredient count validation failed in recipes list:', result);
+    }
 
-    return { usedCount, missedCount };
+    return { 
+      usedCount: result.availableCount, 
+      missedCount: result.missingCount 
+    };
   };
 
   const fetchRecipesFromPantry = useCallback(async () => {
@@ -328,11 +304,20 @@ export default function RecipesScreen() {
       // }
 
       let filterParam = '';
-      if (myRecipesFilter === 'favorites') {
-        filterParam = '?is_favorite=true';
-      } else if (myRecipesFilter !== 'all') {
-        filterParam = `?rating=${myRecipesFilter}`;
+      // Add status filter based on current tab
+      if (myRecipesTab === 'saved') {
+        filterParam = '?status=saved';
+      } else if (myRecipesTab === 'cooked') {
+        filterParam = '?status=cooked';
       }
+      
+      // Add additional filters
+      if (myRecipesFilter === 'favorites') {
+        filterParam += filterParam ? '&is_favorite=true' : '?is_favorite=true';
+      } else if (myRecipesFilter !== 'all') {
+        filterParam += filterParam ? `&rating=${myRecipesFilter}` : `?rating=${myRecipesFilter}`;
+      }
+      
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
         headers: {
           // 'Authorization': `Bearer ${token}`,
@@ -345,9 +330,9 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
-      console.log('Fetched saved recipes:', data);
-      // Add mock recipes for testing
-      const mockRecipes: SavedRecipe[] = [
+      console.log('Fetched saved recipes with filter:', myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
+      // Mock recipes removed to prevent 404 errors with invalid Spoonacular IDs
+      const mockRecipes: SavedRecipe[] = []; /*[
         {
           id: 'mock-1',
           recipe_id: 100001,
@@ -378,6 +363,7 @@ export default function RecipesScreen() {
           },
           rating: 'thumbs_up',
           is_favorite: true,
+          status: 'cooked',
           source: 'spoonacular',
           created_at: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
           updated_at: new Date(Date.now() - 86400000).toISOString(),
@@ -524,10 +510,48 @@ export default function RecipesScreen() {
           created_at: new Date(Date.now() - 432000000).toISOString(), // 5 days ago
           updated_at: new Date(Date.now() - 432000000).toISOString(),
         }
-      ];
+      ];*/
 
-      // Combine real data with mock data
-      const combinedData = [...(data || []), ...mockRecipes];
+      // Mock recipes processing commented out
+      /*
+      // Add status to mock recipes based on rating
+      mockRecipes.forEach(recipe => {
+        if (!recipe.status) {
+          // If has rating, it was cooked
+          recipe.status = (recipe.rating === 'thumbs_up' || recipe.rating === 'thumbs_down') ? 'cooked' : 'saved';
+        }
+      });
+      
+      // Filter mock recipes based on current tab and filter
+      let filteredMockRecipes = mockRecipes;
+      */
+      
+      // Use empty array instead of mock recipes
+      let filteredMockRecipes: SavedRecipe[] = [];
+      
+      // Mock recipes filtering commented out - no mock recipes to filter
+      /*
+      // First filter by status (tab)
+      if (myRecipesTab === 'saved') {
+        filteredMockRecipes = mockRecipes.filter(recipe => recipe.status === 'saved');
+      } else if (myRecipesTab === 'cooked') {
+        filteredMockRecipes = mockRecipes.filter(recipe => recipe.status === 'cooked');
+      }
+      
+      // Then apply additional filters
+      if (myRecipesFilter === 'favorites') {
+        filteredMockRecipes = filteredMockRecipes.filter(recipe => recipe.is_favorite);
+      } else if (myRecipesFilter === 'thumbs_up') {
+        filteredMockRecipes = filteredMockRecipes.filter(recipe => recipe.rating === 'thumbs_up');
+      } else if (myRecipesFilter === 'thumbs_down') {
+        filteredMockRecipes = filteredMockRecipes.filter(recipe => recipe.rating === 'thumbs_down');
+      }
+      
+      console.log('Mock recipes filtered:', filteredMockRecipes.length, 'out of', mockRecipes.length, 'for filter:', myRecipesFilter);
+      */
+      
+      // Combine real data with filtered mock data
+      const combinedData = [...(data || []), ...filteredMockRecipes];
       setSavedRecipes(combinedData);
     } catch (error) {
       console.error('Error fetching saved recipes:', error);
@@ -570,7 +594,7 @@ export default function RecipesScreen() {
         throw new Error('Failed to save recipe');
       }
       
-      Alert.alert('Success', 'Recipe saved to your collection!');
+      Alert.alert('Success', 'Recipe saved to My Recipes ▸ Saved');
       // Refresh my recipes if on that tab
       if (activeTab === 'my-recipes') {
         await fetchMyRecipes();
@@ -752,6 +776,13 @@ export default function RecipesScreen() {
     }
   }, [activeTab, fetchRecipesFromPantry, selectedFilters, myRecipesFilter]);
 
+  // Add separate effect to handle filter and tab changes on my-recipes tab
+  useEffect(() => {
+    if (activeTab === 'my-recipes') {
+      fetchMyRecipes();
+    }
+  }, [myRecipesFilter, myRecipesTab]);
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     if (activeTab === 'pantry') {
@@ -881,40 +912,43 @@ export default function RecipesScreen() {
           <Text style={styles.recipeTitle} numberOfLines={2}>
             {savedRecipe.recipe_title}
           </Text>
-          <View style={styles.ratingButtons}>
-            <TouchableOpacity 
-              style={[
-                styles.ratingButton,
-                savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
-              ]}
-              onPress={() => updateRecipeRating(
-                savedRecipe.id, 
-                savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
-              )}
-            >
-              <Ionicons 
-                name="thumbs-up" 
-                size={16} 
-                color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[
-                styles.ratingButton,
-                savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
-              ]}
-              onPress={() => updateRecipeRating(
-                savedRecipe.id, 
-                savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
-              )}
-            >
-              <Ionicons 
-                name="thumbs-down" 
-                size={16} 
-                color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
-              />
-            </TouchableOpacity>
-          </View>
+          {/* Only show rating buttons in Cooked tab */}
+          {myRecipesTab === 'cooked' && (
+            <View style={styles.ratingButtons}>
+              <TouchableOpacity 
+                style={[
+                  styles.ratingButton,
+                  savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
+                ]}
+                onPress={() => updateRecipeRating(
+                  savedRecipe.id, 
+                  savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
+                )}
+              >
+                <Ionicons 
+                  name="thumbs-up" 
+                  size={16} 
+                  color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[
+                  styles.ratingButton,
+                  savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
+                ]}
+                onPress={() => updateRecipeRating(
+                  savedRecipe.id, 
+                  savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
+                )}
+              >
+                <Ionicons 
+                  name="thumbs-down" 
+                  size={16} 
+                  color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         <View style={styles.cardActions}>
           <TouchableOpacity 
@@ -1008,76 +1042,102 @@ export default function RecipesScreen() {
 
       {/* Filter Grid */}
       {activeTab === 'my-recipes' ? (
-        <View style={styles.filterContainer}>
-          <ScrollView 
-            horizontal
-            style={styles.filterScrollView}
-            contentContainerStyle={styles.filterContent}
-            showsHorizontalScrollIndicator={false}
-          >
-          <>
+        <View style={styles.myRecipesTabContainer}>
+          {/* Saved/Cooked Tabs */}
+          <View style={styles.myRecipesTabs}>
             <TouchableOpacity
               style={[
-                styles.filterButton,
-                myRecipesFilter === 'all' && styles.filterButtonActive
+                styles.myRecipesTab,
+                myRecipesTab === 'saved' && styles.myRecipesTabActive
               ]}
-              onPress={() => setMyRecipesFilter('all')}
+              onPress={() => {
+                setMyRecipesTab('saved');
+                setMyRecipesFilter('all'); // Reset filter when switching tabs
+              }}
             >
-              <Text style={styles.filterIcon}>📋</Text>
               <Text style={[
-                styles.filterText,
-                myRecipesFilter === 'all' && styles.filterTextActive
+                styles.myRecipesTabText,
+                myRecipesTab === 'saved' && styles.myRecipesTabTextActive
               ]}>
-                All
+                🔖 Saved
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
-                styles.filterButton,
-                myRecipesFilter === 'favorites' && styles.filterButtonActive
+                styles.myRecipesTab,
+                myRecipesTab === 'cooked' && styles.myRecipesTabActive
               ]}
-              onPress={() => setMyRecipesFilter('favorites')}
+              onPress={() => {
+                setMyRecipesTab('cooked');
+                setMyRecipesFilter('all'); // Reset filter when switching tabs
+              }}
             >
-              <Text style={styles.filterIcon}>❤️</Text>
               <Text style={[
-                styles.filterText,
-                myRecipesFilter === 'favorites' && styles.filterTextActive
+                styles.myRecipesTabText,
+                myRecipesTab === 'cooked' && styles.myRecipesTabTextActive
               ]}>
-                Favorites
+                🍳 Cooked
               </Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
-              ]}
-              onPress={() => setMyRecipesFilter('thumbs_up')}
-            >
-              <Text style={styles.filterIcon}>👍</Text>
-              <Text style={[
-                styles.filterText,
-                myRecipesFilter === 'thumbs_up' && styles.filterTextActive
-              ]}>
-                Liked
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterButton,
-                myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
-              ]}
-              onPress={() => setMyRecipesFilter('thumbs_down')}
-            >
-              <Text style={styles.filterIcon}>👎</Text>
-              <Text style={[
-                styles.filterText,
-                myRecipesFilter === 'thumbs_down' && styles.filterTextActive
-              ]}>
-                Disliked
-              </Text>
-            </TouchableOpacity>
-          </>
-          </ScrollView>
+          </View>
+          
+          {/* Only show rating filters in Cooked tab */}
+          {myRecipesTab === 'cooked' && (
+            <View style={styles.filterContainer}>
+              <ScrollView 
+                horizontal
+                style={styles.filterScrollView}
+                contentContainerStyle={styles.filterContent}
+                showsHorizontalScrollIndicator={false}
+              >
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    myRecipesFilter === 'all' && styles.filterButtonActive
+                  ]}
+                  onPress={() => setMyRecipesFilter('all')}
+                >
+                  <Text style={styles.filterIcon}>📋</Text>
+                  <Text style={[
+                    styles.filterText,
+                    myRecipesFilter === 'all' && styles.filterTextActive
+                  ]}>
+                    All
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
+                  ]}
+                  onPress={() => setMyRecipesFilter('thumbs_up')}
+                >
+                  <Text style={styles.filterIcon}>👍</Text>
+                  <Text style={[
+                    styles.filterText,
+                    myRecipesFilter === 'thumbs_up' && styles.filterTextActive
+                  ]}>
+                    Liked
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
+                  ]}
+                  onPress={() => setMyRecipesFilter('thumbs_down')}
+                >
+                  <Text style={styles.filterIcon}>👎</Text>
+                  <Text style={[
+                    styles.filterText,
+                    myRecipesFilter === 'thumbs_down' && styles.filterTextActive
+                  ]}>
+                    Disliked
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          )}
         </View>
       ) : activeTab === 'discover' ? (
         <Animated.View 
@@ -1279,11 +1339,15 @@ export default function RecipesScreen() {
                 <Text style={styles.emptyText}>
                   {searchQuery 
                     ? `No recipes found matching "${searchQuery}"`
-                    : myRecipesFilter === 'all' 
-                    ? 'No saved recipes yet. Save recipes from other tabs to see them here!'
-                    : myRecipesFilter === 'favorites'
-                    ? 'No favorite recipes yet. Tap the heart icon on recipes you love!'
-                    : `No ${myRecipesFilter === 'thumbs_up' ? 'liked' : 'disliked'} recipes found`}
+                    : myRecipesTab === 'saved'
+                    ? 'Bookmarks save recipes you want to try. Tap the bookmark icon on any recipe to add one.'
+                    : myRecipesTab === 'cooked' && myRecipesFilter === 'all'
+                    ? 'Nothing cooked yet. After you finish cooking a recipe it will appear here, ready for you to rate.'
+                    : myRecipesFilter === 'thumbs_up'
+                    ? 'No liked recipes yet. Cook some recipes and rate them!'
+                    : myRecipesFilter === 'thumbs_down'
+                    ? 'No disliked recipes yet.'
+                    : 'No recipes found'}
                 </Text>
               </View>
             ) : (
@@ -1451,6 +1515,34 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  myRecipesTabContainer: {
+    backgroundColor: '#fff',
+  },
+  myRecipesTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  myRecipesTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  myRecipesTabActive: {
+    backgroundColor: '#297A56',
+  },
+  myRecipesTabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  myRecipesTabTextActive: {
+    color: '#fff',
   },
   discoverFiltersContainer: {
     backgroundColor: '#fff',
