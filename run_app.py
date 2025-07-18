@@ -192,18 +192,10 @@ def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.
         # Exclude ios-app directory from reload watching to prevent Metro runtime errors
         command.extend(["--reload-exclude", "ios-app/**"])
 
-    # Automatically open Swagger UI docs after a delay
-    def _open_docs():
-        docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
-        docs_url = f"http://{docs_host}:{port}/docs"
-        print(f"\nOpening Swagger UI at {docs_url} in 3 seconds…")
-        try:
-            import webbrowser
-            webbrowser.open(docs_url)
-        except Exception as exc:
-            print(f"(Could not launch browser automatically: {exc})")
-
-    threading.Timer(3.0, _open_docs).start()
+    # Print the docs URL without automatically opening it
+    docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
+    docs_url = f"http://{docs_host}:{port}/docs"
+    print(f"\n📚 Swagger UI available at: {docs_url}")
 
     return subprocess.Popen(command)
 
