@@ -171,32 +171,41 @@ class ProcessManager:
 # ──────────────────────────────────────────────────────────────────────────────
 # 6.  Starters
 # ──────────────────────────────────────────────────────────────────────────────
-def start_backend(host: str, port: int, hot_reload: bool = True):
-    print(f"Starting backend on {host}:{port}")
+def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.Popen:
+    """Start the Uvicorn backend as a non-blocking subprocess."""
+    print(f"Starting backend on {host}:{port} (hot reload: {hot_reload})")
+    command = [
+        sys.executable,  # Use the same python interpreter
+        "-m",
+        "uvicorn",
+        "backend_gateway.app:app",
+        "--host",
+        host,
+        "--port",
+        str(port),
+        "--log-level",
+        "info",
+    ]
+    # Disable hot reload by default to avoid file watcher issues
+    if hot_reload:
+        command.append("--reload")
+        # Exclude ios-app directory from reload watching to prevent Metro runtime errors
+        command.extend(["--reload-exclude", "ios-app/**"])
 
-    # auto‑open http://<host>:<port>/docs three seconds after launch
+    # Automatically open Swagger UI docs after a delay
     def _open_docs():
         docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
         docs_url = f"http://{docs_host}:{port}/docs"
-        print(f"\nOpening Swagger UI at {docs_url} …")
+        print(f"\nOpening Swagger UI at {docs_url} in 3 seconds…")
         try:
             import webbrowser
-
-            webbrowser.open_new_tab(docs_url)
+            webbrowser.open(docs_url)
         except Exception as exc:
             print(f"(Could not launch browser automatically: {exc})")
 
-    timer = threading.Timer(3.0, _open_docs)
-    timer.daemon = True
-    timer.start()
+    threading.Timer(3.0, _open_docs).start()
 
-    uvicorn.run(
-        "backend_gateway.app:app",
-        host=host,
-        port=port,
-        reload=hot_reload,
-        log_level="info",
-    )
+    return subprocess.Popen(command)
 
 
 def start_ios(backend_url: str, ios_port: int, project_root: Path) -> subprocess.Popen:
@@ -225,6 +234,22 @@ def main():
 
     # Load .env **before** evaluating env vars
     load_dotenv()
+    print("Successfully loaded .env file.")
+    
+    # Load OpenAI API key from file if specified
+    key_path = os.getenv("OPENAI_API_KEY_FILE")
+    if key_path and Path(key_path).exists():
+        try:
+            api_key = Path(key_path).read_text().strip()
+            if api_key:
+                os.environ["OPENAI_API_KEY"] = api_key
+                print(f"Loaded OpenAI API key from {key_path}")
+            else:
+                print(f"Warning: OpenAI API key file {key_path} is empty")
+        except Exception as e:
+            print(f"Error reading OpenAI API key from {key_path}: {e}")
+    elif key_path:
+        print(f"Warning: OpenAI API key file {key_path} not found")
 
     args = parse_arguments()
 
@@ -292,15 +317,23 @@ def main():
 
     try:
         if mode == "backend":
-            start_backend(host, port)
+            pm.backend = start_backend(host, port)
         elif mode == "ios":
             pm.ios = start_ios(backend_url, ios_port, project_root)
-            pm.ios.wait()
         else:  # both
-            pm.ios = start_ios(backend_url, ios_port, project_root)
-            print("Waiting 3 s for Expo to initialise…")
+            pm.backend = start_backend(host, port)
+            print("Waiting 3s for backend to initialize...")
             time.sleep(3)
-            start_backend(host, port)
+            pm.ios = start_ios(backend_url, ios_port, project_root)
+
+        while True:
+            if pm.backend and pm.backend.poll() is not None:
+                print("Backend process exited")
+                break
+            if pm.ios and pm.ios.poll() is not None:
+                print("iOS process exited")
+                break
+            time.sleep(1)
     except KeyboardInterrupt:
         print("\n🛑 Interrupted by user")
     finally:
