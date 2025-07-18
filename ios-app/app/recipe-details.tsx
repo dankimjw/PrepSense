@@ -19,6 +19,7 @@ import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 import { formatQuantity } from '../utils/numberFormatting';
+import { validateInstructions, getDefaultInstructions } from '../utils/contentValidation';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -112,9 +113,12 @@ export default function RecipeDetailsScreen() {
 
   // Get instructions from recipe data or generate basic ones
   const getInstructions = (recipe: Recipe) => {
-    // Use recipe instructions if available
-    if (recipe.instructions && recipe.instructions.length > 0) {
-      return recipe.instructions;
+    // Validate recipe instructions first
+    const validatedInstructions = validateInstructions(recipe.instructions);
+    
+    // Use validated instructions if available
+    if (validatedInstructions && validatedInstructions.length > 0) {
+      return validatedInstructions;
     }
     
     // Otherwise generate basic instructions based on recipe name
@@ -159,15 +163,8 @@ export default function RecipeDetailsScreen() {
         "Serve immediately over rice or noodles"
       ];
     } else {
-      // Generic cooking instructions
-      return [
-        "Gather and prepare all ingredients",
-        "Preheat cooking equipment as needed",
-        "Follow proper food safety guidelines",
-        "Cook ingredients according to recipe requirements",
-        "Season and adjust flavors to taste",
-        "Plate attractively and serve"
-      ];
+      // Use generic default instructions from validation utility
+      return getDefaultInstructions(recipe.name);
     }
   };
 
