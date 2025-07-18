@@ -172,6 +172,29 @@ async def toggle_recipe_favorite(
         raise HTTPException(status_code=500, detail=f"Failed to toggle favorite: {str(e)}")
 
 
+@router.put("/{recipe_id}/mark-cooked", response_model=Dict[str, Any], summary="Mark recipe as cooked")
+async def mark_recipe_as_cooked(
+    recipe_id: str,
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Mark a saved recipe as cooked (auto-promotion from saved to cooked status)"""
+    try:
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+        
+        result = await service.mark_recipe_as_cooked(
+            user_id=user_id,
+            recipe_id=recipe_id
+        )
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Error marking recipe as cooked: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to mark recipe as cooked: {str(e)}")
+
+
 @router.delete("/{recipe_id}", response_model=Dict[str, Any], summary="Delete a saved recipe")
 async def delete_user_recipe(
     recipe_id: int,
