@@ -26,7 +26,8 @@ class UserRecipesService:
         rating: str = "neutral",
         is_favorite: bool = False,
         notes: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
+        status: str = "saved"
     ) -> Dict[str, Any]:
         """Save a recipe to user's collection"""
         try:
@@ -82,6 +83,7 @@ class UserRecipesService:
                     recipe_id_to_save = recipe_id
                 
                 # Insert new recipe
+                # TODO: Add status column once migration is run
                 insert_query = """
                 INSERT INTO user_recipes (
                     user_id, recipe_id, recipe_title, recipe_image, 
@@ -122,6 +124,7 @@ class UserRecipesService:
         source: Optional[str] = None,
         is_favorite: Optional[bool] = None,
         rating: Optional[str] = None,
+        status: Optional[str] = None,
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict[str, Any]]:
@@ -143,6 +146,11 @@ class UserRecipesService:
                 conditions.append("rating = %(rating)s")
                 params["rating"] = rating
             
+            # TODO: Uncomment after migration
+            # if status:
+            #     conditions.append("status = %(status)s")
+            #     params["status"] = status
+            
             query = f"""
             SELECT 
                 id,
@@ -153,6 +161,8 @@ class UserRecipesService:
                 source,
                 rating,
                 is_favorite,
+                -- status,  -- TODO: Uncomment after migration
+                -- cooked_at,  -- TODO: Uncomment after migration
                 created_at,
                 updated_at
             FROM user_recipes
@@ -300,6 +310,47 @@ class UserRecipesService:
             logger.error(f"Error deleting recipe: {str(e)}")
             raise
     
+    async def mark_recipe_as_cooked(
+        self,
+        user_id: int,
+        recipe_id: str
+    ) -> Dict[str, Any]:
+        """Mark a recipe as cooked"""
+        try:
+            update_query = """
+            UPDATE user_recipes 
+            SET 
+                status = 'cooked',
+                cooked_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
+            RETURNING id, status, cooked_at
+            """
+            
+            result = self.db_service.execute_query(update_query, {
+                "recipe_id": recipe_id,
+                "user_id": user_id
+            })
+            
+            if result:
+                logger.info(f"Recipe {recipe_id} marked as cooked for user {user_id}")
+                return {
+                    "success": True,
+                    "message": "Recipe marked as cooked",
+                    "recipe_id": result[0]['id'],
+                    "status": result[0]['status'],
+                    "cooked_at": result[0]['cooked_at'].isoformat() if result[0]['cooked_at'] else None
+                }
+            else:
+                return {
+                    "success": False,
+                    "message": "Recipe not found"
+                }
+                
+        except Exception as e:
+            logger.error(f"Error marking recipe as cooked: {str(e)}")
+            raise
+    
     async def get_recipe_stats(self, user_id: int) -> Dict[str, Any]:
         """Get user's recipe statistics"""
         try:
@@ -310,7 +361,9 @@ class UserRecipesService:
                 COUNT(CASE WHEN source = 'chat' THEN 1 END) as ai_generated_recipes,
                 COUNT(CASE WHEN source = 'spoonacular' THEN 1 END) as spoonacular_recipes,
                 COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
-                COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes
+                COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes,
+                COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
+                COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cooked_recipes
             FROM user_recipes
             WHERE user_id = %(user_id)s
             """
