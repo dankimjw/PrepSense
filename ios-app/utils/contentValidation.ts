@@ -100,6 +100,68 @@ export function validateInstructions(instructions: string[] | undefined): string
 }
 
 export function getDefaultInstructions(recipeName: string): string[] {
+  const lowerName = recipeName.toLowerCase();
+  
+  // Specific instructions for different recipe types
+  if (lowerName.includes('omelette') || lowerName.includes('omelet')) {
+    return [
+      "Beat eggs in a bowl with salt and pepper",
+      "Heat butter or oil in a non-stick pan over medium heat",
+      "Pour in the beaten eggs and let them set for 30 seconds",
+      "Gently stir the eggs, pulling edges toward center",
+      "Add your fillings to one half of the omelette",
+      "Fold the omelette in half and slide onto plate",
+      "Serve immediately while hot"
+    ];
+  }
+  
+  if (lowerName.includes('smoothie')) {
+    return [
+      "Add all ingredients to a blender",
+      "Blend on high speed for 60-90 seconds",
+      "Check consistency and blend more if needed",
+      "Pour into glasses and serve immediately",
+      "Garnish with fresh fruit if desired"
+    ];
+  }
+  
+  if (lowerName.includes('soup')) {
+    return [
+      "Heat oil in a large pot over medium heat",
+      "Add aromatics and cook until fragrant",
+      "Add main ingredients and cook for 5 minutes",
+      "Pour in liquid and bring to a boil",
+      "Reduce heat and simmer for 20-25 minutes",
+      "Season with salt and pepper to taste",
+      "Serve hot with desired garnishes"
+    ];
+  }
+  
+  if (lowerName.includes('grilled') || lowerName.includes('chicken')) {
+    return [
+      "Preheat grill or grill pan to medium-high heat",
+      "Season the protein with salt and pepper",
+      "Oil the grill grates to prevent sticking",
+      "Cook for 6-8 minutes on the first side",
+      "Flip and cook for another 6-8 minutes",
+      "Check internal temperature reaches safe levels",
+      "Let rest for 5 minutes before serving"
+    ];
+  }
+  
+  if (lowerName.includes('stir-fry') || lowerName.includes('stir fry')) {
+    return [
+      "Heat oil in a large wok or skillet over high heat",
+      "Add protein and cook until almost done",
+      "Remove protein and set aside",
+      "Add vegetables in order of cooking time needed",
+      "Return protein to the pan",
+      "Add sauce and toss everything together",
+      "Serve immediately over rice or noodles"
+    ];
+  }
+  
+  // Generic fallback instructions
   return [
     `Prepare all ingredients for ${recipeName}.`,
     'Follow standard cooking procedures for this type of dish.',
