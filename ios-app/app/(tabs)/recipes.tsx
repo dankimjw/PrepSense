@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
 import { useAuth } from '../../context/AuthContext';
+import { calculateIngredientAvailability, validateIngredientCounts } from '../../utils/ingredientMatcher';
 
 const { width } = Dimensions.get('window');
 
@@ -135,59 +136,33 @@ export default function RecipesScreen() {
     );
   };
 
-  // Recalculate ingredient counts based on actual pantry items
+  // Recalculate ingredient counts based on actual pantry items using standardized matching
   const recalculateIngredientCounts = (recipe: Recipe, pantryItems: string[]) => {
-    // Create a normalized pantry lookup for faster matching
-    const normalizedPantry = pantryItems.map(item => {
-      // Remove brand names and clean up the ingredient name
-      const parts = item.toLowerCase().trim().split(/\s+/);
-      // Take the last 1-2 meaningful words (usually the actual ingredient)
-      if (parts.length > 2) {
-        return parts.slice(-2).join(' ');
-      }
-      return item.toLowerCase().trim();
-    });
-
-    let usedCount = 0;
-    let missedCount = 0;
-
-    // Helper function to check if an ingredient is in the pantry
-    const isInPantry = (ingredientName: string) => {
-      const normalizedIngredient = ingredientName.toLowerCase().trim();
-      
-      // Extract key words from the ingredient (remove adjectives like "fresh", "chopped", etc.)
-      const keyWords = normalizedIngredient
-        .replace(/\b(fresh|dried|chopped|minced|sliced|diced|whole|ground|powdered|grated)\b/g, '')
-        .trim()
-        .split(/\s+/)
-        .filter(word => word.length > 2); // Filter out small words
-
-      // Check if any pantry item matches the ingredient
-      return normalizedPantry.some(pantryItem => {
-        // Direct match
-        if (pantryItem === normalizedIngredient) return true;
-        
-        // Check if pantry item contains any key words from the ingredient
-        return keyWords.some(word => pantryItem.includes(word));
-      });
-    };
-
-    // Count all ingredients (both used and missed)
+    // Convert pantry items to the expected format
+    const pantryItemObjects = pantryItems.map(item => ({ product_name: item }));
+    
+    // Combine all ingredients into a single array with the expected format
     const allIngredients = [
       ...(recipe.usedIngredients || []),
       ...(recipe.missedIngredients || [])
-    ];
+    ].map((ingredient, index) => ({
+      id: ingredient.id || index, // Use ingredient ID or fallback to index
+      name: ingredient.name,
+      original: ingredient.original || ingredient.name // Use original text if available
+    }));
 
-    // Recalculate based on actual pantry
-    allIngredients.forEach(ingredient => {
-      if (isInPantry(ingredient.name)) {
-        usedCount++;
-      } else {
-        missedCount++;
-      }
-    });
+    // Use the standardized ingredient matching utility
+    const result = calculateIngredientAvailability(allIngredients, pantryItemObjects);
+    
+    // Validate that counts add up correctly
+    if (!validateIngredientCounts(result)) {
+      console.warn('Ingredient count validation failed in recipes list:', result);
+    }
 
-    return { usedCount, missedCount };
+    return { 
+      usedCount: result.availableCount, 
+      missedCount: result.missingCount 
+    };
   };
 
   const fetchRecipesFromPantry = useCallback(async () => {
