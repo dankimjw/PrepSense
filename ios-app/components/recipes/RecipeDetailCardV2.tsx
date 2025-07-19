@@ -45,7 +45,6 @@ export default function RecipeDetailCardV2({
   const router = useRouter();
   const [isBookmarked, setIsBookmarked] = useState(recipe.is_favorite || false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
-  const [showAllSteps, setShowAllSteps] = useState(false);
   const [showShoppingList, setShowShoppingList] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCookedRecipe, setHasCookedRecipe] = useState(false);
@@ -67,18 +66,16 @@ export default function RecipeDetailCardV2({
   const availableIngredients = processedIngredients.filter(ing => ing.isAvailable);
   const missingIngredients = processedIngredients.filter(ing => !ing.isAvailable);
   
-  // For progressive disclosure
+  // For progressive disclosure - only for ingredients
   const INITIAL_INGREDIENTS_SHOWN = 5;
-  const INITIAL_STEPS_SHOWN = 3;
   
   const displayedIngredients = showAllIngredients 
     ? processedIngredients 
     : processedIngredients.slice(0, INITIAL_INGREDIENTS_SHOWN);
     
   const instructions = recipe.analyzedInstructions?.[0]?.steps || [];
-  const displayedSteps = showAllSteps 
-    ? instructions 
-    : instructions.slice(0, INITIAL_STEPS_SHOWN);
+  // Always show all steps - no truncation
+  const displayedSteps = instructions;
 
   const handleBookmark = async () => {
     Animated.sequence([
@@ -369,23 +366,6 @@ export default function RecipeDetailCardV2({
           ))}
         </View>
 
-        {instructions.length > INITIAL_STEPS_SHOWN && (
-          <TouchableOpacity
-            style={styles.showMoreButton}
-            onPress={() => setShowAllSteps(!showAllSteps)}
-          >
-            <Text style={styles.showMoreText}>
-              {showAllSteps 
-                ? 'Show less' 
-                : `Show all ${instructions.length} steps`}
-            </Text>
-            <Ionicons 
-              name={showAllSteps ? "chevron-up" : "chevron-down"} 
-              size={16} 
-              color="#007AFF" 
-            />
-          </TouchableOpacity>
-        )}
       </View>
 
       {/* Bottom Actions (only shown after cooking) */}
