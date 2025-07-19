@@ -271,19 +271,32 @@ export default function RecipeDetailsScreen() {
         if (parsed && parsed.name && parsed.name.trim()) {
           // If we successfully parsed the ingredient
           displayName = parsed.name;
-          if (parsed.quantity && parsed.unit) {
+          if (parsed.quantity && parsed.unit && parsed.unit !== 'piece') {
             displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity && parsed.unit === 'piece') {
+            displayQuantity = `${parsed.quantity}`;
           } else if (parsed.quantity) {
             displayQuantity = `${parsed.quantity}`;
           }
         } else {
-          // If parsing failed, use the original string
-          displayName = cleanedIngredient;
+          // If parsing failed, try a simple split approach
+          // Check for patterns like "ingredient name (quantity)"
+          const parenMatch = cleanedIngredient.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+          if (parenMatch) {
+            displayName = parenMatch[1].trim();
+            displayQuantity = parenMatch[2].trim();
+          } else {
+            // Use the original string as the name
+            displayName = cleanedIngredient;
+          }
         }
+        
+        // Final cleanup - ensure name doesn't have leading/trailing special chars
+        displayName = displayName.replace(/^[-,\s]+|[-,\s]+$/g, '').trim();
         
         return {
           id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-          name: displayName,
+          name: displayName || cleanedIngredient, // Fallback to original if name is empty
           quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
