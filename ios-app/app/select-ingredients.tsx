@@ -12,6 +12,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { parseIngredientsList } from '../utils/ingredientParser';
+import { formatIngredientQuantity } from '../utils/numberFormatting';
 
 interface SelectableIngredient {
   original: string;
@@ -41,9 +42,12 @@ export default function SelectIngredientsScreen() {
           if (parsed && parsed.name && parsed.name.trim()) {
             displayName = parsed.name;
             if (parsed.quantity && parsed.unit) {
-              displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+              // Use proper fraction formatting
+              const formattedQuantity = formatIngredientQuantity(parsed.quantity, parsed.unit);
+              displayQuantity = formattedQuantity ? `${formattedQuantity} ${parsed.unit}` : `${parsed.quantity} ${parsed.unit}`;
             } else if (parsed.quantity) {
-              displayQuantity = `${parsed.quantity}`;
+              // Use proper fraction formatting for quantity only
+              displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
             }
           } else {
             displayName = ing;
