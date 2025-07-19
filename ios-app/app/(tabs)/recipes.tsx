@@ -23,6 +23,7 @@ import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
 import { useAuth } from '../../context/AuthContext';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../../utils/ingredientMatcher';
+import { isValidRecipe } from '../../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -206,18 +207,20 @@ export default function RecipesScreen() {
       });
       
       // Update recipes with recalculated counts
-      const recipesWithCorrectCounts = spoonacularRecipes.map((recipe: Recipe) => {
-        if (data.pantry_ingredients) {
-          const pantryNames = data.pantry_ingredients.map((item: any) => item.name);
-          const { usedCount, missedCount } = recalculateIngredientCounts(recipe, pantryNames);
-          return {
-            ...recipe,
-            usedIngredientCount: usedCount,
-            missedIngredientCount: missedCount
-          };
-        }
-        return recipe;
-      });
+      const recipesWithCorrectCounts = spoonacularRecipes
+        .filter((recipe: Recipe) => isValidRecipe(recipe))
+        .map((recipe: Recipe) => {
+          if (data.pantry_ingredients) {
+            const pantryNames = data.pantry_ingredients.map((item: any) => item.name);
+            const { usedCount, missedCount } = recalculateIngredientCounts(recipe, pantryNames);
+            return {
+              ...recipe,
+              usedIngredientCount: usedCount,
+              missedIngredientCount: missedCount
+            };
+          }
+          return recipe;
+        });
       
       setRecipes(recipesWithCorrectCounts);
     } catch (error) {
@@ -264,10 +267,10 @@ export default function RecipesScreen() {
       
       const data = await response.json();
       
-      // Filter to only include Spoonacular recipes (safety check)
+      // Filter to only include valid Spoonacular recipes
       const spoonacularRecipes = (data.results || []).filter((recipe: Recipe) => {
-        // Only include recipes that have a valid Spoonacular ID
-        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
+        // Only include recipes that have a valid Spoonacular ID and meet quality standards
+        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0 && isValidRecipe(recipe);
       });
       
       setRecipes(spoonacularRecipes);
@@ -299,10 +302,10 @@ export default function RecipesScreen() {
       
       const data = await response.json();
       
-      // Filter to only include Spoonacular recipes (safety check)
+      // Filter to only include valid Spoonacular recipes
       const spoonacularRecipes = (data.recipes || []).filter((recipe: Recipe) => {
-        // Only include recipes that have a valid Spoonacular ID
-        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
+        // Only include recipes that have a valid Spoonacular ID and meet quality standards
+        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0 && isValidRecipe(recipe);
       });
       
       setRecipes(spoonacularRecipes);
