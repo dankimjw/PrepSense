@@ -1,0 +1,96 @@
+"""
+Database configuration and service factory
+"""
+
+import os
+import logging
+from typing import Dict, Any, Optional, List
+from backend_gateway.services.postgres_service import PostgresService
+from backend_gateway.services.postgres_iam_service import PostgresIAMService
+from backend_gateway.core.config import settings
+from backend_gateway.services.pantry_service import PantryService
+
+logger = logging.getLogger(__name__)
+
+# Global database service instance
+_database_service = None
+_pantry_service = None
+
+
+def get_database_service():
+    """
+    Get or create the database service instance based on configuration.
+    Returns either PostgresService or PostgresIAMService depending on settings.
+    """
+    global _database_service
+    
+    if _database_service is not None:
+        return _database_service
+    
+    # Determine connection parameters
+    connection_params = {
+        'host': settings.POSTGRES_HOST or os.getenv('POSTGRES_HOST', 'localhost'),
+        'port': settings.POSTGRES_PORT or int(os.getenv('POSTGRES_PORT', '5432')),
+        'database': settings.POSTGRES_DATABASE or os.getenv('POSTGRES_DATABASE', 'prepsense'),
+        'user': settings.POSTGRES_USER or os.getenv('POSTGRES_USER', 'postgres'),
+    }
+    
+    # Check if we should use IAM authentication
+    use_iam = settings.POSTGRES_USE_IAM or os.getenv('POSTGRES_USE_IAM', '').lower() == 'true'
+    
+    if use_iam:
+        # For IAM auth, user should be the service account email
+        iam_user = settings.POSTGRES_IAM_USER or os.getenv('POSTGRES_IAM_USER')
+        if iam_user:
+            connection_params['user'] = iam_user
+        
+        logger.info(f"Using PostgreSQL with IAM authentication for user: {connection_params['user']}")
+        _database_service = PostgresIAMService(connection_params)
+    else:
+        # For regular auth, include password
+        connection_params['password'] = settings.POSTGRES_PASSWORD or os.getenv('POSTGRES_PASSWORD', '')
+        
+        logger.info(f"Using PostgreSQL with password authentication for user: {connection_params['user']}")
+        _database_service = PostgresService(connection_params)
+    
+    return _database_service
+
+
+class DatabaseService:
+    """
+    Legacy compatibility class that wraps the actual database service.
+    This allows scripts to use DatabaseService() directly.
+    """
+    
+    def __init__(self):
+        self._service = get_database_service()
+    
+    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+        """Execute a query and return results"""
+        return self._service.execute_query(query, params)
+    
+    def execute_batch(self, query: str, data: List[tuple]) -> None:
+        """Execute a batch of queries"""
+        return self._service.execute_batch(query, data)
+    
+    def __getattr__(self, name):
+        """Forward any other method calls to the underlying service"""
+        return getattr(self._service, name)
+
+
+def get_pantry_service():
+    """
+    Get or create the pantry service instance.
+    """
+    global _pantry_service
+    
+    if _pantry_service is not None:
+        return _pantry_service
+    
+    # Get the database service first
+    db_service = get_database_service()
+    
+    # Create pantry service with the database service
+    _pantry_service = PantryService(db_service)
+    
+    return _pantry_service

@@ -10,7 +10,7 @@ from ..models.nutrition import (
     LogMealRequest, LogMealResponse, GetNutrientGapsRequest, GetNutrientGapsResponse,
     NutrientAwareRecipeRequest, NutrientProfile, MealType, NutrientGapAnalysis
 )
-from ..services.nutrient_aware_crew_service import NutrientAwareCrewService
+# from ..services.nutrient_aware_crew_service import NutrientAwareCrewService  # Service removed
 from ..services.nutrient_auditor_service import NutrientAuditorService
 # For now, use a simple function to get user ID
 def get_current_user_id() -> int:

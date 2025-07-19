@@ -96,14 +96,9 @@ class BackgroundTaskService:
             logger.info(f"Recipe interaction: user {user_id}, recipe {recipe_id}, action {action}")
             
             # Track interaction for preference learning
-            from .lean_crew_ai_service import get_lean_crew_service
-            crew_service = get_lean_crew_service(self.db_service)
-            
-            # Store interaction for preference learning
-            if hasattr(crew_service, 'preference_learning_service'):
-                await crew_service.preference_learning_service.track_recipe_interaction(
-                    user_id, recipe_id, action, metadata=metadata
-                )
+            # TODO: Re-implement preference learning
+            # Previously used lean_crew_ai_service which has been removed
+            logger.info("Preference learning temporarily disabled - lean_crew_ai_service removed")
             
             # If it's a significant interaction, refresh preferences
             if action in ['rated', 'cooked', 'saved', 'dismissed']:
@@ -131,22 +126,10 @@ class BackgroundTaskService:
     async def _warm_recipe_cache(self, user_id: int, reason: str):
         """Pre-compute recipe recommendations for faster response"""
         try:
-            from .lean_crew_ai_service import get_lean_crew_service
-            crew_service = get_lean_crew_service(self.db_service)
-            
-            # Common queries to pre-compute
-            common_queries = [
-                "What can I make for dinner?",
-                "Quick recipes with my ingredients",
-                "Healthy meal ideas",
-                "Use up expiring ingredients"
-            ]
-            
-            for query in common_queries:
-                try:
-                    # Run recommendations and cache results
-                    recommendations = []
-                    async for result in crew_service.get_recipe_recommendations(
+            # TODO: Re-implement cache warming
+            # Previously used lean_crew_ai_service which has been removed
+            logger.info("Recipe cache warming temporarily disabled - lean_crew_ai_service removed")
+            return
                         user_id, query, num_recommendations=5
                     ):
                         if 'error' not in result:
