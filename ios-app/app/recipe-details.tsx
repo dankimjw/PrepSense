@@ -18,7 +18,7 @@ import { useAuth } from '../context/AuthContext';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
-import { formatQuantity } from '../utils/numberFormatting';
+import { formatQuantity, formatIngredientQuantity } from '../utils/numberFormatting';
 import { validateInstructions, getDefaultInstructions } from '../utils/contentValidation';
 
 export default function RecipeDetailsScreen() {
@@ -262,9 +262,12 @@ export default function RecipeDetailsScreen() {
           // If we successfully parsed the ingredient
           displayName = parsed.name;
           if (parsed.quantity && parsed.unit) {
-            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+            // Use proper fraction formatting
+            const formattedQuantity = formatIngredientQuantity(parsed.quantity, parsed.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${parsed.unit}` : `${parsed.quantity} ${parsed.unit}`;
           } else if (parsed.quantity) {
-            displayQuantity = `${parsed.quantity}`;
+            // Use proper fraction formatting for quantity only
+            displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
           }
         } else {
           // If parsing failed, use the original string
