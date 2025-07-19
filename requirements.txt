@@ -12,19 +12,11 @@ PyJWT>=2.8.0             # For JWT authentication
 # Data manipulation
 pandas>=2.0.0            # For data manipulation
 
-# CrewAI and LangChain - updated versions  
-crewai==0.5.0  # Requires Python 3.10+
-langchain==0.1.0
-langchain-community==0.0.10
-langchain-core==0.1.8
-langchain-openai==0.0.2
-langsmith==0.0.77
-
 # OpenAI
-openai>=1.7.1,<2.0.0  # Version compatible with CrewAI
+openai>=1.7.1,<2.0.0
 
 # Pydantic and FastAPI
-pydantic>=2.4.2,<3.0.0  # Version compatible with CrewAI
+pydantic>=2.4.2,<3.0.0
 fastapi>=0.95.2  # Updated to be compatible with Pydantic 2.x
 uvicorn>=0.22.0
 

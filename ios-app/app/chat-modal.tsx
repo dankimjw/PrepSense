@@ -85,9 +85,6 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
           <Text style={styles.recipeMatch}>
             📊 {Math.round(recipe.match_score * 100)}% match
           </Text>
-          <Text style={styles.recipeEnjoyment}>
-            ⭐ {recipe.expected_joy || 75}% joy
-          </Text>
         </View>
         
         {recipe.available_ingredients.length > 0 && (
