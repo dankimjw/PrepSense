@@ -1,8 +1,10 @@
 # CrewAI Implementation Summary
 
+> **IMPORTANT NOTE (Updated 2025-07-19):** This document is kept for historical reference. The CrewAI agent files and dependencies have been removed from the codebase as they were unused. The service previously called "CrewAIService" has been renamed to "RecipeAdvisorService" to accurately reflect its implementation.
+
 ## Executive Summary
 
-**CrewAI is NOT actually implemented in PrepSense.** The `CrewAIService` is a misnomer - it's a custom service that doesn't use any CrewAI functionality.
+**CrewAI is NOT actually implemented in PrepSense.** The `CrewAIService` was a misnomer - it's a custom service that doesn't use any CrewAI functionality.
 
 ## Key Findings
 
