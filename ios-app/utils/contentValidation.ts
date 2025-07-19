@@ -99,6 +99,53 @@ export function validateInstructions(instructions: string[] | undefined): string
   return validInstructions.length > 0 ? validInstructions : null;
 }
 
+export function hasValidInstructions(recipe: any): boolean {
+  // Check if recipe has instructions field
+  if (!recipe.instructions || !Array.isArray(recipe.instructions) || recipe.instructions.length === 0) {
+    // Also check for Spoonacular's analyzedInstructions format
+    if (recipe.analyzedInstructions && Array.isArray(recipe.analyzedInstructions) && recipe.analyzedInstructions.length > 0) {
+      const steps = recipe.analyzedInstructions[0]?.steps || [];
+      const instructions = steps.map((step: any) => step.step);
+      if (instructions.length < 3) {
+        return false; // Must have at least 3 steps
+      }
+      const validatedInstructions = validateInstructions(instructions);
+      return validatedInstructions !== null && validatedInstructions.length >= 3;
+    }
+    return false;
+  }
+  
+  // Validate the instructions
+  const validatedInstructions = validateInstructions(recipe.instructions);
+  
+  // Recipe must have at least 3 valid instructions
+  return validatedInstructions !== null && validatedInstructions.length >= 3;
+}
+
+export function isValidRecipe(recipe: any): boolean {
+  // Check if recipe has valid instructions
+  if (!hasValidInstructions(recipe)) {
+    return false;
+  }
+  
+  // Check Spoonacular score if available (must be above 20%)
+  if (recipe.spoonacularScore !== undefined && recipe.spoonacularScore < 20) {
+    return false;
+  }
+  
+  // Check if recipe has a valid title
+  if (!recipe.title || recipe.title.trim().length === 0) {
+    return false;
+  }
+  
+  // Check if title contains inappropriate content
+  if (isInappropriateContent(recipe.title)) {
+    return false;
+  }
+  
+  return true;
+}
+
 export function getDefaultInstructions(recipeName: string): string[] {
   const lowerName = recipeName.toLowerCase();
   
@@ -158,6 +205,21 @@ export function getDefaultInstructions(recipeName: string): string[] {
       "Return protein to the pan",
       "Add sauce and toss everything together",
       "Serve immediately over rice or noodles"
+    ];
+  }
+  
+  if (lowerName.includes('custard') || lowerName.includes('pudding')) {
+    return [
+      "Preheat oven to 325°F (165°C)",
+      "In a bowl, whisk together eggs, sugar, and vanilla until well combined",
+      "Heat milk in a saucepan until just steaming (do not boil)",
+      "Slowly pour hot milk into egg mixture, whisking constantly",
+      "Strain mixture through a fine-mesh sieve to remove any lumps",
+      "Pour into ramekins or a baking dish",
+      "Place in a larger pan and add hot water halfway up the sides",
+      "Bake for 40-50 minutes until center is just set but still jiggles slightly",
+      "Remove from water bath and cool to room temperature",
+      "Refrigerate for at least 2 hours before serving"
     ];
   }
   
