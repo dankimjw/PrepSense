@@ -77,8 +77,8 @@ async def cook_recipe(
                     errors.append(f"Pantry item {ingredient.pantry_item_id} not found")
                     continue
                 
-                # Calculate new quantity
-                current_quantity = pantry_item.get('quantity', 0)
+                # Calculate new quantity (convert to float to handle Decimal from DB)
+                current_quantity = float(pantry_item.get('quantity', 0))
                 new_quantity = current_quantity - ingredient.quantity_used
                 
                 if new_quantity < 0:
@@ -103,9 +103,9 @@ async def cook_recipe(
                     updated_items.append({
                         "item_id": ingredient.pantry_item_id,
                         "name": ingredient.ingredient_name,
-                        "previous_quantity": current_quantity,
-                        "quantity_used": ingredient.quantity_used,
-                        "remaining_quantity": new_quantity,
+                        "previous_quantity": float(current_quantity),
+                        "quantity_used": float(ingredient.quantity_used),
+                        "remaining_quantity": float(new_quantity),
                         "unit": ingredient.unit
                     })
                     
@@ -180,8 +180,8 @@ async def check_ingredients_availability(
             unit = ingredient.get('unit', '')
             
             if ingredient_name in pantry_lookup:
-                # Calculate total available
-                total_available = sum(item.get('quantity', 0) for item in pantry_lookup[ingredient_name])
+                # Calculate total available (convert to float to handle Decimal from DB)
+                total_available = sum(float(item.get('quantity', 0)) for item in pantry_lookup[ingredient_name])
                 
                 if total_available >= required_amount:
                     available.append({

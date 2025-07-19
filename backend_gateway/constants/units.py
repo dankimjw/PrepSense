@@ -150,6 +150,7 @@ UNIT_VARIATIONS = {
     "gross": Unit.GROSS,
     
     # Legacy units from existing data
+    "ea": Unit.EACH,
     "pcs": Unit.EACH,
     "pieces": Unit.EACH,
     "piece": Unit.EACH,
