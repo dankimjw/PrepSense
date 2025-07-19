@@ -14,7 +14,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.services.lean_crew_ai_service import get_lean_crew_service
+# from backend_gateway.services.lean_crew_ai_service import get_lean_crew_service  # Service removed
 from backend_gateway.services.background_flows import BackgroundFlowManager, CacheManager
 
 logger = logging.getLogger(__name__)
