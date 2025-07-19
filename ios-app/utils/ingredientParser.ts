@@ -56,12 +56,47 @@ export function parseIngredient(ingredientString: string): ParsedIngredient {
   // "3 tomatoes"
   // "Salt to taste"
   // "Olive oil"
+  // "flour - 2 cups"
+  // "eggs (large) - 3"
+  
+  // Handle format "ingredient - quantity unit"
+  if (original.includes(' - ')) {
+    const parts = original.split(' - ');
+    if (parts.length === 2) {
+      const name = parts[0].trim();
+      const quantityPart = parts[1].trim();
+      
+      // Try to parse the quantity part
+      const quantityMatch = quantityPart.match(/^(\d+(?:\.\d+)?|\d+\/\d+)\s*(.*)$/);
+      if (quantityMatch) {
+        let quantity: number;
+        const quantityStr = quantityMatch[1];
+        if (quantityStr.includes('/')) {
+          const [numerator, denominator] = quantityStr.split('/').map(Number);
+          quantity = numerator / denominator;
+        } else {
+          quantity = parseFloat(quantityStr);
+        }
+        
+        const unitStr = quantityMatch[2]?.toLowerCase() || '';
+        const unit = unitMappings[unitStr] || unitStr || 'piece';
+        
+        return {
+          name,
+          quantity,
+          unit,
+          originalString: original,
+        };
+      }
+    }
+  }
   
   // Remove common phrases but keep the ingredient name intact
   let cleaned = original
     .replace(/\s+of\s+/gi, ' ')
     .replace(/\s+to taste/gi, '')
     .replace(/,.*$/, '') // Remove everything after comma
+    .replace(/\([^)]*\)/g, '') // Remove parenthetical content
     .trim();
   
   // Try to extract quantity and unit

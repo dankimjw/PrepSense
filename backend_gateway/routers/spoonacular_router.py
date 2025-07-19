@@ -76,6 +76,14 @@ async def search_recipes_by_ingredients(
             ignore_pantry=request.ignore_pantry,
             intolerances=request.intolerances
         )
+        
+        # Filter out recipes with insufficient instructions
+        original_count = len(recipes)
+        recipes = spoonacular_service.filter_recipes_by_instructions(recipes, min_steps=2)
+        filtered_count = original_count - len(recipes)
+        if filtered_count > 0:
+            logger.info(f"Filtered out {filtered_count} recipes with insufficient instructions")
+        
         return recipes
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -105,6 +113,18 @@ async def search_recipes_complex(
             number=request.number,
             offset=request.offset
         )
+        
+        # Filter out recipes with insufficient instructions
+        if 'results' in results:
+            original_count = len(results['results'])
+            results['results'] = spoonacular_service.filter_recipes_by_instructions(
+                results['results'], 
+                min_steps=2
+            )
+            filtered_count = original_count - len(results['results'])
+            if filtered_count > 0:
+                logger.info(f"Filtered out {filtered_count} recipes with insufficient instructions")
+        
         return results
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
