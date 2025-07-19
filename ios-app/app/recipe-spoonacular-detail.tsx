@@ -21,6 +21,7 @@ import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
 import { validateInstructions, isInappropriateContent } from '../utils/contentValidation';
+import { formatIngredientQuantity } from '../utils/numberFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -273,17 +274,22 @@ export default function RecipeSpoonacularDetail() {
           // If we successfully parsed the ingredient
           displayName = parsed.name;
           if (parsed.quantity && parsed.unit) {
-            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+            // Use proper fraction formatting
+            const formattedQuantity = formatIngredientQuantity(parsed.quantity, parsed.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${parsed.unit}` : `${parsed.quantity} ${parsed.unit}`;
           } else if (parsed.quantity) {
-            displayQuantity = `${parsed.quantity}`;
+            // Use proper fraction formatting for quantity only
+            displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
           }
         } else {
-          // If parsing failed, use the ingredient name from Spoonacular
+          // If parsing failed, use the ingredient name from Spoonacular and original amount
           displayName = fallbackName;
-          // Try to extract just the amount and unit from the original string
-          const amountMatch = cleanedOriginal.match(/^([\d.\/\s]+)\s*([a-zA-Z]+)?/);
-          if (amountMatch && amountMatch[1]) {
-            displayQuantity = amountMatch[0].trim();
+          // Use Spoonacular's formatted amount and unit which should already be properly formatted
+          if (ingredient.amount && ingredient.unit) {
+            const formattedQuantity = formatIngredientQuantity(ingredient.amount, ingredient.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${ingredient.unit}` : `${ingredient.amount} ${ingredient.unit}`;
+          } else if (ingredient.amount) {
+            displayQuantity = formatIngredientQuantity(ingredient.amount, '') || `${ingredient.amount}`;
           }
         }
         
