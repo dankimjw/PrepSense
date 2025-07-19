@@ -2,8 +2,8 @@
   "mcpServers": {
     "filesystem": {
       "type": "stdio",
-      "command": "mcp-server-filesystem --root .",
-      "args": [],
+      "command": "/opt/homebrew/bin/mcp-server-filesystem",
+      "args": ["--root", "."],
       "env": {}
     },
     "memory": {
@@ -20,8 +20,8 @@
     },
     "context7": {
       "type": "stdio",
-      "command": "npx -y @upstash/context7-mcp",
-      "args": [],
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp"],
       "env": {}
     }
   }
