@@ -199,8 +199,14 @@ export default function RecipesScreen() {
         setPantryIngredients(pantryNames);
       }
       
+      // Filter to only include Spoonacular recipes (safety check)
+      const spoonacularRecipes = (data.recipes || []).filter((recipe: Recipe) => {
+        // Only include recipes that have a valid Spoonacular ID
+        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
+      });
+      
       // Update recipes with recalculated counts
-      const recipesWithCorrectCounts = (data.recipes || []).map((recipe: Recipe) => {
+      const recipesWithCorrectCounts = spoonacularRecipes.map((recipe: Recipe) => {
         if (data.pantry_ingredients) {
           const pantryNames = data.pantry_ingredients.map((item: any) => item.name);
           const { usedCount, missedCount } = recalculateIngredientCounts(recipe, pantryNames);
@@ -257,7 +263,14 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
-      setRecipes(data.results || []);
+      
+      // Filter to only include Spoonacular recipes (safety check)
+      const spoonacularRecipes = (data.results || []).filter((recipe: Recipe) => {
+        // Only include recipes that have a valid Spoonacular ID
+        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
+      });
+      
+      setRecipes(spoonacularRecipes);
     } catch (error) {
       console.error('Error searching recipes:', error);
       Alert.alert('Error', 'Failed to search recipes. Please try again.');
@@ -285,7 +298,14 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
-      setRecipes(data.recipes || []);
+      
+      // Filter to only include Spoonacular recipes (safety check)
+      const spoonacularRecipes = (data.recipes || []).filter((recipe: Recipe) => {
+        // Only include recipes that have a valid Spoonacular ID
+        return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
+      });
+      
+      setRecipes(spoonacularRecipes);
     } catch (error) {
       console.error('Error fetching random recipes:', error);
       Alert.alert('Error', 'Failed to load recipes. Please try again.');

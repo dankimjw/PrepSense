@@ -96,3 +96,5 @@ credentials/
 
 # MCP local setup script (never commit)
 scripts/setup_mcp_servers.sh
+# LLM mock data prompt
+docs/llm-mock-data-prompt.md

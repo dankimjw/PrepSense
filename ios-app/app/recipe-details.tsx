@@ -162,6 +162,16 @@ export default function RecipeDetailsScreen() {
         "Add sauce and toss everything together",
         "Serve immediately over rice or noodles"
       ];
+    } else if (recipeName.includes('omelette') || recipeName.includes('omelet')) {
+      return [
+        "Beat eggs in a bowl with salt and pepper",
+        "Heat butter or oil in a non-stick pan over medium heat",
+        "Pour in the beaten eggs and let them set for 30 seconds",
+        "Gently stir the eggs, pulling edges toward center",
+        "Add your fillings to one half of the omelette",
+        "Fold the omelette in half and slide onto plate",
+        "Serve immediately while hot"
+      ];
     } else {
       // Use generic default instructions from validation utility
       return getDefaultInstructions(recipe.name);
