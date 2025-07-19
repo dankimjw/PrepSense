@@ -20,7 +20,7 @@ import { useAuth } from '../context/AuthContext';
 import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
-import { validateInstructions, getDefaultInstructions, isInappropriateContent } from '../utils/contentValidation';
+import { validateInstructions, isInappropriateContent } from '../utils/contentValidation';
 
 const { width } = Dimensions.get('window');
 
@@ -369,7 +369,7 @@ export default function RecipeSpoonacularDetail() {
       ingredients: recipe.extendedIngredients.map(ing => ing.original),
       instructions: recipe.analyzedInstructions[0]?.steps
         .map(step => cleanInstructionText(step.step))
-        .filter(text => text.length > 0) || getDefaultInstructions(recipe.title),
+        .filter(text => text.length > 0) || [],
       nutrition: {
         calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
         protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
@@ -766,14 +766,7 @@ export default function RecipeSpoonacularDetail() {
                 })
                 .filter(Boolean)
             ) : (
-              getDefaultInstructions(recipe.title).map((instruction, index) => (
-                <View key={`default-step-${index}`} style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>{index + 1}</Text>
-                  </View>
-                  <Text style={styles.stepText}>{instruction}</Text>
-                </View>
-              ))
+              <Text style={styles.noInstructions}>No instructions available for this recipe.</Text>
             )}
           </View>
         )}
