@@ -7,12 +7,22 @@
       "env": {}
     },
     "memory": {
-      "type": "sse",
-      "url": "http://localhost:8003/sse"
+      "type": "stdio",
+      "command": "mcp-server-memory",
+      "args": [],
+      "env": {}
     },
     "sequential-thinking": {
-      "type": "sse",
-      "url": "http://localhost:8004/sse"
+      "type": "stdio",
+      "command": "mcp-server-sequential-thinking",
+      "args": [],
+      "env": {}
+    },
+    "context7": {
+      "type": "stdio",
+      "command": "npx -y @upstash/context7-mcp",
+      "args": [],
+      "env": {}
     }
   }
 }

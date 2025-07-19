@@ -74,14 +74,14 @@ def main():
     print("\n✨ Running syntax checks")
     test_results['syntax'] = run_command([
         sys.executable, "-m", "py_compile", 
-        "services/crew_ai_service.py"
-    ], "Syntax check for crew_ai_service.py")
+        "services/recipe_advisor_service.py"
+    ], "Syntax check for recipe_advisor_service.py")
     
     # 4. Import checks
     print("\n📦 Testing imports")
     test_results['imports'] = run_command([
         sys.executable, "-c", 
-        "from services.crew_ai_service import CrewAIService, RecipeAdvisor; print('✅ Imports successful')"
+        "from services.recipe_advisor_service import RecipeAdvisor; print('✅ Imports successful')"
     ], "Import tests")
     
     # Summary Report
