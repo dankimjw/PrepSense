@@ -884,7 +884,7 @@ class CrewAIService:
                 else:
                     missing_ingredients.append(ingredient)
             
-            # Calculate match score and expected joy
+            # Calculate match score
             total_ingredients = len(recipe.get('ingredients', []))
             available_count = len(available_ingredients)
             missing_count = len(missing_ingredients)
