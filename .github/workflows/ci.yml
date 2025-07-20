@@ -43,9 +43,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f backend_gateway/requirements-dev.txt ]; then
+            pip install -r backend_gateway/requirements-dev.txt
+          elif [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Set up environment variables
         run: |
@@ -104,9 +107,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f backend_gateway/requirements-dev.txt ]; then
+            pip install -r backend_gateway/requirements-dev.txt
+          elif [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Set up environment variables
         run: |
@@ -138,13 +144,29 @@ jobs:
 
       - name: Run Black formatter check
         run: |
-          cd backend_gateway
-          black --check --diff .
+          # Check Python files in root
+          if [ -f run_app.py ]; then
+            black --check --diff run_app.py || true
+          fi
+          if [ -f setup.py ]; then
+            black --check --diff setup.py || true
+          fi
+          if [ -f verify_setup.py ]; then
+            black --check --diff verify_setup.py || true
+          fi
+          # Check backend_gateway directory
+          if [ -d backend_gateway ]; then
+            black --check --diff backend_gateway/
+          fi
 
       - name: Run Ruff linter
         run: |
-          cd backend_gateway
-          ruff check .
+          # Check Python files in root
+          ruff check run_app.py setup.py verify_setup.py 2>/dev/null || true
+          # Check backend_gateway directory
+          if [ -d backend_gateway ]; then
+            ruff check backend_gateway/
+          fi
 
       - name: Run Bandit security scan
         run: |
@@ -182,9 +204,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f backend_gateway/requirements-dev.txt ]; then
+            pip install -r backend_gateway/requirements-dev.txt
+          elif [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Start FastAPI server
         run: |
@@ -213,14 +238,16 @@ jobs:
         with:
           node-version: "20"
           cache: 'npm'
-          cache-dependency-path: package-lock.json
+          cache-dependency-path: ios-app/package-lock.json
 
       - name: Install dependencies
         run: |
+          cd ios-app
           npm ci
 
       - name: Run mobile unit tests
         run: |
+          cd ios-app
           npm test -- --watchAll=false --coverage
 
       - name: Upload coverage reports
@@ -242,9 +269,12 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: 'npm'
+          cache-dependency-path: ios-app/package-lock.json
 
       - name: Install dependencies
         run: |
+          cd ios-app
           npm ci
 
       - name: Install Detox
@@ -255,10 +285,12 @@ jobs:
 
       - name: Build iOS app for testing
         run: |
+          cd ios-app
           detox build --configuration ios.sim.debug
 
       - name: Run E2E tests
         run: |
+          cd ios-app
           detox test --configuration ios.sim.debug --headless
 
   deployment-check:
