@@ -173,9 +173,16 @@ async def health_check():
             # Try to connect to database
             try:
                 from backend_gateway.services.postgres_service import PostgresService
-                postgres_service = PostgresService()
+                connection_params = {
+                    'host': settings.POSTGRES_HOST,
+                    'port': settings.POSTGRES_PORT,
+                    'database': settings.POSTGRES_DATABASE,
+                    'user': settings.POSTGRES_USER,
+                    'password': settings.POSTGRES_PASSWORD
+                }
+                postgres_service = PostgresService(connection_params)
                 # Simple connectivity test
-                await postgres_service.execute_query("SELECT 1")
+                postgres_service.execute_query("SELECT 1")
                 health_status["environment"]["database_connected"] = True
             except Exception as db_error:
                 health_status["environment"]["database_connected"] = False
