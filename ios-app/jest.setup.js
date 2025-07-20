@@ -64,6 +64,7 @@ jest.mock('expo-haptics', () => ({
 // Mock @expo/vector-icons
 jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
+  MaterialIcons: 'MaterialIcons',
   MaterialCommunityIcons: 'MaterialCommunityIcons',
 }));
 
