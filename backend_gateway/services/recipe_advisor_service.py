@@ -1064,21 +1064,50 @@ class CrewAIService:
         if clean1 == clean2:
             return True
         
-        # Check if one contains the other
-        if clean1 in clean2 or clean2 in clean1:
-            return True
+        # Split into words for better matching
+        words1 = set(clean1.split())
+        words2 = set(clean2.split())
         
-        # Check common variations
+        # Check if they share the main ingredient word (usually the last word)
+        # For example: "fresh scallops" and "big scallops" both have "scallops"
+        if words1 and words2:
+            # Get the likely main ingredient (usually the last word)
+            main1 = clean1.split()[-1] if clean1.split() else clean1
+            main2 = clean2.split()[-1] if clean2.split() else clean2
+            
+            # Only match if the main ingredients are the same
+            # and they're meaningful (not just common words)
+            if main1 == main2 and len(main1) > 3:
+                return True
+        
+        # Check common variations with stricter matching
         variations = {
-            'chicken': ['chicken breast', 'chicken thigh', 'chicken wing'],
-            'beef': ['ground beef', 'beef steak', 'beef roast'],
-            'tomato': ['tomatoes', 'cherry tomatoes', 'roma tomatoes'],
-            'onion': ['onions', 'red onion', 'yellow onion', 'white onion']
+            'chicken': ['chicken breast', 'chicken thigh', 'chicken wing', 'chicken drumstick'],
+            'beef': ['ground beef', 'beef steak', 'beef roast', 'stew beef'],
+            'pork': ['pork chop', 'ground pork', 'pork tenderloin', 'pork shoulder'],
+            'tomato': ['tomatoes', 'cherry tomatoes', 'roma tomatoes', 'grape tomatoes'],
+            'onion': ['onions', 'red onion', 'yellow onion', 'white onion', 'green onion'],
+            'milk': ['whole milk', '2% milk', 'skim milk', 'low fat milk'],
+            'rice': ['white rice', 'brown rice', 'jasmine rice', 'basmati rice'],
+            'pasta': ['spaghetti', 'penne', 'fusilli', 'linguine', 'fettuccine']
         }
         
+        # Check if both ingredients belong to the same variation group
         for base, variants in variations.items():
-            if (base in clean1 or any(v in clean1 for v in variants)) and \
-               (base in clean2 or any(v in clean2 for v in variants)):
+            variants_with_base = variants + [base]
+            ingredient1_in_group = clean1 in variants_with_base or any(v == clean1 for v in variants_with_base)
+            ingredient2_in_group = clean2 in variants_with_base or any(v == clean2 for v in variants_with_base)
+            
+            if ingredient1_in_group and ingredient2_in_group:
+                return True
+        
+        # Strict substring matching only for very specific cases
+        # Both strings must be substantial (not just "ham" matching "hamburger")
+        if len(clean1) > 5 and len(clean2) > 5:
+            # Check if one is a more specific version of the other
+            # e.g., "parma ham" and "ham" should match
+            if (clean1.endswith(clean2) or clean2.endswith(clean1)) and \
+               (clean1.startswith(clean2) or clean2.startswith(clean1)):
                 return True
         
         return False
