@@ -1,3 +1,6 @@
+<<<<<<< HEAD
+# CrewAI Implementation Package
+=======
 """
 CrewAI Integration Module
 
@@ -6,3 +9,4 @@ Includes background flows, real-time crews, and artifact caching.
 """
 
 __version__ = "1.0.0"
+>>>>>>> 36bb269d0cdb24db95429518c20bc1653cd1b434
