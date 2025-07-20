@@ -44,8 +44,8 @@ export function isInappropriateContent(text: string): boolean {
   
   // Check for common non-English patterns (like transliterated text)
   const transliteratedPatterns = [
-    /\b(?:kya|hai|ka|ke|ki|ko|se|me|ne|ye|wo|jo|to|ho|na|hi|bhi|aur|ya|par|mein|tha|thi|the)\b/i, // Hindi/Urdu
-    /\b(?:da|de|di|do|la|le|li|lo|ma|mi|mo|na|ne|ni|no|pa|pe|pi|po)\b.*\b(?:da|de|di|do|la|le|li|lo|ma|mi|mo|na|ne|ni|no|pa|pe|pi|po)\b/i, // Romance languages pattern
+    /\b(?:kya|hai|ka|ke|ki|ko|se|me|ne|ye|wo|jo|ho|na|hi|bhi|aur|ya|par|mein|tha|thi)\b/i, // Hindi/Urdu (removed 'the' and 'to')
+    /\b(?:que|una|las|los|para|con|esta|este|muy|pero|por|son|del|como|todo|bien|mas|fue|sus|ser|han|dos|vez)\b.*\b(?:que|una|las|los|para|con|esta|este|muy|pero|por|son|del|como|todo|bien|mas|fue|sus|ser|han|dos|vez)\b/i, // Spanish/Portuguese common words pattern
     /[а-яА-Я]/,  // Cyrillic
     /[α-ωΑ-Ω]/,  // Greek
     /[\u4e00-\u9fff]/,  // Chinese
