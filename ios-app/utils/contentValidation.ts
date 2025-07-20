@@ -112,7 +112,7 @@ export function validateInstructions(instructions: string[] | undefined): string
       validInstructions.push(trimmed);
     } else {
       // Debug: log what was filtered out
-      console.log('Filtered inappropriate instruction:', trimmed);
+      console.log('Filtered inappropriate instruction:', trimmed.substring(0, 50));
     }
   }
   
@@ -126,11 +126,11 @@ export function hasValidInstructions(recipe: any): boolean {
     if (recipe.analyzedInstructions && Array.isArray(recipe.analyzedInstructions) && recipe.analyzedInstructions.length > 0) {
       const steps = recipe.analyzedInstructions[0]?.steps || [];
       const instructions = steps.map((step: any) => step.step);
-      if (instructions.length < 3) {
-        return false; // Must have at least 3 steps
+      if (instructions.length < 2) {
+        return false; // Must have at least 2 steps
       }
       const validatedInstructions = validateInstructions(instructions);
-      return validatedInstructions !== null && validatedInstructions.length >= 3;
+      return validatedInstructions !== null && validatedInstructions.length >= 2;
     }
     return false;
   }
@@ -138,8 +138,8 @@ export function hasValidInstructions(recipe: any): boolean {
   // Validate the instructions
   const validatedInstructions = validateInstructions(recipe.instructions);
   
-  // Recipe must have at least 3 valid instructions
-  return validatedInstructions !== null && validatedInstructions.length >= 3;
+  // Recipe must have at least 2 valid instructions
+  return validatedInstructions !== null && validatedInstructions.length >= 2;
 }
 
 // Simple validation cache to avoid re-validating the same recipes
