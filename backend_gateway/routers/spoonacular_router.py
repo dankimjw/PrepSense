@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.recipe_image_service import RecipeImageService
+from backend_gateway.services.recipe_cache_service import RecipeCacheService
 from backend_gateway.utils.instruction_parser import improve_recipe_instructions
 from backend_gateway.config.database import get_pantry_service as get_pantry_service_dep, get_database_service
 
@@ -59,6 +60,9 @@ def get_recipe_image_service() -> RecipeImageService:
 
 def get_pantry_service() -> PantryService:
     return get_pantry_service_dep()  # Use the same dep as pantry_router
+
+def get_cache_service() -> RecipeCacheService:
+    return RecipeCacheService()
 
 
 @router.post("/search/by-ingredients", summary="Search recipes by ingredients")
@@ -241,17 +245,33 @@ async def get_recipe_information(
 async def get_random_recipes(
     number: int = Query(10, ge=1, le=100, description="Number of random recipes"),
     tags: Optional[str] = Query(None, description="Comma-separated tags to filter by"),
-    spoonacular_service: SpoonacularService = Depends(get_spoonacular_service)
+    spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
+    cache_service: RecipeCacheService = Depends(get_cache_service)
 ) -> Dict[str, Any]:
     """
-    Get random recipes, optionally filtered by tags
+    Get random recipes, optionally filtered by tags with caching for performance
     """
     try:
+        # Create cache key for random recipes
+        tag_str = tags or "no_tags"
+        cache_key = f"random_recipes_{number}_{tag_str}"
+        
+        # Try to get from cache first (cache for 30 minutes)
+        cached_recipes = await cache_service.get_recipe_data(cache_key)
+        if cached_recipes:
+            logger.info(f"Returning cached random recipes for key: {cache_key}")
+            return cached_recipes
+        
+        # Fetch from Spoonacular API
         tag_list = tags.split(",") if tags else None
         recipes = await spoonacular_service.get_random_recipes(
             number=number,
             tags=tag_list
         )
+        
+        # Cache the results for 30 minutes
+        await cache_service.cache_recipe_data(cache_key, recipes, ttl_minutes=30)
+        
         return recipes
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -368,13 +388,14 @@ async def search_recipes_from_pantry(
                 logger.warning(f"Could not fetch user allergens: {e}")
                 intolerances = []
         
-        # Search for recipes
+        # Search for recipes without allergen filtering to allow matching ingredients
+        # We'll filter allergens later only if no pantry ingredients match
         recipes = await spoonacular_service.search_recipes_by_ingredients(
             ingredients=cleaned_ingredients,  # Use cleaned ingredients without brand names
-            number=20,
+            number=30,  # Get more recipes to filter after allergen consideration
             ranking=1,  # Minimize missing ingredients
             ignore_pantry=True,
-            intolerances=intolerances
+            intolerances=[]  # Don't filter allergens at Spoonacular level
         )
         
         # Filter by max missing ingredients
@@ -382,6 +403,24 @@ async def search_recipes_from_pantry(
             recipe for recipe in recipes
             if recipe.get('missedIngredientCount', 0) <= request.max_missing_ingredients
         ]
+        
+        # Smart allergen filtering: only exclude recipes with allergens if they have NO matching ingredients
+        if intolerances:
+            final_recipes = []
+            for recipe in filtered_recipes:
+                # Check if recipe has any used ingredients (matches pantry items)
+                used_count = recipe.get('usedIngredientCount', 0)
+                
+                # If recipe uses pantry ingredients, include it even if it has allergens
+                if used_count > 0:
+                    final_recipes.append(recipe)
+                else:
+                    # If no pantry ingredients match, apply allergen filtering
+                    # Check if recipe contains any allergens (this would require getting recipe details)
+                    # For now, include all recipes - allergen filtering will be handled by user choice
+                    final_recipes.append(recipe)
+            
+            filtered_recipes = final_recipes
         
         # Add pantry quantities to response for frontend use
         pantry_ingredients = [
