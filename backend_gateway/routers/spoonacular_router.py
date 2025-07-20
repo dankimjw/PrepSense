@@ -377,11 +377,18 @@ async def search_recipes_from_pantry(
             intolerances=intolerances
         )
         
-        # Filter by max missing ingredients
+        # Filter to only show recipes with at least 1 matching ingredient (usedIngredientCount >= 1)
+        # This ensures we only show recipes that actually use pantry ingredients
         filtered_recipes = [
             recipe for recipe in recipes
-            if recipe.get('missedIngredientCount', 0) <= request.max_missing_ingredients
+            if recipe.get('usedIngredientCount', 0) >= 1
         ]
+        
+        # Sort by most used ingredients first, then by fewest missing
+        filtered_recipes.sort(key=lambda x: (-x.get('usedIngredientCount', 0), x.get('missedIngredientCount', 999)))
+        
+        # Limit to reasonable number for display
+        filtered_recipes = filtered_recipes[:20]
         
         # Add pantry quantities to response for frontend use
         pantry_ingredients = [
