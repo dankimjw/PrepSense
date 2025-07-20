@@ -31,6 +31,10 @@ describe('Recipe API Tests', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => ({ recipes: mockRecipes }),
       });
 
@@ -46,8 +50,8 @@ describe('Recipe API Tests', () => {
         })
       );
       
-      expect(response.recipes).toEqual(mockRecipes);
-      expect(response.recipes).toHaveLength(2);
+      expect(response.data.recipes).toEqual(mockRecipes);
+      expect(response.data.recipes).toHaveLength(2);
     });
 
     it('should handle API errors gracefully', async () => {
@@ -96,20 +100,24 @@ describe('Recipe API Tests', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => mockRecipeDetail,
       });
 
       const response = await apiClient.get('/recipes/1');
       
       // Verify all steps are returned
-      expect(response.steps).toHaveLength(5);
-      response.steps.forEach((step, index) => {
+      expect(response.data.steps).toHaveLength(5);
+      response.data.steps.forEach((step, index) => {
         expect(step.number).toBe(index + 1);
         expect(step.step).toBeTruthy();
       });
       
       // Verify all ingredients are returned
-      expect(response.ingredients).toHaveLength(3);
+      expect(response.data.ingredients).toHaveLength(3);
     });
 
     it('should handle missing recipe steps', async () => {
@@ -122,13 +130,17 @@ describe('Recipe API Tests', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => mockRecipeWithoutSteps,
       });
 
       const response = await apiClient.get('/recipes/1');
       
-      expect(response.steps).toEqual([]);
-      expect(response.steps).toHaveLength(0);
+      expect(response.data.steps).toEqual([]);
+      expect(response.data.steps).toHaveLength(0);
     });
   });
 
@@ -158,6 +170,10 @@ describe('Recipe API Tests', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => mockResponse,
       });
 
@@ -177,8 +193,8 @@ describe('Recipe API Tests', () => {
         })
       );
 
-      expect(response.success).toBe(true);
-      expect(response.updatedPantryItems).toHaveLength(2);
+      expect(response.data.success).toBe(true);
+      expect(response.data.updatedPantryItems).toHaveLength(2);
     });
 
     it('should handle recipe completion errors', async () => {
@@ -200,6 +216,10 @@ describe('Recipe API Tests', () => {
 
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => mockData,
       });
 
@@ -228,6 +248,10 @@ describe('Recipe API Tests', () => {
       // Second attempt succeeds
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
+        status: 200,
+        headers: {
+          get: (name: string) => name === 'content-type' ? 'application/json' : null,
+        },
         json: async () => ({ recipes: [] }),
       });
 
