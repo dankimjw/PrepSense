@@ -174,7 +174,7 @@ export default function RecipesScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: 111, // Default demo user
-          max_missing_ingredients: 5,
+          max_missing_ingredients: 10, // Increased since we now filter by at least 1 matching ingredient
           use_expiring_first: true,
         }),
       });
@@ -885,8 +885,9 @@ export default function RecipesScreen() {
   };
 
   const renderRecipeCard = (recipe: Recipe, index: number) => (
-    <View key={recipe.id} style={styles.recipeCardWrapper}>
+    <View key={recipe.id} testID={`recipe-card-wrapper-${recipe.id}`} style={styles.recipeCardWrapper}>
       <TouchableOpacity
+        testID={`recipe-card-${recipe.id}`}
         style={styles.recipeCard}
         onPress={() => navigateToRecipeDetail(recipe)}
       >
@@ -896,33 +897,45 @@ export default function RecipesScreen() {
         style={styles.gradient}
       />
       <View style={styles.recipeInfo}>
-        <Text style={styles.recipeTitle} numberOfLines={2}>
+        <Text testID={`recipe-title-${recipe.id}`} style={styles.recipeTitle} numberOfLines={2}>
           {recipe.title}
         </Text>
-        <View style={styles.recipeStats}>
-          <View style={styles.stat}>
-            <MaterialCommunityIcons name="check-circle" size={16} color="#4CAF50" />
-            <Text style={styles.statText}>{recipe.usedIngredientCount || 0} have</Text>
+        <View testID={`recipe-stats-${recipe.id}`} style={styles.recipeStats}>
+          <View testID={`have-badge-${recipe.id}`} style={styles.stat}>
+            <MaterialCommunityIcons 
+              name="check-circle" 
+              size={16} 
+              color="#4CAF50" 
+              accessibilityLabel="Ingredients available"
+            />
+            <Text testID={`have-count-${recipe.id}`} style={styles.statText}>{recipe.usedIngredientCount || 0} have</Text>
           </View>
-          <View style={styles.stat}>
-            <MaterialCommunityIcons name="close-circle" size={16} color="#F44336" />
-            <Text style={styles.statText}>{recipe.missedIngredientCount || 0} missing</Text>
+          <View testID={`missing-badge-${recipe.id}`} style={styles.stat}>
+            <MaterialCommunityIcons 
+              name="close-circle" 
+              size={16} 
+              color="#F44336" 
+              accessibilityLabel="Ingredients missing"
+            />
+            <Text testID={`missing-count-${recipe.id}`} style={styles.statText}>{recipe.missedIngredientCount || 0} missing</Text>
           </View>
         </View>
       </View>
       <TouchableOpacity 
+        testID={`bookmark-button-${recipe.id}`}
         style={styles.saveButton}
         onPress={() => saveRecipe(recipe)}
       >
-        <Ionicons name="bookmark-outline" size={20} color="#fff" />
+        <Ionicons name="bookmark-outline" size={20} color="#fff" accessibilityLabel="Save recipe" />
       </TouchableOpacity>
       </TouchableOpacity>
     </View>
   );
 
   const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => (
-    <View key={savedRecipe.id} style={styles.recipeCardWrapper}>
+    <View key={savedRecipe.id} testID={`saved-recipe-card-wrapper-${savedRecipe.id}`} style={styles.recipeCardWrapper}>
       <TouchableOpacity
+        testID={`saved-recipe-card-${savedRecipe.id}`}
         style={styles.recipeCard}
         onPress={() => navigateToRecipeDetail(savedRecipe)}
       >
@@ -932,13 +945,14 @@ export default function RecipesScreen() {
           style={styles.gradient}
         />
         <View style={styles.recipeInfo}>
-          <Text style={styles.recipeTitle} numberOfLines={2}>
+          <Text testID={`saved-recipe-title-${savedRecipe.id}`} style={styles.recipeTitle} numberOfLines={2}>
             {savedRecipe.recipe_title}
           </Text>
           {/* Only show rating buttons in Cooked tab */}
           {myRecipesTab === 'cooked' && (
-            <View style={styles.ratingButtons}>
+            <View testID={`rating-buttons-${savedRecipe.id}`} style={styles.ratingButtons}>
               <TouchableOpacity 
+                testID={`thumbs-up-button-${savedRecipe.id}`}
                 style={[
                   styles.ratingButton,
                   savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
@@ -952,9 +966,11 @@ export default function RecipesScreen() {
                   name="thumbs-up" 
                   size={16} 
                   color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                  accessibilityLabel="Rate recipe positively"
                 />
               </TouchableOpacity>
               <TouchableOpacity 
+                testID={`thumbs-down-button-${savedRecipe.id}`}
                 style={[
                   styles.ratingButton,
                   savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
@@ -968,13 +984,15 @@ export default function RecipesScreen() {
                   name="thumbs-down" 
                   size={16} 
                   color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                  accessibilityLabel="Rate recipe negatively"
                 />
               </TouchableOpacity>
             </View>
           )}
         </View>
-        <View style={styles.cardActions}>
+        <View testID={`card-actions-${savedRecipe.id}`} style={styles.cardActions}>
           <TouchableOpacity 
+            testID={`favorite-button-${savedRecipe.id}`}
             style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
             onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
           >
@@ -982,13 +1000,15 @@ export default function RecipesScreen() {
               name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
               size={16} 
               color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
+              accessibilityLabel={savedRecipe.is_favorite ? "Remove from favorites" : "Add to favorites"}
             />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID={`delete-button-${savedRecipe.id}`}
             style={styles.deleteButton}
             onPress={() => deleteRecipe(savedRecipe.id)}
           >
-            <Ionicons name="trash-outline" size={14} color="#fff" />
+            <Ionicons name="trash-outline" size={14} color="#fff" accessibilityLabel="Delete recipe" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -998,22 +1018,23 @@ export default function RecipesScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Recipes</Text>
+        <Text testID="header-title" style={styles.headerTitle}>Recipes</Text>
         <View style={styles.headerActions}>
-          <TouchableOpacity onPress={() => setShowSortModal(true)} style={styles.headerButton}>
-            <MaterialCommunityIcons name="sort" size={24} color="#297A56" />
+          <TouchableOpacity testID="sort-button" onPress={() => setShowSortModal(true)} style={styles.headerButton}>
+            <MaterialCommunityIcons name="sort" size={24} color="#297A56" accessibilityLabel="Sort recipes" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/chat')} style={styles.headerButton}>
-            <MaterialCommunityIcons name="chef-hat" size={24} color="#297A56" />
+          <TouchableOpacity testID="chat-button" onPress={() => router.push('/chat')} style={styles.headerButton}>
+            <MaterialCommunityIcons name="chef-hat" size={24} color="#297A56" accessibilityLabel="Open recipe chat" />
           </TouchableOpacity>
         </View>
       </View>
 
       {/* Search Bar */}
-      <View style={styles.searchContainer}>
+      <View testID="search-container" style={styles.searchContainer}>
         <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
-          <Ionicons name="search" size={20} color="#666" />
+          <Ionicons name="search" size={20} color="#666" accessibilityLabel="Search icon" />
           <TextInput
+            testID="search-input"
             style={styles.searchInput}
             placeholder={`Search ${activeTab === 'pantry' ? 'pantry recipes' : activeTab === 'discover' ? 'all recipes' : 'your recipes'}...`}
             value={searchQuery}
@@ -1024,20 +1045,21 @@ export default function RecipesScreen() {
             onBlur={() => setSearchFocused(false)}
           />
           {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#666" />
+            <TouchableOpacity testID="clear-search-button" onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#666" accessibilityLabel="Clear search" />
             </TouchableOpacity>
           )}
         </View>
         {activeTab === 'discover' && searchQuery.length > 0 && (
-          <TouchableOpacity style={styles.searchButton} onPress={() => searchRecipes()}>
+          <TouchableOpacity testID="search-submit-button" style={styles.searchButton} onPress={() => searchRecipes()}>
             <Text style={styles.searchButtonText}>Search</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      <View style={styles.tabContainer}>
+      <View testID="tab-container" style={styles.tabContainer}>
         <TouchableOpacity
+          testID="pantry-tab"
           style={[styles.tab, activeTab === 'pantry' && styles.activeTab]}
           onPress={() => setActiveTab('pantry')}
         >
@@ -1046,6 +1068,7 @@ export default function RecipesScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          testID="discover-tab"
           style={[styles.tab, activeTab === 'discover' && styles.activeTab]}
           onPress={() => setActiveTab('discover')}
         >
@@ -1054,6 +1077,7 @@ export default function RecipesScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
+          testID="my-recipes-tab"
           style={[styles.tab, activeTab === 'my-recipes' && styles.activeTab]}
           onPress={() => setActiveTab('my-recipes')}
         >
@@ -1067,8 +1091,9 @@ export default function RecipesScreen() {
       {activeTab === 'my-recipes' ? (
         <View style={styles.myRecipesTabContainer}>
           {/* Saved/Cooked Tabs */}
-          <View style={styles.myRecipesTabs}>
+          <View testID="my-recipes-tabs" style={styles.myRecipesTabs}>
             <TouchableOpacity
+              testID="saved-tab"
               style={[
                 styles.myRecipesTab,
                 myRecipesTab === 'saved' && styles.myRecipesTabActive
@@ -1086,6 +1111,7 @@ export default function RecipesScreen() {
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
+              testID="cooked-tab"
               style={[
                 styles.myRecipesTab,
                 myRecipesTab === 'cooked' && styles.myRecipesTabActive
@@ -1114,6 +1140,7 @@ export default function RecipesScreen() {
                 showsHorizontalScrollIndicator={false}
               >
                 <TouchableOpacity
+                  testID="filter-all"
                   style={[
                     styles.filterButton,
                     myRecipesFilter === 'all' && styles.filterButtonActive
@@ -1129,6 +1156,7 @@ export default function RecipesScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  testID="filter-thumbs-up"
                   style={[
                     styles.filterButton,
                     myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
@@ -1144,6 +1172,7 @@ export default function RecipesScreen() {
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
+                  testID="filter-thumbs-down"
                   style={[
                     styles.filterButton,
                     myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
@@ -1227,6 +1256,7 @@ export default function RecipesScreen() {
               {dietaryFilters.map(filter => (
                 <TouchableOpacity
                   key={filter.id}
+                  testID={`dietary-filter-${filter.id}`}
                   style={[
                     styles.filterButton,
                     selectedFilters.includes(filter.id) && styles.filterButtonActive
@@ -1255,6 +1285,7 @@ export default function RecipesScreen() {
               {cuisineFilters.map(filter => (
                 <TouchableOpacity
                   key={filter.id}
+                  testID={`cuisine-filter-${filter.id}`}
                   style={[
                     styles.filterButton,
                     selectedFilters.includes(filter.id) && styles.filterButtonActive
@@ -1283,6 +1314,7 @@ export default function RecipesScreen() {
               {mealTypeFilters.map(filter => (
                 <TouchableOpacity
                   key={filter.id}
+                  testID={`meal-type-filter-${filter.id}`}
                   style={[
                     styles.filterButton,
                     selectedFilters.includes(filter.id) && styles.filterButtonActive
@@ -1313,6 +1345,7 @@ export default function RecipesScreen() {
             {mealTypeFilters.slice(0, 4).map(filter => (
               <TouchableOpacity
                 key={filter.id}
+                testID={`pantry-filter-${filter.id}`}
                 style={[
                   styles.filterButton,
                   selectedFilters.includes(filter.id) && styles.filterButtonActive
@@ -1341,6 +1374,7 @@ export default function RecipesScreen() {
         </View>
       ) : (
         <ScrollView
+          testID="recipes-scroll-view"
           style={styles.scrollView}
           contentContainerStyle={styles.scrollContent}
           onScroll={handleScroll}
@@ -1357,9 +1391,9 @@ export default function RecipesScreen() {
         >
           {activeTab === 'my-recipes' ? (
             getFilteredSavedRecipes().length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" />
-                <Text style={styles.emptyText}>
+              <View testID="empty-my-recipes" style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" accessibilityLabel="No saved recipes" />
+                <Text testID="empty-my-recipes-text" style={styles.emptyText}>
                   {searchQuery 
                     ? `No recipes found matching "${searchQuery}"`
                     : myRecipesTab === 'saved'
@@ -1374,15 +1408,15 @@ export default function RecipesScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.recipesGrid}>
+              <View testID="my-recipes-grid" style={styles.recipesGrid}>
                 {getFilteredSavedRecipes().map((recipe, index) => renderSavedRecipeCard(recipe, index))}
               </View>
             )
           ) : (
             getFilteredRecipes().length === 0 ? (
-              <View style={styles.emptyContainer}>
-                <MaterialCommunityIcons name="food-off" size={64} color="#ccc" />
-                <Text style={styles.emptyText}>
+              <View testID="empty-recipes" style={styles.emptyContainer}>
+                <MaterialCommunityIcons name="food-off" size={64} color="#ccc" accessibilityLabel="No recipes found" />
+                <Text testID="empty-recipes-text" style={styles.emptyText}>
                   {searchQuery
                     ? `No recipes found matching "${searchQuery}"`
                     : activeTab === 'pantry'
@@ -1391,7 +1425,7 @@ export default function RecipesScreen() {
                 </Text>
               </View>
             ) : (
-              <View style={styles.recipesGrid}>
+              <View testID="recipes-grid" style={styles.recipesGrid}>
                 {getFilteredRecipes().map((recipe, index) => renderRecipeCard(recipe, index))}
               </View>
             )
@@ -1401,17 +1435,19 @@ export default function RecipesScreen() {
 
       {/* Sort Modal */}
       <Modal
+        testID="sort-modal"
         visible={showSortModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowSortModal(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Sort By</Text>
+        <Pressable testID="sort-modal-overlay" style={styles.modalOverlay} onPress={() => setShowSortModal(false)}>
+          <View testID="sort-modal-content" style={styles.modalContent}>
+            <Text testID="sort-modal-title" style={styles.modalTitle}>Sort By</Text>
             {sortOptions.map(option => (
               <TouchableOpacity
                 key={option.value}
+                testID={`sort-option-${option.value}`}
                 style={[styles.sortOption, sortBy === option.value && styles.sortOptionActive]}
                 onPress={() => {
                   setSortBy(option.value as SortOption);
@@ -1422,6 +1458,7 @@ export default function RecipesScreen() {
                   name={option.icon as any} 
                   size={24} 
                   color={sortBy === option.value ? '#297A56' : '#666'} 
+                  accessibilityLabel={`Sort by ${option.label}`}
                 />
                 <Text style={[
                   styles.sortOptionText,
@@ -1430,7 +1467,7 @@ export default function RecipesScreen() {
                   {option.label}
                 </Text>
                 {sortBy === option.value && (
-                  <Ionicons name="checkmark" size={24} color="#297A56" />
+                  <Ionicons name="checkmark" size={24} color="#297A56" accessibilityLabel="Selected" />
                 )}
               </TouchableOpacity>
             ))}

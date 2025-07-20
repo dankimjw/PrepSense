@@ -419,7 +419,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             style={[styles.confirmButton, loading && styles.confirmButtonDisabled]} 
             onPress={handleConfirm}
             disabled={loading || isCalculating}
-            testID="confirm-button"
+            testID="completion-confirm-button"
           >
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />

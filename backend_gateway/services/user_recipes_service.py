@@ -362,8 +362,8 @@ class UserRecipesService:
                 COUNT(CASE WHEN source = 'spoonacular' THEN 1 END) as spoonacular_recipes,
                 COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
                 COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes,
-                COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
-                COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cooked_recipes
+                0 as saved_recipes,
+                0 as cooked_recipes
             FROM user_recipes
             WHERE user_id = %(user_id)s
             """

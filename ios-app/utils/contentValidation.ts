@@ -44,8 +44,8 @@ export function isInappropriateContent(text: string): boolean {
   
   // Check for common non-English patterns (like transliterated text)
   const transliteratedPatterns = [
-    /\b(?:kya|hai|ka|ke|ki|ko|se|me|ne|ye|wo|jo|to|ho|na|hi|bhi|aur|ya|par|mein|tha|thi|the)\b/i, // Hindi/Urdu
-    /\b(?:da|de|di|do|la|le|li|lo|ma|mi|mo|na|ne|ni|no|pa|pe|pi|po)\b.*\b(?:da|de|di|do|la|le|li|lo|ma|mi|mo|na|ne|ni|no|pa|pe|pi|po)\b/i, // Romance languages pattern
+    /\b(?:kya|hai|ka|ke|ki|ko|se|me|ne|ye|wo|jo|ho|na|hi|bhi|aur|ya|par|mein|tha|thi)\b/i, // Hindi/Urdu (removed 'the' and 'to')
+    /\b(?:que|una|las|los|para|con|esta|este|muy|pero|por|son|del|como|todo|bien|mas|fue|sus|ser|han|dos|vez)\b.*\b(?:que|una|las|los|para|con|esta|este|muy|pero|por|son|del|como|todo|bien|mas|fue|sus|ser|han|dos|vez)\b/i, // Spanish/Portuguese common words pattern
     /[а-яА-Я]/,  // Cyrillic
     /[α-ωΑ-Ω]/,  // Greek
     /[\u4e00-\u9fff]/,  // Chinese
@@ -112,7 +112,7 @@ export function validateInstructions(instructions: string[] | undefined): string
       validInstructions.push(trimmed);
     } else {
       // Debug: log what was filtered out
-      console.log('Filtered inappropriate instruction:', trimmed);
+      console.log('Filtered inappropriate instruction:', trimmed.substring(0, 50));
     }
   }
   
@@ -126,11 +126,11 @@ export function hasValidInstructions(recipe: any): boolean {
     if (recipe.analyzedInstructions && Array.isArray(recipe.analyzedInstructions) && recipe.analyzedInstructions.length > 0) {
       const steps = recipe.analyzedInstructions[0]?.steps || [];
       const instructions = steps.map((step: any) => step.step);
-      if (instructions.length < 3) {
-        return false; // Must have at least 3 steps
+      if (instructions.length < 2) {
+        return false; // Must have at least 2 steps
       }
       const validatedInstructions = validateInstructions(instructions);
-      return validatedInstructions !== null && validatedInstructions.length >= 3;
+      return validatedInstructions !== null && validatedInstructions.length >= 2;
     }
     return false;
   }
@@ -138,8 +138,8 @@ export function hasValidInstructions(recipe: any): boolean {
   // Validate the instructions
   const validatedInstructions = validateInstructions(recipe.instructions);
   
-  // Recipe must have at least 3 valid instructions
-  return validatedInstructions !== null && validatedInstructions.length >= 3;
+  // Recipe must have at least 2 valid instructions
+  return validatedInstructions !== null && validatedInstructions.length >= 2;
 }
 
 // Simple validation cache to avoid re-validating the same recipes
