@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 from backend_gateway.services.spoonacular_service import SpoonacularService
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.recipe_image_service import RecipeImageService
+from backend_gateway.utils.instruction_parser import improve_recipe_instructions
 from backend_gateway.config.database import get_pantry_service as get_pantry_service_dep, get_database_service
 
 logger = logging.getLogger(__name__)
@@ -216,6 +217,14 @@ async def get_recipe_information(
         except Exception as img_error:
             logger.error(f"Error handling recipe image for ID {recipe_id}: {str(img_error)}")
             # Continue with Spoonacular image if image generation fails
+        
+        # Improve recipe instructions parsing
+        if recipe and 'analyzedInstructions' in recipe:
+            try:
+                recipe['analyzedInstructions'] = improve_recipe_instructions(recipe['analyzedInstructions'])
+                logger.info(f"Improved instructions for recipe {recipe_id}")
+            except Exception as inst_error:
+                logger.warning(f"Failed to improve instructions for recipe {recipe_id}: {str(inst_error)}")
         
         return recipe
     except ValueError as e:
