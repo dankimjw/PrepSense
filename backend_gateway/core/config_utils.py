@@ -54,6 +54,13 @@ def get_openai_api_key() -> str:
     # Try direct environment variable first (for backward compatibility)
     api_key = os.getenv("OPENAI_API_KEY")
     if api_key and api_key != "your_openai_api_key_here":
+        # Validate the key format
+        if not api_key.startswith("sk-"):
+            raise ValueError(
+                f"Invalid OpenAI API key format. "
+                f"OpenAI keys should start with 'sk-'. "
+                f"Got: {api_key[:10]}..."
+            )
         return api_key
     
     # Try config file specified in environment
@@ -79,9 +86,10 @@ def get_openai_api_key() -> str:
     # No API key found
     raise ValueError(
         "OpenAI API key not found. Please either:\n"
-        "1. Set OPENAI_API_KEY environment variable, or\n"
-        "2. Create config/openai_key.txt with your API key, or\n"
-        "3. Set OPENAI_API_KEY_FILE to point to your key file"
+        "1. Set OPENAI_API_KEY environment variable in .env file, or\n"
+        "2. Create config/openai_key.txt with your API key\n\n"
+        "Get your API key at: https://platform.openai.com/api-keys\n"
+        "Location of .env file: project_root/.env (NOT in backend_gateway/)"
     )
 
 

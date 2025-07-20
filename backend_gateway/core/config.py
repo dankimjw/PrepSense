@@ -3,6 +3,7 @@ Configuration settings for PrepSense backend application.
 """
 
 from typing import List, Optional
+from pydantic import field_validator, ValidationError
 from pydantic_settings import BaseSettings
 
 
@@ -61,6 +62,71 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     LOG_LEVEL: str = "INFO"
     DEMO_USER_ID: Optional[str] = None
+    
+    @field_validator('SPOONACULAR_API_KEY')
+    @classmethod
+    def validate_spoonacular_key(cls, v: Optional[str]) -> str:
+        """Validate Spoonacular API key is provided."""
+        if not v or v.strip() == "":
+            raise ValueError(
+                "SPOONACULAR_API_KEY is required. "
+                "Get your API key at https://spoonacular.com/food-api"
+            )
+        if v == "your-spoonacular-api-key-here":
+            raise ValueError(
+                "SPOONACULAR_API_KEY has not been configured. "
+                "Replace the placeholder with your actual API key."
+            )
+        return v.strip()
+    
+    @field_validator('POSTGRES_HOST')
+    @classmethod
+    def validate_postgres_host(cls, v: Optional[str]) -> str:
+        """Validate PostgreSQL host is provided."""
+        if not v or v.strip() == "":
+            raise ValueError(
+                "POSTGRES_HOST is required. "
+                "This should be the Google Cloud SQL instance IP address."
+            )
+        return v.strip()
+    
+    @field_validator('POSTGRES_DATABASE')
+    @classmethod
+    def validate_postgres_database(cls, v: Optional[str]) -> str:
+        """Validate PostgreSQL database name is provided."""
+        if not v or v.strip() == "":
+            raise ValueError(
+                "POSTGRES_DATABASE is required. "
+                "This should be 'prepsense' for the production database."
+            )
+        return v.strip()
+    
+    @field_validator('POSTGRES_USER')
+    @classmethod
+    def validate_postgres_user(cls, v: Optional[str]) -> str:
+        """Validate PostgreSQL user is provided."""
+        if not v or v.strip() == "":
+            raise ValueError(
+                "POSTGRES_USER is required. "
+                "This should be 'postgres' or your assigned database user."
+            )
+        return v.strip()
+    
+    @field_validator('POSTGRES_PASSWORD')
+    @classmethod
+    def validate_postgres_password(cls, v: Optional[str]) -> str:
+        """Validate PostgreSQL password is provided."""
+        if not v or v.strip() == "":
+            raise ValueError(
+                "POSTGRES_PASSWORD is required. "
+                "Get the database password from your team lead."
+            )
+        if v in ["your-password-here", "changeme", "password"]:
+            raise ValueError(
+                "POSTGRES_PASSWORD has not been properly configured. "
+                "Replace the placeholder with the actual database password."
+            )
+        return v.strip()
     
     class Config:
         """Pydantic configuration."""

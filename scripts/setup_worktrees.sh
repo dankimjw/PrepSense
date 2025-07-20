@@ -14,19 +14,19 @@ git worktree add ../PrepSense-worktrees/feature -b feature-work
 echo "Creating worktree for bug fixes..."
 git worktree add ../PrepSense-worktrees/bugfix -b bugfix-work
 
-echo "Creating worktree for experiments..."
-git worktree add ../PrepSense-worktrees/experiment -b experimental-work
+echo "Creating worktree for testing zone..."
+git worktree add ../PrepSense-worktrees/testzone -b testzone-work
 
 # Copy .env to each worktree
 echo "Copying environment files..."
 cp .env ../PrepSense-worktrees/feature/.env
 cp .env ../PrepSense-worktrees/bugfix/.env
-cp .env ../PrepSense-worktrees/experiment/.env
+cp .env ../PrepSense-worktrees/testzone/.env
 
 echo "Worktrees created successfully!"
 echo ""
 echo "Next steps for each worktree:"
-echo "1. cd ../PrepSense-worktrees/[feature|bugfix|experiment]"
+echo "1. cd ../PrepSense-worktrees/[feature|bugfix|testzone]"
 echo "2. python -m venv venv && source venv/bin/activate"
 echo "3. pip install -r requirements.txt"
 echo "4. cd ios-app && npm install"
