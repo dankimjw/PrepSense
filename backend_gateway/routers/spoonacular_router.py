@@ -398,29 +398,25 @@ async def search_recipes_from_pantry(
             intolerances=[]  # Don't filter allergens at Spoonacular level
         )
         
-        # Filter by max missing ingredients
+        # Filter to only show recipes with at least 1 matching ingredient (usedIngredientCount >= 1)
+        # This ensures we only show recipes that actually use pantry ingredients
         filtered_recipes = [
             recipe for recipe in recipes
-            if recipe.get('missedIngredientCount', 0) <= request.max_missing_ingredients
+            if recipe.get('usedIngredientCount', 0) >= 1
         ]
         
-        # Smart allergen filtering: only exclude recipes with allergens if they have NO matching ingredients
+        # Smart allergen filtering: since all recipes now have >= 1 matching ingredient,
+        # include them even if they contain allergens (user can decide)
         if intolerances:
-            final_recipes = []
-            for recipe in filtered_recipes:
-                # Check if recipe has any used ingredients (matches pantry items)
-                used_count = recipe.get('usedIngredientCount', 0)
-                
-                # If recipe uses pantry ingredients, include it even if it has allergens
-                if used_count > 0:
-                    final_recipes.append(recipe)
-                else:
-                    # If no pantry ingredients match, apply allergen filtering
-                    # Check if recipe contains any allergens (this would require getting recipe details)
-                    # For now, include all recipes - allergen filtering will be handled by user choice
-                    final_recipes.append(recipe)
-            
-            filtered_recipes = final_recipes
+            # All recipes in filtered_recipes already have matching ingredients,
+            # so we include them all and let users make allergen decisions
+            pass  # Keep all recipes - they all have pantry ingredient matches
+        
+        # Sort by most used ingredients first, then by fewest missing
+        filtered_recipes.sort(key=lambda x: (-x.get('usedIngredientCount', 0), x.get('missedIngredientCount', 999)))
+        
+        # Limit to reasonable number for display
+        filtered_recipes = filtered_recipes[:20]
         
         # Add pantry quantities to response for frontend use
         pantry_ingredients = [
