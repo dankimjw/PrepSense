@@ -19,7 +19,8 @@ import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 import { formatQuantity, formatIngredientQuantity } from '../utils/numberFormatting';
-import { validateInstructions } from '../utils/contentValidation';
+// Removed instruction validation/filtering
+// import { validateInstructions } from '../utils/contentValidation';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
@@ -111,13 +112,10 @@ export default function RecipeDetailsScreen() {
   }
 
 
-  // Get instructions from recipe data - only use actual instructions, no defaults
+  // Get instructions from recipe data - no filtering
   const getInstructions = (recipe: Recipe) => {
-    // Validate recipe instructions first
-    const validatedInstructions = validateInstructions(recipe.instructions);
-    
-    // Use validated instructions if available, otherwise return empty array
-    return validatedInstructions || [];
+    // Return instructions as-is without validation/filtering
+    return recipe.instructions || [];
   };
 
   const instructions = getInstructions(recipe);
@@ -469,27 +467,30 @@ export default function RecipeDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View testID="recipe-details-container" style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View testID="recipe-details-header" style={styles.header}>
         <TouchableOpacity 
+          testID="back-button"
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#333" accessibilityLabel="Go back" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recipe Details</Text>
-        <View style={styles.headerActions}>
+        <Text testID="header-title" style={styles.headerTitle}>Recipe Details</Text>
+        <View testID="header-actions" style={styles.headerActions}>
           <TouchableOpacity 
+            testID="close-button"
             style={styles.closeButton}
             onPress={() => {
               // Navigate back to main screen or close modal
               router.replace('/(tabs)');
             }}
           >
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="close" size={24} color="#333" accessibilityLabel="Close recipe details" />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="thumbs-up-button"
             style={[styles.ratingButton, rating === 'thumbs_up' && styles.ratingButtonActive]} 
             onPress={() => handleRating('thumbs_up')}
             disabled={isSaving}
@@ -498,9 +499,11 @@ export default function RecipeDetailsScreen() {
               name="thumbs-up" 
               size={20} 
               color={rating === 'thumbs_up' ? "#297A56" : "#666"} 
+              accessibilityLabel="Rate recipe positively"
             />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="thumbs-down-button"
             style={[styles.ratingButton, rating === 'thumbs_down' && styles.ratingButtonActive]} 
             onPress={() => handleRating('thumbs_down')}
             disabled={isSaving}
@@ -509,9 +512,11 @@ export default function RecipeDetailsScreen() {
               name="thumbs-down" 
               size={20} 
               color={rating === 'thumbs_down' ? "#DC2626" : "#666"} 
+              accessibilityLabel="Rate recipe negatively"
             />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="favorite-button"
             style={styles.favoriteButton} 
             onPress={handleToggleFavorite}
             disabled={isSaving}
@@ -520,32 +525,35 @@ export default function RecipeDetailsScreen() {
               name={isFavorite ? "bookmark" : "bookmark-outline"} 
               size={22} 
               color={isFavorite ? "#297A56" : "#333"} 
+              accessibilityLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView testID="recipe-details-scroll" style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Recipe Image */}
-        <View style={styles.imageContainer}>
+        <View testID="recipe-image-container" style={styles.imageContainer}>
           {generatedImageUrl && !imageError ? (
             <Image
+              testID="recipe-image"
               source={{ uri: generatedImageUrl }}
               style={styles.recipeImage}
               onError={() => setImageError('Failed to load generated image')}
             />
           ) : (
-            <View style={styles.imagePlaceholder}>
+            <View testID="image-placeholder" style={styles.imagePlaceholder}>
               {imageLoading ? (
                 <>
                   <ActivityIndicator size="large" color="#297A56" />
-                  <Text style={styles.imageLoadingText}>Generating recipe image...</Text>
+                  <Text testID="image-loading-text" style={styles.imageLoadingText}>Generating recipe image...</Text>
                 </>
               ) : imageError ? (
                 <>
-                  <Ionicons name="image-outline" size={64} color="#ccc" />
-                  <Text style={styles.imageErrorText}>Image generation failed</Text>
+                  <Ionicons name="image-outline" size={64} color="#ccc" accessibilityLabel="Image failed to load" />
+                  <Text testID="image-error-text" style={styles.imageErrorText}>Image generation failed</Text>
                   <TouchableOpacity 
+                    testID="retry-image-button"
                     style={styles.retryButton}
                     onPress={() => generateImageForRecipe(recipe.name, useGenerated)}
                   >
@@ -554,8 +562,8 @@ export default function RecipeDetailsScreen() {
                 </>
               ) : (
                 <>
-                  <Ionicons name="image-outline" size={64} color="#ccc" />
-                  <Text style={styles.imageErrorText}>No image available</Text>
+                  <Ionicons name="image-outline" size={64} color="#ccc" accessibilityLabel="No image available" />
+                  <Text testID="no-image-text" style={styles.imageErrorText}>No image available</Text>
                 </>
               )}
             </View>
@@ -563,47 +571,48 @@ export default function RecipeDetailsScreen() {
         </View>
 
         {/* Recipe Info Card */}
-        <View style={styles.recipeCard}>
-          <Text style={styles.recipeTitle}>{recipe.name}</Text>
+        <View testID="recipe-info-card" style={styles.recipeCard}>
+          <Text testID="recipe-title" style={styles.recipeTitle}>{recipe.name}</Text>
           
-          <View style={styles.recipeMetrics}>
-            <View style={styles.metricItem}>
-              <Ionicons name="time" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.time} min</Text>
+          <View testID="recipe-metrics" style={styles.recipeMetrics}>
+            <View testID="time-metric" style={styles.metricItem}>
+              <Ionicons name="time" size={20} color="#666" accessibilityLabel="Cooking time" />
+              <Text testID="time-text" style={styles.metricText}>{recipe.time} min</Text>
             </View>
-            <View style={styles.metricItem}>
-              <Ionicons name="fitness" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.nutrition.calories} cal</Text>
+            <View testID="calories-metric" style={styles.metricItem}>
+              <Ionicons name="fitness" size={20} color="#666" accessibilityLabel="Calories" />
+              <Text testID="calories-text" style={styles.metricText}>{recipe.nutrition.calories} cal</Text>
             </View>
-            <View style={styles.metricItem}>
-              <MaterialIcons name="fitness-center" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.nutrition.protein}g protein</Text>
+            <View testID="protein-metric" style={styles.metricItem}>
+              <MaterialIcons name="fitness-center" size={20} color="#666" accessibilityLabel="Protein content" />
+              <Text testID="protein-text" style={styles.metricText}>{recipe.nutrition.protein}g protein</Text>
             </View>
-            <View style={styles.metricItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#297A56" />
-              <Text style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
+            <View testID="match-metric" style={styles.metricItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#297A56" accessibilityLabel="Recipe match score" />
+              <Text testID="match-text" style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
             </View>
           </View>
 
           {/* Ingredients Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
+          <View testID="ingredients-section" style={styles.section}>
+            <Text testID="ingredients-title" style={styles.sectionTitle}>Ingredients</Text>
             
             {/* Complete ingredients list */}
-            <View style={styles.ingredientGroup}>
-              <Text style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
+            <View testID="ingredients-list" style={styles.ingredientGroup}>
+              <Text testID="ingredients-list-title" style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
               {recipe.ingredients.map((ingredient, index) => {
                 // Simply check if this exact ingredient string is in the available list
                 // The backend already does the smart matching
                 const isAvailable = recipe.available_ingredients.includes(ingredient);
                 return (
-                  <View key={index} style={styles.ingredientItem}>
+                  <View key={index} testID={`ingredient-item-${index}`} style={styles.ingredientItem}>
                     <Ionicons 
                       name={isAvailable ? "checkmark-circle" : "add-circle-outline"} 
                       size={16} 
                       color={isAvailable ? "#297A56" : "#DC2626"} 
+                      accessibilityLabel={isAvailable ? "Ingredient available" : "Ingredient missing"}
                     />
-                    <Text style={isAvailable ? styles.availableIngredient : styles.missingIngredient}>
+                    <Text testID={`ingredient-text-${index}`} style={isAvailable ? styles.availableIngredient : styles.missingIngredient}>
                       {ingredient}
                     </Text>
                   </View>
@@ -613,13 +622,13 @@ export default function RecipeDetailsScreen() {
             
             {/* Summary of what's missing */}
             {recipe.missing_ingredients.length > 0 && (
-              <View style={[styles.ingredientGroup, styles.missingSummary]}>
-                <Text style={styles.ingredientGroupTitle}>
+              <View testID="missing-ingredients-summary" style={[styles.ingredientGroup, styles.missingSummary]}>
+                <Text testID="missing-ingredients-title" style={styles.ingredientGroupTitle}>
                   🛒 Shopping list ({recipe.missing_ingredients.length} items):
                 </Text>
                 {recipe.missing_ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.ingredientItem}>
-                    <Text style={styles.missingIngredient}>• {ingredient}</Text>
+                  <View key={index} testID={`missing-ingredient-item-${index}`} style={styles.ingredientItem}>
+                    <Text testID={`missing-ingredient-text-${index}`} style={styles.missingIngredient}>• {ingredient}</Text>
                   </View>
                 ))}
               </View>
@@ -627,19 +636,19 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Instructions Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Instructions</Text>
+          <View testID="instructions-section" style={styles.section}>
+            <Text testID="instructions-title" style={styles.sectionTitle}>Instructions</Text>
             {instructions.length > 0 ? (
               instructions.map((instruction, index) => (
-                <View key={index} style={styles.instructionItem}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>{index + 1}</Text>
+                <View key={index} testID={`instruction-item-${index + 1}`} style={styles.instructionItem}>
+                  <View style={styles.stepNumber} testID={`step-number-${index + 1}`}>
+                    <Text testID={`step-number-text-${index + 1}`} style={styles.stepNumberText}>{index + 1}</Text>
                   </View>
-                  <Text style={styles.instructionText}>{instruction}</Text>
+                  <Text testID={`instruction-text-${index + 1}`} style={styles.instructionText}>{instruction}</Text>
                 </View>
               ))
             ) : (
-              <Text style={styles.noInstructionsText}>No instructions available for this recipe.</Text>
+              <Text testID="no-instructions-text" style={styles.noInstructionsText}>No instructions available for this recipe.</Text>
             )}
           </View>
 
@@ -716,10 +725,11 @@ export default function RecipeDetailsScreen() {
               
               {/* Cook Without Tracking Option */}
               <TouchableOpacity 
+                testID="cook-without-tracking-alt-button"
                 style={styles.cookWithoutTrackingButtonAlt}
                 onPress={() => navigateToCookingMode()}
               >
-                <Ionicons name="restaurant-outline" size={20} color="#297A56" />
+                <Ionicons name="restaurant-outline" size={20} color="#297A56" accessibilityLabel="Cook without tracking ingredients" />
                 <Text style={styles.cookWithoutTrackingTextAlt}>Cook Without Tracking</Text>
               </TouchableOpacity>
             </View>
@@ -729,6 +739,7 @@ export default function RecipeDetailsScreen() {
 
       {/* Recipe Completion Modal */}
       <RecipeCompletionModal
+        testID="recipe-completion-modal"
         visible={showCompletionModal}
         onClose={() => setShowCompletionModal(false)}
         onConfirm={handleRecipeCompletionConfirm}

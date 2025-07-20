@@ -175,26 +175,29 @@ export default function RecipeDetailCardV2({
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView testID="recipe-detail-card-container" style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Simplified Top App Bar */}
-      <View style={styles.appBar}>
+      <View testID="app-bar" style={styles.appBar}>
         <TouchableOpacity 
+          testID="back-button"
           style={styles.backButton} 
           onPress={onBack || (() => router.back())}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
-          <Text style={styles.backText}>Recipe Details</Text>
+          <Ionicons name="arrow-back" size={24} color="#333" accessibilityLabel="Go back" />
+          <Text testID="back-text" style={styles.backText}>Recipe Details</Text>
         </TouchableOpacity>
       </View>
 
       {/* Hero Image with Bookmark Overlay */}
-      <View style={styles.heroContainer}>
+      <View testID="hero-container" style={styles.heroContainer}>
         <Image 
+          testID="hero-image"
           source={{ uri: recipe.image || 'https://via.placeholder.com/400' }}
           style={styles.heroImage}
           resizeMode="cover"
         />
         <TouchableOpacity
+          testID="bookmark-button"
           style={styles.bookmarkOverlay}
           onPress={handleBookmark}
           activeOpacity={0.8}
@@ -204,6 +207,7 @@ export default function RecipeDetailCardV2({
               name={isBookmarked ? "bookmark" : "bookmark-outline"} 
               size={28} 
               color={isBookmarked ? "#FF6B6B" : "#FFF"} 
+              accessibilityLabel={isBookmarked ? "Remove bookmark" : "Add bookmark"}
             />
           </Animated.View>
         </TouchableOpacity>
@@ -211,74 +215,86 @@ export default function RecipeDetailCardV2({
 
       {/* Primary CTA */}
       <TouchableOpacity 
+        testID="primary-cta-button"
         style={styles.primaryCTA}
         onPress={hasCookedRecipe ? handleFinishCooking : handleCookNow}
         activeOpacity={0.9}
       >
-        <Text style={styles.primaryCTAText}>
+        <Text testID="primary-cta-text" style={styles.primaryCTAText}>
           {hasCookedRecipe ? 'Finish Cooking' : 'Cook Now'}
         </Text>
       </TouchableOpacity>
 
       {/* Title */}
-      <Text style={styles.title}>{recipe.title}</Text>
+      <Text testID="recipe-title" style={styles.title}>{recipe.title}</Text>
 
       {/* Stat Bar */}
-      <View style={styles.statBar}>
-        <View style={styles.statChip}>
-          <Ionicons name="time-outline" size={16} color="#666" />
-          <Text style={styles.statText}>{formatCookingTime(recipe.readyInMinutes || 30)}</Text>
+      <View testID="stat-bar" style={styles.statBar}>
+        <View testID="time-stat" style={styles.statChip}>
+          <Ionicons name="time-outline" size={16} color="#666" accessibilityLabel="Cooking time" />
+          <Text testID="time-text" style={styles.statText}>{formatCookingTime(recipe.readyInMinutes || 30)}</Text>
         </View>
         
         <View style={styles.statDivider} />
         
         <TouchableOpacity 
+          testID="calories-button"
           style={styles.statChip}
           onPress={() => setShowNutritionModal(true)}
         >
-          <Text style={styles.statText}>{recipe.nutrition?.calories || 0} kcal</Text>
+          <Text testID="calories-text" style={styles.statText}>{recipe.nutrition?.calories || 0} kcal</Text>
         </TouchableOpacity>
         
         <View style={styles.statDivider} />
         
-        <View style={styles.statChip}>
-          <Text style={styles.statText}>{recipe.nutrition?.protein || 0}g protein</Text>
+        <View testID="protein-stat" style={styles.statChip}>
+          <Text testID="protein-text" style={styles.statText}>{recipe.nutrition?.protein || 0}g protein</Text>
         </View>
         
         <View style={styles.statDivider} />
         
-        <View style={styles.statChip}>
+        <View testID="match-stat" style={styles.statChip}>
           <View style={styles.matchBar}>
-            <View style={[styles.matchFill, { width: `${getMatchPercentage()}%` }]} />
+            <View testID="match-bar-fill" style={[styles.matchFill, { width: `${getMatchPercentage()}%` }]} />
           </View>
-          <Text style={styles.statText}>{getMatchPercentage()}% match</Text>
+          <Text testID="match-text" style={styles.statText}>{getMatchPercentage()}% match</Text>
         </View>
       </View>
 
       {/* Ingredients Section */}
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>
+      <View testID="ingredients-section" style={styles.section}>
+        <View testID="ingredients-header" style={styles.sectionHeader}>
+          <Text testID="ingredients-title" style={styles.sectionTitle}>
             Ingredients ({processedIngredients.length})
           </Text>
           {availableIngredients.length > 0 && (
-            <Text style={styles.legendText}>
+            <Text testID="ingredients-legend" style={styles.legendText}>
               ✓ = In your pantry
             </Text>
           )}
         </View>
 
-        <View style={styles.ingredientList}>
+        <View testID="ingredient-list" style={styles.ingredientList}>
           {displayedIngredients.map((ingredient, index) => (
-            <View key={index} style={styles.ingredientRow}>
-              <View style={styles.ingredientIcon}>
+            <View key={index} testID={`ingredient-row-${index}`} style={styles.ingredientRow}>
+              <View testID={`ingredient-icon-${index}`} style={styles.ingredientIcon}>
                 {ingredient.isAvailable ? (
-                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <Ionicons 
+                    name="checkmark-circle" 
+                    size={20} 
+                    color="#4CAF50" 
+                    accessibilityLabel="Ingredient available"
+                  />
                 ) : (
-                  <Ionicons name="add-circle-outline" size={20} color="#FF9800" />
+                  <Ionicons 
+                    name="add-circle-outline" 
+                    size={20} 
+                    color="#FF9800" 
+                    accessibilityLabel="Ingredient missing"
+                  />
                 )}
               </View>
-              <Text style={styles.ingredientText}>
+              <Text testID={`ingredient-text-${index}`} style={styles.ingredientText}>
                 {ingredient.original}
               </Text>
             </View>
@@ -287,10 +303,11 @@ export default function RecipeDetailCardV2({
 
         {processedIngredients.length > INITIAL_INGREDIENTS_SHOWN && (
           <TouchableOpacity
+            testID="show-more-ingredients-button"
             style={styles.showMoreButton}
             onPress={() => setShowAllIngredients(!showAllIngredients)}
           >
-            <Text style={styles.showMoreText}>
+            <Text testID="show-more-text" style={styles.showMoreText}>
               {showAllIngredients 
                 ? 'Show less' 
                 : `Show all ${processedIngredients.length} ingredients`}
@@ -299,37 +316,41 @@ export default function RecipeDetailCardV2({
               name={showAllIngredients ? "chevron-up" : "chevron-down"} 
               size={16} 
               color="#007AFF" 
+              accessibilityLabel={showAllIngredients ? "Show fewer ingredients" : "Show more ingredients"}
             />
           </TouchableOpacity>
         )}
 
         {/* Shopping List Accordion */}
         {missingIngredients.length > 0 && (
-          <View style={styles.accordion}>
+          <View testID="shopping-list-accordion" style={styles.accordion}>
             <TouchableOpacity
+              testID="shopping-list-header"
               style={styles.accordionHeader}
               onPress={() => setShowShoppingList(!showShoppingList)}
               activeOpacity={0.7}
             >
-              <Text style={styles.accordionTitle}>
+              <Text testID="shopping-list-title" style={styles.accordionTitle}>
                 Items to Buy ({missingIngredients.length})
               </Text>
               <Ionicons 
                 name={showShoppingList ? "chevron-up" : "chevron-down"} 
                 size={20} 
                 color="#666" 
+                accessibilityLabel={showShoppingList ? "Collapse shopping list" : "Expand shopping list"}
               />
             </TouchableOpacity>
 
             {showShoppingList && (
-              <View style={styles.accordionContent}>
+              <View testID="shopping-list-content" style={styles.accordionContent}>
                 {missingIngredients.map((ingredient, index) => (
-                  <Text key={index} style={styles.shoppingItem}>
+                  <Text key={index} testID={`shopping-item-${index}`} style={styles.shoppingItem}>
                     • {ingredient.original}
                   </Text>
                 ))}
                 
                 <TouchableOpacity
+                  testID="add-to-shopping-list-button"
                   style={styles.addToListButton}
                   onPress={handleAddToShoppingList}
                   disabled={isLoading}
@@ -338,7 +359,7 @@ export default function RecipeDetailCardV2({
                     <ActivityIndicator size="small" color="#FFF" />
                   ) : (
                     <>
-                      <Ionicons name="cart-outline" size={18} color="#FFF" />
+                      <Ionicons name="cart-outline" size={18} color="#FFF" accessibilityLabel="Add to shopping list" />
                       <Text style={styles.addToListText}>Add to Shopping List</Text>
                     </>
                   )}
@@ -350,18 +371,18 @@ export default function RecipeDetailCardV2({
       </View>
 
       {/* Instructions Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>
+      <View testID="instructions-section" style={styles.section}>
+        <Text testID="instructions-title" style={styles.sectionTitle}>
           Steps ({instructions.length})
         </Text>
 
-        <View style={styles.stepList}>
+        <View testID="step-list" style={styles.stepList}>
           {displayedSteps.map((step, index) => (
-            <View key={index} style={styles.stepRow}>
-              <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{step.number}</Text>
+            <View key={index} testID={`step-row-${step.number}`} style={styles.stepRow}>
+              <View testID={`step-number-${step.number}`} style={styles.stepNumber}>
+                <Text testID={`step-number-text-${step.number}`} style={styles.stepNumberText}>{step.number}</Text>
               </View>
-              <Text style={styles.stepText}>{step.step}</Text>
+              <Text testID={`step-text-${step.number}`} style={styles.stepText}>{step.step}</Text>
             </View>
           ))}
         </View>
@@ -370,54 +391,60 @@ export default function RecipeDetailCardV2({
 
       {/* Bottom Actions (only shown after cooking) */}
       {hasCookedRecipe && (
-        <View style={styles.bottomActions}>
+        <View testID="bottom-actions" style={styles.bottomActions}>
           <TouchableOpacity
+            testID="thumbs-up-rating-button"
             style={[styles.ratingButton, styles.positiveButton]}
             onPress={() => handleRating('thumbs_up')}
           >
-            <Ionicons name="thumbs-up" size={24} color="#4CAF50" />
+            <Ionicons name="thumbs-up" size={24} color="#4CAF50" accessibilityLabel="Rate recipe positively" />
           </TouchableOpacity>
           
           <TouchableOpacity
+            testID="thumbs-down-rating-button"
             style={[styles.ratingButton, styles.negativeButton]}
             onPress={() => handleRating('thumbs_down')}
           >
-            <Ionicons name="thumbs-down" size={24} color="#F44336" />
+            <Ionicons name="thumbs-down" size={24} color="#F44336" accessibilityLabel="Rate recipe negatively" />
           </TouchableOpacity>
         </View>
       )}
 
       {/* Rating Modal */}
       <Modal
+        testID="rating-modal"
         visible={showRatingModal}
         transparent
         animationType="fade"
         onRequestClose={() => setShowRatingModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>How did it turn out?</Text>
-            <Text style={styles.modalSubtitle}>Your feedback helps us improve recommendations</Text>
+        <View testID="rating-modal-overlay" style={styles.modalOverlay}>
+          <View testID="rating-modal-content" style={styles.modalContent}>
+            <Text testID="rating-modal-title" style={styles.modalTitle}>How did it turn out?</Text>
+            <Text testID="rating-modal-subtitle" style={styles.modalSubtitle}>Your feedback helps us improve recommendations</Text>
             
-            <View style={styles.modalActions}>
+            <View testID="rating-modal-actions" style={styles.modalActions}>
               <TouchableOpacity
+                testID="positive-rating-button"
                 style={[styles.modalButton, styles.positiveModalButton]}
                 onPress={() => handleRating('thumbs_up')}
               >
-                <Ionicons name="thumbs-up" size={32} color="#4CAF50" />
+                <Ionicons name="thumbs-up" size={32} color="#4CAF50" accessibilityLabel="Rate recipe great" />
                 <Text style={styles.modalButtonText}>Great!</Text>
               </TouchableOpacity>
               
               <TouchableOpacity
+                testID="negative-rating-button"
                 style={[styles.modalButton, styles.negativeModalButton]}
                 onPress={() => handleRating('thumbs_down')}
               >
-                <Ionicons name="thumbs-down" size={32} color="#F44336" />
+                <Ionicons name="thumbs-down" size={32} color="#F44336" accessibilityLabel="Rate recipe poorly" />
                 <Text style={styles.modalButtonText}>Not so good</Text>
               </TouchableOpacity>
             </View>
             
             <TouchableOpacity
+              testID="skip-rating-button"
               style={styles.modalSkip}
               onPress={() => setShowRatingModal(false)}
             >
@@ -429,53 +456,54 @@ export default function RecipeDetailCardV2({
 
       {/* Nutrition Modal */}
       <Modal
+        testID="nutrition-modal"
         visible={showNutritionModal}
         transparent
         animationType="slide"
         onRequestClose={() => setShowNutritionModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, styles.nutritionModal]}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Nutrition Facts</Text>
-              <TouchableOpacity onPress={() => setShowNutritionModal(false)}>
-                <Ionicons name="close" size={24} color="#333" />
+        <View testID="nutrition-modal-overlay" style={styles.modalOverlay}>
+          <View testID="nutrition-modal-content" style={[styles.modalContent, styles.nutritionModal]}>
+            <View testID="nutrition-modal-header" style={styles.modalHeader}>
+              <Text testID="nutrition-modal-title" style={styles.modalTitle}>Nutrition Facts</Text>
+              <TouchableOpacity testID="nutrition-modal-close" onPress={() => setShowNutritionModal(false)}>
+                <Ionicons name="close" size={24} color="#333" accessibilityLabel="Close nutrition facts" />
               </TouchableOpacity>
             </View>
             
-            <View style={styles.nutritionGrid}>
-              <View style={styles.nutritionItem}>
+            <View testID="nutrition-grid" style={styles.nutritionGrid}>
+              <View testID="nutrition-calories" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Calories</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.calories || 0}</Text>
               </View>
               
-              <View style={styles.nutritionItem}>
+              <View testID="nutrition-protein" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Protein</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.protein || 0}g</Text>
               </View>
               
-              <View style={styles.nutritionItem}>
+              <View testID="nutrition-carbs" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Carbs</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.carbs || 0}g</Text>
               </View>
               
-              <View style={styles.nutritionItem}>
+              <View testID="nutrition-fat" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Fat</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.fat || 0}g</Text>
               </View>
               
-              <View style={styles.nutritionItem}>
+              <View testID="nutrition-fiber" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Fiber</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.fiber || 0}g</Text>
               </View>
               
-              <View style={styles.nutritionItem}>
+              <View testID="nutrition-sugar" style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Sugar</Text>
                 <Text style={styles.nutritionValue}>{recipe.nutrition?.sugar || 0}g</Text>
               </View>
             </View>
             
-            <Text style={styles.nutritionDisclaimer}>
+            <Text testID="nutrition-disclaimer" style={styles.nutritionDisclaimer}>
               * Nutritional values are estimates and may vary based on specific ingredients used.
             </Text>
           </View>
