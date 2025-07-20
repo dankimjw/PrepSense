@@ -29,7 +29,7 @@ const defaultActions: QuickAction[] = [
     icon: 'receipt',
     title: 'Scan Receipt',
     color: '#4F46E5',
-    onPress: () => Alert.alert('Receipt Scanner', 'Receipt scanning functionality will be implemented soon.')
+    route: '/receipt-scanner'
   },
   { 
     id: 'recipe', 

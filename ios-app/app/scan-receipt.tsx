@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { API_URL } from '../config';
+import { Config } from '../config';
 
 interface ParsedItem {
   name: string;
@@ -53,7 +53,7 @@ export default function ScanReceiptScreen() {
         { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
       );
 
-      const response = await fetch(`${API_URL}/ocr/scan-receipt`, {
+      const response = await fetch(`${Config.API_BASE_URL}/ocr/scan-receipt`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -101,7 +101,7 @@ export default function ScanReceiptScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/ocr/add-scanned-items`, {
+      const response = await fetch(`${Config.API_BASE_URL}/ocr/add-scanned-items`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
