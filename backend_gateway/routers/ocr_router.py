@@ -83,12 +83,25 @@ async def scan_receipt(
                     2. Quantity (if visible, otherwise default to 1)
                     3. Unit (if visible, otherwise guess based on item type)
                     4. Price (if visible)
+                    5. Category from this list:
+                       - Dairy: Milk, cheese, yogurt, butter, cream
+                       - Meat: Fresh meat, poultry, processed meats
+                       - Produce: Fresh fruits, vegetables, herbs
+                       - Bakery: Bread, pastries, baked goods
+                       - Pantry: Rice, pasta, flour, spices, oil, condiments
+                       - Beverages: Juices, sodas, water, coffee, tea
+                       - Frozen: Frozen foods, ice cream
+                       - Snacks: Chips, crackers, candy, nuts
+                       - Canned Goods: Canned vegetables, fruits, soups
+                       - Deli: Prepared foods, sandwich meats
+                       - Seafood: Fish, shellfish, seafood products
+                       - Other: Items that don't fit other categories
                     
                     Return the data in this exact JSON format:
                     {
                         "items": [
-                            {"name": "Milk", "quantity": 1, "unit": "gallon", "price": 3.99},
-                            {"name": "Bread", "quantity": 2, "unit": "loaf", "price": 2.50}
+                            {"name": "Milk", "quantity": 1, "unit": "gallon", "category": "Dairy", "price": 3.99},
+                            {"name": "Bread", "quantity": 2, "unit": "loaf", "category": "Bakery", "price": 2.50}
                         ],
                         "raw_text": "original receipt text if readable"
                     }
@@ -174,14 +187,16 @@ async def scan_receipt(
             }
             unit = unit_mapping.get(unit, unit)
             
-            # Try to categorize the item
-            category = None
-            try:
-                categorization_result = await pantry_manager.categorization_service.categorize_item(name)
-                if categorization_result["success"]:
-                    category = categorization_result["category"]
-            except Exception as e:
-                logger.warning(f"Failed to categorize item {name}: {str(e)}")
+            # Use category from OpenAI first, fallback to categorization service
+            category = item.get("category")  # Get category from OpenAI response
+            if not category:
+                # Only use categorization service if OpenAI didn't provide category
+                try:
+                    categorization_result = await pantry_manager.categorization_service.categorize_item(name)
+                    if categorization_result["success"]:
+                        category = categorization_result["category"]
+                except Exception as e:
+                    logger.warning(f"Failed to categorize item {name}: {str(e)}")
             
             processed_items.append(ParsedItem(
                 name=name,
