@@ -66,11 +66,21 @@ check_process() {
 
 echo -e "\n1️⃣  Checking ports..."
 check_port 8001 "Backend API"
-check_port 8082 "Metro Bundler"
+# Only check Metro if it should be running (iOS mode)
+if pgrep -f "metro\|expo\|npm.*start" > /dev/null 2>&1; then
+    check_port 8082 "Metro Bundler"
+else
+    echo -e "${YELLOW}ℹ️  Metro Bundler (port 8082) not expected - backend-only mode${NC}"
+fi
 
 echo -e "\n2️⃣  Checking HTTP endpoints..."
 check_http "http://localhost:8001/api/v1/health" "Backend health endpoint"
-check_http "http://localhost:8082" "Metro bundler endpoint"
+# Only check Metro endpoint if Metro is running
+if pgrep -f "metro\|expo\|npm.*start" > /dev/null 2>&1; then
+    check_http "http://localhost:8082" "Metro bundler endpoint"
+else
+    echo -e "${YELLOW}ℹ️  Metro bundler endpoint not checked - backend-only mode${NC}"
+fi
 
 echo -e "\n3️⃣  Checking processes..."
 check_process "uvicorn" "FastAPI server"
@@ -103,10 +113,11 @@ else
     # Provide quick fix suggestions
     echo -e "\n${YELLOW}Quick fixes:${NC}"
     if ! lsof -Pi :8001 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "  • Start backend: source venv/bin/activate && python run_app.py"
+        echo "  • Start backend: source venv/bin/activate && python run_app.py --backend"
+        echo "  • Start both: source venv/bin/activate && python run_app.py"
     fi
-    if ! lsof -Pi :8082 -sTCP:LISTEN -t >/dev/null 2>&1; then
-        echo "  • Start Metro: cd ios-app && npm start"
+    if ! lsof -Pi :8082 -sTCP:LISTEN -t >/dev/null 2>&1 && pgrep -f "metro\|expo\|npm.*start" > /dev/null 2>&1; then
+        echo "  • Start iOS app: python run_app.py --ios (or cd ios-app && npm start)"
     fi
     echo -e "\nFor detailed diagnostics, run: ${YELLOW}python check_app_health.py${NC}"
     exit 1
