@@ -43,9 +43,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Set up environment variables
         run: |
@@ -104,9 +105,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Set up environment variables
         run: |
@@ -182,9 +184,10 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd backend_gateway
           pip install -r requirements.txt
-          pip install -r requirements-dev.txt
+          if [ -f requirements-dev.txt ]; then
+            pip install -r requirements-dev.txt
+          fi
 
       - name: Start FastAPI server
         run: |
