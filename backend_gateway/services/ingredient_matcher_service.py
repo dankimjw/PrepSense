@@ -447,19 +447,6 @@ class IngredientMatcherService:
                 'confidence': best_fuzzy_match['score']
             }
         
-        # 4. Try category matching
-        ingredient_category = self._categorize_ingredient(ingredient_name)
-        if ingredient_category:
-            category_items = pantry_index['by_category'].get(ingredient_category, [])
-            if category_items:
-                # Return the first item in the same category
-                return {
-                    'match_type': 'category',
-                    'pantry_item': category_items[0],
-                    'category': ingredient_category,
-                    'confidence': 0.7
-                }
-        
         # No match found
         return {
             'match_type': 'none',
