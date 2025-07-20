@@ -61,13 +61,31 @@ export function isInappropriateContent(text: string): boolean {
   }
   
   // Check for excessive non-alphabetic characters (excluding common punctuation and numbers)
-  const nonAlphaCount = (text.match(/[^a-zA-Z0-9\s.,!?;:'"()-]/g) || []).length;
+  // For recipe instructions, we need to be more lenient with measurements, temperatures, etc.
+  const nonAlphaCount = (text.match(/[^a-zA-Z0-9\s.,!?;:'"()°F°C/-]/g) || []).length;
   const totalLength = text.length;
-  if (totalLength > 20 && nonAlphaCount / totalLength > 0.5) {
+  // Increased threshold from 0.5 to 0.7 to handle recipe instructions better
+  if (totalLength > 20 && nonAlphaCount / totalLength > 0.7) {
     return true;
   }
   
   return false;
+}
+
+function preprocessInstruction(instruction: string): string {
+  // Fix common formatting issues in instructions
+  let processed = instruction.trim();
+  
+  // Add space after periods if missing
+  processed = processed.replace(/\.([A-Z])/g, '. $1');
+  
+  // Add space after commas if missing
+  processed = processed.replace(/,([A-Za-z])/g, ', $1');
+  
+  // Fix temperature formatting
+  processed = processed.replace(/(\d+)degrees/g, '$1 degrees');
+  
+  return processed;
 }
 
 export function validateInstructions(instructions: string[] | undefined): string[] | null {
@@ -80,7 +98,9 @@ export function validateInstructions(instructions: string[] | undefined): string
   for (const instruction of instructions) {
     if (typeof instruction !== 'string') continue;
     
-    const trimmed = instruction.trim();
+    // Preprocess the instruction to fix formatting issues
+    const preprocessed = preprocessInstruction(instruction);
+    const trimmed = preprocessed.trim();
     if (!trimmed) continue;
     
     // Skip placeholder text from backend
@@ -122,28 +142,49 @@ export function hasValidInstructions(recipe: any): boolean {
   return validatedInstructions !== null && validatedInstructions.length >= 3;
 }
 
+// Simple validation cache to avoid re-validating the same recipes
+const validationCache = new Map<number, boolean>();
+
 export function isValidRecipe(recipe: any): boolean {
-  // Check if recipe has valid instructions
-  if (!hasValidInstructions(recipe)) {
+  // Check cache first
+  if (recipe.id && validationCache.has(recipe.id)) {
+    return validationCache.get(recipe.id)!;
+  }
+  
+  // Quick checks first to fail fast
+  
+  // Check if recipe has a valid title
+  if (!recipe.title || recipe.title.trim().length === 0) {
+    if (recipe.id) validationCache.set(recipe.id, false);
     return false;
   }
   
   // Check Spoonacular score if available (must be above 20%)
   if (recipe.spoonacularScore !== undefined && recipe.spoonacularScore < 20) {
+    if (recipe.id) validationCache.set(recipe.id, false);
     return false;
   }
   
-  // Check if recipe has a valid title
-  if (!recipe.title || recipe.title.trim().length === 0) {
-    return false;
-  }
-  
-  // Check if title contains inappropriate content
+  // Check if title contains inappropriate content (quick check)
   if (isInappropriateContent(recipe.title)) {
+    if (recipe.id) validationCache.set(recipe.id, false);
     return false;
   }
   
+  // Check if recipe has valid instructions (most expensive check last)
+  if (!hasValidInstructions(recipe)) {
+    if (recipe.id) validationCache.set(recipe.id, false);
+    return false;
+  }
+  
+  // Cache successful validation
+  if (recipe.id) validationCache.set(recipe.id, true);
   return true;
+}
+
+// Clear cache when needed (e.g., on memory pressure)
+export function clearValidationCache() {
+  validationCache.clear();
 }
 
 export function getDefaultInstructions(recipeName: string): string[] {
