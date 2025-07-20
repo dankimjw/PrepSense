@@ -132,20 +132,64 @@ async def startup_event():
 @app.get(f"{settings.API_V1_STR}/health", tags=["Health Check"])
 async def health_check():
     """Perform a health check and return environment status."""
-    env_status = {
+    from backend_gateway.core.config_utils import get_openai_api_key
+    
+    health_status = {
         "status": "healthy",
         "environment": {
-            "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "openai_configured": False,
+            "openai_valid": False,
+            "spoonacular_configured": False,
+            "database_configured": False,
+            "database_connected": False,
             "google_cloud_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
-        }
+        },
+        "errors": []
     }
+    
+    # Check OpenAI API key
+    try:
+        api_key = get_openai_api_key()
+        health_status["environment"]["openai_configured"] = True
+        health_status["environment"]["openai_valid"] = api_key.startswith("sk-")
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"OpenAI: {str(e)}")
+    
+    # Check Spoonacular API key
+    try:
+        if settings.SPOONACULAR_API_KEY:
+            health_status["environment"]["spoonacular_configured"] = True
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"Spoonacular: {str(e)}")
+    
+    # Check database configuration
+    try:
+        if all([settings.POSTGRES_HOST, settings.POSTGRES_DATABASE, 
+                settings.POSTGRES_USER, settings.POSTGRES_PASSWORD]):
+            health_status["environment"]["database_configured"] = True
+            
+            # Try to connect to database
+            try:
+                from backend_gateway.services.postgres_service import PostgresService
+                postgres_service = PostgresService()
+                # Simple connectivity test
+                await postgres_service.execute_query("SELECT 1")
+                health_status["environment"]["database_connected"] = True
+            except Exception as db_error:
+                health_status["environment"]["database_connected"] = False
+                health_status["errors"].append(f"Database connection: {str(db_error)}")
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"Database config: {str(e)}")
     
     # Check if Google Cloud credentials file exists
     gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if gcp_path:
-        env_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
+        health_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
     
-    return env_status
+    return health_status
 
 # To run (from the directory containing the PrepSense folder, or if PrepSense is the root):
 # If PrepSense is the root directory: uvicorn app:app --reload

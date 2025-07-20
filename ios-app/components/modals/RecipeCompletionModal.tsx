@@ -358,11 +358,12 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
       animationType="slide"
       presentationStyle="pageSheet"
       onRequestClose={onClose}
+      testID="recipe-completion-modal"
     >
       <View style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton} testID="close-button">
             <Ionicons name="close" size={24} color="#374151" />
           </TouchableOpacity>
           <Text style={styles.title}>Complete Recipe</Text>
@@ -418,6 +419,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             style={[styles.confirmButton, loading && styles.confirmButtonDisabled]} 
             onPress={handleConfirm}
             disabled={loading || isCalculating}
+            testID="confirm-button"
           >
             {loading ? (
               <ActivityIndicator color="#fff" size="small" />
