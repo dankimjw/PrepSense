@@ -174,7 +174,7 @@ export default function RecipesScreen() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: 111, // Default demo user
-          max_missing_ingredients: 5,
+          max_missing_ingredients: 10, // Increased since we now filter by at least 1 matching ingredient
           use_expiring_first: true,
         }),
       });
