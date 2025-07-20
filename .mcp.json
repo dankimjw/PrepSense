@@ -2,7 +2,7 @@
   "mcpServers": {
     "filesystem": {
       "type": "stdio",
-      "command": "/opt/homebrew/bin/mcp-server-filesystem",
+      "command": "mcp-server-filesystem",
       "args": ["--root", "."],
       "env": {}
     },
@@ -22,6 +22,18 @@
       "type": "stdio",
       "command": "npx",
       "args": ["-y", "@upstash/context7-mcp"],
+      "env": {}
+    },
+    "ios-simulator": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["ios-simulator-mcp"],
+      "env": {}
+    },
+    "mobile": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@mobilenext/mobile-mcp@latest"],
       "env": {}
     }
   }

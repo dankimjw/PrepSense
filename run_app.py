@@ -20,12 +20,10 @@ import signal
 import socket
 import subprocess
 import sys
-import threading
 import time
 from pathlib import Path
 from typing import List, Optional
 
-import uvicorn
 from dotenv import load_dotenv
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -215,6 +213,107 @@ def start_ios(backend_url: str, ios_port: int, project_root: Path) -> subprocess
 # ──────────────────────────────────────────────────────────────────────────────
 # 7.  Main
 # ──────────────────────────────────────────────────────────────────────────────
+def check_ios_prerequisites() -> bool:
+    """Check if iOS development prerequisites are installed."""
+    prerequisites_met = True
+    missing_items = []
+    
+    # Check for Xcode (macOS only)
+    if platform.system() == "Darwin":
+        xcode_check = subprocess.run(["which", "xcodebuild"], capture_output=True)
+        if xcode_check.returncode != 0:
+            prerequisites_met = False
+            missing_items.append("Xcode")
+    
+    # Check for npm
+    npm_check = subprocess.run(["which", "npm"], capture_output=True)
+    if npm_check.returncode != 0:
+        prerequisites_met = False
+        missing_items.append("Node.js/npm")
+    
+    # Check for Expo CLI
+    expo_check = subprocess.run(["which", "expo"], capture_output=True)
+    if expo_check.returncode != 0:
+        # Try npx expo as fallback
+        npx_expo_check = subprocess.run(["npx", "expo", "--version"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if npx_expo_check.returncode != 0:
+            prerequisites_met = False
+            missing_items.append("Expo CLI")
+    
+    return prerequisites_met, missing_items
+
+
+def display_ios_setup_instructions():
+    """Display setup instructions for iOS development."""
+    print("\n" + "🔴" * 20)
+    print("\n⚠️  iOS SIMULATOR PREREQUISITES MISSING! ⚠️")
+    print("🔴" * 20 + "\n")
+    
+    print("📱 To run the iOS app, you need to install the following:\n")
+    
+    print("1️⃣  XCODE (Required for iOS Simulator)")
+    print("   • Download from Mac App Store (free)")
+    print("   • Install Xcode Command Line Tools:")
+    print("     xcode-select --install")
+    print("   • Open Xcode at least once to accept licenses\n")
+    
+    print("2️⃣  NODE.JS & NPM")
+    print("   • Download from: https://nodejs.org/")
+    print("   • Or use Homebrew: brew install node\n")
+    
+    print("3️⃣  EXPO CLI & EXPO GO")
+    print("   • Install globally: npm install -g expo-cli")
+    print("   • Download Expo Go on your phone:")
+    print("     - iOS: https://apps.apple.com/app/expo-go/id982107779")
+    print("     - Android: https://play.google.com/store/apps/details?id=host.exp.exponent\n")
+    
+    print("4️⃣  WATCHMAN (Recommended)")
+    print("   • Install via Homebrew: brew install watchman\n")
+    
+    print("=" * 70)
+    print("\n📚 SETUP HELP & RESOURCES")
+    print("=" * 70)
+    print("\n🎯 Project Goal: Help everyone get up and running successfully!\n")
+    
+    print("⏱️  Estimated Setup Time: 30-45 minutes")
+    print("   • Xcode download may take longer depending on internet speed\n")
+    
+    print("📖 Step-by-Step Resources:")
+    print("   • Written Guide: https://docs.expo.dev/get-started/installation/")
+    print("   • Video Tutorial: https://www.youtube.com/watch?v=0-S5a0eXPoc")
+    print("   • Quick Help: Ask ChatGPT 'How to install Xcode and Expo for React Native'\n")
+    
+    print("💡 Troubleshooting Tips:")
+    print("   1. Most errors have solutions on Stack Overflow")
+    print("   2. Copy the exact error message into Google")
+    print("   3. ChatGPT/Claude are great for setup questions")
+    print("   4. The docs/IOS_SETUP_GUIDE.md has common solutions\n")
+    
+    print("🤝 Getting Help:")
+    print("   • Try the solutions above first")
+    print("   • When asking for help, include:")
+    print("     - What step you're on")
+    print("     - The exact error message")
+    print("     - What you've already tried\n")
+    
+    print("✨ You've got this! Setup might seem daunting but it's a one-time")
+    print("   process. Once done, you'll be able to contribute to the project!")
+    print("\n" + "=" * 70)
+    print("\n🚨 MANUAL STARTUP (if run_app.py doesn't work):\n")
+    print("1️⃣  CREATE .env FILE:")
+    print("   • Location: /Users/danielkim/_Capstone/PrepSense/.env")
+    print("   • Copy from .env.template: cp .env.template .env")
+    print("   • Edit with your API keys: nano .env\n")
+    print("2️⃣  START BACKEND:")
+    print("   cd backend_gateway")
+    print("   python main.py\n")
+    print("3️⃣  START FRONTEND (new terminal):")
+    print("   cd ios-app")
+    print("   npm install  # First time only")
+    print("   npm start")
+    print("\n" + "=" * 70 + "\n")
+
+
 def main():
     print("🚀 PrepSense Unified App Launcher\n" + "═" * 50)
 
@@ -273,6 +372,16 @@ def main():
     if mode in {"both", "ios"}:
         print(f"  iOS     → http://localhost:{ios_port} (calls {backend_url})")
     print()
+    
+    # Check iOS prerequisites if running iOS mode
+    if mode in {"both", "ios"}:
+        prerequisites_ok, missing = check_ios_prerequisites()
+        if not prerequisites_ok:
+            display_ios_setup_instructions()
+            print(f"❌ Missing prerequisites: {', '.join(missing)}")
+            print("\n⚠️  Continuing anyway, but the iOS app may not work properly...")
+            print("Press Ctrl+C to cancel and install prerequisites first.\n")
+            time.sleep(5)  # Give user time to read and cancel if needed
 
     # Google credentials logic + IAM toggle
     project_root = Path(__file__).resolve().parent
