@@ -60,7 +60,7 @@ cd PrepSense
 ### Step 3: Environment Configuration
 1. Copy the template file:
    ```bash
-   cp .env.template .env
+   cp "Sunday Meeting/.env.template" .env
    ```
 
 2. Edit the `.env` file and replace the following:
@@ -70,6 +70,12 @@ cd PrepSense
    
    # Choose a unique demo user ID (to avoid conflicts with teammates)
    DEMO_USER_ID=john-2  # or jane-3, bob-4, etc.
+   
+   # Get database credentials from Daniel and replace:
+   POSTGRES_HOST=actual_host_here
+   POSTGRES_USER=actual_user_here
+   POSTGRES_PASSWORD=actual_password_here
+   CLOUD_SQL_CONNECTION_NAME=actual_connection_name_here
    ```
 
 3. Create the OpenAI key file:
@@ -129,7 +135,7 @@ This will:
 
 ### Backend Issues
 - **Port 8001 in use**: Kill existing processes: `sudo lsof -ti:8001 | xargs kill -9`
-- **Database connection failed**: Check your internet connection (database is hosted on Google Cloud)
+- **Database connection failed**: Check your internet connection and database credentials
 - **Import errors**: Make sure virtual environment is activated: `source venv/bin/activate`
 
 ### API Key Issues
