@@ -69,6 +69,7 @@ const IndexScreen: React.FC = () => {
         expected_expiration: expirationDate,
         expirationDate: new Date(expirationDate),
         daysUntilExpiry: calculateDaysUntilExpiry(expirationDate),
+        addedDate: item.addedDate,
         ...itemStyle
       } as PantryItemData;
     });

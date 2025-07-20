@@ -285,21 +285,27 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
 
         {isAvailable ? (
           <>
-            <View style={styles.availabilityInfo}>
-              <Text style={styles.availabilityText}>
-                Available from {usage.pantryItems.length} item{usage.pantryItems.length > 1 ? 's' : ''}:
-              </Text>
-              {usage.pantryItems.map((item, itemIndex) => {
-                const expirationInfo = item.expirationDate 
-                  ? ` (exp: ${new Date(item.expirationDate).toLocaleDateString()})` 
-                  : '';
-                return (
-                  <Text key={itemIndex} style={styles.pantryItemText}>
-                    • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}{expirationInfo}
-                  </Text>
+            <TouchableOpacity 
+              style={styles.itemSelector}
+              onPress={() => {
+                // TODO: Open item selection modal
+                Alert.alert(
+                  'Select Pantry Items',
+                  `Available from ${usage.pantryItems.length} item${usage.pantryItems.length > 1 ? 's' : ''}:\n\n` +
+                  usage.pantryItems.map(item => 
+                    `• ${item.name}: ${formatQuantity(item.availableQuantity)} ${item.unit}${
+                      item.expirationDate ? ` (exp: ${new Date(item.expirationDate).toLocaleDateString()})` : ''
+                    }`
+                  ).join('\n'),
+                  [{ text: 'OK' }]
                 );
-              })}
-            </View>
+              }}
+            >
+              <Text style={styles.itemSelectorText}>
+                Available from {usage.pantryItems.length} item{usage.pantryItems.length > 1 ? 's' : ''} 
+                <Text style={styles.itemSelectorArrow}> ▶</Text>
+              </Text>
+            </TouchableOpacity>
 
             <View style={styles.sliderContainer}>
               <Text style={styles.sliderLabel}>
@@ -342,7 +348,23 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             <Text style={styles.unavailableText}>
               Not available in your pantry
             </Text>
-            <TouchableOpacity style={styles.addToShoppingButton}>
+            <TouchableOpacity 
+              style={styles.addToShoppingButton}
+              onPress={() => {
+                // TODO: Implement add to shopping list functionality
+                Alert.alert(
+                  'Add to Shopping List',
+                  `Would you like to add "${usage.ingredientName}" to your shopping list?`,
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Add', onPress: () => {
+                      // Add to shopping list logic here
+                      Alert.alert('Added', `${usage.ingredientName} added to shopping list`);
+                    }}
+                  ]
+                );
+              }}
+            >
               <Ionicons name="add-circle-outline" size={16} color="#6B7280" />
               <Text style={styles.addToShoppingText}>Add to shopping list</Text>
             </TouchableOpacity>
@@ -520,9 +542,9 @@ const styles = StyleSheet.create({
   },
   ingredientCard: {
     backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -538,7 +560,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   ingredientInfo: {
     flex: 1,
@@ -570,6 +592,22 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#374151',
     marginBottom: 8,
+  },
+  itemSelector: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 6,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  itemSelectorText: {
+    fontSize: 14,
+    color: '#374151',
+    fontWeight: '500',
+  },
+  itemSelectorArrow: {
+    color: '#6B7280',
   },
   pantryItemText: {
     fontSize: 13,

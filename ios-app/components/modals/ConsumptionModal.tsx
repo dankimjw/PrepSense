@@ -16,6 +16,7 @@ import Slider from '@react-native-community/slider';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
 import { apiClient, ApiError } from '../../services/apiClient';
+import { formatAddedDate } from '../../utils/itemHelpers';
 import Svg, { Circle, G } from 'react-native-svg';
 
 const { width } = Dimensions.get('window');
@@ -166,6 +167,25 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
               <Text style={styles.updateText}>Update</Text>
             </View>
           </TouchableOpacity>
+
+          {/* Added Date Section */}
+          {item.addedDate && (
+            <View style={styles.addedDateSection}>
+              <View style={styles.addedDateLeft}>
+                <Text style={styles.addedDateLabel}>Added:</Text>
+                <Text style={styles.addedDateValue}>
+                  {formatAddedDate(item.addedDate)}
+                </Text>
+              </View>
+              <View style={styles.addedDateRight}>
+                <MaterialCommunityIcons 
+                  name="clock-outline" 
+                  size={16} 
+                  color="#6B7280" 
+                />
+              </View>
+            </View>
+          )}
 
           {isSingleUnit && (
             <Text style={styles.singleUnitNote}>
@@ -378,6 +398,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#297A56',
     fontWeight: '500',
+  },
+  addedDateSection: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E9ECEF',
+  },
+  addedDateLeft: {
+    flex: 1,
+  },
+  addedDateLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  addedDateValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  addedDateRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   singleUnitNote: {
     fontSize: 14,

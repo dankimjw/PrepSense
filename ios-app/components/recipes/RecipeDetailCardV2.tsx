@@ -10,7 +10,8 @@ import {
   Animated,
   ActivityIndicator,
   Modal,
-  Platform
+  Platform,
+  Alert
 } from 'react-native';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -18,6 +19,7 @@ import { Recipe } from '../../services/recipeService';
 import { pantryService } from '../../services/pantryService';
 import { recipeService } from '../../services/recipeService';
 import { shoppingListService } from '../../services/shoppingListService';
+import { QuickCompleteModal } from '../modals/QuickCompleteModal';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_IMAGE_HEIGHT = SCREEN_WIDTH * 0.6; // 16:10 aspect ratio
@@ -45,16 +47,16 @@ export default function RecipeDetailCardV2({
   const router = useRouter();
   const [isBookmarked, setIsBookmarked] = useState(recipe.is_favorite || false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
-  const [showShoppingList, setShowShoppingList] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCookedRecipe, setHasCookedRecipe] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
+  const [showQuickCompleteModal, setShowQuickCompleteModal] = useState(false);
   
   const bookmarkAnimation = useRef(new Animated.Value(1)).current;
 
   // Process ingredients with availability status
-  const processedIngredients: IngredientWithStatus[] = recipe.extendedIngredients?.map(ing => ({
+  const processedIngredients: IngredientWithStatus[] = recipe.extendedIngredients?.map((ing: any) => ({
     original: ing.original || ing.name || '',
     name: ing.name || ing.original || '',
     amount: ing.amount,
@@ -117,6 +119,31 @@ export default function RecipeDetailCardV2({
     });
   };
 
+  const handleQuickComplete = () => {
+    setShowQuickCompleteModal(true);
+  };
+
+  const handleQuickCompleteSuccess = () => {
+    // Close modal and navigate back
+    setShowQuickCompleteModal(false);
+    Alert.alert(
+      'Recipe Completed!',
+      'Your pantry has been updated.',
+      [
+        {
+          text: 'OK',
+          onPress: () => {
+            if (onBack) {
+              onBack();
+            } else {
+              router.back();
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleFinishCooking = () => {
     setHasCookedRecipe(true);
     setShowRatingModal(true);
@@ -137,29 +164,6 @@ export default function RecipeDetailCardV2({
     }
   };
 
-  const handleAddToShoppingList = async () => {
-    setIsLoading(true);
-    
-    try {
-      for (const ingredient of missingIngredients) {
-        await shoppingListService.addItem({
-          name: ingredient.name,
-          quantity: ingredient.amount?.toString() || '1',
-          unit: ingredient.unit || 'unit',
-          category: 'Recipe Ingredients',
-          notes: `For ${recipe.title}`
-        });
-      }
-      
-      // Show success feedback
-      alert(`Added ${missingIngredients.length} items to shopping list`);
-    } catch (error) {
-      console.error('Error adding to shopping list:', error);
-      alert('Failed to add items to shopping list');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatCookingTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -171,7 +175,20 @@ export default function RecipeDetailCardV2({
   const getMatchPercentage = () => {
     const total = processedIngredients.length;
     const available = availableIngredients.length;
-    return total > 0 ? Math.round((available / total) * 100) : 0;
+    const percentage = total > 0 ? Math.round((available / total) * 100) : 0;
+    
+    // Debug logging to help identify data issues
+    console.log('Match calculation:', { 
+      total, 
+      available, 
+      percentage,
+      hasExtendedIngredients: !!recipe.extendedIngredients,
+      hasAvailableIngredients: !!recipe.available_ingredients,
+      extendedIngredientsLength: recipe.extendedIngredients?.length || 0,
+      availableIngredientsLength: recipe.available_ingredients?.length || 0
+    });
+    
+    return percentage;
   };
 
   return (
@@ -209,16 +226,29 @@ export default function RecipeDetailCardV2({
         </TouchableOpacity>
       </View>
 
-      {/* Primary CTA */}
-      <TouchableOpacity 
-        style={styles.primaryCTA}
-        onPress={hasCookedRecipe ? handleFinishCooking : handleCookNow}
-        activeOpacity={0.9}
-      >
-        <Text style={styles.primaryCTAText}>
-          {hasCookedRecipe ? 'Finish Cooking' : 'Cook Now'}
-        </Text>
-      </TouchableOpacity>
+      {/* Primary CTAs */}
+      <View style={styles.ctaContainer}>
+        <TouchableOpacity 
+          style={styles.primaryCTA}
+          onPress={hasCookedRecipe ? handleFinishCooking : handleCookNow}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.primaryCTAText}>
+            {hasCookedRecipe ? 'Finish Cooking' : 'Cook Now'}
+          </Text>
+        </TouchableOpacity>
+        
+        {!hasCookedRecipe && (
+          <TouchableOpacity 
+            style={styles.quickCompleteCTA}
+            onPress={handleQuickComplete}
+            activeOpacity={0.9}
+          >
+            <Ionicons name="flash" size={20} color="#6366F1" />
+            <Text style={styles.quickCompleteCTAText}>Quick Complete</Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       {/* Title */}
       <Text style={styles.title}>{recipe.title}</Text>
@@ -303,50 +333,7 @@ export default function RecipeDetailCardV2({
           </TouchableOpacity>
         )}
 
-        {/* Shopping List Accordion */}
-        {missingIngredients.length > 0 && (
-          <View style={styles.accordion}>
-            <TouchableOpacity
-              style={styles.accordionHeader}
-              onPress={() => setShowShoppingList(!showShoppingList)}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.accordionTitle}>
-                Items to Buy ({missingIngredients.length})
-              </Text>
-              <Ionicons 
-                name={showShoppingList ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#666" 
-              />
-            </TouchableOpacity>
-
-            {showShoppingList && (
-              <View style={styles.accordionContent}>
-                {missingIngredients.map((ingredient, index) => (
-                  <Text key={index} style={styles.shoppingItem}>
-                    • {ingredient.original}
-                  </Text>
-                ))}
-                
-                <TouchableOpacity
-                  style={styles.addToListButton}
-                  onPress={handleAddToShoppingList}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="cart-outline" size={18} color="#FFF" />
-                      <Text style={styles.addToListText}>Add to Shopping List</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
+        {/* Shopping list moved to RecipeCompletionModal for better UX */}
       </View>
 
       {/* Instructions Section */}
@@ -356,7 +343,7 @@ export default function RecipeDetailCardV2({
         </Text>
 
         <View style={styles.stepList}>
-          {displayedSteps.map((step, index) => (
+          {displayedSteps.map((step: any, index: number) => (
             <View key={index} style={styles.stepRow}>
               <View style={styles.stepNumber}>
                 <Text style={styles.stepNumberText}>{step.number}</Text>
@@ -365,7 +352,6 @@ export default function RecipeDetailCardV2({
             </View>
           ))}
         </View>
-
       </View>
 
       {/* Bottom Actions (only shown after cooking) */}
@@ -536,19 +522,42 @@ const styles = StyleSheet.create({
   },
   
   // Primary CTA
-  primaryCTA: {
-    marginHorizontal: 16,
+  ctaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginTop: -28,
-    marginBottom: 16,
+    gap: 12,
+  },
+  primaryCTA: {
     backgroundColor: '#FF6B6B',
     paddingVertical: 16,
+    paddingHorizontal: 32,
     borderRadius: 28,
-    alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#FF6B6B',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.3,
     shadowRadius: 8,
-    elevation: 5,
+    elevation: 6,
+  },
+  quickCompleteCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 28,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  quickCompleteCTAText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6366F1',
   },
   primaryCTAText: {
     fontSize: 18,
@@ -658,56 +667,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     lineHeight: 22,
-  },
-  
-  // Shopping List Accordion
-  accordion: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#FF9800',
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF8F0',
-  },
-  accordionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E65100',
-  },
-  accordionContent: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#FFE0B2',
-  },
-  shoppingItem: {
-    fontSize: 15,
-    color: '#666',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  addToListButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF9800',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    marginTop: 12,
-    gap: 8,
-  },
-  addToListText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
   },
   
   // Steps

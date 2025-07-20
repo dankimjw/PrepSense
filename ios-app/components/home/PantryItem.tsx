@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { getCategoryColor } from '../../utils/itemHelpers';
+import { getCategoryColor, formatAddedDate } from '../../utils/itemHelpers';
 import { formatQuantity } from '../../utils/numberFormatting';
 
 export interface PantryItemData {
@@ -13,6 +13,7 @@ export interface PantryItemData {
   expiry: string;
   daysUntilExpiry: number;
   expirationDate: Date;
+  addedDate?: string;
   count?: number;
   icon: string;
   color?: string;
@@ -87,13 +88,20 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
           }]}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
-          <Text style={[
-            styles.itemExpiry,
-            item.daysUntilExpiry <= 0 ? styles.expired : null,
-            item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
-          ]}>
-            {item.expiry}
-          </Text>
+          <View style={styles.expiryContainer}>
+            <Text style={[
+              styles.itemExpiry,
+              item.daysUntilExpiry <= 0 ? styles.expired : null,
+              item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
+            ]}>
+              {item.expiry}
+            </Text>
+            {item.addedDate && (
+              <Text style={styles.itemAdded}>
+                Added {formatAddedDate(item.addedDate)}
+              </Text>
+            )}
+          </View>
         </View>
       </View>
       <TouchableOpacity 
@@ -173,10 +181,19 @@ const styles = StyleSheet.create({
     color: '#1F2937',
     marginBottom: 4,
   },
+  expiryContainer: {
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    marginLeft: 8,
+  },
   itemExpiry: {
     fontSize: 14,
     color: '#6B7280',
-    marginLeft: 8,
+  },
+  itemAdded: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
   },
   expiringSoon: {
     color: '#D97706',
