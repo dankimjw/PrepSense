@@ -9,7 +9,7 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { UNITS, UNIT_CATEGORIES, getUnitsByCategory, getUnitByValue } from '../constants/units';
+import { UNITS, UNIT_CATEGORIES, getUnitsByCategory, getUnitByValue, normalizeUnit } from '../constants/units';
 
 interface UnitSelectorProps {
   value: string;
@@ -28,9 +28,30 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const selectedUnit = getUnitByValue(value);
+  // Handle unknown units by creating a temporary unit option
+  let selectedUnit = getUnitByValue(value);
+  const availableUnits = [...UNITS];
+  
+  // If the unit doesn't exist in our predefined list, add it as a custom unit
+  if (!selectedUnit && value) {
+    const normalizedValue = normalizeUnit(value);
+    selectedUnit = getUnitByValue(normalizedValue);
+    
+    if (!selectedUnit) {
+      // Create a temporary unit for the unknown unit
+      const customUnit = {
+        value: value,
+        label: value.charAt(0).toUpperCase() + value.slice(1),
+        category: 'count' as const,
+        abbreviation: value,
+        plural: value + 's'
+      };
+      availableUnits.unshift(customUnit); // Add to beginning so it appears first
+      selectedUnit = customUnit;
+    }
+  }
 
-  const filteredUnits = UNITS.filter(unit => {
+  const filteredUnits = availableUnits.filter(unit => {
     const matchesSearch = unit.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          unit.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          unit.abbreviation.toLowerCase().includes(searchQuery.toLowerCase());
