@@ -5,7 +5,7 @@ import logging
 import openai
 import os
 
-from backend_gateway.services.recipe_advisor_service import RecipeAdvisor as CrewAIService
+from backend_gateway.services.recipe_advisor_service import CrewAIService
 from backend_gateway.routers.users import get_current_active_user
 from backend_gateway.models.user import UserInDB
 

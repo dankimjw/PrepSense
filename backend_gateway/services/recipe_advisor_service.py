@@ -424,12 +424,16 @@ class CrewAIService:
                         name = ing.get('name', '')
                         ingredients.append(f"{amount} {unit} {name}".strip())
                     
-                    # Extract instructions
+                    # Extract instructions with proper formatting
                     instructions = []
                     if 'analyzedInstructions' in detailed and detailed['analyzedInstructions']:
                         for instruction_group in detailed['analyzedInstructions']:
                             for step in instruction_group.get('steps', []):
-                                instructions.append(step.get('step', ''))
+                                step_text = step.get('step', '').strip()
+                                if step_text:
+                                    # Ensure proper spacing after periods
+                                    step_text = step_text.replace('.', '. ').replace('  ', ' ').strip()
+                                    instructions.append(step_text)
                     
                     # Build our standard recipe format
                     recipe = {
