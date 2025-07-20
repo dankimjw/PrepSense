@@ -17,7 +17,6 @@ import { useRouter } from 'expo-router';
 import { Recipe } from '../../services/recipeService';
 import { pantryService } from '../../services/pantryService';
 import { recipeService } from '../../services/recipeService';
-import { shoppingListService } from '../../services/shoppingListService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_IMAGE_HEIGHT = SCREEN_WIDTH * 0.6; // 16:10 aspect ratio
@@ -45,7 +44,6 @@ export default function RecipeDetailCardV2({
   const router = useRouter();
   const [isBookmarked, setIsBookmarked] = useState(recipe.is_favorite || false);
   const [showAllIngredients, setShowAllIngredients] = useState(false);
-  const [showShoppingList, setShowShoppingList] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [hasCookedRecipe, setHasCookedRecipe] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
@@ -137,29 +135,6 @@ export default function RecipeDetailCardV2({
     }
   };
 
-  const handleAddToShoppingList = async () => {
-    setIsLoading(true);
-    
-    try {
-      for (const ingredient of missingIngredients) {
-        await shoppingListService.addItem({
-          name: ingredient.name,
-          quantity: ingredient.amount?.toString() || '1',
-          unit: ingredient.unit || 'unit',
-          category: 'Recipe Ingredients',
-          notes: `For ${recipe.title}`
-        });
-      }
-      
-      // Show success feedback
-      alert(`Added ${missingIngredients.length} items to shopping list`);
-    } catch (error) {
-      console.error('Error adding to shopping list:', error);
-      alert('Failed to add items to shopping list');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const formatCookingTime = (minutes: number) => {
     if (minutes < 60) return `${minutes} min`;
@@ -321,53 +296,7 @@ export default function RecipeDetailCardV2({
           </TouchableOpacity>
         )}
 
-        {/* Shopping List Accordion */}
-        {missingIngredients.length > 0 && (
-          <View testID="shopping-list-accordion" style={styles.accordion}>
-            <TouchableOpacity
-              testID="shopping-list-header"
-              style={styles.accordionHeader}
-              onPress={() => setShowShoppingList(!showShoppingList)}
-              activeOpacity={0.7}
-            >
-              <Text testID="shopping-list-title" style={styles.accordionTitle}>
-                Items to Buy ({missingIngredients.length})
-              </Text>
-              <Ionicons 
-                name={showShoppingList ? "chevron-up" : "chevron-down"} 
-                size={20} 
-                color="#666" 
-                accessibilityLabel={showShoppingList ? "Collapse shopping list" : "Expand shopping list"}
-              />
-            </TouchableOpacity>
-
-            {showShoppingList && (
-              <View testID="shopping-list-content" style={styles.accordionContent}>
-                {missingIngredients.map((ingredient, index) => (
-                  <Text key={index} testID={`shopping-item-${index}`} style={styles.shoppingItem}>
-                    • {ingredient.original}
-                  </Text>
-                ))}
-                
-                <TouchableOpacity
-                  testID="add-to-shopping-list-button"
-                  style={styles.addToListButton}
-                  onPress={handleAddToShoppingList}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <ActivityIndicator size="small" color="#FFF" />
-                  ) : (
-                    <>
-                      <Ionicons name="cart-outline" size={18} color="#FFF" accessibilityLabel="Add to shopping list" />
-                      <Text style={styles.addToListText}>Add to Shopping List</Text>
-                    </>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        )}
+        {/* Shopping list moved to RecipeCompletionModal for better UX */}
       </View>
 
       {/* Instructions Section */}
@@ -686,56 +615,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     lineHeight: 22,
-  },
-  
-  // Shopping List Accordion
-  accordion: {
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: '#FFF',
-    borderRadius: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#FF9800',
-  },
-  accordionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#FFF8F0',
-  },
-  accordionTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#E65100',
-  },
-  accordionContent: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#FFE0B2',
-  },
-  shoppingItem: {
-    fontSize: 15,
-    color: '#666',
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  addToListButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF9800',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 24,
-    marginTop: 12,
-    gap: 8,
-  },
-  addToListText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
   },
   
   // Steps
