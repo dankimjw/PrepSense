@@ -4,7 +4,7 @@ import { useItems as useItemsContext } from '../context/ItemsContext';
 export interface UseItemsFilters {
   searchQuery: string;
   selectedCategories: string[];
-  sortBy: 'name' | 'expiry' | 'category';
+  sortBy: 'name' | 'expiry' | 'category' | 'date_added';
   sortOrder: 'asc' | 'desc';
 }
 
@@ -13,8 +13,8 @@ export const useItemsWithFilters = () => {
   const [filters, setFilters] = useState<UseItemsFilters>({
     searchQuery: '',
     selectedCategories: [],
-    sortBy: 'expiry',
-    sortOrder: 'asc',
+    sortBy: 'date_added',
+    sortOrder: 'desc',
   });
 
   const updateFilters = useCallback((newFilters: Partial<UseItemsFilters>) => {
@@ -51,6 +51,11 @@ export const useItemsWithFilters = () => {
           const dateA = new Date(a.expected_expiration).getTime();
           const dateB = new Date(b.expected_expiration).getTime();
           comparison = dateA - dateB;
+          break;
+        case 'date_added':
+          const addedA = new Date(a.addedDate || 0).getTime();
+          const addedB = new Date(b.addedDate || 0).getTime();
+          comparison = addedA - addedB;
           break;
       }
       
