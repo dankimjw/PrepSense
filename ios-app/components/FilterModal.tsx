@@ -8,11 +8,11 @@ interface FilterModalProps {
   onClose: () => void;
   onApply: (filters: {
     categories: string[];
-    sortBy: 'name' | 'expiry' | 'category';
+    sortBy: 'name' | 'expiry' | 'category' | 'date_added';
     sortOrder: 'asc' | 'desc';
   }) => void;
   selectedCategories: string[];
-  sortBy: 'name' | 'expiry' | 'category';
+  sortBy: 'name' | 'expiry' | 'category' | 'date_added';
   sortOrder: 'asc' | 'desc';
 }
 
@@ -160,6 +160,25 @@ export const FilterModal: React.FC<FilterModalProps> = ({
                   ]}
                 >
                   Category
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sortOption, localSortBy === 'date_added' && styles.sortOptionSelected]}
+                onPress={() => setLocalSortBy('date_added')}
+              >
+                <Ionicons
+                  name="time"
+                  size={20}
+                  color={localSortBy === 'date_added' ? '#297A56' : '#4B5563'}
+                />
+                <Text
+                  style={[
+                    styles.sortOptionText,
+                    localSortBy === 'date_added' && styles.sortOptionTextSelected,
+                  ]}
+                >
+                  Date Added
                 </Text>
               </TouchableOpacity>
 

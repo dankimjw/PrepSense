@@ -230,8 +230,8 @@ class VisionService:
                     "item_name": item_name,
                     "quantity_amount": quantity_amount,
                     "quantity_unit": quantity_unit,
+                    "category": category,
                     "count": count,
-                    "date_added": today.isoformat(),
                     "expected_expiration": expected_expiry_date.isoformat()
                 }
 

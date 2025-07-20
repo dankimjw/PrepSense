@@ -325,3 +325,76 @@ A: Yes, potentially all React Native component tests. I removed react-test-rende
 ### Verified by Testzone Instance:
 - [ ] Test results reproduced
 - [ ] Alternative mocking strategies tested
+
+## 2025-01-20 - OpenAI Category Detection & Timestamp Sorting Implementation
+**Status**: ✅ Complete
+
+### Enhanced OpenAI Integration with Category Detection
+**Problem**: Items from image/receipt upload showed "Uncategorized" with poor badge visibility
+**Solution**: Enhanced OpenAI prompts to include intelligent food categorization
+
+**Changes Made**:
+1. **Vision Service Enhancement** (`backend_gateway/services/vision_service.py`):
+   - Added comprehensive food category classification to OpenAI prompt
+   - 12 categories: Dairy, Meat, Produce, Bakery, Pantry, Beverages, Frozen, Snacks, Canned Goods, Deli, Seafood, Other
+   - Updated JSON response format to include category field
+   - Enhanced parsing logic to extract category from OpenAI response
+
+2. **OCR Service Enhancement** (`backend_gateway/routers/ocr_router.py`):
+   - Added same category classification system to receipt scanning
+   - Smart category processing: OpenAI category first, fallback to existing service
+   - Updated ParsedItem model (already had optional category field)
+
+3. **UI Improvements** (`ios-app/app/items-detected.tsx`):
+   - Fixed uncategorized badge visibility issue
+   - Changed category text color from dark green (#0F5C36) to white (#FFFFFF)
+   - Now works with all background colors including "Uncategorized" gray
+
+4. **Unit System Enhancement**:
+   - Added common units from OpenAI: pcs, pack, bottle, jar, can, box, loaf, unit
+   - Enhanced UnitSelector to handle unknown units dynamically
+   - Added normalizeUnit function with more variations (lbs→lb, pieces→pcs, etc.)
+   - Auto-selection of units in edit mode works properly
+
+### Timestamp-Based Sorting Implementation
+**Problem**: No default sorting by most recent additions, users couldn't see newest items first
+**Solution**: Implemented timestamp sorting with database integration
+
+**Changes Made**:
+1. **Database Integration**:
+   - Confirmed existing `created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP` in pantry_items table
+   - Removed manual date_added field from vision service (uses database timestamp)
+   - Non-editable constraint enforced at database level
+
+2. **Frontend Sorting** (`ios-app/hooks/useItemsWithFilters.ts`):
+   - Added 'date_added' to sortBy type options
+   - Changed default sort from 'expiry' to 'date_added' descending (newest first)
+   - Added date_added sorting logic comparing addedDate timestamps
+
+3. **UI Integration** (`ios-app/components/FilterModal.tsx`):
+   - Added "Date Added" sort option with clock icon
+   - Updated interface types to include date_added sorting
+   - Users can still sort by Name, Expiry, Category, or Date Added
+
+4. **Data Flow**:
+   - ItemsContext maps `pantry_item_created_at` to `addedDate`
+   - Edit forms exclude addedDate field (non-editable)
+   - Timestamp automatically set when items added via upload/receipt
+
+### Technical Benefits
+- **Accurate Categorization**: OpenAI now intelligently categorizes food items
+- **Better UX**: Most recent items appear first in pantry
+- **Unit Flexibility**: Handles any unit format from OpenAI
+- **Data Integrity**: Timestamps protected from user modification
+- **Visual Clarity**: Fixed badge visibility issues
+
+### Files Modified
+- `backend_gateway/services/vision_service.py`
+- `backend_gateway/routers/ocr_router.py`
+- `ios-app/app/items-detected.tsx`
+- `ios-app/components/UnitSelector.tsx`
+- `ios-app/constants/units.ts`
+- `ios-app/hooks/useItemsWithFilters.ts`
+- `ios-app/components/FilterModal.tsx`
+
+**Impact**: Eliminates "Uncategorized" items from OpenAI processing and provides intuitive chronological pantry organization with proper timestamp tracking.
