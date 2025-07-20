@@ -8,7 +8,7 @@ PrepSense uses an intelligent hybrid recipe recommendation system that combines 
 
 ### Core Components
 
-1. **CrewAIService** (`backend_gateway/services/crew_ai_service.py`)
+1. **RecipeAdvisorService** (`backend_gateway/services/recipe_advisor_service.py`)
    - Main service handling recipe recommendations
    - Coordinates between saved recipes and AI generation
    - Manages user preferences and dietary restrictions

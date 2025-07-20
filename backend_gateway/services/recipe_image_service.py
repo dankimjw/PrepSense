@@ -109,8 +109,9 @@ class RecipeImageService:
             prompt = self.create_recipe_image_prompt(recipe_title, ingredients or [], cuisine)
             logger.info(f"Generating image for recipe {recipe_id} with prompt: {prompt}")
             
-            # Generate image using DALL-E 3
-            response = openai.Image.create(
+            # Generate image using DALL-E 3 with new API syntax
+            client = openai.OpenAI(api_key=self.openai_api_key)
+            response = client.images.generate(
                 model="dall-e-3",
                 prompt=prompt,
                 size="1024x1024",

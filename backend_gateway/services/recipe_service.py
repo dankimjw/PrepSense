@@ -70,14 +70,15 @@ class RecipeService:
         try:
             print("Processing image...")
             # Use OpenAI's DALL-E or another image generation API
-            response = openai.Image.create(
+            client = openai.OpenAI(api_key=openai.api_key)
+            response = client.images.generate(
                 prompt=f"An appetizing dish of {dish_name}",
                 n=1,
                 size="512x512",
             )
 
             # Save the image locally or return the URL
-            image_url = response["data"][0]["url"]
+            image_url = response.data[0].url
             return image_url
 
         except openai.APIError as e:
@@ -88,7 +89,8 @@ class RecipeService:
     async def process_image(self, file):
         try:
             # API key is already set in __init__
-            response = openai.ChatCompletion.create(
+            client = openai.OpenAI(api_key=openai.api_key)
+            response = client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
@@ -98,7 +100,7 @@ class RecipeService:
                 temperature=0.7,
             )
             print(response)
-            return response["choices"][0]["message"]["content"]
+            return response.choices[0].message.content
         except Exception as e:
             print(f"Error: {str(e)}")  # Log the error
             raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}")

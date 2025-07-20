@@ -34,16 +34,16 @@ async def get_cooking_trends(
         # Query for recipe-based pantry changes
         query = """
         SELECT 
-            DATE(timestamp) as cook_date,
+            DATE(created_at) as cook_date,
             recipe_name,
             recipe_id,
-            COUNT(DISTINCT timestamp) as times_cooked
+            COUNT(DISTINCT created_at) as times_cooked
         FROM pantry_history
         WHERE user_id = %(user_id)s
-          AND timestamp >= %(start_date)s
+          AND created_at >= %(start_date)s
           AND recipe_name IS NOT NULL
           AND change_source = 'recipe'
-        GROUP BY DATE(timestamp), recipe_name, recipe_id
+        GROUP BY DATE(created_at), recipe_name, recipe_id
         ORDER BY cook_date DESC
         """
         
@@ -74,11 +74,11 @@ async def get_cooking_trends(
         month_ago = end_date - timedelta(days=30)
         
         week_query = """
-        SELECT COUNT(DISTINCT DATE(timestamp)) as days_cooked,
+        SELECT COUNT(DISTINCT DATE(created_at)) as days_cooked,
                COUNT(DISTINCT recipe_name) as unique_recipes
         FROM pantry_history
         WHERE user_id = %(user_id)s
-          AND timestamp >= %(start_date)s
+          AND created_at >= %(start_date)s
           AND recipe_name IS NOT NULL
           AND change_source = 'recipe'
         """
@@ -95,7 +95,7 @@ async def get_cooking_trends(
         
         # Calculate cooking streak
         streak_query = """
-        SELECT DISTINCT DATE(timestamp) as cook_date
+        SELECT DISTINCT DATE(created_at) as cook_date
         FROM pantry_history
         WHERE user_id = %(user_id)s
           AND recipe_name IS NOT NULL
