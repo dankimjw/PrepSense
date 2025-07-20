@@ -207,7 +207,7 @@ class EnvironmentValidator {
     try {
       // We'll check this by attempting a simple chat message
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased from 5s to 20s for AI processing
       
       const response = await fetch(`${apiUrl}/chat/message`, {
         method: 'POST',
@@ -247,9 +247,18 @@ class EnvironmentValidator {
         status: 'WARNING',
       };
     } catch (error) {
+      // Check if this was a timeout error
+      if (error?.name === 'AbortError') {
+        return {
+          isValid: false,
+          message: 'Cannot verify - Chat request timed out (AI processing takes time)',
+          status: 'WARNING',
+        };
+      }
+      
       return {
         isValid: false,
-        message: 'Cannot verify - Backend not reachable',
+        message: 'Cannot verify - Network error or backend unreachable',
         status: 'WARNING',
       };
     }

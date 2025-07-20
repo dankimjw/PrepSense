@@ -67,12 +67,7 @@ jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: 'MaterialCommunityIcons',
 }));
 
-// Mock Config
-jest.mock('./config', () => ({
-  Config: {
-    API_BASE_URL: 'http://localhost:8000/api/v1',
-  },
-}));
+// Config is mocked via __mocks__/config.js
 
 // Mock contexts
 jest.mock('./context/ItemsContext', () => ({
@@ -98,6 +93,20 @@ jest.mock('./utils/contentValidation', () => ({
 }));
 
 // Dimensions mock will be handled by jest-expo
+
+// Mock AbortController for ApiClient tests
+global.AbortController = class AbortController {
+  constructor() {
+    this.signal = { 
+      aborted: false,
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+    };
+  }
+  abort() {
+    this.signal.aborted = true;
+  }
+};
 
 // Global test utilities
 global.fetch = jest.fn();

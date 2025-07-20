@@ -46,12 +46,35 @@ class HealthChecker:
     
     def check_port(self, port: int, service_name: str) -> bool:
         """Check if a port is open and listening"""
-        for conn in psutil.net_connections():
-            if conn.laddr.port == port and conn.status == 'LISTEN':
+        try:
+            # Use lsof command like quick_check.sh does
+            result = subprocess.run(
+                ["lsof", "-Pi", f":{port}", "-sTCP:LISTEN", "-t"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0 and result.stdout.strip():
                 self.log(f"{service_name} is listening on port {port}", "success")
                 return True
-        self.log(f"{service_name} is NOT listening on port {port}", "error")
-        return False
+            else:
+                self.log(f"{service_name} is NOT listening on port {port}", "error")
+                return False
+        except Exception as e:
+            # Fallback to trying to connect
+            import socket
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(1)
+                    result = sock.connect_ex(('localhost', port))
+                    if result == 0:
+                        self.log(f"{service_name} is listening on port {port}", "success")
+                        return True
+                    else:
+                        self.log(f"{service_name} is NOT listening on port {port}", "error")
+                        return False
+            except Exception:
+                self.log(f"{service_name} port check failed", "error")
+                return False
     
     def check_backend_health(self) -> Dict:
         """Check backend API health and functionality"""
@@ -252,7 +275,27 @@ class HealthChecker:
         # Check services
         self.log("Checking service connectivity...", "info")
         backend_running = self.check_port(8001, "Backend API")
-        metro_running = self.check_port(8082, "Metro Bundler")
+        
+        # Check if Metro should be running (look for metro/expo/npm processes)
+        try:
+            # Use ps command to avoid psutil permission issues
+            result = subprocess.run(["pgrep", "-f", "metro|expo|npm.*start"], capture_output=True, text=True)
+            metro_expected = bool(result.stdout.strip())
+        except Exception:
+            # Fallback to checking if port 8082 is open (someone is trying to use it)
+            try:
+                import socket
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(1)
+                    metro_expected = sock.connect_ex(('localhost', 8082)) == 0
+            except Exception:
+                metro_expected = False
+        
+        if metro_expected:
+            metro_running = self.check_port(8082, "Metro Bundler")
+        else:
+            metro_running = False
+            self.log("Metro Bundler not expected - backend-only mode", "info")
         
         if not backend_running:
             self.log("Backend not running - skipping API tests", "error")
@@ -271,9 +314,13 @@ class HealthChecker:
             all_results["error_handling"] = self.check_error_handling()
         
         # Frontend checks
-        if metro_running:
+        if metro_expected and metro_running:
             self.log("\nChecking frontend health...", "info")
             all_results["frontend"] = self.check_frontend_health()
+        elif metro_expected and not metro_running:
+            self.log("\nFrontend expected but Metro not running", "error")
+        else:
+            self.log("\nSkipping frontend checks - backend-only mode", "info")
         
         # Summary
         print(f"\n{Colors.BOLD}📊 Health Check Summary{Colors.RESET}")
@@ -322,9 +369,10 @@ class HealthChecker:
         # Action items
         print(f"\n{Colors.BOLD}🔧 Recommended Actions:{Colors.RESET}")
         if not backend_running:
-            print("  1. Start backend: source venv/bin/activate && python run_app.py")
-        if not metro_running:
-            print("  2. Start Metro bundler: cd ios-app && npm start")
+            print("  1. Start backend: source venv/bin/activate && python run_app.py --backend")
+            print("  2. Or start both: source venv/bin/activate && python run_app.py")
+        if metro_expected and not metro_running:
+            print("  3. Start iOS app: python run_app.py --ios (or cd ios-app && npm start)")
         if success_rate < 90:
             print("  3. Review error logs and fix failing checks")
             print("  4. Run unit tests to identify specific issues")
