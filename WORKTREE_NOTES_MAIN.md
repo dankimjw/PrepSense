@@ -1,1 +1,0 @@
-../../claude-collaboration/WORKTREE_NOTES_MAIN.md
