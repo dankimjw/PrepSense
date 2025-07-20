@@ -4,6 +4,7 @@ from typing import List, Dict, Any, Optional
 import logging
 from datetime import datetime
 from backend_gateway.config.database import get_database_service
+from backend_gateway.utils.fraction_converter import format_quantity_with_fraction
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +71,23 @@ async def get_shopping_list(
         
         items = db_service.execute_query(query, {"user_id": user_id})
         
-        # Convert datetime objects to ISO format strings
+        # Convert datetime objects to ISO format strings and format quantities as fractions
         for item in items:
             if item.get('added_date'):
                 item['added_date'] = item['added_date'].isoformat()
             if item.get('updated_at'):
                 item['updated_at'] = item['updated_at'].isoformat()
+            
+            # Format quantity as fraction for better readability
+            if item.get('quantity') is not None:
+                try:
+                    # Keep original quantity for calculations
+                    item['quantity_decimal'] = item['quantity']
+                    # Add user-friendly fraction display
+                    item['quantity'] = format_quantity_with_fraction(item['quantity'], "")
+                except (ValueError, TypeError):
+                    # If conversion fails, keep original
+                    pass
                 
         return items
         
