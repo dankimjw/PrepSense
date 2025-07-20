@@ -46,10 +46,11 @@ def check_system_health() -> Dict[str, Any]:
     required_modules = [
         "fastapi",
         "uvicorn", 
-        "crewai",
         "openai",
         "psycopg2",
-        "sqlalchemy"
+        "sqlalchemy",
+        "pydantic",
+        "httpx"
     ]
     
     for module in required_modules:
@@ -87,22 +88,47 @@ def setup_signal_handlers():
 
 def validate_environment() -> Dict[str, Any]:
     """Validate environment configuration"""
+    # Import here to avoid circular imports
+    from core.config_utils import get_openai_api_key
+    from core.config import settings
+    
     # Critical environment variables
     critical_vars = {
         "OPENAI_API_KEY": {
-            "description": "OpenAI API access for CrewAI agents",
+            "description": "OpenAI API access for chat and recipe features",
             "required": True,
-            "sensitive": True
-        },
-        "DATABASE_URL": {
-            "description": "PostgreSQL database connection",
-            "required": True,
-            "sensitive": True
+            "sensitive": True,
+            "validator": lambda: get_openai_api_key()  # Will raise if not found
         },
         "SPOONACULAR_API_KEY": {
             "description": "Spoonacular recipe API",
             "required": True,
-            "sensitive": True
+            "sensitive": True,
+            "validator": lambda: settings.SPOONACULAR_API_KEY or None
+        },
+        "POSTGRES_HOST": {
+            "description": "PostgreSQL database host (Google Cloud SQL)",
+            "required": True,
+            "sensitive": False,
+            "validator": lambda: settings.POSTGRES_HOST or None
+        },
+        "POSTGRES_DATABASE": {
+            "description": "PostgreSQL database name",
+            "required": True,
+            "sensitive": False,
+            "validator": lambda: settings.POSTGRES_DATABASE or None
+        },
+        "POSTGRES_USER": {
+            "description": "PostgreSQL database user",
+            "required": True,
+            "sensitive": False,
+            "validator": lambda: settings.POSTGRES_USER or None
+        },
+        "POSTGRES_PASSWORD": {
+            "description": "PostgreSQL database password",
+            "required": True,
+            "sensitive": True,
+            "validator": lambda: settings.POSTGRES_PASSWORD or None
         }
     }
     
@@ -138,17 +164,34 @@ def validate_environment() -> Dict[str, Any]:
     
     # Check critical variables
     for var, config in critical_vars.items():
-        value = os.getenv(var)
-        is_set = bool(value)
-        
-        env_status["critical"][var] = {
-            "configured": is_set,
-            "description": config["description"],
-            "value": "***" if is_set and config["sensitive"] else value
-        }
-        
-        if not is_set:
+        try:
+            # Use validator if provided, otherwise check env var directly
+            if "validator" in config:
+                value = config["validator"]()
+                is_set = bool(value)
+            else:
+                value = os.getenv(var)
+                is_set = bool(value)
+            
+            env_status["critical"][var] = {
+                "configured": is_set,
+                "description": config["description"],
+                "value": "***" if is_set and config["sensitive"] else value,
+                "error": None
+            }
+            
+            if not is_set:
+                env_status["all_critical_configured"] = False
+                env_status["critical"][var]["error"] = f"{var} is not configured"
+                
+        except Exception as e:
             env_status["all_critical_configured"] = False
+            env_status["critical"][var] = {
+                "configured": False,
+                "description": config["description"],
+                "value": None,
+                "error": str(e)
+            }
     
     # Check optional variables
     for var, config in optional_vars.items():
@@ -287,6 +330,45 @@ def main():
     # Validate environment
     env_status = validate_environment()
     display_environment_status(env_status)
+    
+    # Check if all critical environment variables are configured
+    if not env_status["all_critical_configured"]:
+        print(f"\n❌ CRITICAL CONFIGURATION ERROR")
+        print(f"{'='*80}")
+        print(f"The following required API keys are missing or invalid:\n")
+        
+        for var, config in env_status["critical"].items():
+            if not config["configured"]:
+                print(f"  ❌ {var}:")
+                print(f"     Description: {config['description']}")
+                if config.get("error"):
+                    print(f"     Error: {config['error']}")
+                print()
+        
+        print(f"📚 Setup Instructions:")
+        print(f"{'='*80}")
+        print(f"1. Create a .env file in the project root (not in backend_gateway/)")
+        print(f"   Location: /path/to/PrepSense/.env\n")
+        print(f"2. Add the required configuration:")
+        print(f"   # Database Configuration (Google Cloud SQL)")
+        print(f"   POSTGRES_HOST=35.184.61.42")
+        print(f"   POSTGRES_PORT=5432")
+        print(f"   POSTGRES_DATABASE=prepsense")
+        print(f"   POSTGRES_USER=postgres")
+        print(f"   POSTGRES_PASSWORD=your-password-here\n")
+        print(f"   # API Keys")
+        print(f"   OPENAI_API_KEY=sk-your-openai-key-here")
+        print(f"   SPOONACULAR_API_KEY=your-spoonacular-key-here\n")
+        print(f"3. Get your credentials:")
+        print(f"   - Database password: Ask your team lead")
+        print(f"   - OpenAI: https://platform.openai.com/api-keys")
+        print(f"   - Spoonacular: https://spoonacular.com/food-api (free tier available)\n")
+        print(f"4. For detailed setup help, see:")
+        print(f"   - Automated setup: docs/BACKEND_SETUP_GUIDE.md")
+        print(f"   - Manual setup: docs/MANUAL_SETUP_GUIDE.md")
+        print(f"{'='*80}")
+        print(f"\n🛑 Server cannot start without required configuration.")
+        sys.exit(1)
     
     # Display API information
     display_api_endpoints(port)
