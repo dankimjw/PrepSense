@@ -227,13 +227,6 @@ git worktree remove ../PrepSense-worktrees/[name]
 git worktree add ../PrepSense-worktrees/newfeature -b new-branch
 ```
 
-### Important Notes
-- Each worktree needs its own Python venv and node_modules
-- All worktrees connect to the same GCP database
-- The .env file must be copied to each worktree
-- Run health checks before switching between worktrees
-- **CLAUDE.md is shared via symlinks** - Changes in any worktree update all instances
-
 ## MCP (Model Context Protocol) Servers
 
 ### Setup MCP Servers
