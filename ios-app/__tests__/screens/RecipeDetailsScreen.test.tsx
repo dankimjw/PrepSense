@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor, screen } from '@testing-library/react-native';
+import { render, fireEvent, waitFor, screen, act } from '@testing-library/react-native';
 import { Alert } from 'react-native';
 import RecipeDetailsScreen from '../../app/recipe-details';
 import { useAuth } from '../../context/AuthContext';
@@ -123,7 +123,7 @@ describe('RecipeDetailsScreen', () => {
 
     // Mock successful fetch responses
     mockFetch.mockImplementation((url: string) => {
-      if (url.includes('/pantry/items')) {
+      if (url.includes('/pantry/user/') && url.includes('/items')) {
         return Promise.resolve({
           ok: true,
           json: () => Promise.resolve(mockPantryItems)
@@ -453,21 +453,42 @@ describe('RecipeDetailsScreen', () => {
 
   describe('Quick Complete Functionality', () => {
     it('should open completion modal when Quick Complete is pressed', async () => {
+      // Ensure the fetch mock returns the correct data
+      mockFetch.mockClear();
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes('/pantry/user/') && url.includes('/items')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve(mockPantryItems)
+          } as Response);
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({})
+        } as Response);
+      });
+      
       render(<RecipeDetailsScreen />);
 
       const quickCompleteButton = screen.getByText('Quick Complete');
-      fireEvent.press(quickCompleteButton);
+      
+      // Use act to ensure all updates are flushed
+      await act(async () => {
+        fireEvent.press(quickCompleteButton);
+      });
 
+      // Wait for the pantry items to be fetched
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalledWith(
-          expect.stringContaining('/pantry/items/111'),
+          expect.stringContaining('/pantry/user/111/items'),
           expect.any(Object)
         );
       });
 
+      // Then wait for the modal to appear
       await waitFor(() => {
         expect(screen.getByTestId('recipe-completion-modal')).toBeTruthy();
-      });
+      }, { timeout: 3000 });
     });
 
     it('should complete recipe with selected ingredients', async () => {
@@ -580,7 +601,7 @@ describe('RecipeDetailsScreen', () => {
         if (url.includes('/recipes/image/generate')) {
           return new Promise(() => {}); // Never resolves
         }
-        if (url.includes('/pantry/items')) {
+        if (url.includes('/pantry/user/') && url.includes('/items')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockPantryItems)
@@ -611,7 +632,7 @@ describe('RecipeDetailsScreen', () => {
         if (url.includes('/recipes/image/generate')) {
           return Promise.reject(new Error('Image generation failed'));
         }
-        if (url.includes('/pantry/items')) {
+        if (url.includes('/pantry/user/') && url.includes('/items')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockPantryItems)
@@ -644,7 +665,7 @@ describe('RecipeDetailsScreen', () => {
         if (url.includes('/recipes/image/generate')) {
           return Promise.reject(new Error('Image generation failed'));
         }
-        if (url.includes('/pantry/items')) {
+        if (url.includes('/pantry/user/') && url.includes('/items')) {
           return Promise.resolve({
             ok: true,
             json: () => Promise.resolve(mockPantryItems)
