@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# CrewAI Implementation Package
-=======
 """
 CrewAI Integration Module
 
@@ -9,4 +6,25 @@ Includes background flows, real-time crews, and artifact caching.
 """
 
 __version__ = "1.0.0"
->>>>>>> 36bb269d0cdb24db95429518c20bc1653cd1b434
+
+# Import main components for easier access
+from .models import (
+    PantryArtifact,
+    PreferenceArtifact,
+    RecipeArtifact,
+    CrewInput,
+    CrewOutput,
+    CacheKey
+)
+
+from .cache_manager import ArtifactCacheManager
+
+__all__ = [
+    "PantryArtifact",
+    "PreferenceArtifact",
+    "RecipeArtifact",
+    "CrewInput",
+    "CrewOutput",
+    "CacheKey",
+    "ArtifactCacheManager",
+]
