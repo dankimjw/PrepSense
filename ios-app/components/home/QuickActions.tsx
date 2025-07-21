@@ -18,11 +18,11 @@ interface QuickActionsProps {
 
 const defaultActions: QuickAction[] = [
   { 
-    id: 'add', 
-    icon: 'add-circle',
-    title: 'Add Item',
+    id: 'scan-items', 
+    icon: 'barcode',
+    title: 'Scan Items',
     color: '#297A56',
-    route: '/add-item'
+    route: '/scan-items'
   },
   { 
     id: 'scan', 
