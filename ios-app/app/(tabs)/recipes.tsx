@@ -167,8 +167,10 @@ export default function RecipesScreen() {
   };
 
   const fetchRecipesFromPantry = useCallback(async () => {
+    console.log('fetchRecipesFromPantry called');
     try {
       setLoading(true);
+      console.log('Fetching from:', `${Config.API_BASE_URL}/recipes/search/from-pantry`);
       const response = await fetch(`${Config.API_BASE_URL}/recipes/search/from-pantry`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -179,8 +181,10 @@ export default function RecipesScreen() {
         }),
       });
 
+      console.log('Response status:', response.status);
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('Error response:', errorData);
         if (response.status === 400 && errorData.detail?.includes('API key')) {
           Alert.alert(
             'Spoonacular API Key Required',
@@ -193,6 +197,9 @@ export default function RecipesScreen() {
       }
       
       const data = await response.json();
+      console.log('Data received:', data);
+      console.log('Number of recipes:', data.recipes?.length || 0);
+      console.log('Pantry ingredients count:', data.pantry_ingredients?.length || 0);
       
       // Store pantry ingredients for count calculation
       if (data.pantry_ingredients) {
@@ -205,10 +212,11 @@ export default function RecipesScreen() {
         // Only include recipes that have a valid Spoonacular ID
         return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
       });
+      console.log('Spoonacular recipes after filter:', spoonacularRecipes.length);
       
       // Update recipes with recalculated counts
+      // Don't validate pantry recipes since they don't include instructions yet
       const recipesWithCorrectCounts = spoonacularRecipes
-        .filter((recipe: Recipe) => isValidRecipe(recipe))
         .map((recipe: Recipe) => {
           if (data.pantry_ingredients) {
             const pantryNames = data.pantry_ingredients.map((item: any) => item.name);
@@ -222,6 +230,7 @@ export default function RecipesScreen() {
           return recipe;
         });
       
+      console.log('Final recipes count:', recipesWithCorrectCounts.length);
       setRecipes(recipesWithCorrectCounts);
     } catch (error) {
       console.error('Error fetching recipes:', error);
@@ -738,6 +747,7 @@ export default function RecipesScreen() {
 
   // Filter recipes based on search query
   const getFilteredRecipes = () => {
+    console.log('getFilteredRecipes called, recipes:', recipes.length, 'activeTab:', activeTab);
     let filteredRecipes = [...recipes];
     
     if (searchQuery && activeTab === 'pantry') {
@@ -755,6 +765,7 @@ export default function RecipesScreen() {
       );
     }
     
+    console.log('Filtered recipes count:', filteredRecipes.length);
     return filteredRecipes;
   };
 

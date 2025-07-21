@@ -42,9 +42,9 @@ coverage.xml
 .idea/
 .cursor/
 .claude/
-CLAUDE.md
 .claude-config
 set_git_author.sh
+.claude_collaboration_reminder
 *.swp
 *.swo
 *~
@@ -118,3 +118,12 @@ setup_claude_md_symlinks.sh
 
 # Claude collaboration files (symlinked, not tracked)
 WORKTREE_NOTES_*.md
+# Claude collaboration files
+CLAUDE_COLLABORATION_GUIDE.md
+CLAUDE_INSTANCE_ROLES.md
+START_HERE_CLAUDE.md
+WORKTREE_NOTES_*.md
+check_collaboration_status.sh
+setup_claude_md_symlinks.sh
+setup_worktree_collaboration.sh
+**/WORKTREE_NOTES_*.md
