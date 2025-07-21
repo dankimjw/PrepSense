@@ -114,6 +114,7 @@ START_HERE_CLAUDE.md
 COMPREHENSIVE_TEST_PLAN.md
 setup_worktree_collaboration.sh
 check_collaboration_status.sh
+backup_claude_files.sh
 setup_claude_md_symlinks.sh
 
 # Claude collaboration files (symlinked, not tracked)
