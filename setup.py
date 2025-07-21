@@ -140,37 +140,101 @@ def create_directories():
     
     return True
 
+def create_api_key_files():
+    """Create placeholder API key files if they don't exist"""
+    print_header("Creating API Key Files")
+    
+    config_dir = Path("config")
+    if not config_dir.exists():
+        config_dir.mkdir(parents=True)
+    
+    # Create OpenAI key file
+    openai_key_file = config_dir / "openai_key.txt"
+    if not openai_key_file.exists():
+        openai_key_file.write_text("YOUR_OPENAI_API_KEY_HERE")
+        print_success("Created config/openai_key.txt (placeholder)")
+        print_warning("Please update config/openai_key.txt with your actual OpenAI API key")
+    else:
+        print_success("config/openai_key.txt already exists")
+    
+    # Create Spoonacular key file
+    spoonacular_key_file = config_dir / "spoonacular_key.txt"
+    if not spoonacular_key_file.exists():
+        spoonacular_key_file.write_text("YOUR_SPOONACULAR_API_KEY_HERE")
+        print_success("Created config/spoonacular_key.txt (placeholder)")
+        print_warning("Please update config/spoonacular_key.txt with your actual Spoonacular API key")
+    else:
+        print_success("config/spoonacular_key.txt already exists")
+    
+    return True
+
+def create_virtual_environment():
+    """Create a virtual environment if it doesn't exist"""
+    print_header("Setting Up Python Virtual Environment")
+    
+    venv_path = Path("venv")
+    
+    # Check if venv already exists
+    if venv_path.exists():
+        print_success("Virtual environment already exists")
+        return True
+    
+    # Create virtual environment
+    print("Creating virtual environment...")
+    try:
+        subprocess.run([sys.executable, '-m', 'venv', 'venv'], check=True)
+        print_success("Virtual environment created")
+        return True
+    except subprocess.CalledProcessError as e:
+        print_error(f"Failed to create virtual environment: {e}")
+        return False
+    except Exception as e:
+        print_error(f"Unexpected error creating virtual environment: {e}")
+        return False
+
+def get_venv_python():
+    """Get the path to the Python executable in the virtual environment"""
+    if platform.system() == "Windows":
+        python_path = Path("venv/Scripts/python.exe")
+    else:
+        python_path = Path("venv/bin/python")
+    
+    if python_path.exists():
+        return str(python_path)
+    else:
+        return None
+
 def setup_python_environment():
-    """Install Python dependencies"""
+    """Install Python dependencies in the virtual environment"""
     print_header("Installing Python Dependencies")
     
-    # Check if we're in a virtual environment
-    if sys.prefix == sys.base_prefix:
-        print_warning("Not in a virtual environment!")
-        print_info("Please activate your virtual environment first:")
-        if platform.system() == "Windows":
-            print(f"  {Colors.CYAN}.\\venv\\Scripts\\activate{Colors.END}")
-        else:
-            print(f"  {Colors.CYAN}source venv/bin/activate{Colors.END}")
+    # Get venv Python path
+    venv_python = get_venv_python()
+    
+    if not venv_python:
+        print_error("Virtual environment Python executable not found!")
+        print_info("Please run the setup again to create the virtual environment.")
         return False
     
-    print_success("Virtual environment detected")
+    print_success(f"Using virtual environment Python: {venv_python}")
     
-    # Upgrade pip
+    # Upgrade pip in the virtual environment
     print("Upgrading pip...")
-    if not run_command([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip']):
+    if not run_command([venv_python, '-m', 'pip', 'install', '--upgrade', 'pip']):
         print_warning("Failed to upgrade pip, continuing anyway...")
     
-    # Install requirements
+    # Install requirements in the virtual environment
     requirements_file = Path("requirements.txt")
     if requirements_file.exists():
-        print("Installing Python dependencies...")
-        if not run_command([sys.executable, '-m', 'pip', 'install', '-r', 'requirements.txt']):
+        print("Installing Python dependencies in virtual environment...")
+        if not run_command([venv_python, '-m', 'pip', 'install', '-r', 'requirements.txt']):
             return False
-        print_success("Python dependencies installed")
+        print_success("Python dependencies installed in virtual environment")
     else:
         print_error("requirements.txt not found!")
         return False
+    
+    return True
 
 def setup_ios_app():
     """Set up iOS app dependencies"""
@@ -209,8 +273,20 @@ def complete_setup():
     
     print()
     
+    # Create virtual environment
+    if not create_virtual_environment():
+        return False
+    
+    print()
+    
     # Create directories
     if not create_directories():
+        return False
+    
+    print()
+    
+    # Create API key files
+    if not create_api_key_files():
         return False
     
     print()
@@ -238,12 +314,14 @@ def complete_setup():
     print(f"   - Update your {Colors.CYAN}SPOONACULAR_API_KEY{Colors.END}")
     print(f"   - Choose a unique {Colors.CYAN}DEMO_USER_ID{Colors.END} (e.g., john-2, jane-3)")
     
-    print(f"\n2. {Colors.YELLOW}OpenAI API Key:{Colors.END}")
-    print(f"   - Add your OpenAI API key to {Colors.CYAN}config/openai_key.txt{Colors.END}")
-    print(f"   - The key should start with 'sk-proj-' or 'sk-'")
+    print(f"\n2. {Colors.YELLOW}API Keys:{Colors.END}")
+    print(f"   - Update {Colors.CYAN}config/openai_key.txt{Colors.END} with your OpenAI API key")
+    print(f"   - Update {Colors.CYAN}config/spoonacular_key.txt{Colors.END} with your Spoonacular API key")
+    print(f"   - API keys should start with 'sk-proj-' or 'sk-' for OpenAI")
     
     print(f"\n3. {Colors.YELLOW}Running the App:{Colors.END}")
-    print(f"   - Activate the virtual environment:")
+    print(f"   - The virtual environment has been created automatically")
+    print(f"   - Activate it before running the app:")
     if platform.system() == "Windows":
         print(f"     {Colors.CYAN}.\\venv\\Scripts\\activate{Colors.END}")
     else:

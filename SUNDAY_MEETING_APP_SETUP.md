@@ -144,7 +144,6 @@ python check_app_health.py
 
 ## Demo User IDs
 To avoid conflicts when multiple people are testing:
-- `samantha-1` (default)
 - `john-2`
 - `jane-3` 
 - `bob-4`

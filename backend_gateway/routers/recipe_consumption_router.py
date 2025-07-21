@@ -225,3 +225,161 @@ async def check_ingredients_availability(
     except Exception as e:
         logger.error(f"Error checking ingredients: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to check ingredients: {str(e)}")
+
+
+@router.post("/quick-complete", summary="Quick complete a recipe with automatic ingredient consumption")
+async def quick_complete_recipe(
+    recipe_id: int,
+    user_id: int,
+    servings: int = 1,
+    pantry_service: PantryService = Depends(get_pantry_service_dep),
+    spoonacular_service: SpoonacularService = Depends(get_spoonacular_service)
+) -> Dict[str, Any]:
+    """
+    Quick complete a recipe by automatically consuming maximum available ingredients.
+    
+    This endpoint:
+    1. Fetches recipe ingredients
+    2. Automatically matches with pantry items
+    3. Consumes maximum possible quantities
+    4. Returns a summary of consumption
+    """
+    try:
+        # Get recipe details
+        recipe = await spoonacular_service.get_recipe_information(recipe_id)
+        recipe_title = recipe.get('title', 'Unknown Recipe')
+        
+        logger.info(f"User {user_id} quick completing recipe {recipe_id}: {recipe_title}")
+        
+        # Get user's pantry
+        pantry_items = await pantry_service.get_user_pantry_items(user_id)
+        
+        # Track results
+        consumed_ingredients = []
+        missing_ingredients = []
+        partial_ingredients = []
+        total_consumed = 0
+        
+        # Process each recipe ingredient
+        for ingredient in recipe.get('extendedIngredients', []):
+            ingredient_name = ingredient.get('name', '')
+            required_amount = ingredient.get('amount', 0) * servings
+            unit = ingredient.get('unit', '')
+            
+            # Find matching pantry items
+            matching_items = []
+            for item in pantry_items:
+                item_name = (item.get('product_name') or item.get('food_category', '')).lower().strip()
+                ingredient_lower = ingredient_name.lower().strip()
+                
+                # Match logic
+                if (item_name == ingredient_lower or
+                    ingredient_lower in item_name or
+                    item_name in ingredient_lower or
+                    item_name.rstrip('s') == ingredient_lower.rstrip('s')):
+                    matching_items.append(item)
+            
+            if not matching_items:
+                missing_ingredients.append({
+                    "name": ingredient_name,
+                    "required": required_amount,
+                    "unit": unit
+                })
+                continue
+            
+            # Calculate total available and consume
+            total_available = 0
+            items_consumed = []
+            
+            for item in matching_items:
+                available = float(item.get('quantity', 0))
+                if available <= 0:
+                    continue
+                
+                # Calculate how much to consume from this item
+                remaining_needed = required_amount - total_available
+                if remaining_needed <= 0:
+                    break
+                
+                consume_amount = min(available, remaining_needed)
+                
+                # Update pantry item
+                new_quantity = available - consume_amount
+                
+                if new_quantity <= 0:
+                    # Delete depleted item
+                    await pantry_service.delete_pantry_item(item['pantry_item_id'])
+                else:
+                    # Update remaining quantity
+                    await pantry_service.update_pantry_item_quantity(
+                        pantry_item_id=item['pantry_item_id'],
+                        new_quantity=new_quantity
+                    )
+                
+                items_consumed.append({
+                    "pantry_item_id": item['pantry_item_id'],
+                    "name": item.get('product_name', ''),
+                    "consumed": consume_amount,
+                    "unit": item.get('unit_of_measurement', 'unit'),
+                    "remaining": new_quantity
+                })
+                
+                total_available += consume_amount
+                total_consumed += 1
+            
+            # Track consumption result
+            if total_available >= required_amount:
+                consumed_ingredients.append({
+                    "name": ingredient_name,
+                    "required": required_amount,
+                    "consumed": total_available,
+                    "unit": unit,
+                    "items_used": items_consumed
+                })
+            elif total_available > 0:
+                partial_ingredients.append({
+                    "name": ingredient_name,
+                    "required": required_amount,
+                    "consumed": total_available,
+                    "unit": unit,
+                    "shortfall": required_amount - total_available,
+                    "items_used": items_consumed
+                })
+        
+        # Record the cooking event
+        cooking_record = {
+            "user_id": user_id,
+            "recipe_id": recipe_id,
+            "recipe_title": recipe_title,
+            "servings": servings,
+            "completion_type": "quick_complete",
+            "timestamp": datetime.utcnow().isoformat(),
+            "ingredients_consumed": len(consumed_ingredients),
+            "ingredients_partial": len(partial_ingredients),
+            "ingredients_missing": len(missing_ingredients)
+        }
+        
+        # TODO: Save cooking record to database when cooking history table is implemented
+        
+        return {
+            "success": True,
+            "recipe_id": recipe_id,
+            "recipe_title": recipe_title,
+            "servings": servings,
+            "summary": {
+                "total_ingredients": len(recipe.get('extendedIngredients', [])),
+                "fully_consumed": len(consumed_ingredients),
+                "partially_consumed": len(partial_ingredients),
+                "missing": len(missing_ingredients),
+                "pantry_items_updated": total_consumed
+            },
+            "consumed_ingredients": consumed_ingredients,
+            "partial_ingredients": partial_ingredients,
+            "missing_ingredients": missing_ingredients,
+            "cooking_record": cooking_record,
+            "message": f"Quick completed {recipe_title}. Updated {total_consumed} pantry items."
+        }
+        
+    except Exception as e:
+        logger.error(f"Error in quick complete: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to quick complete recipe: {str(e)}")
