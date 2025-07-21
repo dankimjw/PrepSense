@@ -137,13 +137,13 @@ async def generate_recipe_image(
             
             if openai.api_key:
                 try:
-                    # Create a simple prompt for DALL-E 2
+                    # Create a simple prompt for gpt-image-1
                     prompt = f"{request.recipe_name}, food photography, delicious, appetizing"
                     
-                    # Generate with DALL-E 2 (much cheaper and faster than DALL-E 3)
+                    # Generate with DALL-E 2 (faster than DALL-E 3)
                     client = openai.OpenAI(api_key=openai.api_key)
                     response = client.images.generate(
-                        model="dall-e-2",  # Using DALL-E 2 instead of 3
+                        model="dall-e-2",  # Using DALL-E 2 for faster generation
                         prompt=prompt,
                         size="512x512",    # Smaller size for faster generation
                         n=1
