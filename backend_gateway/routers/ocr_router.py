@@ -13,6 +13,7 @@ from datetime import datetime
 from backend_gateway.config.database import get_database_service
 from backend_gateway.services.pantry_item_manager_enhanced import PantryItemManagerEnhanced
 from backend_gateway.services.practical_food_categorization import PracticalFoodCategorizationService
+from backend_gateway.core.config_utils import get_openai_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -72,12 +73,13 @@ async def scan_receipt(
     Scan a receipt image and extract grocery items using OpenAI Vision API
     """
     try:
-        # Check if OpenAI API key is configured
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
+        # Get OpenAI API key using proper configuration utility
+        try:
+            openai_api_key = get_openai_api_key()
+        except ValueError as e:
             raise HTTPException(
                 status_code=500,
-                detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+                detail=str(e)
             )
         
         # Initialize OpenAI client
@@ -319,12 +321,13 @@ async def scan_items(
     Scan individual pantry items using barcode or product image recognition
     """
     try:
-        # Check if OpenAI API key is configured
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
+        # Get OpenAI API key using proper configuration utility
+        try:
+            openai_api_key = get_openai_api_key()
+        except ValueError as e:
             raise HTTPException(
                 status_code=500,
-                detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+                detail=str(e)
             )
         
         # Initialize OpenAI client
