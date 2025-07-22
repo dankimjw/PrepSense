@@ -24,6 +24,33 @@ cat WORKTREE_NOTES_*.md
 - Check status: `./check_collaboration_status.sh`
 - See guide: `cat CLAUDE_COLLABORATION_GUIDE.md`
 
+## 🔧 CRITICAL: Worktree & Symlink Setup
+
+**CLAUDE.md is shared via symlinks** - Changes in any worktree update all instances immediately!
+
+### Key Facts:
+- **Main directory** (`/PrepSense`): Contains actual CLAUDE.md file (tracked by git)
+- **Worktrees** (`/PrepSense-worktrees/*`): Have symlinks pointing to main CLAUDE.md
+- **WORKTREE_NOTES_*.md**: Actual files in main dir, symlinked from worktrees (NOT tracked by git)
+- Each worktree needs its own Python venv and node_modules
+- All worktrees share: Git history, GCP database, CLAUDE.md, and WORKTREE_NOTES files
+
+### Quick Setup:
+```bash
+# List worktrees
+git worktree list
+
+# Create worktree (if needed)
+git worktree add ../PrepSense-worktrees/newbranch -b branch-name
+
+# Initialize worktree
+cd ../PrepSense-worktrees/newbranch
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt
+cd ios-app && npm install && cd ..
+cp ../../PrepSense/.env .  # Copy env file
+```
+
 ---
 
 # Project guidelines for Claude Code
@@ -157,7 +184,7 @@ source venv/bin/activate && python run_app.py
 python check_app_health.py
 ```
 
-## Parallel Development with Git Worktrees
+## Parallel Development with Git Worktrees (Full Details)
 
 ### Setup Multiple Worktrees
 For parallel development across multiple Claude instances:
@@ -199,13 +226,6 @@ git worktree remove ../PrepSense-worktrees/[name]
 # Add a new worktree
 git worktree add ../PrepSense-worktrees/newfeature -b new-branch
 ```
-
-### Important Notes
-- Each worktree needs its own Python venv and node_modules
-- All worktrees connect to the same GCP database
-- The .env file must be copied to each worktree
-- Run health checks before switching between worktrees
-- **CLAUDE.md is shared via symlinks** - Changes in any worktree update all instances
 
 ## MCP (Model Context Protocol) Servers
 

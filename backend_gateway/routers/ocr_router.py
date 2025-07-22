@@ -13,6 +13,7 @@ from datetime import datetime
 from backend_gateway.config.database import get_database_service
 from backend_gateway.services.pantry_item_manager_enhanced import PantryItemManagerEnhanced
 from backend_gateway.services.practical_food_categorization import PracticalFoodCategorizationService
+from backend_gateway.core.config_utils import get_openai_api_key
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,13 @@ class OCRRequest(BaseModel):
     user_id: int = 111  # Default demo user
 
 
+class ScanItemRequest(BaseModel):
+    """Request model for scanning individual items"""
+    image_base64: str
+    user_id: int = 111  # Default demo user
+    scan_type: str = "pantry_item"  # Can be "pantry_item", "barcode", etc.
+
+
 class ParsedItem(BaseModel):
     """Parsed item from receipt"""
     name: str
@@ -36,6 +44,11 @@ class ParsedItem(BaseModel):
     unit: str = "each"
     price: Optional[float] = None
     category: Optional[str] = None
+    barcode: Optional[str] = None
+    brand: Optional[str] = None
+    product_name: Optional[str] = None
+    nutrition_info: Optional[Dict[str, Any]] = None
+    expiration_date: Optional[str] = None
 
 
 class OCRResponse(BaseModel):
@@ -60,12 +73,13 @@ async def scan_receipt(
     Scan a receipt image and extract grocery items using OpenAI Vision API
     """
     try:
-        # Check if OpenAI API key is configured
-        openai_api_key = os.getenv("OPENAI_API_KEY")
-        if not openai_api_key:
+        # Get OpenAI API key using proper configuration utility
+        try:
+            openai_api_key = get_openai_api_key()
+        except ValueError as e:
             raise HTTPException(
                 status_code=500,
-                detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+                detail=str(e)
             )
         
         # Initialize OpenAI client
@@ -295,4 +309,211 @@ async def add_scanned_items(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to add items: {str(e)}"
+        )
+
+
+@router.post("/scan-items", response_model=OCRResponse, summary="Scan individual pantry items")
+async def scan_items(
+    request: ScanItemRequest,
+    pantry_manager: PantryItemManagerEnhanced = Depends(get_pantry_manager),
+):
+    """
+    Scan individual pantry items using barcode or product image recognition
+    """
+    try:
+        # Get OpenAI API key using proper configuration utility
+        try:
+            openai_api_key = get_openai_api_key()
+        except ValueError as e:
+            raise HTTPException(
+                status_code=500,
+                detail=str(e)
+            )
+        
+        # Initialize OpenAI client
+        client = openai.OpenAI(api_key=openai_api_key)
+        
+        # Different prompts based on scan type
+        if request.scan_type == "barcode":
+            system_prompt = """You are a barcode and product scanner. Analyze the image to identify the product.
+            Look for:
+            1. Barcode (if visible, extract the numbers)
+            2. Product name (exact name from package)
+            3. Brand name
+            4. Quantity/Size (e.g., 16 oz, 1 lb, 500ml)
+            5. Category (Dairy, Meat, Produce, Bakery, Pantry, Beverages, Frozen, Snacks, Canned Goods, etc.)
+            6. Nutrition information (if visible)
+            
+            Return the data in this exact JSON format:
+            {
+                "items": [{
+                    "name": "Product Name",
+                    "brand": "Brand Name",
+                    "product_name": "Full Product Name with Brand",
+                    "quantity": 1,
+                    "unit": "package/box/can/bottle",
+                    "category": "Category",
+                    "barcode": "123456789012",
+                    "nutrition_info": {
+                        "calories": 100,
+                        "protein": "5g",
+                        "carbs": "20g",
+                        "fat": "3g"
+                    }
+                }]
+            }
+            
+            Important:
+            - Use the exact product name from the package
+            - Include brand information
+            - Extract size/quantity from the package
+            - If it's a multi-pack, note that in quantity
+            """
+        else:
+            system_prompt = """You are a product identifier. Analyze the image to identify pantry items.
+            Look for:
+            1. Product labels and text
+            2. Brand names
+            3. Product type and category
+            4. Size/quantity information
+            5. Any visible expiration dates
+            
+            Return the data in this exact JSON format:
+            {
+                "items": [{
+                    "name": "Product Name",
+                    "brand": "Brand Name",
+                    "product_name": "Full Product Name",
+                    "quantity": 1,
+                    "unit": "appropriate unit",
+                    "category": "Category",
+                    "expiration_date": "YYYY-MM-DD if visible"
+                }]
+            }
+            
+            Categories: Dairy, Meat, Produce, Bakery, Pantry, Beverages, Frozen, Snacks, Canned Goods, Deli, Seafood, Other
+            
+            Important:
+            - Identify each distinct product in the image
+            - Use appropriate units (can, box, bag, bottle, jar, package, etc.)
+            - Be specific with product names
+            """
+        
+        # Call OpenAI Vision API
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {
+                    "role": "system",
+                    "content": system_prompt
+                },
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "Please identify and extract information about the product(s) in this image."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{request.image_base64}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            max_tokens=500,
+            temperature=0.1
+        )
+        
+        # Parse the response
+        content = response.choices[0].message.content
+        logger.info(f"OpenAI Vision response for item scan: {content}")
+        
+        # Extract JSON from the response
+        import json
+        try:
+            json_match = re.search(r'\{[\s\S]*\}', content)
+            if json_match:
+                parsed_data = json.loads(json_match.group())
+            else:
+                parsed_data = json.loads(content)
+        except json.JSONDecodeError:
+            logger.error(f"Failed to parse JSON from OpenAI response: {content}")
+            parsed_data = {"items": []}
+        
+        # Process items
+        processed_items = []
+        for item in parsed_data.get("items", []):
+            # Use product name or fallback to name
+            product_name = item.get("product_name") or item.get("name", "Unknown Item")
+            name = item.get("name", product_name)
+            
+            # Get brand
+            brand = item.get("brand")
+            if brand and brand not in name:
+                display_name = f"{brand} {name}"
+            else:
+                display_name = name
+            
+            # Get quantity and unit
+            quantity = float(item.get("quantity", 1.0))
+            unit = item.get("unit", "each").lower()
+            
+            # Get category or use categorization service
+            category = item.get("category")
+            if not category:
+                try:
+                    categorization_result = await pantry_manager.categorization_service.categorize_item(display_name)
+                    if categorization_result["success"]:
+                        category = categorization_result["category"]
+                except Exception as e:
+                    logger.warning(f"Failed to categorize item {display_name}: {str(e)}")
+                    category = "Other"
+            
+            # Calculate default expiration based on category
+            expiration_date = item.get("expiration_date")
+            if not expiration_date:
+                expiration_days = {
+                    "Dairy": 7,
+                    "Meat": 3,
+                    "Seafood": 2,
+                    "Produce": 5,
+                    "Bakery": 5,
+                    "Frozen": 180,
+                    "Canned Goods": 730,
+                    "Pantry": 365,
+                    "Beverages": 180,
+                    "Snacks": 90,
+                }.get(category, 30)
+                
+                from datetime import timedelta
+                exp_date = datetime.now().date() + timedelta(days=expiration_days)
+                expiration_date = exp_date.isoformat()
+            
+            processed_items.append(ParsedItem(
+                name=display_name,
+                quantity=quantity,
+                unit=unit,
+                category=category,
+                barcode=item.get("barcode"),
+                brand=brand,
+                product_name=product_name,
+                nutrition_info=item.get("nutrition_info"),
+                expiration_date=expiration_date
+            ))
+        
+        return OCRResponse(
+            success=True,
+            items=processed_items,
+            raw_text=None,
+            message=f"Successfully identified {len(processed_items)} item(s)"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error scanning items: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to scan items: {str(e)}"
         )
