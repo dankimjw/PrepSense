@@ -1,1 +1,1 @@
-{"last_found_secrets": [{"name": "Generic Password - commit://staged/backend_gateway/scripts/create_demo_users.py", "match": "924d4a117da6e16a824749383242bfa8cf049165fca0813bf946b054f623f404"}]}
+{"last_found_secrets": [{"match": "78f75216788cfe6e1d89ca62d66d70970e5393102ad305ba0a507ba85382e83c", "name": "PostgreSQL Credentials - commit://staged/docs/BACKEND_SETUP_GUIDE.md"}]}

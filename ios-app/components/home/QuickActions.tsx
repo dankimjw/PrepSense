@@ -18,18 +18,18 @@ interface QuickActionsProps {
 
 const defaultActions: QuickAction[] = [
   { 
-    id: 'add', 
-    icon: 'add-circle',
-    title: 'Add Item',
+    id: 'scan-items', 
+    icon: 'basket',
+    title: 'Scan Items',
     color: '#297A56',
-    route: '/add-item'
+    route: '/scan-items'
   },
   { 
     id: 'scan', 
     icon: 'receipt',
     title: 'Scan Receipt',
     color: '#4F46E5',
-    onPress: () => Alert.alert('Receipt Scanner', 'Receipt scanning functionality will be implemented soon.')
+    route: '/receipt-scanner'
   },
   { 
     id: 'recipe', 

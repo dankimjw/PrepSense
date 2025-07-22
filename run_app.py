@@ -20,12 +20,10 @@ import signal
 import socket
 import subprocess
 import sys
-import threading
 import time
 from pathlib import Path
 from typing import List, Optional
 
-import uvicorn
 from dotenv import load_dotenv
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -192,18 +190,10 @@ def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.
         # Exclude ios-app directory from reload watching to prevent Metro runtime errors
         command.extend(["--reload-exclude", "ios-app/**"])
 
-    # Automatically open Swagger UI docs after a delay
-    def _open_docs():
-        docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
-        docs_url = f"http://{docs_host}:{port}/docs"
-        print(f"\nOpening Swagger UI at {docs_url} in 3 seconds…")
-        try:
-            import webbrowser
-            webbrowser.open(docs_url)
-        except Exception as exc:
-            print(f"(Could not launch browser automatically: {exc})")
-
-    threading.Timer(3.0, _open_docs).start()
+    # Print the docs URL without automatically opening it
+    docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
+    docs_url = f"http://{docs_host}:{port}/docs"
+    print(f"\n📚 Swagger UI available at: {docs_url}")
 
     return subprocess.Popen(command)
 
@@ -223,6 +213,52 @@ def start_ios(backend_url: str, ios_port: int, project_root: Path) -> subprocess
 # ──────────────────────────────────────────────────────────────────────────────
 # 7.  Main
 # ──────────────────────────────────────────────────────────────────────────────
+def check_ios_prerequisites() -> bool:
+    """Check if iOS development prerequisites are installed."""
+    prerequisites_met = True
+    missing_items = []
+    
+    # Check for Xcode (macOS only)
+    if platform.system() == "Darwin":
+        xcode_check = subprocess.run(["which", "xcodebuild"], capture_output=True)
+        if xcode_check.returncode != 0:
+            prerequisites_met = False
+            missing_items.append("Xcode")
+    
+    # Check for npm
+    npm_check = subprocess.run(["which", "npm"], capture_output=True)
+    if npm_check.returncode != 0:
+        prerequisites_met = False
+        missing_items.append("Node.js/npm")
+    
+    # Check for Expo CLI
+    expo_check = subprocess.run(["which", "expo"], capture_output=True)
+    if expo_check.returncode != 0:
+        # Try npx expo as fallback
+        npx_expo_check = subprocess.run(["npx", "expo", "--version"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        if npx_expo_check.returncode != 0:
+            prerequisites_met = False
+            missing_items.append("Expo CLI")
+    
+    return prerequisites_met, missing_items
+
+
+def display_ios_setup_instructions():
+    """Display setup instructions for iOS development."""
+    print("\n⚠️  iOS SIMULATOR PREREQUISITES MISSING!\n")
+    
+    print("Required components:")
+    print("1. Xcode (Mac App Store)")
+    print("2. Node.js & npm (https://nodejs.org/)")
+    print("3. Expo CLI (npm install -g expo-cli)")
+    print("4. Watchman (brew install watchman)")
+    
+    print("\nManual startup alternative:")
+    print("1. Create .env file: cp .env.template .env")
+    print("2. Start backend: cd backend_gateway && python main.py")
+    print("3. Start frontend: cd ios-app && npm start\n")
+
+
 def main():
     print("🚀 PrepSense Unified App Launcher\n" + "═" * 50)
 
@@ -281,6 +317,15 @@ def main():
     if mode in {"both", "ios"}:
         print(f"  iOS     → http://localhost:{ios_port} (calls {backend_url})")
     print()
+    
+    # Check iOS prerequisites if running iOS mode
+    if mode in {"both", "ios"}:
+        prerequisites_ok, missing = check_ios_prerequisites()
+        if not prerequisites_ok:
+            display_ios_setup_instructions()
+            print(f"Missing: {', '.join(missing)}")
+            print("Continuing in 3 seconds...")
+            time.sleep(3)
 
     # Google credentials logic + IAM toggle
     project_root = Path(__file__).resolve().parent

@@ -17,6 +17,7 @@ import { Recipe, completeRecipe, RecipeIngredient, fetchPantryItems, PantryItem 
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 import { formatQuantity } from '../utils/numberFormatting';
+import Config from '../config';
 
 const { width } = Dimensions.get('window');
 
@@ -134,14 +135,86 @@ export default function CookingModeScreen() {
       // Close modal first
       setShowCompletionModal(false);
 
+      // Mark recipe as cooked if it was saved
+      if (recipe.id) {
+        try {
+          // Try to mark the recipe as cooked in the backend
+          const markCookedResponse = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/mark-cooked`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (markCookedResponse.ok) {
+            console.log('Recipe marked as cooked');
+          }
+        } catch (error) {
+          console.error('Error marking recipe as cooked:', error);
+        }
+      }
+
       Alert.alert(
         alertTitle,
         alertMessage,
         [
           {
-            text: 'OK',
-            onPress: () => router.back(),
+            text: 'Rate Recipe',
+            onPress: () => {
+              Alert.alert(
+                'Rate this Recipe',
+                'How was ' + recipe.name + '?',
+                [
+                  {
+                    text: '👍 Liked it',
+                    onPress: async () => {
+                      // Update rating
+                      if (recipe.id) {
+                        try {
+                          await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/rating`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ rating: 'thumbs_up' }),
+                          });
+                        } catch (error) {
+                          console.error('Error updating rating:', error);
+                        }
+                      }
+                      router.back();
+                    }
+                  },
+                  {
+                    text: '👎 Disliked it',
+                    onPress: async () => {
+                      // Update rating
+                      if (recipe.id) {
+                        try {
+                          await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/rating`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ rating: 'thumbs_down' }),
+                          });
+                        } catch (error) {
+                          console.error('Error updating rating:', error);
+                        }
+                      }
+                      router.back();
+                    }
+                  },
+                  {
+                    text: 'Skip',
+                    style: 'cancel',
+                    onPress: () => router.back()
+                  }
+                ]
+              );
+            }
           },
+          {
+            text: 'Done',
+            style: 'cancel',
+            onPress: () => router.back()
+          }
         ]
       );
     } catch (error) {

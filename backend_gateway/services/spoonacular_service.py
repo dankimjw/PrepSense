@@ -447,3 +447,60 @@ class SpoonacularService:
                 logger.error(f"Error getting random recipes: {str(e)}")
                 raise
     
+    def validate_recipe_instructions(self, recipe: Dict[str, Any], min_steps: int = 2) -> bool:
+        """
+        Validate that a recipe has sufficient instructions
+        
+        Args:
+            recipe: Recipe data from Spoonacular API
+            min_steps: Minimum number of steps required (default: 2)
+            
+        Returns:
+            True if recipe has enough steps, False otherwise
+        """
+        # Check analyzedInstructions format
+        if 'analyzedInstructions' in recipe:
+            analyzed = recipe.get('analyzedInstructions', [])
+            if analyzed and len(analyzed) > 0:
+                steps = analyzed[0].get('steps', [])
+                step_count = len(steps)
+                
+                # Log recipes with low step counts
+                if step_count < min_steps:
+                    logger.warning(
+                        f"Recipe '{recipe.get('title', 'Unknown')}' (ID: {recipe.get('id')}) "
+                        f"has only {step_count} steps"
+                    )
+                
+                return step_count >= min_steps
+        
+        # Check simple instructions format
+        if 'instructions' in recipe:
+            instructions = recipe.get('instructions', '')
+            if instructions and len(instructions.strip()) > 0:
+                # Simple heuristic: count sentences
+                sentences = [s.strip() for s in instructions.split('.') if s.strip()]
+                return len(sentences) >= min_steps
+        
+        return False
+    
+    def filter_recipes_by_instructions(
+        self, 
+        recipes: List[Dict[str, Any]], 
+        min_steps: int = 2
+    ) -> List[Dict[str, Any]]:
+        """
+        Filter a list of recipes to only include those with sufficient instructions
+        
+        Args:
+            recipes: List of recipe dictionaries
+            min_steps: Minimum number of steps required
+            
+        Returns:
+            Filtered list of recipes with sufficient instructions
+        """
+        return [
+            recipe for recipe in recipes 
+            if self.validate_recipe_instructions(recipe, min_steps)
+        ]
+    

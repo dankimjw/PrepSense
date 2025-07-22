@@ -74,7 +74,20 @@ class VisionService:
             "     - This total visual count should be an integer, and you must include it in the 'count' field for that item's JSON object.\n"
             "     - For example, if there are 5 identical cans of 'Joe's O's Cereal' visible, the 'count' field for that item's entry must be 5.\n"
             "     - Please ensure the 'count' field is always present in each item's JSON object.\n"
-            "  4. Look for any printed expiration date.\n"
+            "  4. Classify each item into the most appropriate category from this list:\n"
+            "     - Dairy: Milk, cheese, yogurt, butter, cream\n"
+            "     - Meat: Fresh meat, poultry, processed meats\n"
+            "     - Produce: Fresh fruits, vegetables, herbs\n"
+            "     - Bakery: Bread, pastries, baked goods\n"
+            "     - Pantry: Rice, pasta, flour, spices, oil, condiments\n"
+            "     - Beverages: Juices, sodas, water, coffee, tea\n"
+            "     - Frozen: Frozen foods, ice cream\n"
+            "     - Snacks: Chips, crackers, candy, nuts\n"
+            "     - Canned Goods: Canned vegetables, fruits, soups\n"
+            "     - Deli: Prepared foods, sandwich meats\n"
+            "     - Seafood: Fish, shellfish, seafood products\n"
+            "     - Other: Items that don't fit other categories\n"
+            "  5. Look for any printed expiration date.\n"
             "     - Accept 'Best Before', 'Use By', 'BB', or 'Expiry'.\n"
             "     - If no printed date, estimate based on type:\n"
             "         - Green banana: +7 days\n"
@@ -87,7 +100,7 @@ class VisionService:
             "- Do not assign a date earlier than today's date.\n\n"
             "Format your answer as a STRICT JSON array ONLY like this:\n"
             "[\n"
-            "  {\"item_name\": <string>, \"quantity\": <string>, \"count\": <integer>, \"expiration_date\": <YYYY-MM-DD>},\n"
+            "  {\"item_name\": <string>, \"quantity\": <string>, \"count\": <integer>, \"category\": <string>, \"expiration_date\": <YYYY-MM-DD>},\n"
             "  ...\n"
             "]\n"
             "DO NOT include any explanation before or after the JSON."
@@ -182,6 +195,7 @@ class VisionService:
             item_name = item.get("item_name", "Unknown Item")
             quantity_str = item.get("quantity", "1 unit") # Default if not provided
             count = item.get("count", 1) # Get count, default to 1 if not provided
+            category = item.get("category", "Other") # Get category, default to "Other" if not provided
             expiration_date_str = item.get("expiration_date")
 
             quantity_amount = 1.0
@@ -230,8 +244,8 @@ class VisionService:
                     "item_name": item_name,
                     "quantity_amount": quantity_amount,
                     "quantity_unit": quantity_unit,
+                    "category": category,
                     "count": count,
-                    "date_added": today.isoformat(),
                     "expected_expiration": expected_expiry_date.isoformat()
                 }
 

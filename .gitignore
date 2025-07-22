@@ -42,12 +42,23 @@ coverage.xml
 .idea/
 .cursor/
 .claude/
-CLAUDE.md
 .claude-config
 set_git_author.sh
+.claude_collaboration_reminder
 *.swp
 *.swo
 *~
+
+# MCP (Model Context Protocol) - local only
+.mcp.json
+scripts/setup_mcp_servers.sh
+scripts/setup_mcp_worktree.sh
+mcp-servers/
+
+# Claude-specific setup scripts
+setup_claude_md_symlinks.sh
+setup_worktrees.sh
+../PrepSense-worktrees/
 
 # OS specific files
 .DS_Store
@@ -87,3 +98,33 @@ POSTGRES_SECRETS.md
 *_secrets.md
 secrets/
 credentials/
+
+# MCP local setup script (never commit)
+scripts/setup_mcp_servers.sh
+# LLM mock data prompt
+docs/llm-mock-data-prompt.md
+
+# Claude collaboration notes (internal use only)
+WORKTREE_NOTES_*.md
+CLAUDE_COLLABORATION_GUIDE.md
+CLAUDE_INSTANCE_ROLES.md
+SUBAGENT_STRATEGY_GUIDE.md
+VERIFICATION_PROTOCOL.md
+START_HERE_CLAUDE.md
+COMPREHENSIVE_TEST_PLAN.md
+setup_worktree_collaboration.sh
+check_collaboration_status.sh
+backup_claude_files.sh
+setup_claude_md_symlinks.sh
+
+# Claude collaboration files (symlinked, not tracked)
+WORKTREE_NOTES_*.md
+# Claude collaboration files
+CLAUDE_COLLABORATION_GUIDE.md
+CLAUDE_INSTANCE_ROLES.md
+START_HERE_CLAUDE.md
+WORKTREE_NOTES_*.md
+check_collaboration_status.sh
+setup_claude_md_symlinks.sh
+setup_worktree_collaboration.sh
+**/WORKTREE_NOTES_*.md

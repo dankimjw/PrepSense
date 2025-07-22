@@ -21,7 +21,7 @@ AI-powered smart pantry management system - University of Chicago Capstone Proje
 
 2. **Configure Environment**
    ```bash
-   cp .env.template .env
+   cp config/.env.template .env
    # Edit .env with your API keys and database credentials
    ```
 
@@ -52,11 +52,12 @@ PrepSense/
 │   ├── services/      # API integration
 │   └── components/    # Reusable UI components
 ├── docs/              # Project documentation
-├── tests/             # Test suites
+├── scripts/           # Utility scripts
+├── config/            # Configuration files
+├── notebooks/         # Jupyter notebooks
 ├── run_app.py         # Main launcher script
 ├── setup.py           # Initial setup script
-├── requirements.txt   # Python dependencies
-└── .env.template      # Environment template
+└── requirements.txt   # Python dependencies
 ```
 
 ## 🛠️ Common Commands

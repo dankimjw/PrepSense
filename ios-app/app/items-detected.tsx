@@ -52,10 +52,11 @@ const getCategoryColor = (category: string) => {
 // Using Item type from ItemsContext
 
 export default function ItemsDetected() {
-  const { data: initialData = '', photoUri, index, newUnit, newItem } =
+  const { data: initialData = '', photoUri, index, newUnit, newItem, source } =
     useLocalSearchParams<{
       data?: string; photoUri?: string;
       index?: string; newUnit?: string; newItem?: string;
+      source?: string;
     }>();
 
   /* decode on initial load */
@@ -120,26 +121,41 @@ export default function ItemsDetected() {
     try {
       setIsSaving(true);
       
-      // Transform items to match backend expectations
-      const transformedItems = items.map(item => ({
-        item_name: item.item_name,
-        quantity_amount: item.quantity_amount,
-        quantity_unit: item.quantity_unit,
-        expected_expiration: item.expected_expiration,
-        category: item.category || 'Uncategorized',
-        brand: item.brand || 'Generic'
-      }));
+      // Choose API endpoint based on source
+      const isReceiptScanner = source === 'receipt-scanner';
+      const apiEndpoint = isReceiptScanner 
+        ? `${Config.API_BASE_URL}/ocr/add-scanned-items`
+        : `${Config.API_BASE_URL}/images/save-detected-items`;
       
-      // Call the backend API endpoint to save items to BigQuery
-      const response = await fetch(`${Config.API_BASE_URL}/images/save-detected-items`, {
+      // Transform items based on source
+      const transformedItems = isReceiptScanner 
+        ? items.map(item => ({
+            name: item.item_name,
+            quantity: item.quantity_amount,
+            unit: item.quantity_unit,
+            category: item.category || 'Uncategorized',
+            price: (item as any).price
+          }))
+        : items.map(item => ({
+            item_name: item.item_name,
+            quantity_amount: item.quantity_amount,
+            quantity_unit: item.quantity_unit,
+            expected_expiration: item.expected_expiration,
+            category: item.category || 'Uncategorized',
+            brand: item.brand || 'Generic'
+          }));
+      
+      // Call the appropriate backend API endpoint
+      const requestBody = isReceiptScanner 
+        ? transformedItems // OCR endpoint expects array directly
+        : { items: transformedItems, user_id: 111 }; // Images endpoint expects object with items array
+        
+      const response = await fetch(apiEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          items: transformedItems,
-          user_id: 111 // Default demo user ID
-        }),
+        body: JSON.stringify(requestBody),
       });
       
       if (!response.ok) {
@@ -149,19 +165,27 @@ export default function ItemsDetected() {
       }
       
       const result = await response.json();
-      console.log('Items saved to BigQuery:', result);
+      console.log('Items saved:', result);
       
       // Add to local context as well
       addItems(items);
       
-      // Show success message with more details
-      const errorInfo = result.error_count > 0 
-        ? `\n${result.error_count} items had errors.` 
-        : '';
+      // Show success message with more details based on source
+      let successMessage;
+      if (isReceiptScanner) {
+        const addedCount = result.added_count || 0;
+        const totalCount = result.total_count || items.length;
+        successMessage = `${addedCount} out of ${totalCount} items added to pantry successfully!`;
+      } else {
+        const errorInfo = result.error_count > 0 
+          ? `\n${result.error_count} items had errors.` 
+          : '';
+        successMessage = `${result.saved_count} items saved to database successfully!${errorInfo}`;
+      }
       
       Alert.alert(
         'Success', 
-        `${result.saved_count} items saved to database successfully!${errorInfo}`,
+        successMessage,
         [{ text: 'OK', onPress: () => {
           setSavedToBigQuery(true);
           router.replace('/(tabs)');
@@ -441,7 +465,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#0F5C36',
+    color: '#FFFFFF',
   },
   title: {
     fontSize: 24,

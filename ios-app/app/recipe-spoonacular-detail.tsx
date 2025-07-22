@@ -20,6 +20,8 @@ import { useAuth } from '../context/AuthContext';
 import { completeRecipe, RecipeIngredient } from '../services/api';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../utils/ingredientMatcher';
+import { validateInstructions, isInappropriateContent } from '../utils/contentValidation';
+import { formatIngredientQuantity } from '../utils/numberFormatting';
 
 const { width } = Dimensions.get('window');
 
@@ -134,6 +136,11 @@ export default function RecipeSpoonacularDetail() {
   };
 
   const cleanInstructionText = (text: string): string => {
+    // First check if the content is inappropriate
+    if (isInappropriateContent(text)) {
+      return '';
+    }
+    
     // Fix common text corruption patterns
     let cleaned = text;
     
@@ -169,6 +176,11 @@ export default function RecipeSpoonacularDetail() {
     // Fix spacing around punctuation
     cleaned = cleaned.replace(/\s+([.,!?])/g, '$1');
     cleaned = cleaned.replace(/([.,!?])([A-Za-z])/g, '$1 $2');
+    
+    // Final check after cleaning
+    if (isInappropriateContent(cleaned)) {
+      return '';
+    }
     
     return cleaned;
   };
@@ -262,17 +274,22 @@ export default function RecipeSpoonacularDetail() {
           // If we successfully parsed the ingredient
           displayName = parsed.name;
           if (parsed.quantity && parsed.unit) {
-            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+            // Use proper fraction formatting
+            const formattedQuantity = formatIngredientQuantity(parsed.quantity, parsed.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${parsed.unit}` : `${parsed.quantity} ${parsed.unit}`;
           } else if (parsed.quantity) {
-            displayQuantity = `${parsed.quantity}`;
+            // Use proper fraction formatting for quantity only
+            displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
           }
         } else {
-          // If parsing failed, use the ingredient name from Spoonacular
+          // If parsing failed, use the ingredient name from Spoonacular and original amount
           displayName = fallbackName;
-          // Try to extract just the amount and unit from the original string
-          const amountMatch = cleanedOriginal.match(/^([\d.\/\s]+)\s*([a-zA-Z]+)?/);
-          if (amountMatch && amountMatch[1]) {
-            displayQuantity = amountMatch[0].trim();
+          // Use Spoonacular's formatted amount and unit which should already be properly formatted
+          if (ingredient.amount && ingredient.unit) {
+            const formattedQuantity = formatIngredientQuantity(ingredient.amount, ingredient.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${ingredient.unit}` : `${ingredient.amount} ${ingredient.unit}`;
+          } else if (ingredient.amount) {
+            displayQuantity = formatIngredientQuantity(ingredient.amount, '') || `${ingredient.amount}`;
           }
         }
         
@@ -356,7 +373,9 @@ export default function RecipeSpoonacularDetail() {
     const recipeForCooking = {
       name: recipe.title,
       ingredients: recipe.extendedIngredients.map(ing => ing.original),
-      instructions: recipe.analyzedInstructions[0]?.steps.map(step => step.step) || [],
+      instructions: recipe.analyzedInstructions[0]?.steps
+        .map(step => cleanInstructionText(step.step))
+        .filter(text => text.length > 0) || [],
       nutrition: {
         calories: recipe.nutrition?.nutrients.find(n => n.name === 'Calories')?.amount || 0,
         protein: recipe.nutrition?.nutrients.find(n => n.name === 'Protein')?.amount || 0,
@@ -738,19 +757,22 @@ export default function RecipeSpoonacularDetail() {
 
         {activeTab === 'instructions' && (
           <View style={styles.instructionsContainer}>
-            {recipe.analyzedInstructions.length > 0 ? (
-              recipe.analyzedInstructions[0].steps.map((step, index) => (
-                <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
-                  <View style={styles.stepNumber}>
-                    <Text style={styles.stepNumberText}>{step.number}</Text>
-                  </View>
-                  <Text style={styles.stepText}>{cleanInstructionText(step.step)}</Text>
-                </View>
-              ))
+            {recipe.analyzedInstructions.length > 0 && recipe.analyzedInstructions[0].steps.length > 0 ? (
+              recipe.analyzedInstructions[0].steps
+                .map((step, index) => {
+                  const cleanedText = cleanInstructionText(step.step);
+                  return cleanedText ? (
+                    <View key={`step-${step.number}-${index}`} style={styles.instructionStep}>
+                      <View style={styles.stepNumber}>
+                        <Text style={styles.stepNumberText}>{step.number}</Text>
+                      </View>
+                      <Text style={styles.stepText}>{cleanedText}</Text>
+                    </View>
+                  ) : null;
+                })
+                .filter(Boolean)
             ) : (
-              <Text style={styles.noInstructions}>
-                No detailed instructions available. Please check the original recipe source.
-              </Text>
+              <Text style={styles.noInstructions}>No instructions available for this recipe.</Text>
             )}
           </View>
         )}

@@ -33,10 +33,18 @@ export const UNITS: UnitOption[] = [
   
   // Count & Packaging
   { value: 'each', label: 'Each', category: 'count', abbreviation: 'each', plural: 'Each' },
+  { value: 'pcs', label: 'Pieces', category: 'count', abbreviation: 'pcs', plural: 'Pieces' },
   { value: 'package', label: 'Package', category: 'count', abbreviation: 'pkg', plural: 'Packages' },
+  { value: 'pack', label: 'Pack', category: 'count', abbreviation: 'pack', plural: 'Packs' },
   { value: 'bag', label: 'Bag', category: 'count', abbreviation: 'bag', plural: 'Bags' },
   { value: 'case', label: 'Case', category: 'count', abbreviation: 'case', plural: 'Cases' },
   { value: 'carton', label: 'Carton', category: 'count', abbreviation: 'carton', plural: 'Cartons' },
+  { value: 'bottle', label: 'Bottle', category: 'count', abbreviation: 'bottle', plural: 'Bottles' },
+  { value: 'jar', label: 'Jar', category: 'count', abbreviation: 'jar', plural: 'Jars' },
+  { value: 'can', label: 'Can', category: 'count', abbreviation: 'can', plural: 'Cans' },
+  { value: 'box', label: 'Box', category: 'count', abbreviation: 'box', plural: 'Boxes' },
+  { value: 'loaf', label: 'Loaf', category: 'count', abbreviation: 'loaf', plural: 'Loaves' },
+  { value: 'unit', label: 'Unit', category: 'count', abbreviation: 'unit', plural: 'Units' },
   { value: 'gross', label: 'Gross', category: 'count', abbreviation: 'gross', plural: 'Gross' },
 ];
 
@@ -103,6 +111,7 @@ export const normalizeUnit = (input: string): string => {
     'teaspoons': 'tsp',
     'pound': 'lb',
     'pounds': 'lb',
+    'lbs': 'lb',
     'ounce': 'oz',
     'ounces': 'oz',
     'fluid ounce': 'fl oz',
@@ -120,9 +129,19 @@ export const normalizeUnit = (input: string): string => {
     'package': 'package',
     'packages': 'package',
     'pkg': 'package',
+    'packs': 'pack',
+    'pieces': 'pcs',
+    'pc': 'pcs',
+    'piece': 'pcs',
     'bags': 'bag',
     'cases': 'case',
     'cartons': 'carton',
+    'bottles': 'bottle',
+    'jars': 'jar',
+    'cans': 'can',
+    'boxes': 'box',
+    'loaves': 'loaf',
+    'units': 'unit',
   };
   
   return variations[normalized] || normalized;

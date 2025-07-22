@@ -69,9 +69,6 @@ app.include_router(pantry_router, prefix=f"{settings.API_V1_STR}", tags=["Pantry
 from backend_gateway.routers.chat_router import router as chat_router
 app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["Chat"])
 
-# Import chat v2 router (CrewAI with multi-source recipes)
-from backend_gateway.routers.chat_v2_router import router as chat_v2_router
-app.include_router(chat_v2_router, prefix=f"{settings.API_V1_STR}", tags=["Chat V2"])
 
 # Import spoonacular router
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
@@ -109,6 +106,10 @@ app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["Statist
 from backend_gateway.routers.ocr_router import router as ocr_router
 app.include_router(ocr_router, prefix=f"{settings.API_V1_STR}", tags=["OCR"])
 
+# Import nutrition router
+from backend_gateway.routers.nutrition_router import router as nutrition_router
+app.include_router(nutrition_router, tags=["Nutrition"])
+
 # Import recipe image router (disabled until google-cloud-storage is installed)
 # from backend_gateway.routers.recipe_image_router import router as recipe_image_router
 # app.include_router(recipe_image_router, prefix=f"{settings.API_V1_STR}", tags=["Recipe Images"])
@@ -131,20 +132,71 @@ async def startup_event():
 @app.get(f"{settings.API_V1_STR}/health", tags=["Health Check"])
 async def health_check():
     """Perform a health check and return environment status."""
-    env_status = {
+    from backend_gateway.core.config_utils import get_openai_api_key
+    
+    health_status = {
         "status": "healthy",
         "environment": {
-            "openai_configured": bool(os.getenv("OPENAI_API_KEY")),
+            "openai_configured": False,
+            "openai_valid": False,
+            "spoonacular_configured": False,
+            "database_configured": False,
+            "database_connected": False,
             "google_cloud_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
-        }
+        },
+        "errors": []
     }
+    
+    # Check OpenAI API key
+    try:
+        api_key = get_openai_api_key()
+        health_status["environment"]["openai_configured"] = True
+        health_status["environment"]["openai_valid"] = api_key.startswith("sk-")
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"OpenAI: {str(e)}")
+    
+    # Check Spoonacular API key
+    try:
+        if settings.SPOONACULAR_API_KEY:
+            health_status["environment"]["spoonacular_configured"] = True
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"Spoonacular: {str(e)}")
+    
+    # Check database configuration
+    try:
+        if all([settings.POSTGRES_HOST, settings.POSTGRES_DATABASE, 
+                settings.POSTGRES_USER, settings.POSTGRES_PASSWORD]):
+            health_status["environment"]["database_configured"] = True
+            
+            # Try to connect to database
+            try:
+                from backend_gateway.services.postgres_service import PostgresService
+                connection_params = {
+                    'host': settings.POSTGRES_HOST,
+                    'port': settings.POSTGRES_PORT,
+                    'database': settings.POSTGRES_DATABASE,
+                    'user': settings.POSTGRES_USER,
+                    'password': settings.POSTGRES_PASSWORD
+                }
+                postgres_service = PostgresService(connection_params)
+                # Simple connectivity test
+                postgres_service.execute_query("SELECT 1")
+                health_status["environment"]["database_connected"] = True
+            except Exception as db_error:
+                health_status["environment"]["database_connected"] = False
+                health_status["errors"].append(f"Database connection: {str(db_error)}")
+    except Exception as e:
+        health_status["status"] = "unhealthy"
+        health_status["errors"].append(f"Database config: {str(e)}")
     
     # Check if Google Cloud credentials file exists
     gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if gcp_path:
-        env_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
+        health_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
     
-    return env_status
+    return health_status
 
 # To run (from the directory containing the PrepSense folder, or if PrepSense is the root):
 # If PrepSense is the root directory: uvicorn app:app --reload

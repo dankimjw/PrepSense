@@ -18,14 +18,16 @@ import { useAuth } from '../context/AuthContext';
 import { parseIngredientsList } from '../utils/ingredientParser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
-import { formatQuantity } from '../utils/numberFormatting';
+import { formatQuantity, formatIngredientQuantity } from '../utils/numberFormatting';
+// Removed instruction validation/filtering
+// import { validateInstructions } from '../utils/contentValidation';
 
 export default function RecipeDetailsScreen() {
   const params = useLocalSearchParams();
   const router = useRouter();
   const { token, isAuthenticated } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false); // Don't block initial render
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [useGenerated, setUseGenerated] = useState(true); // Default to AI generated images
@@ -43,12 +45,12 @@ export default function RecipeDetailsScreen() {
         const recipeData = JSON.parse(params.recipe as string);
         setRecipe(recipeData);
         
-        // Check if recipe has a Spoonacular image
+        // Load image asynchronously without blocking
         if (recipeData.image) {
           setGeneratedImageUrl(recipeData.image);
-          setImageLoading(false);
         } else {
-          // Only generate image if no Spoonacular image is available
+          // Start loading image in background
+          setImageLoading(true);
           generateImageForRecipe(recipeData.name, useGenerated);
         }
       } catch (error) {
@@ -59,14 +61,35 @@ export default function RecipeDetailsScreen() {
 
   const generateImageForRecipe = async (recipeName: string, useAI: boolean = false) => {
     try {
-      setImageLoading(true);
       setImageError(null);
       
+      // Check cache first
+      const cacheKey = `recipe_image_${recipeName}_${useAI}`;
+      const cachedData = await AsyncStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        const { url, timestamp } = JSON.parse(cachedData);
+        // Use cached image if less than 7 days old
+        if (Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000) {
+          setGeneratedImageUrl(url);
+          setImageLoading(false);
+          return;
+        }
+      }
+      
+      // Generate new image
       const imageResponse = await generateRecipeImage(
         recipeName, 
         "professional food photography, beautifully plated, appetizing",
         useAI
       );
+      
+      // Cache the result
+      await AsyncStorage.setItem(cacheKey, JSON.stringify({
+        url: imageResponse.image_url,
+        timestamp: Date.now()
+      }));
+      
       setGeneratedImageUrl(imageResponse.image_url);
     } catch (error) {
       console.error('Error generating recipe image:', error);
@@ -110,65 +133,10 @@ export default function RecipeDetailsScreen() {
   }
 
 
-  // Get instructions from recipe data or generate basic ones
+  // Get instructions from recipe data - no filtering
   const getInstructions = (recipe: Recipe) => {
-    // Use recipe instructions if available
-    if (recipe.instructions && recipe.instructions.length > 0) {
-      return recipe.instructions;
-    }
-    
-    // Otherwise generate basic instructions based on recipe name
-    const recipeName = recipe.name.toLowerCase();
-    
-    if (recipeName.includes('smoothie')) {
-      return [
-        "Add all ingredients to a blender",
-        "Blend on high speed for 60-90 seconds",
-        "Check consistency and blend more if needed",
-        "Pour into glasses and serve immediately",
-        "Garnish with fresh fruit if desired"
-      ];
-    } else if (recipeName.includes('soup')) {
-      return [
-        "Heat oil in a large pot over medium heat",
-        "Add aromatics and cook until fragrant",
-        "Add main ingredients and cook for 5 minutes",
-        "Pour in liquid and bring to a boil",
-        "Reduce heat and simmer for 20-25 minutes",
-        "Season with salt and pepper to taste",
-        "Serve hot with desired garnishes"
-      ];
-    } else if (recipeName.includes('grilled') || recipeName.includes('chicken')) {
-      return [
-        "Preheat grill or grill pan to medium-high heat",
-        "Season the protein with salt and pepper",
-        "Oil the grill grates to prevent sticking",
-        "Cook for 6-8 minutes on the first side",
-        "Flip and cook for another 6-8 minutes",
-        "Check internal temperature reaches safe levels",
-        "Let rest for 5 minutes before serving"
-      ];
-    } else if (recipeName.includes('stir-fry') || recipeName.includes('stir fry')) {
-      return [
-        "Heat oil in a large wok or skillet over high heat",
-        "Add protein and cook until almost done",
-        "Remove protein and set aside",
-        "Add vegetables in order of cooking time needed",
-        "Return protein to the pan",
-        "Add sauce and toss everything together",
-        "Serve immediately over rice or noodles"
-      ];
-    } else {
-      // Generic cooking instructions
-      return [
-        "Gather and prepare all ingredients",
-        "Preheat cooking equipment as needed",
-        "Follow proper food safety guidelines",
-        "Cook ingredients according to recipe requirements",
-        "Season and adjust flavors to taste",
-        "Plate attractively and serve"
-      ];
-    }
+    // Return instructions as-is without validation/filtering
+    return recipe.instructions || [];
   };
 
   const instructions = getInstructions(recipe);
@@ -264,19 +232,36 @@ export default function RecipeDetailsScreen() {
         if (parsed && parsed.name && parsed.name.trim()) {
           // If we successfully parsed the ingredient
           displayName = parsed.name;
-          if (parsed.quantity && parsed.unit) {
-            displayQuantity = `${parsed.quantity} ${parsed.unit}`;
+          if (parsed.quantity && parsed.unit && parsed.unit !== 'piece') {
+            // Use proper fraction formatting
+            const formattedQuantity = formatIngredientQuantity(parsed.quantity, parsed.unit);
+            displayQuantity = formattedQuantity ? `${formattedQuantity} ${parsed.unit}` : `${parsed.quantity} ${parsed.unit}`;
+          } else if (parsed.quantity && parsed.unit === 'piece') {
+            // Use proper fraction formatting for piece quantities
+            displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
           } else if (parsed.quantity) {
-            displayQuantity = `${parsed.quantity}`;
+            // Use proper fraction formatting for quantity only
+            displayQuantity = formatIngredientQuantity(parsed.quantity, '') || `${parsed.quantity}`;
           }
         } else {
-          // If parsing failed, use the original string
-          displayName = cleanedIngredient;
+          // If parsing failed, try a simple split approach
+          // Check for patterns like "ingredient name (quantity)"
+          const parenMatch = cleanedIngredient.match(/^(.+?)\s*\(([^)]+)\)\s*$/);
+          if (parenMatch) {
+            displayName = parenMatch[1].trim();
+            displayQuantity = parenMatch[2].trim();
+          } else {
+            // Use the original string as the name
+            displayName = cleanedIngredient;
+          }
         }
+        
+        // Final cleanup - ensure name doesn't have leading/trailing special chars
+        displayName = displayName.replace(/^[-,\s]+|[-,\s]+$/g, '').trim();
         
         return {
           id: `${Date.now()}_${index}_${Math.random().toString(36).substr(2, 9)}`,
-          name: displayName,
+          name: displayName || cleanedIngredient, // Fallback to original if name is empty
           quantity: displayQuantity || undefined,
           checked: false,
           addedAt: new Date(),
@@ -503,27 +488,30 @@ export default function RecipeDetailsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View testID="recipe-details-container" style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View testID="recipe-details-header" style={styles.header}>
         <TouchableOpacity 
+          testID="back-button"
           style={styles.backButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#333" />
+          <Ionicons name="arrow-back" size={24} color="#333" accessibilityLabel="Go back" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Recipe Details</Text>
-        <View style={styles.headerActions}>
+        <Text testID="header-title" style={styles.headerTitle}>Recipe Details</Text>
+        <View testID="header-actions" style={styles.headerActions}>
           <TouchableOpacity 
+            testID="close-button"
             style={styles.closeButton}
             onPress={() => {
               // Navigate back to main screen or close modal
               router.replace('/(tabs)');
             }}
           >
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="close" size={24} color="#333" accessibilityLabel="Close recipe details" />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="thumbs-up-button"
             style={[styles.ratingButton, rating === 'thumbs_up' && styles.ratingButtonActive]} 
             onPress={() => handleRating('thumbs_up')}
             disabled={isSaving}
@@ -532,9 +520,11 @@ export default function RecipeDetailsScreen() {
               name="thumbs-up" 
               size={20} 
               color={rating === 'thumbs_up' ? "#297A56" : "#666"} 
+              accessibilityLabel="Rate recipe positively"
             />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="thumbs-down-button"
             style={[styles.ratingButton, rating === 'thumbs_down' && styles.ratingButtonActive]} 
             onPress={() => handleRating('thumbs_down')}
             disabled={isSaving}
@@ -543,9 +533,11 @@ export default function RecipeDetailsScreen() {
               name="thumbs-down" 
               size={20} 
               color={rating === 'thumbs_down' ? "#DC2626" : "#666"} 
+              accessibilityLabel="Rate recipe negatively"
             />
           </TouchableOpacity>
           <TouchableOpacity 
+            testID="favorite-button"
             style={styles.favoriteButton} 
             onPress={handleToggleFavorite}
             disabled={isSaving}
@@ -554,32 +546,35 @@ export default function RecipeDetailsScreen() {
               name={isFavorite ? "bookmark" : "bookmark-outline"} 
               size={22} 
               color={isFavorite ? "#297A56" : "#333"} 
+              accessibilityLabel={isFavorite ? "Remove from favorites" : "Add to favorites"}
             />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Recipe Image */}
-        <View style={styles.imageContainer}>
+      <ScrollView testID="recipe-details-scroll" style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Recipe Image - Always show container with placeholder */}
+        <View testID="recipe-image-container" style={styles.imageContainer}>
           {generatedImageUrl && !imageError ? (
             <Image
+              testID="recipe-image"
               source={{ uri: generatedImageUrl }}
               style={styles.recipeImage}
               onError={() => setImageError('Failed to load generated image')}
             />
           ) : (
-            <View style={styles.imagePlaceholder}>
+            <View testID="image-placeholder" style={styles.imagePlaceholder}>
               {imageLoading ? (
                 <>
                   <ActivityIndicator size="large" color="#297A56" />
-                  <Text style={styles.imageLoadingText}>Generating recipe image...</Text>
+                  <Text testID="image-loading-text" style={styles.imageLoadingText}>Loading image...</Text>
                 </>
               ) : imageError ? (
                 <>
-                  <Ionicons name="image-outline" size={64} color="#ccc" />
-                  <Text style={styles.imageErrorText}>Image generation failed</Text>
+                  <Ionicons name="image-outline" size={64} color="#ccc" accessibilityLabel="Image failed to load" />
+                  <Text testID="image-error-text" style={styles.imageErrorText}>Image generation failed</Text>
                   <TouchableOpacity 
+                    testID="retry-image-button"
                     style={styles.retryButton}
                     onPress={() => generateImageForRecipe(recipe.name, useGenerated)}
                   >
@@ -588,8 +583,8 @@ export default function RecipeDetailsScreen() {
                 </>
               ) : (
                 <>
-                  <Ionicons name="image-outline" size={64} color="#ccc" />
-                  <Text style={styles.imageErrorText}>No image available</Text>
+                  <Ionicons name="image-outline" size={64} color="#ccc" accessibilityLabel="No image available" />
+                  <Text testID="no-image-text" style={styles.imageErrorText}>No image available</Text>
                 </>
               )}
             </View>
@@ -597,47 +592,48 @@ export default function RecipeDetailsScreen() {
         </View>
 
         {/* Recipe Info Card */}
-        <View style={styles.recipeCard}>
-          <Text style={styles.recipeTitle}>{recipe.name}</Text>
+        <View testID="recipe-info-card" style={styles.recipeCard}>
+          <Text testID="recipe-title" style={styles.recipeTitle}>{recipe.name}</Text>
           
-          <View style={styles.recipeMetrics}>
-            <View style={styles.metricItem}>
-              <Ionicons name="time" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.time} min</Text>
+          <View testID="recipe-metrics" style={styles.recipeMetrics}>
+            <View testID="time-metric" style={styles.metricItem}>
+              <Ionicons name="time" size={20} color="#666" accessibilityLabel="Cooking time" />
+              <Text testID="time-text" style={styles.metricText}>{recipe.time} min</Text>
             </View>
-            <View style={styles.metricItem}>
-              <Ionicons name="fitness" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.nutrition.calories} cal</Text>
+            <View testID="calories-metric" style={styles.metricItem}>
+              <Ionicons name="fitness" size={20} color="#666" accessibilityLabel="Calories" />
+              <Text testID="calories-text" style={styles.metricText}>{recipe.nutrition.calories} cal</Text>
             </View>
-            <View style={styles.metricItem}>
-              <MaterialIcons name="fitness-center" size={20} color="#666" />
-              <Text style={styles.metricText}>{recipe.nutrition.protein}g protein</Text>
+            <View testID="protein-metric" style={styles.metricItem}>
+              <MaterialIcons name="fitness-center" size={20} color="#666" accessibilityLabel="Protein content" />
+              <Text testID="protein-text" style={styles.metricText}>{recipe.nutrition.protein}g protein</Text>
             </View>
-            <View style={styles.metricItem}>
-              <Ionicons name="checkmark-circle" size={20} color="#297A56" />
-              <Text style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
+            <View testID="match-metric" style={styles.metricItem}>
+              <Ionicons name="checkmark-circle" size={20} color="#297A56" accessibilityLabel="Recipe match score" />
+              <Text testID="match-text" style={styles.metricText}>{Math.round(recipe.match_score * 100)}% match</Text>
             </View>
           </View>
 
           {/* Ingredients Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ingredients</Text>
+          <View testID="ingredients-section" style={styles.section}>
+            <Text testID="ingredients-title" style={styles.sectionTitle}>Ingredients</Text>
             
             {/* Complete ingredients list */}
-            <View style={styles.ingredientGroup}>
-              <Text style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
+            <View testID="ingredients-list" style={styles.ingredientGroup}>
+              <Text testID="ingredients-list-title" style={styles.ingredientGroupTitle}>📝 Complete ingredient list:</Text>
               {recipe.ingredients.map((ingredient, index) => {
                 // Simply check if this exact ingredient string is in the available list
                 // The backend already does the smart matching
                 const isAvailable = recipe.available_ingredients.includes(ingredient);
                 return (
-                  <View key={index} style={styles.ingredientItem}>
+                  <View key={index} testID={`ingredient-item-${index}`} style={styles.ingredientItem}>
                     <Ionicons 
                       name={isAvailable ? "checkmark-circle" : "add-circle-outline"} 
                       size={16} 
                       color={isAvailable ? "#297A56" : "#DC2626"} 
+                      accessibilityLabel={isAvailable ? "Ingredient available" : "Ingredient missing"}
                     />
-                    <Text style={isAvailable ? styles.availableIngredient : styles.missingIngredient}>
+                    <Text testID={`ingredient-text-${index}`} style={isAvailable ? styles.availableIngredient : styles.missingIngredient}>
                       {ingredient}
                     </Text>
                   </View>
@@ -647,13 +643,13 @@ export default function RecipeDetailsScreen() {
             
             {/* Summary of what's missing */}
             {recipe.missing_ingredients.length > 0 && (
-              <View style={[styles.ingredientGroup, styles.missingSummary]}>
-                <Text style={styles.ingredientGroupTitle}>
+              <View testID="missing-ingredients-summary" style={[styles.ingredientGroup, styles.missingSummary]}>
+                <Text testID="missing-ingredients-title" style={styles.ingredientGroupTitle}>
                   🛒 Shopping list ({recipe.missing_ingredients.length} items):
                 </Text>
                 {recipe.missing_ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.ingredientItem}>
-                    <Text style={styles.missingIngredient}>• {ingredient}</Text>
+                  <View key={index} testID={`missing-ingredient-item-${index}`} style={styles.ingredientItem}>
+                    <Text testID={`missing-ingredient-text-${index}`} style={styles.missingIngredient}>• {ingredient}</Text>
                   </View>
                 ))}
               </View>
@@ -661,16 +657,20 @@ export default function RecipeDetailsScreen() {
           </View>
 
           {/* Instructions Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Instructions</Text>
-            {instructions.map((instruction, index) => (
-              <View key={index} style={styles.instructionItem}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>{index + 1}</Text>
+          <View testID="instructions-section" style={styles.section}>
+            <Text testID="instructions-title" style={styles.sectionTitle}>Instructions</Text>
+            {instructions.length > 0 ? (
+              instructions.map((instruction, index) => (
+                <View key={index} testID={`instruction-item-${index + 1}`} style={styles.instructionItem}>
+                  <View style={styles.stepNumber} testID={`step-number-${index + 1}`}>
+                    <Text testID={`step-number-text-${index + 1}`} style={styles.stepNumberText}>{index + 1}</Text>
+                  </View>
+                  <Text testID={`instruction-text-${index + 1}`} style={styles.instructionText}>{instruction}</Text>
                 </View>
-                <Text style={styles.instructionText}>{instruction}</Text>
-              </View>
-            ))}
+              ))
+            ) : (
+              <Text testID="no-instructions-text" style={styles.noInstructionsText}>No instructions available for this recipe.</Text>
+            )}
           </View>
 
           {/* Action Buttons */}
@@ -746,10 +746,11 @@ export default function RecipeDetailsScreen() {
               
               {/* Cook Without Tracking Option */}
               <TouchableOpacity 
+                testID="cook-without-tracking-alt-button"
                 style={styles.cookWithoutTrackingButtonAlt}
                 onPress={() => navigateToCookingMode()}
               >
-                <Ionicons name="restaurant-outline" size={20} color="#297A56" />
+                <Ionicons name="restaurant-outline" size={20} color="#297A56" accessibilityLabel="Cook without tracking ingredients" />
                 <Text style={styles.cookWithoutTrackingTextAlt}>Cook Without Tracking</Text>
               </TouchableOpacity>
             </View>
@@ -759,6 +760,7 @@ export default function RecipeDetailsScreen() {
 
       {/* Recipe Completion Modal */}
       <RecipeCompletionModal
+        testID="recipe-completion-modal"
         visible={showCompletionModal}
         onClose={() => setShowCompletionModal(false)}
         onConfirm={handleRecipeCompletionConfirm}
@@ -970,6 +972,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#333',
     lineHeight: 24,
+  },
+  noInstructionsText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 20,
+    fontStyle: 'italic',
   },
   actionButtons: {
     flexDirection: 'row',

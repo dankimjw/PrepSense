@@ -80,14 +80,25 @@ class EnvironmentValidator {
   }
 
   private async checkAPIUrl(): Promise<ValidationResult> {
-    const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+    const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8001/api/v1';
     
-    if (!apiUrl) {
+    if (!process.env.EXPO_PUBLIC_API_BASE_URL) {
+      console.warn('⚠️  EXPO_PUBLIC_API_BASE_URL not set!');
+      console.warn('Using fallback URL:', apiUrl);
+      console.warn('To fix: Stop the app and run: python run_app.py');
+      
       return {
         isValid: false,
-        message: 'EXPO_PUBLIC_API_BASE_URL not set. Using default from config.ts',
-        status: 'WARNING',
+        message: 'EXPO_PUBLIC_API_BASE_URL not set. App may not connect properly!',
+        status: 'ERROR',
       };
+    }
+
+    // Detect hardcoded or outdated IPs
+    const ipMatch = apiUrl.match(/(\d+\.\d+\.\d+\.\d+)/);
+    if (ipMatch && ipMatch[1] !== '127.0.0.1') {
+      console.warn(`⚠️  Detected IP address: ${ipMatch[1]}`);
+      console.warn('This IP may be outdated if your network has changed.');
     }
 
     // Try to validate the URL format
@@ -196,7 +207,7 @@ class EnvironmentValidator {
     try {
       // We'll check this by attempting a simple chat message
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // Increased from 5s to 20s for AI processing
       
       const response = await fetch(`${apiUrl}/chat/message`, {
         method: 'POST',
@@ -236,9 +247,18 @@ class EnvironmentValidator {
         status: 'WARNING',
       };
     } catch (error) {
+      // Check if this was a timeout error
+      if (error?.name === 'AbortError') {
+        return {
+          isValid: false,
+          message: 'Cannot verify - Chat request timed out (AI processing takes time)',
+          status: 'WARNING',
+        };
+      }
+      
       return {
         isValid: false,
-        message: 'Cannot verify - Backend not reachable',
+        message: 'Cannot verify - Network error or backend unreachable',
         status: 'WARNING',
       };
     }

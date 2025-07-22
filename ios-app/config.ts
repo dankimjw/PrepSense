@@ -11,12 +11,12 @@ const IS_DEVELOPMENT = __DEV__;
 const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 // Development API (your local machine running the backend)
-// `run_ios.py` attempts to detect your computer's IP and sets
-// EXPO_PUBLIC_API_BASE_URL automatically. If that fails,
-// replace '127.0.0.1' with your actual IP address.
-// '127.0.0.1' works if the app is running in a web browser on the SAME machine as the backend.
+// `run_app.py` automatically detects your computer's IP and sets
+// EXPO_PUBLIC_API_BASE_URL when starting the app.
+// IMPORTANT: Never hardcode IP addresses as they change with network changes!
+// If ENV_API_URL is not set, we'll use localhost as a fallback and show a warning.
 const DEV_API_CONFIG = {
-  baseURL: ENV_API_URL || 'http://192.168.1.196:8000/api/v1', // Using detected IP for the backend service
+  baseURL: ENV_API_URL || 'http://127.0.0.1:8001/api/v1', // Fallback to localhost:8001
   timeout: 10000, // API request timeout in milliseconds (e.g., 10 seconds)
 };
 
