@@ -4,8 +4,10 @@ import logging
 import base64
 import re
 from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends, Request, status
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from pydantic import BaseModel, Field, validator
 import openai
 import os
 from datetime import datetime
@@ -23,6 +25,41 @@ router = APIRouter(
 )
 
 
+@router.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Custom handler for validation errors to provide better error messages"""
+    errors = exc.errors()
+    logger.error(f"Validation error for OCR request: {errors}")
+    
+    # Check for specific field errors
+    for error in errors:
+        if error.get('loc') and 'image_base64' in error.get('loc', []):
+            if 'ensure this value has at most' in str(error.get('msg', '')):
+                return JSONResponse(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    content={
+                        "detail": "Image too large. Please use a smaller image (max ~7MB after base64 encoding).",
+                        "error": "image_size_exceeded"
+                    }
+                )
+            elif 'field required' in str(error.get('msg', '')):
+                return JSONResponse(
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    content={
+                        "detail": "Missing image_base64 field in request.",
+                        "error": "missing_image"
+                    }
+                )
+    
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={
+            "detail": str(exc),
+            "errors": errors
+        }
+    )
+
+
 class OCRRequest(BaseModel):
     """Request model for OCR processing"""
     image_base64: str
@@ -31,9 +68,24 @@ class OCRRequest(BaseModel):
 
 class ScanItemRequest(BaseModel):
     """Request model for scanning individual items"""
-    image_base64: str
+    image_base64: str = Field(..., max_length=10_000_000)  # ~7.5MB limit for base64
     user_id: int = 111  # Default demo user
     scan_type: str = "pantry_item"  # Can be "pantry_item", "barcode", etc.
+    
+    @validator('image_base64')
+    def validate_base64(cls, v):
+        if not v:
+            raise ValueError("image_base64 cannot be empty")
+        # Remove data URI prefix if present
+        if v.startswith('data:'):
+            v = v.split(',', 1)[-1]
+        # Basic base64 validation
+        try:
+            # Test if it's valid base64 by attempting to decode a small portion
+            base64.b64decode(v[:100] + '==', validate=True)
+        except Exception:
+            raise ValueError("Invalid base64 string")
+        return v
 
 
 class ParsedItem(BaseModel):
@@ -74,10 +126,30 @@ async def scan_receipt(
     try:
         # Check if OpenAI API key is configured
         openai_api_key = os.getenv("OPENAI_API_KEY")
+        
+        # If not in env, try to load from file
+        if not openai_api_key:
+            key_file = os.getenv("OPENAI_API_KEY_FILE", "config/openai_key.txt")
+            try:
+                with open(key_file, 'r') as f:
+                    openai_api_key = f.read().strip()
+            except Exception as e:
+                logger.error(f"Failed to read OpenAI API key from {key_file}: {str(e)}")
+        
+        # Also check config/openai.json
+        if not openai_api_key or openai_api_key == "Please add your OpenAI API key to this file":
+            try:
+                import json
+                with open('config/openai.json', 'r') as f:
+                    config = json.load(f)
+                    openai_api_key = config.get('openai_key', '')
+            except Exception as e:
+                logger.error(f"Failed to read OpenAI API key from config/openai.json: {str(e)}")
+        
         if not openai_api_key:
             raise HTTPException(
                 status_code=500,
-                detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+                detail="OpenAI API key not configured. Please add your API key to config/openai_key.txt or config/openai.json"
             )
         
         # Initialize OpenAI client
@@ -319,12 +391,34 @@ async def scan_items(
     Scan individual pantry items using barcode or product image recognition
     """
     try:
+        # Log request details
+        logger.info(f"Received scan-items request: user_id={request.user_id}, scan_type={request.scan_type}, image_size={len(request.image_base64)}")
         # Check if OpenAI API key is configured
         openai_api_key = os.getenv("OPENAI_API_KEY")
+        
+        # If not in env, try to load from file
+        if not openai_api_key:
+            key_file = os.getenv("OPENAI_API_KEY_FILE", "config/openai_key.txt")
+            try:
+                with open(key_file, 'r') as f:
+                    openai_api_key = f.read().strip()
+            except Exception as e:
+                logger.error(f"Failed to read OpenAI API key from {key_file}: {str(e)}")
+        
+        # Also check config/openai.json
+        if not openai_api_key or openai_api_key == "Please add your OpenAI API key to this file":
+            try:
+                import json
+                with open('config/openai.json', 'r') as f:
+                    config = json.load(f)
+                    openai_api_key = config.get('openai_key', '')
+            except Exception as e:
+                logger.error(f"Failed to read OpenAI API key from config/openai.json: {str(e)}")
+        
         if not openai_api_key:
             raise HTTPException(
                 status_code=500,
-                detail="OpenAI API key not configured. Please set OPENAI_API_KEY environment variable."
+                detail="OpenAI API key not configured. Please add your API key to config/openai_key.txt or config/openai.json"
             )
         
         # Initialize OpenAI client

@@ -47,14 +47,14 @@ export default function ScanItemsScreen() {
       result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.5,  // Reduced from 0.8 to prevent large base64 strings
         base64: true,
       });
     } else {
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        quality: 0.8,
+        quality: 0.5,  // Reduced from 0.8 to prevent large base64 strings
         base64: true,
       });
     }
@@ -85,7 +85,21 @@ export default function ScanItemsScreen() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to scan item');
+        const errorData = await response.json().catch(() => ({}));
+        
+        // Handle specific error cases
+        if (response.status === 422) {
+          if (errorData.error === 'image_size_exceeded') {
+            throw new Error('Image is too large. Please try with a smaller image.');
+          } else if (errorData.error === 'missing_image') {
+            throw new Error('Image data is missing. Please try again.');
+          }
+          throw new Error(errorData.detail || 'Invalid image format. Please try again.');
+        } else if (response.status === 500 && errorData.detail?.includes('OpenAI API key')) {
+          throw new Error('OCR service is not configured. Please contact support.');
+        }
+        
+        throw new Error(errorData.detail || 'Failed to scan item');
       }
 
       const data = await response.json();
@@ -125,9 +139,11 @@ export default function ScanItemsScreen() {
       }
     } catch (error) {
       console.error('Error scanning item:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to scan item';
+      
       Alert.alert(
         'Scan Failed',
-        'Failed to scan item. Please try again with a clearer image.',
+        errorMessage,
         [{ text: 'OK' }]
       );
     } finally {
