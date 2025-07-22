@@ -66,6 +66,9 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
   MaterialIcons: 'MaterialIcons',
   MaterialCommunityIcons: 'MaterialCommunityIcons',
+  Feather: 'Feather',
+  FontAwesome: 'FontAwesome',
+  AntDesign: 'AntDesign',
 }));
 
 // Config is mocked via __mocks__/config.js
@@ -108,6 +111,9 @@ global.AbortController = class AbortController {
     this.signal.aborted = true;
   }
 };
+
+// Mock Alert globally 
+global.Alert = { alert: jest.fn() };
 
 // Global test utilities
 global.fetch = jest.fn();
