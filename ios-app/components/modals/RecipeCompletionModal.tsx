@@ -11,7 +11,7 @@ import {
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import Slider from '@react-native-community/slider';
+// Slider removed - using quick amount buttons instead
 import { RecipeIngredient, PantryItem } from '../../services/api';
 import { parseIngredientsList } from '../../utils/ingredientParser';
 import { formatQuantity } from '../../utils/numberFormatting';
@@ -89,15 +89,12 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             const itemId = item.id || item.pantry_item_id;
             // Convert both to strings for comparison to handle type mismatches
             return backendMatches.some(match => 
-              String(match.pantry_item_id) === String(itemId)
+              String(match.pantry_item_id) === String(itemId) ||
+              Number(match.pantry_item_id) === Number(itemId)
             );
           });
           
-          // Debug logging
-          console.log(`Ingredient: ${ingredient}`);
-          console.log(`Backend matches:`, backendMatches);
-          console.log(`Pantry items:`, pantryItems.slice(0, 3)); // Log first 3 items to see structure
-          console.log(`Found pantry items:`, matchingItems);
+          // Debug logging removed for cleaner test output
         } else {
           // Fallback to local matching
           matchingItems = pantryItems.filter(item => {
@@ -301,30 +298,104 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
               })}
             </View>
 
-            <View style={styles.sliderContainer}>
-              <Text style={styles.sliderLabel}>
+            <View style={styles.amountSelector}>
+              <Text style={styles.amountLabel}>
                 Use: {formatQuantity(usage.selectedAmount)} {usage.requestedUnit} 
                 ({Math.round(usagePercentage)}% of recipe requirement)
               </Text>
               
-              <Slider
-                style={styles.slider}
-                minimumValue={0}
-                maximumValue={usage.maxPossible}
-                value={usage.selectedAmount}
-                onValueChange={(value) => updateIngredientAmount(index, value)}
-                minimumTrackTintColor={isFullyUsed ? '#10B981' : '#F59E0B'}
-                maximumTrackTintColor="#E5E7EB"
-                thumbStyle={styles.sliderThumb}
-                trackStyle={styles.sliderTrack}
-                step={usage.requestedQuantity > 10 ? 1 : 0.1}
-              />
+              {/* Quick amount buttons */}
+              <View style={styles.quickAmounts}>
+                <TouchableOpacity 
+                  testID={`use-none-${index}`}
+                  onPress={() => updateIngredientAmount(index, 0)}
+                  style={[
+                    styles.amountButton, 
+                    usage.selectedAmount === 0 && styles.amountButtonSelected
+                  ]}
+                >
+                  <Text style={[
+                    styles.amountButtonText,
+                    usage.selectedAmount === 0 && styles.amountButtonTextSelected
+                  ]}>None</Text>
+                  <Text style={[
+                    styles.amountButtonSubtext,
+                    usage.selectedAmount === 0 && styles.amountButtonTextSelected
+                  ]}>0 {usage.requestedUnit}</Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  testID={`use-half-${index}`}
+                  onPress={() => updateIngredientAmount(index, Math.min(usage.requestedQuantity * 0.5, usage.maxPossible))}
+                  style={[
+                    styles.amountButton,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.5)) < 0.01 && styles.amountButtonSelected
+                  ]}
+                >
+                  <Text style={[
+                    styles.amountButtonText,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.5)) < 0.01 && styles.amountButtonTextSelected
+                  ]}>Half</Text>
+                  <Text style={[
+                    styles.amountButtonSubtext,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.5)) < 0.01 && styles.amountButtonTextSelected
+                  ]}>
+                    {formatQuantity(Math.min(usage.requestedQuantity * 0.5, usage.maxPossible))} {usage.requestedUnit}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  testID={`use-most-${index}`}
+                  onPress={() => updateIngredientAmount(index, Math.min(usage.requestedQuantity * 0.75, usage.maxPossible))}
+                  style={[
+                    styles.amountButton,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.75)) < 0.01 && styles.amountButtonSelected
+                  ]}
+                >
+                  <Text style={[
+                    styles.amountButtonText,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.75)) < 0.01 && styles.amountButtonTextSelected
+                  ]}>Most</Text>
+                  <Text style={[
+                    styles.amountButtonSubtext,
+                    Math.abs(usage.selectedAmount - (usage.requestedQuantity * 0.75)) < 0.01 && styles.amountButtonTextSelected
+                  ]}>
+                    {formatQuantity(Math.min(usage.requestedQuantity * 0.75, usage.maxPossible))} {usage.requestedUnit}
+                  </Text>
+                </TouchableOpacity>
+                
+                <TouchableOpacity 
+                  testID={`use-all-${index}`}
+                  onPress={() => updateIngredientAmount(index, usage.maxPossible)}
+                  style={[
+                    styles.amountButton,
+                    usage.selectedAmount === usage.maxPossible && styles.amountButtonSelected
+                  ]}
+                >
+                  <Text style={[
+                    styles.amountButtonText,
+                    usage.selectedAmount === usage.maxPossible && styles.amountButtonTextSelected
+                  ]}>All</Text>
+                  <Text style={[
+                    styles.amountButtonSubtext,
+                    usage.selectedAmount === usage.maxPossible && styles.amountButtonTextSelected
+                  ]}>
+                    {formatQuantity(usage.maxPossible)} {usage.requestedUnit}
+                  </Text>
+                </TouchableOpacity>
+              </View>
               
-              <View style={styles.sliderLabels}>
-                <Text style={styles.sliderLabelText}>0</Text>
-                <Text style={styles.sliderLabelText}>
-                  Max: {formatQuantity(usage.maxPossible)}
-                </Text>
+              {/* Visual progress bar (non-interactive) */}
+              <View style={styles.progressBar}>
+                <View 
+                  style={[
+                    styles.progressFill, 
+                    { 
+                      width: `${usage.maxPossible > 0 ? (usage.selectedAmount / usage.maxPossible) * 100 : 0}%`,
+                      backgroundColor: isFullyUsed ? '#10B981' : '#F59E0B'
+                    }
+                  ]}
+                />
               </View>
             </View>
 
@@ -342,7 +413,17 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             <Text style={styles.unavailableText}>
               Not available in your pantry
             </Text>
-            <TouchableOpacity style={styles.addToShoppingButton}>
+            <TouchableOpacity 
+              style={styles.addToShoppingButton}
+              onPress={() => {
+                // TODO: Implement actual shopping list integration
+                Alert.alert(
+                  'Add to Shopping List',
+                  `Would add ${usage.requestedQuantity} ${usage.requestedUnit} of ${usage.ingredientName} to shopping list`,
+                  [{ text: 'OK' }]
+                );
+              }}
+            >
               <Ionicons name="add-circle-outline" size={16} color="#6B7280" />
               <Text style={styles.addToShoppingText}>Add to shopping list</Text>
             </TouchableOpacity>
@@ -577,36 +658,57 @@ const styles = StyleSheet.create({
     marginLeft: 8,
     marginBottom: 2,
   },
-  sliderContainer: {
+  amountSelector: {
     marginBottom: 12,
   },
-  sliderLabel: {
+  amountLabel: {
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 8,
+    marginBottom: 12,
   },
-  slider: {
-    width: '100%',
-    height: 40,
-  },
-  sliderThumb: {
-    backgroundColor: '#6366F1',
-    width: 20,
-    height: 20,
-  },
-  sliderTrack: {
-    height: 4,
-    borderRadius: 2,
-  },
-  sliderLabels: {
+  quickAmounts: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: -8,
+    marginBottom: 12,
+    gap: 8,
   },
-  sliderLabelText: {
-    fontSize: 12,
-    color: '#9CA3AF',
+  amountButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    backgroundColor: '#F9FAFB',
+    alignItems: 'center',
+  },
+  amountButtonSelected: {
+    backgroundColor: '#6366F1',
+    borderColor: '#6366F1',
+  },
+  amountButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    marginBottom: 2,
+  },
+  amountButtonTextSelected: {
+    color: '#fff',
+  },
+  amountButtonSubtext: {
+    fontSize: 11,
+    color: '#6B7280',
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
   },
   shortfallWarning: {
     flexDirection: 'row',
