@@ -45,14 +45,14 @@ export default function ScanItemsScreen() {
     
     if (source === 'camera') {
       result = await ImagePicker.launchCameraAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: [ImagePicker.MediaType.Images],
         allowsEditing: true,
         quality: 0.8,
         base64: true,
       });
     } else {
       result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: [ImagePicker.MediaType.Images],
         allowsEditing: true,
         quality: 0.8,
         base64: true,
@@ -161,7 +161,7 @@ export default function ScanItemsScreen() {
               colors={['#297A56', '#1F5A40']}
               style={styles.iconContainer}
             >
-              <MaterialIcons name="barcode-scanner" size={80} color="#fff" />
+              <MaterialIcons name="qr-code-scanner" size={80} color="#fff" />
             </LinearGradient>
             
             <Text style={styles.title}>Scan Your Items</Text>

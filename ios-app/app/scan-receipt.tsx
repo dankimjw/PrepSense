@@ -29,7 +29,7 @@ export default function ScanReceiptScreen() {
           quality: 1,
         })
       : ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images,
+          mediaTypes: [ImagePicker.MediaType.Images],
           allowsEditing: true,
           quality: 1,
         }));
