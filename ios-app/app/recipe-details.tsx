@@ -27,7 +27,7 @@ export default function RecipeDetailsScreen() {
   const router = useRouter();
   const { token, isAuthenticated } = useAuth();
   const [recipe, setRecipe] = useState<Recipe | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
+  const [imageLoading, setImageLoading] = useState(false); // Don't block initial render
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
   const [useGenerated, setUseGenerated] = useState(true); // Default to AI generated images
@@ -45,12 +45,12 @@ export default function RecipeDetailsScreen() {
         const recipeData = JSON.parse(params.recipe as string);
         setRecipe(recipeData);
         
-        // Check if recipe has a Spoonacular image
+        // Load image asynchronously without blocking
         if (recipeData.image) {
           setGeneratedImageUrl(recipeData.image);
-          setImageLoading(false);
         } else {
-          // Only generate image if no Spoonacular image is available
+          // Start loading image in background
+          setImageLoading(true);
           generateImageForRecipe(recipeData.name, useGenerated);
         }
       } catch (error) {
@@ -61,14 +61,35 @@ export default function RecipeDetailsScreen() {
 
   const generateImageForRecipe = async (recipeName: string, useAI: boolean = false) => {
     try {
-      setImageLoading(true);
       setImageError(null);
       
+      // Check cache first
+      const cacheKey = `recipe_image_${recipeName}_${useAI}`;
+      const cachedData = await AsyncStorage.getItem(cacheKey);
+      
+      if (cachedData) {
+        const { url, timestamp } = JSON.parse(cachedData);
+        // Use cached image if less than 7 days old
+        if (Date.now() - timestamp < 7 * 24 * 60 * 60 * 1000) {
+          setGeneratedImageUrl(url);
+          setImageLoading(false);
+          return;
+        }
+      }
+      
+      // Generate new image
       const imageResponse = await generateRecipeImage(
         recipeName, 
         "professional food photography, beautifully plated, appetizing",
         useAI
       );
+      
+      // Cache the result
+      await AsyncStorage.setItem(cacheKey, JSON.stringify({
+        url: imageResponse.image_url,
+        timestamp: Date.now()
+      }));
+      
       setGeneratedImageUrl(imageResponse.image_url);
     } catch (error) {
       console.error('Error generating recipe image:', error);
@@ -532,7 +553,7 @@ export default function RecipeDetailsScreen() {
       </View>
 
       <ScrollView testID="recipe-details-scroll" style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Recipe Image */}
+        {/* Recipe Image - Always show container with placeholder */}
         <View testID="recipe-image-container" style={styles.imageContainer}>
           {generatedImageUrl && !imageError ? (
             <Image
@@ -546,7 +567,7 @@ export default function RecipeDetailsScreen() {
               {imageLoading ? (
                 <>
                   <ActivityIndicator size="large" color="#297A56" />
-                  <Text testID="image-loading-text" style={styles.imageLoadingText}>Generating recipe image...</Text>
+                  <Text testID="image-loading-text" style={styles.imageLoadingText}>Loading image...</Text>
                 </>
               ) : imageError ? (
                 <>
