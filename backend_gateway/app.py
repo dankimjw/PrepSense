@@ -18,7 +18,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 # Import routers
-from backend_gateway.routers.images_router import router as images_router
+from backend_gateway.routers import images_router, ocr_router, health_router
 from backend_gateway.routers.users import router as users_router
 from backend_gateway.services.user_service import UserService
 from backend_gateway.core.config import settings
@@ -38,7 +38,6 @@ except Exception as e:
     # raise RuntimeError(f"Error loading environment variables: {str(e)}")
 
 # Set OpenAI API key
-openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai  #  use the openai module directly
 
 app = FastAPI(
@@ -57,6 +56,8 @@ app.add_middleware(
 )
 
 # Include routers
+# Health endpoint without prefix for readiness probes
+app.include_router(health_router)
 app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"])
 app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["Pantry Image Processing"])
 # BigQuery router removed - using PostgreSQL instead
@@ -98,6 +99,10 @@ app.include_router(cooking_history_router, prefix=f"{settings.API_V1_STR}", tags
 from backend_gateway.routers.units_router import router as units_router
 app.include_router(units_router, prefix=f"{settings.API_V1_STR}", tags=["Units"])
 
+# Import OCR router
+from backend_gateway.routers.ocr_router import router as ocr_router
+app.include_router(ocr_router, prefix=f"{settings.API_V1_STR}", tags=["OCR"])
+
 # Import stats router
 from backend_gateway.routers.stats_router import router as stats_router
 app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["Statistics"])
@@ -133,7 +138,7 @@ async def startup_event():
 async def health_check():
     """Perform a health check and return environment status."""
     from backend_gateway.core.config_utils import get_openai_api_key
-    
+
     health_status = {
         "status": "healthy",
         "environment": {
@@ -146,7 +151,7 @@ async def health_check():
         },
         "errors": []
     }
-    
+
     # Check OpenAI API key
     try:
         api_key = get_openai_api_key()
@@ -155,7 +160,7 @@ async def health_check():
     except Exception as e:
         health_status["status"] = "unhealthy"
         health_status["errors"].append(f"OpenAI: {str(e)}")
-    
+
     # Check Spoonacular API key
     try:
         if settings.SPOONACULAR_API_KEY:
@@ -163,13 +168,13 @@ async def health_check():
     except Exception as e:
         health_status["status"] = "unhealthy"
         health_status["errors"].append(f"Spoonacular: {str(e)}")
-    
+
     # Check database configuration
     try:
         if all([settings.POSTGRES_HOST, settings.POSTGRES_DATABASE, 
                 settings.POSTGRES_USER, settings.POSTGRES_PASSWORD]):
             health_status["environment"]["database_configured"] = True
-            
+
             # Try to connect to database
             try:
                 from backend_gateway.services.postgres_service import PostgresService
@@ -190,12 +195,12 @@ async def health_check():
     except Exception as e:
         health_status["status"] = "unhealthy"
         health_status["errors"].append(f"Database config: {str(e)}")
-    
+
     # Check if Google Cloud credentials file exists
     gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if gcp_path:
         health_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
-    
+
     return health_status
 
 # To run (from the directory containing the PrepSense folder, or if PrepSense is the root):

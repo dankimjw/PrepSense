@@ -1,58 +1,5 @@
 # Development Assistant Guidelines
 
-## 🚨 IMPORTANT: Multi-Instance Collaboration - START HERE! 🚨
-
-**EVERY Claude instance MUST do this at startup and after any git operation:**
-```bash
-# Read all instance notes to sync knowledge
-cat WORKTREE_NOTES_*.md
-```
-
-**Your role is determined by your worktree:**
-- `/PrepSense` → MAIN instance → Write to `WORKTREE_NOTES_MAIN.md`
-- `/PrepSense-worktrees/bugfix` → BUGFIX instance → Write to `WORKTREE_NOTES_BUGFIX.md`
-- `/PrepSense-worktrees/testzone` → TESTZONE instance → Write to `WORKTREE_NOTES_TESTZONE.md`
-
-**Collaboration triggers - Read notes when:**
-1. Starting any new task
-2. After any `git pull`, `git checkout`, or `git commit`
-3. Before making any significant changes
-4. If you see `.claude_collaboration_reminder` file
-
-**Quick reference:**
-- Read all notes: `cat WORKTREE_NOTES_*.md`
-- Check status: `./check_collaboration_status.sh`
-- See guide: `cat CLAUDE_COLLABORATION_GUIDE.md`
-
-## 🔧 CRITICAL: Worktree & Symlink Setup
-
-**CLAUDE.md is shared via symlinks** - Changes in any worktree update all instances immediately!
-
-### Key Facts:
-- **Main directory** (`/PrepSense`): Contains actual CLAUDE.md file (tracked by git)
-- **Worktrees** (`/PrepSense-worktrees/*`): Have symlinks pointing to main CLAUDE.md
-- **WORKTREE_NOTES_*.md**: Actual files in main dir, symlinked from worktrees (NOT tracked by git)
-- Each worktree needs its own Python venv and node_modules
-- All worktrees share: Git history, GCP database, CLAUDE.md, and WORKTREE_NOTES files
-
-### Quick Setup:
-```bash
-# List worktrees
-git worktree list
-
-# Create worktree (if needed)
-git worktree add ../PrepSense-worktrees/newbranch -b branch-name
-
-# Initialize worktree
-cd ../PrepSense-worktrees/newbranch
-python -m venv venv && source venv/bin/activate
-pip install -r requirements.txt
-cd ios-app && npm install && cd ..
-cp ../../PrepSense/.env .  # Copy env file
-```
-
----
-
 # Project guidelines for Claude Code
 Section 1 must be followed no matter what. 
 ## Section 1: Core principles Must be Followed.
@@ -118,9 +65,10 @@ Section 1 must be followed no matter what.
 
 ## Testing Requirements
 **ALWAYS create comprehensive tests for any external API usage:**
-- Test all API client methods with real or integration test responses
+- Test all API client methods with mocked responses
 - Test all API endpoints/routes that call external services
 - Include tests for error handling, timeouts, and retry logic
+- Create mock fixtures for API responses
 - Test authentication/API key configuration
 - Add integration tests for complex flows
 
@@ -184,7 +132,7 @@ source venv/bin/activate && python run_app.py
 python check_app_health.py
 ```
 
-## Parallel Development with Git Worktrees (Full Details)
+## Parallel Development with Git Worktrees
 
 ### Setup Multiple Worktrees
 For parallel development across multiple Claude instances:
@@ -196,13 +144,13 @@ For parallel development across multiple Claude instances:
 # This creates:
 # ../PrepSense-worktrees/feature     - For new features
 # ../PrepSense-worktrees/bugfix      - For bug fixes  
-# ../PrepSense-worktrees/testzone    - For testing and experiments
+# ../PrepSense-worktrees/experiment  - For experiments
 ```
 
 ### Initialize Each Worktree
 For each worktree, run:
 ```bash
-cd ../PrepSense-worktrees/[feature|bugfix|testzone]
+cd ../PrepSense-worktrees/[feature|bugfix|experiment]
 python -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 cd ios-app && npm install && cd ..
@@ -226,6 +174,12 @@ git worktree remove ../PrepSense-worktrees/[name]
 # Add a new worktree
 git worktree add ../PrepSense-worktrees/newfeature -b new-branch
 ```
+
+### Important Notes
+- Each worktree needs its own Python venv and node_modules
+- All worktrees connect to the same GCP database
+- The .env file must be copied to each worktree
+- Run health checks before switching between worktrees
 
 ## MCP (Model Context Protocol) Servers
 
@@ -277,12 +231,6 @@ Context7 is an MCP server that provides up-to-date documentation for libraries. 
    Example: get-library-docs with context7CompatibleLibraryID="/facebook/react"
    Optional parameters: topic="hooks", tokens=10000
    ```
-
-### Common Libraries
-- React: `/facebook/react`
-- Next.js: `/vercel/next.js`
-- Supabase: `/supabase/supabase`
-- MongoDB: `/mongodb/docs`
 
 ### Best Practices
 - Always resolve library names first unless the user provides an exact library ID
@@ -344,14 +292,13 @@ The project uses Jest with React Native Testing Library for unit and integration
 
 **Configuration:**
 - Jest preset: `jest-expo`
-- Config file: `jest.config.js` - Jest configuration with proper settings
 - Setup file: `jest.setup.js` - Contains mocks for React Native modules
 - Test directory: `__tests__/` with subdirectories for components, screens, utils, and api
 
 **Key Testing Dependencies:**
-- `jest-expo`: Jest preset configured for Expo (handles React Native mocking)
+- `jest-expo`: Jest preset configured for Expo
 - `@testing-library/react-native`: Testing utilities for React Native
-- **Note**: Do NOT use `react-test-renderer` - it's deprecated for React 19+
+- `react-test-renderer`: Required for component rendering in tests
 
 ### Writing Tests
 
@@ -371,37 +318,33 @@ expect(screen.getAllByRole('text')).toHaveLength(steps.length);
 steps.forEach(step => expect(screen.getByText(step)).toBeTruthy());
 ```
 
-#### API Testing
-Use integration test helpers in `__tests__/helpers/testUtils.ts`:
+#### API Mocking
+Use the mock helpers in `__tests__/helpers/apiMocks.ts`:
 ```javascript
-import { setupTestEnvironment } from '@/__tests__/helpers/testUtils';
+import { mockFetch, createMockRecipe } from '@/__tests__/helpers/apiMocks';
 
-// Setup test environment with real API endpoints
-setupTestEnvironment();
+global.fetch = mockFetch({ recipes: [createMockRecipe()] });
 ```
 
 ### Running Tests
 ```bash
-# Run all tests in watch mode (default)
+# Run all tests
 npm test
 
-# Run tests once (CI mode - recommended for development)
-npm run test:ci
+# Run tests in watch mode
+npm run test
 
 # Run specific test file
-npm run test:ci -- __tests__/screens/RecipeTabs.test.tsx
-
-# Run tests matching a pattern
-npm run test:ci -- RecipeLogic
+npm test RecipeCompletionModal.test.tsx
 
 # Generate coverage report
-npm run test:coverage
+npm test -- --coverage
 ```
 
 ### Test Best Practices
 1. **Always test actual behavior, not implementation details**
 2. **Use `testID` props for reliable element selection**
-3. **Use integration tests with real API endpoints when possible**
+3. **Mock external dependencies (APIs, async storage, etc.)**
 4. **Write tests that verify all items in lists are rendered**
 5. **Test both success and error scenarios**
 6. **Use meaningful test descriptions**
@@ -409,17 +352,8 @@ npm run test:coverage
 ### Common Test Patterns
 - **Modal tests**: Check visibility prop changes
 - **List tests**: Verify item count and order
-- **API tests**: Use integration tests with real endpoints
-- **Navigation tests**: Test actual navigation flows
-
-### Current Test Status (as of 2025-01-19)
-- **Total Tests**: 71 (50 passing, 21 failing)
-- **Passing Suites**: simple, recipeLogic, recipeApiIntegration, RecipeSteps
-- **Known Issues**:
-  - ApiClient tests need integration test setup
-  - Some RecipeTabs tests have async timing issues
-  - RecipeCompletionModal has prop validation failures
-- **Note**: Run `npm run test:ci` for one-time test runs to avoid watch mode timeouts
+- **API tests**: Mock responses and test error handling
+- **Navigation tests**: Mock navigation functions
 
 ## Documentation Structure
 
@@ -450,181 +384,4 @@ npm run test:coverage
 - Track test results and known issues
 - Any Claude Code instance can refer to `/docs/` to understand project state
 
-## Claude Multi-Instance Collaboration System
-
-### 🚀 New Instance? Start Here!
-```bash
-cat START_HERE_CLAUDE.md
-```
-
-### Overview
-A system for three Claude instances across git worktrees to collaborate, share knowledge, and verify each other's work.
-
-### How It Works
-1. **Each instance writes to their own notes file**:
-   - Main: `WORKTREE_NOTES_MAIN.md`
-   - Bugfix: `WORKTREE_NOTES_BUGFIX.md`
-   - Testzone: `WORKTREE_NOTES_TESTZONE.md`
-
-2. **All instances read all notes files** via symlinks
-
-3. **Collaboration workflow**:
-   - Start by reading all notes: `cat WORKTREE_NOTES_*.md`
-   - Document findings in your assigned file
-   - Mark items needing verification with ❓
-   - Verify other instances' work and update ✅
-
-### Quick Commands
-```bash
-# Check collaboration status
-./check_collaboration_status.sh
-
-# Read collaboration guide
-cat CLAUDE_COLLABORATION_GUIDE.md
-
-# See recent updates from all instances
-tail -f WORKTREE_NOTES_*.md
-```
-
-### Benefits
-- No redundant work - reuse discoveries
-- Cross-verification reduces errors
-- Faster development through parallel work
-- Better test coverage through validation
-
-Last updated: 2025-01-19
-
----
-
-# CLAUDE.md – Project-wide rules for Claude Code
-This file is automatically loaded by Claude Code.  
-Follow it **exactly** even if an ad-hoc prompt is vague or incorrect.
-
----
-
-## 1 · Core principles
-
-| Rule | Why |
-|------|-----|
-| **Write tests first.**  Draft or extend failing tests, run them, then code until they pass. | Anthropic recommends the "write tests, commit; code, iterate, commit" loop. |
-| **Plan before coding.**  Summarise intended edits, files, functions and tests.  Wait for confirmation if needed. | Prevents runaway refactors and hallucinated APIs. |
-| **Targeted minimal edits.**  Touch only the files/functions named in the plan.  Explain every cross-file change. | Keeps diffs small and reviewable. |
-| **No silent placeholders.**  Do not leave TODOs or `pass`.  Either implement or ask. | Avoids half-implemented features. |
-
----
-
-## 2 · Approved MCP servers
-
-| Server | Purpose |
-|--------|---------|
-| **ios-simulator** | Automate iOS Simulator: launch app, tap, scroll, read UI hierarchy, capture screenshots. |
-| **mobile** | Similar automation for Android/iOS devices/emulators if needed. |
-| **memory** | Persist project context (past test failures, decisions) across sessions. |
-| **Apidog** | Send live HTTP requests to external APIs and to our FastAPI endpoints; fetch OpenAPI specs. |
-| **PostgreSQL** | Natural-language queries against Cloud SQL to verify data persistence. |
-| **Context7** | Pull up-to-date library docs (CrewAI, FastAPI, etc.) to avoid hallucinated APIs. |
-| **Auto-Improve** | Monitor prompts & responses; suggest rewrites when hallucinations detected. |
-
-Add or remove tools in `.claude.json` or via `/allowed-tools`.
-
----
-
-## 3 · Test technology stack  
-
-### Backend (Python)
-* **pytest** – test runner  
-* **pytest-asyncio** or `httpx.AsyncClient` – async endpoint tests  
-* **pytest fixtures** – setup test data and environment for Spoonacular, OpenAI, CrewAI integration tests  
-* **SQLAlchemy + pytest fixtures** – in-memory or containerised PostgreSQL  
-* **Schemathesis / pytest-openapi** – contract-test FastAPI's OpenAPI schema  
-
-### Front-end (React Native with Expo)
-* **Jest** – JS test runner  
-* **@testing-library/react-native** – unit & component assertions  
-* **Detox** – e2e tests on local emulators (optional)  
-* **ios-simulator / mobile MCP** – alternative e2e control via Claude  
-
----
-
-## 4 · Workflow
-
-1. **Plan**  
-   - List endpoints / client functions affected.  
-   - List tests to add (happy-path + edge cases).  
-2. **Write / extend tests** in `tests/` (Python) or `__tests__/` (JS).  
-3. **Run tests** – they should fail.  
-4. **Code** – modify only what the failing tests require.  
-5. **Re-run tests** until green.  
-6. **Use MCP checks**  
-   - `mcp__apidog__test_endpoint` → call live API routes.  
-   - `mcp__postgresql__ask` → confirm DB rows.  
-   - `mcp__ios-simulator__tap` / `query` → verify a modal truly appears.  
-7. **Commit** – one logical change per commit.  
-8. **Reviewer instance** – another Claude reads the diff & tests, runs them, writes feedback to `docs/api_review.md`.
-
----
-
-## 5 · Backend testing specifics
-
-* **Spoonacular / OpenAI wrappers** – integration tests with real API endpoints; test error handling and rate limiting.  
-* **CrewAI integration** – test with actual CrewAI execution; verify proper arguments and handle exceptions.  
-* **DB client (`db_client.py`)** – fixture spins up test DB; test CRUD & transaction rollback.  
-
----
-
-## 6 · FastAPI endpoint tests
-
-* Use `fastapi.testclient.TestClient(app)` (sync) or `httpx.AsyncClient` (async).  
-* Override dependencies to inject mocks:  
-
-```python
-@app.dependency_overrides[get_spoonacular_client] = lambda: mock_spoon
-```
-
-* Assert that endpoints call mocked clients and return correct JSON.
-* Contract test with Schemathesis against `/openapi.json`.
-
----
-
-## 7 · Front-end tests
-
-* Unit/component:
-
-```jsx
-render(<RecipeModal visible />);
-expect(screen.getByText('Recipe')).toBeVisible();
-```
-
-* Detox/ios-simulator e2e:
-
-```js
-await element(by.id('openMenu')).tap();
-await expect(element(by.id('recipeSteps'))).toBeVisible();
-```
-
----
-
-## 8 · File conventions
-
-| Purpose            | Path                         |
-| ------------------ | ---------------------------- |
-| Service wrappers   | `src/clients/*.py`           |
-| Pytest tests       | `tests/test_*.py`            |
-| React-Native tests | `__tests__/*.test.js`        |
-| E2E scripts        | `e2e/*.spec.js`              |
-| Developer log      | `docs/api_implementation.md` |
-| Reviewer feedback  | `docs/api_review.md`         |
-
----
-
-## 9 · Allowed commands & tooling
-
-* `pytest`, `pytest -k` for subsets
-* `jest`, `npm test`
-* `detox test` (or ios-simulator/mobile MCP)
-* `mcp__*` tools listed above
-* `/clear` between tasks to reset context
-
----
-
-Adhere to these rules to ensure reliable, test-driven development and trustworthy automated UI checks for iOS/Android simulators.
+Last updated: 2025-07-19

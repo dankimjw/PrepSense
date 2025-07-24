@@ -2,14 +2,14 @@
 
 # File: PrepSense/backend_gateway/services/vision_service.py
 import base64
-import openai # Or from openai import OpenAI if you upgraded to v1.0.0+
+import openai
 import os
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
 import re
 import json
 from typing import Optional, Tuple, List, Dict, Any
-from ..core.config_utils import get_openai_api_key
+from ..core.openai_client import get_openai_client
 
 # Load environment variables.
 load_dotenv()
@@ -24,20 +24,14 @@ load_dotenv()
 # Make sure this matches how you instantiate/use it in classify_food_items
 
 class VisionService:
-    def __init__(self, api_key: str = None):
+    def __init__(self):
         """
-        Initializes the VisionService with an OpenAI API key.
+        Initializes the VisionService with an OpenAI client.
         """
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY not found. Please set it in your .env file or pass it to the constructor.")
-        
-        # Initialize the client based on your OpenAI library version
-        # If using openai < 1.0.0, you might set openai.api_key globally or pass it around
-        # If using openai >= 1.0.0, initialize the client instance:
-        # from openai import OpenAI # at the top of the file
-        # self.client = OpenAI(api_key=self.api_key)
-        # For this example, assuming older library or global setup for simplicity of focus on parse method
+        try:
+            self.client = get_openai_client()
+        except ValueError as e:
+            raise ValueError(f"Failed to initialize VisionService: {e}")
 
     async def process_image(self, file) -> Tuple[str, Optional[str]]:
         """
@@ -110,46 +104,24 @@ class VisionService:
             content_type = "image/jpeg" # Default if not provided
 
         try:
-            if hasattr(openai, 'OpenAI'): # Check if it's v1.0.0+ structure
-                 client = openai.OpenAI(api_key=self.api_key)
-                 response = client.chat.completions.create(
-                    model="gpt-4o", # Or your preferred current vision model
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt_text},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
-                                },
-                            ],
-                        }
-                    ],
-                    max_tokens=1500,
-                    temperature=0.5,
-                )
-                 return response.choices[0].message.content.strip()
-            else: # Older library
-                openai.api_key = self.api_key # Ensure API key is set for older library
-                response = openai.ChatCompletion.create(
-                    model="gpt-4o", # Or your preferred current vision model
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": [
-                                {"type": "text", "text": prompt_text},
-                                {
-                                    "type": "image_url",
-                                    "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
-                                },
-                            ],
-                        }
-                    ],
-                    max_tokens=1500,
-                    temperature=0.5,
-                )
-                return response.choices[0].message['content'].strip()
+            response = self.client.chat.completions.create(
+                model="gpt-4o", # Or your preferred current vision model
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt_text},
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{content_type};base64,{base64_image}"},
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=1500,
+                temperature=0.5,
+            )
+            return response.choices[0].message.content.strip()
 
         except Exception as e:
             print(f"Error communicating with OpenAI API: {e}") # Log the actual error
@@ -230,7 +202,7 @@ class VisionService:
 
             # Create a unique key for the item based on name and unit
             item_key = f"{item_name}|{quantity_unit}"
-            
+
             if item_key in item_dict:
                 # If item exists, update the quantity and count
                 item_dict[item_key]["quantity_amount"] += quantity_amount

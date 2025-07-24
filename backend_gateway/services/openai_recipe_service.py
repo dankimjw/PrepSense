@@ -4,24 +4,22 @@ import os
 import logging
 import json
 from typing import List, Dict, Any, Optional
-import openai
 from datetime import datetime
+from ..core.openai_client import get_openai_client
 
 logger = logging.getLogger(__name__)
 
 
 class OpenAIRecipeService:
     """Generate allergen-free recipes using OpenAI"""
-    
+
     def __init__(self):
         try:
-            from ..core.config_utils import get_openai_api_key
-            self.api_key = get_openai_api_key()
-            openai.api_key = self.api_key
+            self.client = get_openai_client()
         except ValueError as e:
             logger.warning(f"OpenAI service disabled: {str(e)}")
-            self.api_key = None
-    
+            self.client = None
+
     async def generate_allergen_free_recipes(
         self,
         ingredients: List[str],
@@ -45,20 +43,19 @@ class OpenAIRecipeService:
         Returns:
             List of recipe dictionaries
         """
-        if not self.api_key:
-            logger.error("OpenAI API key not configured")
+        if not self.client:
+            logger.error("OpenAI client not configured")
             return []
-        
+
         try:
             # Build the prompt
             prompt = self._build_allergen_free_prompt(
                 ingredients, allergens, dietary_preferences, 
                 number, cuisine, max_time
             )
-            
+
             # Generate recipes using OpenAI
-            client = openai.OpenAI(api_key=self.api_key)
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model="gpt-3.5-turbo",
                 messages=[
                     {
@@ -70,11 +67,11 @@ class OpenAIRecipeService:
                 temperature=0.7,
                 max_tokens=2000
             )
-            
+
             # Parse the response
             content = response.choices[0].message.content
             recipes = self._parse_recipe_response(content)
-            
+
             # Add metadata to each recipe
             for i, recipe in enumerate(recipes):
                 recipe['id'] = f"openai_{int(datetime.now().timestamp())}_{i}"
@@ -82,14 +79,14 @@ class OpenAIRecipeService:
                 recipe['allergen_free'] = True
                 recipe['excluded_allergens'] = allergens
                 recipe['image'] = None  # OpenAI doesn't provide images
-                
+
             logger.info(f"Generated {len(recipes)} allergen-free recipes using OpenAI")
             return recipes
-            
+
         except Exception as e:
             logger.error(f"Error generating recipes with OpenAI: {str(e)}")
             return []
-    
+
     def _build_allergen_free_prompt(
         self,
         ingredients: List[str],
@@ -100,7 +97,7 @@ class OpenAIRecipeService:
         max_time: Optional[int]
     ) -> str:
         """Build a prompt for allergen-free recipe generation"""
-        
+
         prompt = f"""Create {number} recipes using these ingredients: {', '.join(ingredients[:10])}
 
 CRITICAL ALLERGEN REQUIREMENTS:
@@ -118,16 +115,16 @@ For each allergen, avoid ALL forms including:
 - Fish: all fish and fish-derived products
 
 """
-        
+
         if dietary_preferences:
             prompt += f"Also follow these dietary preferences: {', '.join(dietary_preferences)}\n"
-        
+
         if cuisine:
             prompt += f"Preferred cuisine: {cuisine}\n"
-        
+
         if max_time:
             prompt += f"Maximum cooking time: {max_time} minutes\n"
-        
+
         prompt += """
 For each recipe, provide:
 1. Recipe name
@@ -152,32 +149,32 @@ Format as JSON array with this structure:
 
 Remember: ABSOLUTELY NO ingredients containing the specified allergens!
 """
-        
+
         return prompt
-    
+
     def _parse_recipe_response(self, response: str) -> List[Dict[str, Any]]:
         """Parse OpenAI response into recipe dictionaries"""
         try:
             # Try to extract JSON from the response
             start_idx = response.find('[')
             end_idx = response.rfind(']') + 1
-            
+
             if start_idx != -1 and end_idx != 0:
                 json_str = response[start_idx:end_idx]
                 recipes = json.loads(json_str)
-                
+
                 # Standardize the format
                 for recipe in recipes:
                     # Ensure required fields
                     recipe['title'] = recipe.get('title', 'Untitled Recipe')
                     recipe['readyInMinutes'] = recipe.get('readyInMinutes', 30)
-                    
+
                     # Convert ingredients list to extended format if needed
                     if 'ingredients' in recipe and isinstance(recipe['ingredients'], list):
                         recipe['extendedIngredients'] = [
                             {'original': ing} for ing in recipe['ingredients']
                         ]
-                    
+
                     # Convert instructions to numbered format
                     if 'instructions' in recipe and isinstance(recipe['instructions'], list):
                         recipe['analyzedInstructions'] = [{
@@ -186,19 +183,19 @@ Remember: ABSOLUTELY NO ingredients containing the specified allergens!
                                 for i, step in enumerate(recipe['instructions'])
                             ]
                         }]
-                
+
                 return recipes
             else:
                 logger.error("Could not find JSON in OpenAI response")
                 return []
-                
+
         except json.JSONDecodeError as e:
             logger.error(f"Failed to parse OpenAI response as JSON: {e}")
             return []
         except Exception as e:
             logger.error(f"Error parsing recipe response: {e}")
             return []
-    
+
     async def generate_single_recipe(
         self,
         ingredients: List[str],
@@ -206,12 +203,12 @@ Remember: ABSOLUTELY NO ingredients containing the specified allergens!
         recipe_type: Optional[str] = None
     ) -> Optional[Dict[str, Any]]:
         """Generate a single allergen-free recipe"""
-        
+
         recipes = await self.generate_allergen_free_recipes(
             ingredients=ingredients,
             allergens=allergens,
             number=1,
             cuisine=recipe_type
         )
-        
+
         return recipes[0] if recipes else None

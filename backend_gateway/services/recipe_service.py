@@ -4,8 +4,8 @@ import os
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel
-import openai  # Ensure OpenAI API is properly configured
-from ..core.config_utils import get_openai_api_key
+import openai
+from ..core.openai_client import get_openai_client
 
 class RecipeService:
     """
@@ -15,7 +15,7 @@ class RecipeService:
     def __init__(self):
         # Initialize any required configurations, e.g., OpenAI API key
         try:
-            openai.api_key = get_openai_api_key()
+            self.client = get_openai_client()
             print(f"Using OpenAI model: gpt-4")
         except ValueError as e:
             raise ValueError(f"OpenAI configuration error: {e}")
@@ -39,17 +39,15 @@ class RecipeService:
             )
 
             # Call OpenAI API to generate the recipe
-            response = openai.ChatCompletion.create(
-                model="gpt-4",  # Updated model
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-                max_tokens=500,
-                temperature=0.7,
-            )
+            response = self.client.chat.completions.create(model="gpt-4",  # Updated model
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=500,
+            temperature=0.7)
 
-            recipe_text = response.choices[0].message["content"].strip()
+            recipe_text = response.choices[0].message.content.strip()
             return recipe_text
 
         except openai.APIError as e:
@@ -70,8 +68,7 @@ class RecipeService:
         try:
             print("Processing image...")
             # Use OpenAI's DALL-E or another image generation API
-            client = openai.OpenAI(api_key=openai.api_key)
-            response = client.images.generate(
+            response = self.client.images.generate(
                 prompt=f"An appetizing dish of {dish_name}",
                 n=1,
                 size="512x512",
@@ -89,8 +86,7 @@ class RecipeService:
     async def process_image(self, file):
         try:
             # API key is already set in __init__
-            client = openai.OpenAI(api_key=openai.api_key)
-            response = client.chat.completions.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
