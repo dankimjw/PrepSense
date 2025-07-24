@@ -1,0 +1,9 @@
+{
+  "timestamp": "2025-07-22T21:45:52.313977",
+  "success_rate": 0,
+  "results": {},
+  "errors": [
+    "Backend service not running"
+  ],
+  "warnings": []
+}

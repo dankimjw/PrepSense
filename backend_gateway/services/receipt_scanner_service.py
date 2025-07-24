@@ -27,17 +27,16 @@ class ReceiptData(BaseModel):
     date: Optional[str] = Field(default=None)
     items: List[GroceryItem] = Field(default_factory=list)
     total: Optional[float] = Field(default=None)
-    
+
 class ReceiptScannerService:
     def __init__(self):
         """Initialize the receipt scanner service."""
         self.api_key = os.getenv("OPENAI_API_KEY")
         if not self.api_key:
             raise ValueError("OpenAI API key not configured")
-        
-        openai.api_key = self.api_key
+
         self.client = openai.OpenAI()
-        
+
     async def scan_receipt(self, image_data: str) -> Dict[str, Any]:
         """
         Scan a receipt image and extract structured data using AI agent.
@@ -79,7 +78,7 @@ Return data in the exact JSON format specified."""
                     ]
                 }
             ]
-            
+
             # Call OpenAI Vision API with structured output
             response = self.client.beta.chat.completions.parse(
                 model="gpt-4o",
@@ -88,10 +87,10 @@ Return data in the exact JSON format specified."""
                 max_tokens=1000,
                 temperature=0.1  # Low temperature for consistent parsing
             )
-            
+
             # Extract the parsed data
             receipt_data = response.choices[0].message.parsed
-            
+
             # Convert to dict for API response
             result = {
                 "success": True,
@@ -112,10 +111,10 @@ Return data in the exact JSON format specified."""
                 },
                 "items_count": len(receipt_data.items)
             }
-            
+
             logger.info(f"Successfully extracted {len(receipt_data.items)} items from receipt")
             return result
-            
+
         except Exception as e:
             logger.error(f"Error scanning receipt: {str(e)}")
             return {
@@ -123,7 +122,7 @@ Return data in the exact JSON format specified."""
                 "error": str(e),
                 "data": None
             }
-    
+
     async def add_items_to_pantry(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Add extracted items to user's pantry.
@@ -138,11 +137,11 @@ Return data in the exact JSON format specified."""
         try:
             added_items = []
             skipped_items = []
-            
+
             # Import here to avoid circular imports
             from backend_gateway.services.pantry_service import PantryService
             pantry_service = PantryService()
-            
+
             for item in items:
                 try:
                     # Prepare item data for pantry
@@ -154,15 +153,15 @@ Return data in the exact JSON format specified."""
                         "purchase_date": datetime.now().isoformat(),
                         "source": "receipt_scan"
                     }
-                    
+
                     # Add to pantry
                     result = await pantry_service.add_item(user_id, pantry_item)
                     added_items.append(item["name"])
-                    
+
                 except Exception as e:
                     logger.warning(f"Failed to add item {item['name']}: {str(e)}")
                     skipped_items.append(item["name"])
-            
+
             return {
                 "success": True,
                 "added": added_items,
@@ -170,7 +169,7 @@ Return data in the exact JSON format specified."""
                 "total_added": len(added_items),
                 "total_skipped": len(skipped_items)
             }
-            
+
         except Exception as e:
             logger.error(f"Error adding items to pantry: {str(e)}")
             return {

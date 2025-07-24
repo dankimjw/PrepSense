@@ -4,10 +4,10 @@ import os
 import logging
 import json
 from typing import List, Dict, Any, Optional, Tuple
-import openai
 from datetime import datetime
 import asyncio
 import random
+from ..core.openai_client import get_openai_client
 
 logger = logging.getLogger(__name__)
 
@@ -17,12 +17,9 @@ class EnhancedOpenAIRecipeService:
     
     def __init__(self):
         try:
-            from ..core.config_utils import get_openai_api_key
-            self.api_key = get_openai_api_key()
-            self.client = openai.OpenAI(api_key=self.api_key)
+            self.client = get_openai_client()
         except ValueError as e:
             logger.warning(f"OpenAI service disabled: {str(e)}")
-            self.api_key = None
             self.client = None
         
         # Recipe templates for variety

@@ -21,6 +21,7 @@ import socket
 import subprocess
 import sys
 import time
+import webbrowser
 from pathlib import Path
 from typing import List, Optional
 
@@ -190,10 +191,18 @@ def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.
         # Exclude ios-app directory from reload watching to prevent Metro runtime errors
         command.extend(["--reload-exclude", "ios-app/**"])
 
-    # Print the docs URL without automatically opening it
+    # Prepare the docs URL and open it in the browser
     docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
     docs_url = f"http://{docs_host}:{port}/docs"
     print(f"\n📚 Swagger UI available at: {docs_url}")
+    
+    # Open the browser after a short delay to ensure the server is ready
+    def open_browser():
+        time.sleep(1)  # Short delay to ensure server is ready
+        webbrowser.open(docs_url)
+    
+    import threading
+    threading.Thread(target=open_browser, daemon=True).start()
 
     return subprocess.Popen(command)
 
@@ -273,13 +282,33 @@ def main():
     print("Successfully loaded .env file.")
     
     # Load OpenAI API key from file if specified
+    # ────────────────────────────────
+    # Persist OpenAI key into .env if we only have a key file reference
+    # ────────────────────────────────
     key_path = os.getenv("OPENAI_API_KEY_FILE")
     if key_path and Path(key_path).exists():
         try:
             api_key = Path(key_path).read_text().strip()
-            if api_key:
+            if api_key and api_key.startswith("sk-"):
                 os.environ["OPENAI_API_KEY"] = api_key
                 print(f"Loaded OpenAI API key from {key_path}")
+
+                # Update .env so future runs don't need to read the file
+                env_path = Path(__file__).resolve().parent / ".env"
+                if env_path.exists():
+                    env_lines = env_path.read_text().splitlines()
+                    has_direct_key = any(line.startswith("OPENAI_API_KEY=") for line in env_lines)
+                    if not has_direct_key:
+                        # Remove any OPENAI_API_KEY_FILE line
+                        env_lines = [l for l in env_lines if not l.startswith("OPENAI_API_KEY_FILE=")]
+                        # Append the direct key line
+                        env_lines.append(f"OPENAI_API_KEY={api_key}")
+                        env_path.write_text("\n".join(env_lines) + "\n")
+                        print("Updated .env with OpenAI key (replaced OPENAI_API_KEY_FILE)")
+                        # Reload so settings picked up within this process
+                        from dotenv import load_dotenv as _reload_dotenv
+                        _reload_dotenv(dotenv_path=env_path, override=True)
+
             else:
                 print(f"Warning: OpenAI API key file {key_path} is empty")
         except Exception as e:

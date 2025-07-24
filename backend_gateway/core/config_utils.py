@@ -72,6 +72,7 @@ def get_openai_api_key() -> str:
     
     # Try default config file locations
     default_locations = [
+        #Config folder should be in the root directory and the text file should be named "openai_key.txt"
         "config/openai_key.txt",           # When running from project root
         "../config/openai_key.txt",        # When running from backend_gateway
         "backend_gateway/config/openai_key.txt"  # Alternative path

@@ -61,17 +61,17 @@ async def send_message(
             word in chat_message.message.lower() 
             for word in ['without preferences', 'ignore preferences', 'no preferences']
         )
-        
+
         response = await crew_ai_service.process_message(
             user_id=chat_message.user_id,
             message=chat_message.message,
             use_preferences=chat_message.use_preferences
         )
-        
+
         # Add preference choice flag for first message
         if show_preference_choice and response.get('user_preferences'):
             response['show_preference_choice'] = True
-        
+
         return response
     except Exception as e:
         logger.error(f"Error processing chat message: {str(e)}")
@@ -91,24 +91,24 @@ async def send_message(
     """
     try:
         logger.info(f"Processing nutrient-aware message: {chat_message.message}")
-        
+
         # Check if this is the first message (to show preference choice)
         show_preference_choice = len(chat_message.message) > 0 and not any(
             word in chat_message.message.lower() 
             for word in ['without preferences', 'ignore preferences', 'no preferences']
         )
-        
+
         response = await nutrient_crew_service.process_message_with_nutrition(
             user_id=chat_message.user_id,
             message=chat_message.message,
             use_preferences=chat_message.use_preferences,
             include_nutrient_gaps=chat_message.include_nutrition
         )
-        
+
         # Add preference choice flag for first message
         if show_preference_choice and response.get('user_preferences'):
             response['show_preference_choice'] = True
-        
+
         return response
     except Exception as e:
         logger.error(f"Error processing nutrient-aware chat message: {str(e)}")
@@ -133,14 +133,13 @@ async def generate_recipe_image(
     try:
         # If user wants generated images, use DALL-E 2 (cheaper than DALL-E 3)
         if request.use_generated:
-            openai.api_key = os.getenv("OPENAI_API_KEY")
-            
+
             if openai.api_key:
                 try:
                     # Create a simple prompt for gpt-image-1
                     prompt = f"{request.recipe_name}, food photography, delicious, appetizing"
                     
-                    # Generate with DALL-E 2 (faster than DALL-E 3)
+                    # Generate with DALL-E 2 (much cheaper and faster than DALL-E 3)
                     client = openai.OpenAI(api_key=openai.api_key)
                     response = client.images.generate(
                         model="dall-e-2",  # Using DALL-E 2 for faster generation
@@ -148,7 +147,7 @@ async def generate_recipe_image(
                         size="512x512",    # Smaller size for faster generation
                         n=1
                     )
-                    
+
                     image_url = response.data[0].url
                     return ImageGenerationResponse(
                         image_url=image_url,
@@ -159,20 +158,20 @@ async def generate_recipe_image(
                     # Fall through to Unsplash
             else:
                 logger.warning("OpenAI API key not configured, using Unsplash instead")
-        
+
         # Default to Unsplash for fast image retrieval
         import requests
-        
+
         # Get Unsplash access key from environment
         unsplash_access_key = os.getenv("UNSPLASH_ACCESS_KEY")
-        
+
         if not unsplash_access_key:
             # Fallback to varied food images based on recipe name hash
             logger.warning("Unsplash API key not configured, using fallback images")
-            
+
             # Smart image selection based on recipe name with more variety
             recipe_lower = request.recipe_name.lower()
-            
+
             # Map recipe types to multiple appropriate images for variety
             food_images = {
                 'bowl': [
@@ -246,7 +245,7 @@ async def generate_recipe_image(
                     "https://images.unsplash.com/photo-1488477181946-6428a0291777?w=800",
                 ]
             }
-            
+
             # Check which category the recipe falls into
             selected_images = None
             for category, keywords in [
@@ -268,7 +267,7 @@ async def generate_recipe_image(
                 if any(keyword in recipe_lower for keyword in keywords):
                     selected_images = food_images.get(category, [])
                     break
-            
+
             if not selected_images:
                 # More varied fallback images for unmatched recipes
                 selected_images = [
@@ -281,28 +280,28 @@ async def generate_recipe_image(
                     "https://images.unsplash.com/photo-1506354666786-959d6d497f1a?w=800",
                     "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800",
                 ]
-            
+
             # Use hash to select a consistent but varied image for each unique recipe name
             import hashlib
             recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
             image_index = int(recipe_hash[:8], 16) % len(selected_images)
             image_url = selected_images[image_index]
-            
+
             return ImageGenerationResponse(
                 image_url=image_url,
                 recipe_name=request.recipe_name
             )
-        
+
         # Search for food images related to the recipe
         search_query = request.recipe_name.replace(" ", "+")
         url = f"https://api.unsplash.com/search/photos?query={search_query}+food&per_page=1&orientation=landscape"
-        
+
         headers = {
             "Authorization": f"Client-ID {unsplash_access_key}"
         }
-        
+
         response = requests.get(url, headers=headers)
-        
+
         if response.status_code == 200:
             data = response.json()
             if data["results"]:
@@ -312,16 +311,16 @@ async def generate_recipe_image(
                     image_url=image_url,
                     recipe_name=request.recipe_name
                 )
-        
+
         # Fallback to a more specific food search based on keywords in recipe name
         recipe_lower = request.recipe_name.lower()
-        
+
         # Extract key ingredients or food types for better search
         food_keywords = []
         for keyword in ['chicken', 'beef', 'pork', 'fish', 'vegetable', 'pasta', 'rice', 'salad', 'soup', 'sandwich']:
             if keyword in recipe_lower:
                 food_keywords.append(keyword)
-        
+
         # If no keywords found, use a general search term based on recipe name hash
         if not food_keywords:
             # Use different general terms based on hash for variety
@@ -331,10 +330,10 @@ async def generate_recipe_image(
             search_term = general_terms[term_index]
         else:
             search_term = '+'.join(food_keywords[:2]) + '+food'  # Use up to 2 keywords
-        
+
         fallback_url = f"https://api.unsplash.com/search/photos?query={search_term}&per_page=3&orientation=landscape"
         fallback_response = requests.get(fallback_url, headers=headers)
-        
+
         if fallback_response.status_code == 200:
             fallback_data = fallback_response.json()
             if fallback_data["results"]:
@@ -346,7 +345,7 @@ async def generate_recipe_image(
                     image_url=image_url,
                     recipe_name=request.recipe_name
                 )
-        
+
         # Final fallback to varied food images - expanded list for better variety
         fallback_images = [
             "https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800",  # General food platter
@@ -368,12 +367,12 @@ async def generate_recipe_image(
         import hashlib
         recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
         image_index = int(recipe_hash[:8], 16) % len(fallback_images)
-        
+
         return ImageGenerationResponse(
             image_url=fallback_images[image_index],
             recipe_name=request.recipe_name
         )
-        
+
     except Exception as e:
         logger.error(f"Error getting recipe image: {str(e)}")
         # Fallback to varied food images
@@ -385,7 +384,7 @@ async def generate_recipe_image(
         import hashlib
         recipe_hash = hashlib.md5(request.recipe_name.encode()).hexdigest()
         image_index = int(recipe_hash[:8], 16) % len(fallback_images)
-        
+
         return ImageGenerationResponse(
             image_url=fallback_images[image_index],
             recipe_name=request.recipe_name

@@ -8,6 +8,8 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    # Allow direct OpenAI key if present (run_app may persist it)
+    OPENAI_API_KEY: Optional[str] = None
     """Application settings loaded from environment variables."""
     
     # API Configuration
