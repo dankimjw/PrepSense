@@ -72,25 +72,18 @@ def get_openai_api_key() -> str:
     
     # Try default config file locations
     default_locations = [
-        #Config folder should be in the root directory and the text file should be named "openai_key.txt"
-        "config/openai_key.txt",           # When running from project root
-        "../config/openai_key.txt",        # When running from backend_gateway
-        "backend_gateway/config/openai_key.txt"  # Alternative path
+        "config/openai_key.txt",
+        os.path.expanduser("~/.config/prepsense/openai_key.txt"),
     ]
-    
     for key_file in default_locations:
         if os.path.exists(key_file):
             api_key = read_api_key_from_file(key_file)
             if api_key:
                 return api_key
-    
-    # No API key found
+
     raise ValueError(
-        "OpenAI API key not found. Please either:\n"
-        "1. Set OPENAI_API_KEY environment variable in .env file, or\n"
-        "2. Create config/openai_key.txt with your API key\n\n"
-        "Get your API key at: https://platform.openai.com/api-keys\n"
-        "Location of .env file: project_root/.env (NOT in backend_gateway/)"
+        "OpenAI API key not found. Please set OPENAI_API_KEY, OPENAI_API_KEY_FILE, "
+        "or place it in one of the default locations."
     )
 
 
