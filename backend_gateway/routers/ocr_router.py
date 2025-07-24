@@ -450,7 +450,7 @@ async def scan_items(
         try:
             # Call OpenAI Vision API
             response = client.chat.completions.create(
-                model="gpt-4-vision-preview",
+                model="gpt-4-turbo",
                 messages=[
                     {
                         "role": "system",

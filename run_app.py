@@ -26,6 +26,8 @@ from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
+from Key_Loader_7 import load_openai_key_from_file
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. **Environment‑variable cleanup** – values in .env (or pydantic settings)
@@ -282,39 +284,8 @@ def main():
     print("Successfully loaded .env file.")
     
     # Load OpenAI API key from file if specified
-    # ────────────────────────────────
-    # Persist OpenAI key into .env if we only have a key file reference
-    # ────────────────────────────────
-    key_path = os.getenv("OPENAI_API_KEY_FILE")
-    if key_path and Path(key_path).exists():
-        try:
-            api_key = Path(key_path).read_text().strip()
-            if api_key and api_key.startswith("sk-"):
-                os.environ["OPENAI_API_KEY"] = api_key
-                print(f"Loaded OpenAI API key from {key_path}")
-
-                # Update .env so future runs don't need to read the file
-                env_path = Path(__file__).resolve().parent / ".env"
-                if env_path.exists():
-                    env_lines = env_path.read_text().splitlines()
-                    has_direct_key = any(line.startswith("OPENAI_API_KEY=") for line in env_lines)
-                    if not has_direct_key:
-                        # Remove any OPENAI_API_KEY_FILE line
-                        env_lines = [l for l in env_lines if not l.startswith("OPENAI_API_KEY_FILE=")]
-                        # Append the direct key line
-                        env_lines.append(f"OPENAI_API_KEY={api_key}")
-                        env_path.write_text("\n".join(env_lines) + "\n")
-                        print("Updated .env with OpenAI key (replaced OPENAI_API_KEY_FILE)")
-                        # Reload so settings picked up within this process
-                        from dotenv import load_dotenv as _reload_dotenv
-                        _reload_dotenv(dotenv_path=env_path, override=True)
-
-            else:
-                print(f"Warning: OpenAI API key file {key_path} is empty")
-        except Exception as e:
-            print(f"Error reading OpenAI API key from {key_path}: {e}")
-    elif key_path:
-        print(f"Warning: OpenAI API key file {key_path} not found")
+    project_root = Path(__file__).resolve().parent
+    load_openai_key_from_file(project_root)
 
     args = parse_arguments()
 
