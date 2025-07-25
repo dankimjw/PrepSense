@@ -153,6 +153,9 @@ backend_gateway/TEST_IMPLEMENTATION_GUIDE.md
 backend_gateway/test_results_summary.md
 backend_gateway/TEST_SUMMARY.md
 
+# External Revision directory (ignore)
+External Revision/
+
 # Root-level documentation files (ignore)
 START_HERE_CLAUDE.md
 SUBAGENT_STRATEGY_GUIDE.md
