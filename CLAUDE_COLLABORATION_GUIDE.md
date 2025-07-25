@@ -1,1 +1,0 @@
-/Users/danielkim/_Capstone/PrepSense/CLAUDE_COLLABORATION_GUIDE.md
