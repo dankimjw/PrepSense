@@ -3,14 +3,16 @@ Configuration settings for PrepSense backend application.
 """
 
 from typing import List, Optional
-from pydantic import field_validator, ValidationError
+from pydantic import field_validator, ValidationError, ConfigDict
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+    model_config = ConfigDict(extra='ignore')
+    
     # Allow direct OpenAI key if present (run_app may persist it)
     OPENAI_API_KEY: Optional[str] = None
-    """Application settings loaded from environment variables."""
     
     # API Configuration
     API_V1_STR: str = "/api/v1"
@@ -59,6 +61,9 @@ class Settings(BaseSettings):
     
     # Spoonacular Configuration
     SPOONACULAR_API_KEY: Optional[str] = None
+    
+    # CrewAI Configuration
+    SERPER_API_KEY: Optional[str] = None
     
     # Development Settings
     DEBUG: bool = False
@@ -130,10 +135,10 @@ class Settings(BaseSettings):
             )
         return v.strip()
     
-    class Config:
-        """Pydantic configuration."""
-        env_file = ".env"
-        case_sensitive = True
+    model_config = ConfigDict(
+        env_file="../.env",
+        case_sensitive=True
+    )
 
 
 # Create settings instance
