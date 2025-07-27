@@ -55,7 +55,14 @@ class ReceiptScannerService:
                     "content": """You are an expert receipt scanner AI. Extract grocery items from receipts and:
 1. Clean up product names (e.g., "OREO COOKIE FC" → "Oreo Cookies")
 2. Identify quantities if shown (e.g., "2 @ $2.99 ea" means quantity=2)
-3. Categorize items (produce, dairy, meat, bakery, frozen, pantry, etc.)
+3. Categorize items and use appropriate units:
+   - PRODUCE: Use 'lb', 'oz', 'each', 'bunch', 'bag' (NOT ml, L)
+   - DAIRY: Liquid='gallon', 'quart', 'pint'; Solid='oz', 'lb'; Eggs='dozen'
+   - MEAT/SEAFOOD: Use 'lb', 'oz', 'piece' (NOT ml, each)
+   - BEVERAGES: Use 'bottle', 'can', 'liter', 'fl oz' (NOT lb)
+   - BAKERY: Use 'loaf', 'each', 'package'
+   - CANNED GOODS: Use 'can', 'oz', 'jar'
+   - PANTRY/SPICES: Use 'oz', 'container', 'jar' for spices; 'lb', 'bag' for staples
 4. Extract store name, date, and total
 5. Ignore non-food items like cleaning supplies, cosmetics
 6. Format all data as clean, user-friendly text

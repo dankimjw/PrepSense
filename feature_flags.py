@@ -5,7 +5,8 @@ Configured via environment variables with sensible defaults for development.
 import os
 from typing import Any, Callable, Optional, TypeVar, cast
 
-from pydantic import BaseSettings, Field
+from pydantic import Field, ConfigDict
+from pydantic_settings import BaseSettings
 
 T = TypeVar('T')
 
@@ -33,9 +34,10 @@ class FeatureFlags(BaseSettings):
         description='Enable new UI components and layouts'
     )
     
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
+    model_config = ConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8'
+    )
 
 # Initialize feature flags
 feature_flags = FeatureFlags()

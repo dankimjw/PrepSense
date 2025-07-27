@@ -1,4 +1,5 @@
 // Item formatting and styling utilities
+import { getCategoryByLabel, getCategoryIcon, getCategoryColor as getCategoryColorFromConfig, normalizeCategoryLabel } from './categoryConfig';
 
 export interface ItemStyle {
   icon: string;
@@ -6,8 +7,8 @@ export interface ItemStyle {
   isCommunity?: boolean;
 }
 
-// Icon mappings for different units and categories
-const iconMappings: { [key: string]: ItemStyle } = {
+// Icon mappings for different units
+const unitIconMappings: { [key: string]: ItemStyle } = {
   // Weight-based items
   'kg': { icon: 'scale-bathroom', color: '#4F46E5', isCommunity: true },
   'g': { icon: 'scale-bathroom', color: '#4F46E5', isCommunity: true },
@@ -28,45 +29,26 @@ const iconMappings: { [key: string]: ItemStyle } = {
   'count': { icon: 'numeric', color: '#10B981', isCommunity: true },
   'dozen': { icon: 'egg', color: '#10B981', isCommunity: true },
   'piece': { icon: 'fruit-cherries', color: '#10B981', isCommunity: true },
-  
-  // Category-based overrides
-  'dairy': { icon: 'cow', color: '#F59E0B', isCommunity: true },
-  'Dairy': { icon: 'cow', color: '#F59E0B', isCommunity: true },
-  'meat': { icon: 'food-steak', color: '#DC2626', isCommunity: true },
-  'Meat': { icon: 'food-steak', color: '#DC2626', isCommunity: true },
-  'produce': { icon: 'fruit-watermelon', color: '#10B981', isCommunity: true },
-  'Produce': { icon: 'fruit-watermelon', color: '#10B981', isCommunity: true },
-  'bakery': { icon: 'bread-slice', color: '#D97706', isCommunity: true },
-  'Bakery': { icon: 'bread-slice', color: '#D97706', isCommunity: true },
-  'beverage': { icon: 'cup-water', color: '#3B82F6', isCommunity: true },
-  'Beverage': { icon: 'cup-water', color: '#3B82F6', isCommunity: true },
-  'snack': { icon: 'popcorn', color: '#8B5CF6', isCommunity: true },
-  'Snack': { icon: 'popcorn', color: '#8B5CF6', isCommunity: true },
-  'frozen': { icon: 'snowflake', color: '#06B6D4', isCommunity: true },
-  'Frozen': { icon: 'snowflake', color: '#06B6D4', isCommunity: true },
-  'canned': { icon: 'food-variant', color: '#6B7280', isCommunity: true },
-  'Canned': { icon: 'food-variant', color: '#6B7280', isCommunity: true },
-  'dry': { icon: 'grain', color: '#A16207', isCommunity: true },
-  'Dry': { icon: 'grain', color: '#A16207', isCommunity: true },
-  'spice': { icon: 'shaker-outline', color: '#D946EF', isCommunity: true },
-  'Spice': { icon: 'shaker-outline', color: '#D946EF', isCommunity: true },
-  'condiment': { icon: 'bottle-soda-classic', color: '#EC4899', isCommunity: true },
-  'Condiment': { icon: 'bottle-soda-classic', color: '#EC4899', isCommunity: true },
 };
 
 export const getItemStyle = (item: { name: string; unit: string; category?: string }): ItemStyle => {
   const unit = item.unit.toLowerCase();
   const name = item.name.toLowerCase();
-  const category = item.category?.toLowerCase() || '';
+  const normalizedCategory = normalizeCategoryLabel(item.category || '');
 
-  // Check category first with exact match
-  if (category && iconMappings[category]) {
-    return iconMappings[category];
+  // Check category first - use centralized category configuration
+  const categoryConfig = getCategoryByLabel(normalizedCategory);
+  if (categoryConfig) {
+    return {
+      icon: categoryConfig.materialIcon,
+      color: categoryConfig.color,
+      isCommunity: true
+    };
   }
 
   // Then check unit
-  if (iconMappings[unit]) {
-    return iconMappings[unit];
+  if (unitIconMappings[unit]) {
+    return unitIconMappings[unit];
   }
   
   // Special case handling for specific items
@@ -75,14 +57,14 @@ export const getItemStyle = (item: { name: string; unit: string; category?: stri
     return { icon: 'fruit-cherries', color: '#EAB308', isCommunity: true };
   }
   if (productNameLower.includes('milk')) {
-    return { icon: 'cup-water', color: '#F59E0B', isCommunity: true };
+    return { icon: 'cow', color: '#60A5FA', isCommunity: true };
   }
   if (productNameLower.includes('chicken') || productNameLower.includes('breast')) {
-    return { icon: 'food-steak', color: '#DC2626', isCommunity: true };
+    return { icon: 'food-steak', color: '#F87171', isCommunity: true };
   }
 
-  // Default icon
-  return { icon: 'basket-outline', color: '#6B7280', isCommunity: true };
+  // Default icon - use the "Other" category
+  return { icon: 'package-variant', color: '#9CA3AF', isCommunity: true };
 };
 
 export const formatExpirationDate = (dateString: string): string => {
@@ -149,19 +131,10 @@ export const formatAddedDate = (dateString: string): string => {
   }
 };
 
-export const getCategoryColor = (category: string): string => {
-  const colors: { [key: string]: string } = {
-    'Dairy': '#E0F2FE',
-    'Meat': '#FEE2E2',
-    'Produce': '#DCFCE7',
-    'Bakery': '#FEF3C7',
-    'Pantry': '#EDE9FE',
-    'Beverages': '#E0E7FF',
-    'Frozen': '#E0F2F9',
-    'Default': '#F3F4F6',
-  };
-  
-  return colors[category] || colors.Default;
+export const getCategoryBgColor = (category: string): string => {
+  const normalizedCategory = normalizeCategoryLabel(category);
+  const categoryConfig = getCategoryByLabel(normalizedCategory);
+  return categoryConfig?.bgColor || '#F3F4F6';
 };
 
 // Group items by name and unit

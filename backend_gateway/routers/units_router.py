@@ -17,7 +17,7 @@ from ..constants.food_category_unit_rules import (
     validate_unit_for_food_category
 )
 
-router = APIRouter(prefix="/api/v1/units", tags=["units"])
+router = APIRouter(prefix="/units", tags=["units"])
 
 class Unit(BaseModel):
     id: str

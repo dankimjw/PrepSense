@@ -289,7 +289,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
                 'item_name': parsed['item_name'],
                 'quantity_amount': parsed['quantity'],
                 'quantity_unit': parsed['unit'],
-                'category': categorization['category'],
+                'category': categorization.category,
                 'brand': parsed.get('brand', 'Generic'),
                 'expected_expiration': (datetime.now() + timedelta(days=30)).strftime('%m/%d/%Y')
             }

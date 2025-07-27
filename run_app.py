@@ -114,7 +114,9 @@ def parse_arguments() -> argparse.Namespace:
 Examples
 --------
 python3 run_app.py                 # backend + iOS
+python3 run_app.py -mock           # backend + iOS with mock data
 python3 run_app.py --backend       # backend only
+python3 run_app.py --backend -mock # backend only with mock data
 python3 run_app.py --ios           # iOS only
 python3 run_app.py --backend --port 9000
 """,
@@ -125,6 +127,7 @@ python3 run_app.py --backend --port 9000
     parser.add_argument("--port", type=int, help="Backend port (overrides PORT env)")
     parser.add_argument("--ios-port", type=int, help="Expo/iOS port (overrides IOS_PORT)")
     parser.add_argument("--gcp", action="store_true", help="Use GCP Cloud Run backend")
+    parser.add_argument("-mock", "--mock", action="store_true", help="Enable all mock data (OCR, recipes, etc.)")
     return parser.parse_args()
 
 
@@ -170,7 +173,43 @@ class ProcessManager:
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 6.  Starters
+# 6.  Mock data control
+# ──────────────────────────────────────────────────────────────────────────────
+def enable_mock_data(backend_url: str) -> bool:
+    """Enable all mock data via RemoteControl API."""
+    import requests
+    
+    try:
+        # Remove /api/v1 from backend_url if present
+        base_url = backend_url.replace('/api/v1', '') if '/api/v1' in backend_url else backend_url
+        if not base_url.startswith('http'):
+            base_url = f"http://{base_url}"
+        
+        response = requests.post(
+            f"{base_url}/api/v1/remote-control/toggle-all",
+            json={"enabled": True, "changed_by": "run_app_mock_mode"},
+            timeout=5
+        )
+        
+        if response.status_code == 200:
+            data = response.json()
+            enabled_count = data.get('summary', {}).get('enabled_count', 0)
+            total_count = data.get('summary', {}).get('total_features', 0)
+            print(f"✅ Mock mode enabled: {enabled_count}/{total_count} features activated")
+            print("   • OCR scanning: mock receipts and items")
+            print("   • Recipe completion: mock pantry subtraction")
+            print("   • Chat recipes: test recipes (Carbonara, Cookies, Chicken)")
+            return True
+        else:
+            print(f"❌ Failed to enable mock mode: {response.status_code}")
+            return False
+    except Exception as e:
+        print(f"❌ Error enabling mock mode: {e}")
+        return False
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 7.  Starters
 # ──────────────────────────────────────────────────────────────────────────────
 def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.Popen:
     """Start the Uvicorn backend as a non-blocking subprocess."""
@@ -286,6 +325,17 @@ def main():
     # Load OpenAI API key from file if specified
     project_root = Path(__file__).resolve().parent
     load_openai_key_from_file(project_root)
+    
+    # Update ingredient expiration dates dynamically
+    try:
+        update_script = project_root / "scripts" / "update_ingredient_expirations.py"
+        if update_script.exists():
+            print("\n🔄 Updating ingredient expiration dates...")
+            subprocess.run([sys.executable, str(update_script)], check=True)
+            print("✅ Ingredient expiration dates updated\n")
+    except subprocess.CalledProcessError as e:
+        print(f"⚠️  Failed to update ingredient expirations: {e}")
+        print("Continuing anyway...\n")
 
     args = parse_arguments()
 
@@ -316,6 +366,8 @@ def main():
         print(f"  Backend → {host}:{port}")
     if mode in {"both", "ios"}:
         print(f"  iOS     → http://localhost:{ios_port} (calls {backend_url})")
+    if args.mock:
+        print(f"  Mock Data: ENABLED 🧪")
     print()
     
     # Check iOS prerequisites if running iOS mode
@@ -363,12 +415,29 @@ def main():
     try:
         if mode == "backend":
             pm.backend = start_backend(host, port)
+            
+            # Enable mock data if requested
+            if args.mock:
+                print("Waiting 3s for backend to initialize...")
+                time.sleep(3)
+                print("\n🧪 Enabling mock data mode...")
+                backend_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
+                enable_mock_data(f"http://{backend_host}:{port}")
+                print()
         elif mode == "ios":
             pm.ios = start_ios(backend_url, ios_port, project_root)
         else:  # both
             pm.backend = start_backend(host, port)
             print("Waiting 3s for backend to initialize...")
             time.sleep(3)
+            
+            # Enable mock data if requested
+            if args.mock:
+                print("\n🧪 Enabling mock data mode...")
+                backend_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
+                enable_mock_data(f"http://{backend_host}:{port}")
+                print()
+            
             pm.ios = start_ios(backend_url, ios_port, project_root)
 
         while True:

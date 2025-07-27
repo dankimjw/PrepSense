@@ -37,23 +37,50 @@ class RecipeImageService:
         Returns:
             Formatted prompt for GPT-4
         """
+        # Analyze dish type from title
+        title_lower = recipe_title.lower()
+        
+        # Determine appropriate presentation style
+        if "soup" in title_lower or "stew" in title_lower or "chowder" in title_lower:
+            presentation = "in an elegant bowl, garnished beautifully, steam rising"
+            style = "overhead angle showing the soup's texture and color"
+        elif "appetizer" in title_lower or "starter" in title_lower:
+            presentation = "on a modern appetizer plate, elegant small portions"
+            style = "45-degree angle showcasing presentation"
+        elif "salad" in title_lower:
+            presentation = "in a modern salad bowl or plate, fresh and vibrant"
+            style = "natural lighting emphasizing freshness"
+        elif "dessert" in title_lower or "cake" in title_lower:
+            presentation = "on a dessert plate with elegant plating"
+            style = "close-up showing texture and details"
+        else:
+            presentation = "on a beautiful plate"
+            style = "appetizing presentation"
+        
         # Base prompt for food photography style
-        base_prompt = "Professional food photography, appetizing presentation, natural lighting, shallow depth of field"
+        base_prompt = f"Professional food photography, {style}, natural soft lighting, shallow depth of field"
 
-        # Add recipe details
-        recipe_prompt = f"{recipe_title}"
+        # Build the dish description more carefully
+        recipe_prompt = f"beautifully plated {recipe_title}"
 
         # Add cuisine style if provided
         if cuisine:
-            recipe_prompt += f", {cuisine} cuisine style"
+            recipe_prompt = f"{cuisine} cuisine {recipe_prompt}"
 
-        # Add key ingredients (limit to 3-4 main ones)
+        # Handle ingredients more thoughtfully
         if ingredients:
-            main_ingredients = ", ".join(ingredients[:3])
-            recipe_prompt += f", featuring {main_ingredients}"
+            # Skip generic ingredients and focus on visual ones
+            visual_ingredients = []
+            skip_words = ['salt', 'pepper', 'oil', 'water', 'stock', 'broth']
+            for ing in ingredients[:3]:
+                if not any(skip in ing.lower() for skip in skip_words):
+                    visual_ingredients.append(ing)
+            
+            if visual_ingredients:
+                recipe_prompt += f", garnished with fresh herbs"
 
-        # Combine prompts
-        full_prompt = f"{base_prompt}, {recipe_prompt}, on a beautiful plate, restaurant quality, highly detailed, 4K"
+        # Combine prompts with better structure
+        full_prompt = f"{base_prompt}, {recipe_prompt}, {presentation}, restaurant quality, warm inviting colors, highly detailed, 4K, no text or labels"
 
         # Ensure prompt isn't too long (GPT-4 has a limit)
         if len(full_prompt) > 400:
@@ -99,17 +126,25 @@ class RecipeImageService:
             prompt = self.create_recipe_image_prompt(recipe_title, ingredients or [], cuisine)
             logger.info(f"Generating image for recipe {recipe_id} with prompt: {prompt}")
 
-            # Generate image using GPT-4 3 with new API syntax
+            # Generate image using DALL-E 3 with new API syntax
             response = self.client.images.generate(
-                model="GPT-4-3",
+                model="dall-e-3",
                 prompt=prompt,
                 size="1024x1024",
                 quality="standard",
                 n=1
             )
 
+            # Log the full OpenAI response for debugging
+            print(f"\n🤖 OpenAI Image Generation Response:")
+            print(f"   Recipe ID: {recipe_id}")
+            print(f"   Model: dall-e-3")
+            print(f"   Response data: {response.data}")
+            print(f"   Full response: {response}")
+            
             # Get the generated image URL
             image_url = response.data[0].url
+            print(f"   Generated Image URL: {image_url}\n")
 
             # Upload to GCS
             stored_url = await self.gcs_service.upload_image_from_url(

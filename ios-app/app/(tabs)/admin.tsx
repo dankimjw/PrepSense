@@ -52,11 +52,37 @@ export default function AdminScreen() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'database'>('cleanup');
+  const [activeTab, setActiveTab] = useState<'cleanup' | 'users' | 'database'>('database');
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [cleanupTimeframe, setCleanupTimeframe] = useState<number | null>(24); // Default: 24 hours
   const [isRevertingChanges, setIsRevertingChanges] = useState(false);
   const [revertTimeframe, setRevertTimeframe] = useState<number | null>(1); // Default: 1 hour
+  const [useMockData, setUseMockData] = useState(false);
+
+  // Check mock data status on mount from RemoteControl
+  useEffect(() => {
+    const checkMockDataStatus = async () => {
+      try {
+        const response = await fetch(`${Config.API_BASE_URL}/remote-control/status`);
+        if (response.ok) {
+          const data = await response.json();
+          // Check if all mock features are enabled
+          const states = data.states || {};
+          const allEnabled = states.ocr_scan && states.recipe_completion && states.chat_recipes;
+          setUseMockData(allEnabled);
+        }
+      } catch (error) {
+        console.error('Error checking mock data status:', error);
+      }
+    };
+    
+    checkMockDataStatus();
+    
+    // Check status every 5 seconds to stay in sync
+    const interval = setInterval(checkMockDataStatus, 5000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Load mock users for prototype - TODO: Replace with real API when backend is ready
   useEffect(() => {
@@ -350,22 +376,68 @@ export default function AdminScreen() {
     );
   };
 
+  // Toggle mock data for OCR, recipe completion, and chat recipes
+  const toggleMockData = async (value: boolean) => {
+    try {
+      // Use unified remote control endpoint to toggle all mock data
+      const response = await fetch(`${Config.API_BASE_URL}/remote-control/toggle-all`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          enabled: value,
+          changed_by: 'admin_page'
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUseMockData(value);
+        Alert.alert(
+          'Success',
+          `Mock data ${value ? 'enabled' : 'disabled'} for:\n• OCR scanning\n• Recipe completion\n• Chat recipes\n\n${data.message}`,
+          [{ text: 'OK' }]
+        );
+      } else {
+        throw new Error('Failed to update mock data settings');
+      }
+    } catch (error) {
+      console.error('Error toggling mock data:', error);
+      Alert.alert('Error', 'Failed to toggle mock data settings');
+      // Revert the switch if the API call failed
+      setUseMockData(!value);
+    }
+  };
+
   const renderDatabaseTab = () => (
     <View style={styles.bigQueryContainer}>
       <Text style={styles.header}>Database Testing</Text>
 
       <View style={styles.settingRow}>
-        <Text style={styles.settingLabel}>Mock Mode</Text>
+        <Text style={styles.settingLabel}>Mock Data Mode</Text>
         <Switch
-          value={false}
-          onValueChange={() => {}}
+          value={useMockData}
+          onValueChange={toggleMockData}
           trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={'#f4f3f4'}
+          thumbColor={useMockData ? '#297A56' : '#f4f3f4'}
         />
-        <Text style={[styles.settingValue, styles.activeMode]}>
-          Live Mode
+        <Text style={[styles.settingValue, useMockData && styles.activeMode]}>
+          {useMockData ? 'Mock Mode' : 'Live Mode'}
         </Text>
       </View>
+      
+      {useMockData && (
+        <View style={styles.mockDataInfo}>
+          <Text style={styles.mockDataTitle}>Mock Data Active</Text>
+          <Text style={styles.mockDataDescription}>
+            • OCR: Receipt/item scanning returns test data{'\n'}
+            • Recipes: Chat recommends test recipes (Carbonara, Cookies, Chicken){'\n'}
+            • Completion: Recipe completion returns mock pantry updates{'\n'}
+            • All features controlled by RemoteControl system
+          </Text>
+        </View>
+      )}
 
       {/* Cleanup Button - Moved outside settingRow */}
       <View style={styles.bigQueryCleanupContainer}>
@@ -667,6 +739,52 @@ export default function AdminScreen() {
               >
                 <MaterialCommunityIcons name="test-tube" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
                 <Text style={styles.cleanupButtonText}>Run Subtraction Tests</Text>
+              </TouchableOpacity>
+
+              {/* Cleanup Trader Joe's Items Button */}
+              <TouchableOpacity
+                style={[styles.testDataButton, { backgroundColor: '#E74C3C', marginTop: 12 }]}
+                onPress={async () => {
+                  Alert.alert(
+                    "Remove Trader Joe's Items?",
+                    "This will permanently delete all Trader Joe's items from your pantry. This cannot be undone.",
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Delete', 
+                        style: 'destructive',
+                        onPress: async () => {
+                          try {
+                            const response = await fetch(`${Config.API_BASE_URL}/pantry/cleanup-trader-joes-items?user_id=111`, {
+                              method: 'DELETE',
+                              headers: { 'Content-Type': 'application/json' },
+                            });
+                            
+                            if (response.ok) {
+                              const result = await response.json();
+                              if (result.deleted_count > 0) {
+                                Alert.alert(
+                                  'Success', 
+                                  `Deleted ${result.deleted_count} Trader Joe's items:\n\n${result.deleted_items.slice(0, 5).map(item => `• ${item.name}`).join('\n')}${result.deleted_count > 5 ? '\n...' : ''}`,
+                                  [{ text: 'OK' }]
+                                );
+                              } else {
+                                Alert.alert('No Items Found', "No Trader Joe's items found in your pantry.");
+                              }
+                            } else {
+                              throw new Error('Failed to cleanup items');
+                            }
+                          } catch (error) {
+                            Alert.alert('Error', 'Failed to cleanup Trader Joe\'s items: ' + error.message);
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }}
+              >
+                <MaterialCommunityIcons name="store-remove" size={20} color="#FFFFFF" style={styles.cleanupIcon} />
+                <Text style={styles.cleanupButtonText}>Remove All Trader Joe's Items</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -1042,5 +1160,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     padding: 12,
     borderRadius: 8,
+  },
+  mockDataInfo: {
+    backgroundColor: '#E7F5EC',
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  mockDataTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#297A56',
+    marginBottom: 8,
+  },
+  mockDataDescription: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 20,
   },
 });

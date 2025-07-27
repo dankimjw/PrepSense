@@ -133,15 +133,24 @@ class UserService:
             return None
         
         row = rows[0]
+        
+        # Parse preferences JSON if it exists
+        preferences_json = row.get('preferences', {}) or {}
+        
+        # Get household_size from either the column or the JSON
+        household_size = preferences_json.get('household_size', row.get('household_size'))
+        
+        # Get values from JSON or fallback to columns
+        dietary_preference = preferences_json.get('dietary_restrictions', row.get('dietary_preference', []))
+        allergens = preferences_json.get('allergens', row.get('allergens', []))
+        cuisine_preference = preferences_json.get('cuisine_preferences', row.get('cuisine_preference', []))
+        
         return UserProfilePreference(
-            user_id=str(row['user_id']),
-            dietary_preference=row.get('dietary_preference', []),
-            allergens=row.get('allergens', []),
-            cuisine_preference=row.get('cuisine_preference', []),
-            cooking_time_preference=row.get('cooking_time_preference'),
-            taste_preference=row.get('taste_preference', []),
-            health_goal=row.get('health_goal', []),
-            kitchen_equipment=row.get('kitchen_equipment', [])
+            household_size=household_size,
+            dietary_preference=dietary_preference,
+            allergens=allergens,
+            cuisine_preference=cuisine_preference,
+            preference_created_at=row.get('created_at')
         )
     
     async def get_user_profile(self, user_id: str) -> Optional[UserProfileResponse]:
@@ -160,8 +169,11 @@ class UserService:
             first_name=user.first_name,
             last_name=user.last_name,
             is_admin=user.is_admin,
-            created_at=user.created_at,
-            updated_at=user.updated_at,
+            user_created_at=user.created_at,
+            user_updated_at=user.updated_at,
+            password_hash=None,  # Don't expose password hash
+            role='admin' if user.is_admin else 'user',
+            api_key_enc='',  # Add proper API key if needed
             preferences=preferences
         )
     

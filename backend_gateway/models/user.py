@@ -1,6 +1,6 @@
 """Pydantic models representing application users."""
 
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional, List, Union
 from datetime import datetime
 
@@ -18,16 +18,14 @@ class UserInDB(UserBase):
     numeric_user_id: int  # Numeric ID from 'user' table (required)
     created_at: datetime
     updated_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class UserResponse(UserBase):
     id: str  # This is the string ID
     numeric_user_id: int  # Numeric ID (required)
     created_at: datetime
     updated_at: datetime
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserProfilePreference(BaseModel):
@@ -45,12 +43,13 @@ class UserProfilePreference(BaseModel):
         if isinstance(self.cuisine_preference, list):
             self.cuisine_preference = ", ".join(self.cuisine_preference) if self.cuisine_preference else None
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True # Allows using alias
-        json_encoders = {
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,  # Allows using alias
+        json_encoders={
             datetime: lambda v: v.isoformat() if v else None
         }
+    )
 
 
 class UserProfileResponse(UserBase):
@@ -63,6 +62,7 @@ class UserProfileResponse(UserBase):
     api_key_enc: str
     preferences: Optional[UserProfilePreference] = None
 
-    class Config:
-        from_attributes = True
-        populate_by_name = True
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True
+    )

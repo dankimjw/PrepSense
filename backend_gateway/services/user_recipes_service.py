@@ -83,14 +83,13 @@ class UserRecipesService:
                     recipe_id_to_save = recipe_id
                 
                 # Insert new recipe
-                # TODO: Add status column once migration is run
                 insert_query = """
                 INSERT INTO user_recipes (
                     user_id, recipe_id, recipe_title, recipe_image, 
-                    recipe_data, source, rating, is_favorite
+                    recipe_data, source, rating, is_favorite, status
                 ) VALUES (
                     %(user_id)s, %(recipe_id)s, %(recipe_title)s, %(recipe_image)s,
-                    %(recipe_data)s, %(source)s, %(rating)s, %(is_favorite)s
+                    %(recipe_data)s, %(source)s, %(rating)s, %(is_favorite)s, %(status)s
                 ) RETURNING id
                 """
                 
@@ -102,7 +101,8 @@ class UserRecipesService:
                     "recipe_data": json.dumps(recipe_data),
                     "source": source,
                     "rating": rating,
-                    "is_favorite": is_favorite
+                    "is_favorite": is_favorite,
+                    "status": status
                 })
                 
                 logger.info(f"Recipe saved successfully for user {user_id}: {recipe_title} (source: {source}, favorite: {is_favorite})")
@@ -146,10 +146,10 @@ class UserRecipesService:
                 conditions.append("rating = %(rating)s")
                 params["rating"] = rating
             
-            # TODO: Uncomment after migration
-            # if status:
-            #     conditions.append("status = %(status)s")
-            #     params["status"] = status
+            # Filter by status if provided
+            if status:
+                conditions.append("status = %(status)s")
+                params["status"] = status
             
             query = f"""
             SELECT 
@@ -161,8 +161,8 @@ class UserRecipesService:
                 source,
                 rating,
                 is_favorite,
-                -- status,  -- TODO: Uncomment after migration
-                -- cooked_at,  -- TODO: Uncomment after migration
+                status,
+                cooked_at,
                 created_at,
                 updated_at
             FROM user_recipes
@@ -190,6 +190,8 @@ class UserRecipesService:
                     recipe['created_at'] = recipe['created_at'].isoformat()
                 if recipe.get('updated_at'):
                     recipe['updated_at'] = recipe['updated_at'].isoformat()
+                if recipe.get('cooked_at'):
+                    recipe['cooked_at'] = recipe['cooked_at'].isoformat()
                     
                 recipes.append(recipe)
             
@@ -317,35 +319,72 @@ class UserRecipesService:
     ) -> Dict[str, Any]:
         """Mark a recipe as cooked"""
         try:
-            update_query = """
-            UPDATE user_recipes 
-            SET 
-                status = 'cooked',
-                cooked_at = CURRENT_TIMESTAMP,
-                updated_at = CURRENT_TIMESTAMP
-            WHERE id = %(recipe_id)s AND user_id = %(user_id)s
-            RETURNING id, status, cooked_at
+            # Check if status column exists
+            check_column_query = """
+            SELECT EXISTS (
+                SELECT 1 
+                FROM information_schema.columns 
+                WHERE table_name = 'user_recipes' 
+                AND column_name = 'status'
+            );
             """
             
-            result = self.db_service.execute_query(update_query, {
-                "recipe_id": recipe_id,
-                "user_id": user_id
-            })
+            column_exists = self.db_service.execute_query(check_column_query)
+            has_status_column = column_exists[0]['exists'] if column_exists else False
             
-            if result:
-                logger.info(f"Recipe {recipe_id} marked as cooked for user {user_id}")
-                return {
-                    "success": True,
-                    "message": "Recipe marked as cooked",
-                    "recipe_id": result[0]['id'],
-                    "status": result[0]['status'],
-                    "cooked_at": result[0]['cooked_at'].isoformat() if result[0]['cooked_at'] else None
-                }
+            if has_status_column:
+                update_query = """
+                UPDATE user_recipes 
+                SET 
+                    status = 'cooked',
+                    cooked_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = %(recipe_id)s AND user_id = %(user_id)s
+                RETURNING id, status, cooked_at
+                """
+                
+                result = self.db_service.execute_query(update_query, {
+                    "recipe_id": recipe_id,
+                    "user_id": user_id
+                })
+                
+                if result:
+                    logger.info(f"Recipe {recipe_id} marked as cooked for user {user_id}")
+                    return {
+                        "success": True,
+                        "message": "Recipe marked as cooked",
+                        "recipe_id": result[0]['id'],
+                        "status": result[0]['status'],
+                        "cooked_at": result[0]['cooked_at'].isoformat() if result[0]['cooked_at'] else None
+                    }
             else:
-                return {
-                    "success": False,
-                    "message": "Recipe not found"
-                }
+                # If column doesn't exist, just update the timestamp
+                update_query = """
+                UPDATE user_recipes 
+                SET updated_at = CURRENT_TIMESTAMP
+                WHERE id = %(recipe_id)s AND user_id = %(user_id)s
+                RETURNING id
+                """
+                
+                result = self.db_service.execute_query(update_query, {
+                    "recipe_id": recipe_id,
+                    "user_id": user_id
+                })
+                
+                if result:
+                    logger.info(f"Recipe {recipe_id} marked as cooked for user {user_id} (status column pending migration)")
+                    return {
+                        "success": True,
+                        "message": "Recipe marked as cooked (migration pending)",
+                        "recipe_id": result[0]['id'],
+                        "status": "cooked",
+                        "cooked_at": None
+                    }
+            
+            return {
+                "success": False,
+                "message": "Recipe not found"
+            }
                 
         except Exception as e:
             logger.error(f"Error marking recipe as cooked: {str(e)}")
@@ -354,24 +393,56 @@ class UserRecipesService:
     async def get_recipe_stats(self, user_id: int) -> Dict[str, Any]:
         """Get user's recipe statistics"""
         try:
-            stats_query = """
-            SELECT 
-                COUNT(*) as total_recipes,
-                COUNT(CASE WHEN is_favorite THEN 1 END) as favorite_recipes,
-                COUNT(CASE WHEN source = 'chat' THEN 1 END) as ai_generated_recipes,
-                COUNT(CASE WHEN source = 'spoonacular' THEN 1 END) as spoonacular_recipes,
-                COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
-                COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes,
-                COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
-                COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cooked_recipes
-            FROM user_recipes
-            WHERE user_id = %(user_id)s
+            # Check if status column exists
+            check_column_query = """
+            SELECT EXISTS (
+                SELECT 1 
+                FROM information_schema.columns 
+                WHERE table_name = 'user_recipes' 
+                AND column_name = 'status'
+            );
             """
+            
+            column_exists = self.db_service.execute_query(check_column_query)
+            has_status_column = column_exists[0]['exists'] if column_exists else False
+            
+            if has_status_column:
+                stats_query = """
+                SELECT 
+                    COUNT(*) as total_recipes,
+                    COUNT(CASE WHEN is_favorite THEN 1 END) as favorite_recipes,
+                    COUNT(CASE WHEN source = 'chat' THEN 1 END) as ai_generated_recipes,
+                    COUNT(CASE WHEN source = 'spoonacular' THEN 1 END) as spoonacular_recipes,
+                    COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
+                    COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes,
+                    COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
+                    COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cooked_recipes
+                FROM user_recipes
+                WHERE user_id = %(user_id)s
+                """
+            else:
+                # Fallback query without status column
+                stats_query = """
+                SELECT 
+                    COUNT(*) as total_recipes,
+                    COUNT(CASE WHEN is_favorite THEN 1 END) as favorite_recipes,
+                    COUNT(CASE WHEN source = 'chat' THEN 1 END) as ai_generated_recipes,
+                    COUNT(CASE WHEN source = 'spoonacular' THEN 1 END) as spoonacular_recipes,
+                    COUNT(CASE WHEN rating = 'thumbs_up' THEN 1 END) as liked_recipes,
+                    COUNT(CASE WHEN rating = 'thumbs_down' THEN 1 END) as disliked_recipes
+                FROM user_recipes
+                WHERE user_id = %(user_id)s
+                """
             
             result = self.db_service.execute_query(stats_query, {"user_id": user_id})
             
             if result:
-                return dict(result[0])
+                stats = dict(result[0])
+                # Add default values if status column doesn't exist
+                if not has_status_column:
+                    stats['saved_recipes'] = stats['total_recipes']
+                    stats['cooked_recipes'] = 0
+                return stats
             else:
                 return {
                     "total_recipes": 0,
@@ -379,7 +450,9 @@ class UserRecipesService:
                     "ai_generated_recipes": 0,
                     "spoonacular_recipes": 0,
                     "liked_recipes": 0,
-                    "disliked_recipes": 0
+                    "disliked_recipes": 0,
+                    "saved_recipes": 0,
+                    "cooked_recipes": 0
                 }
                 
         except Exception as e:

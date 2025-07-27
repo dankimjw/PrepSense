@@ -1,6 +1,6 @@
 """Pydantic models for nutrition and dietary intake tracking."""
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Dict, List, Optional, Union
 from datetime import datetime, date
 from enum import Enum
@@ -135,7 +135,8 @@ class NutrientGap(BaseModel):
     is_excessive: bool
     priority: str = "medium"  # low, medium, high
     
-    @validator('percentage_met')
+    @field_validator('percentage_met')
+    @classmethod
     def calculate_percentage(cls, v, values):
         if 'consumed' in values and 'recommended' in values:
             recommended = values['recommended']

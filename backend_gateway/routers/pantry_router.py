@@ -3,8 +3,44 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from typing import List, Any, Dict, Optional
 import logging
 
+# Import RemoteControl
+from backend_gateway.RemoteControl_7 import is_recipe_completion_mock_enabled, set_mock
+
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Mock data flag for recipe completion - DEPRECATED, use RemoteControl instead
+use_mock_recipe_completion = False
+
+# Mock response for recipe completion
+MOCK_RECIPE_COMPLETION_RESPONSE = {
+    "message": "Recipe completed successfully",
+    "recipe_name": "Test Recipe",
+    "updated_items": [
+        {
+            "item_name": "Trader Joe's Italian Linguine Pasta",
+            "pantry_item_id": 1,
+            "previous_quantity": 16.0,
+            "new_quantity": 14.0,
+            "used_quantity": 2.0,
+            "unit": "oz",
+            "match_score": 100
+        },
+        {
+            "item_name": "Trader Joe's Organic Joe's O's Pasta",
+            "pantry_item_id": 2,
+            "previous_quantity": 15.0,
+            "new_quantity": 13.5,
+            "used_quantity": 1.5,
+            "unit": "oz",
+            "match_score": 95
+        }
+    ],
+    "missing_items": [],
+    "insufficient_items": [],
+    "errors": [],
+    "summary": "Updated 2 items"
+}
 
 # Security imports
 from backend_gateway.core.security import oauth2_scheme_optional, get_current_user
@@ -20,12 +56,45 @@ from backend_gateway.constants.units import convert_quantity, normalize_unit, ge
 from backend_gateway.services.recipe_completion_service import RecipeCompletionService
 
 # Model for creating a pantry item
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import date, datetime
 from typing import List
 
 # Set up logging
 logger = logging.getLogger(__name__)
+
+# Mock data flag for recipe completion
+use_mock_recipe_completion = False
+
+# Mock response for recipe completion
+MOCK_RECIPE_COMPLETION_RESPONSE = {
+    "message": "Recipe completed successfully",
+    "recipe_name": "Test Recipe",
+    "updated_items": [
+        {
+            "item_name": "Trader Joe's Italian Linguine Pasta",
+            "pantry_item_id": 1,
+            "previous_quantity": 16.0,
+            "new_quantity": 14.0,
+            "used_quantity": 2.0,
+            "unit": "oz",
+            "match_score": 100
+        },
+        {
+            "item_name": "Trader Joe's Organic Joe's O's Pasta",
+            "pantry_item_id": 2,
+            "previous_quantity": 15.0,
+            "new_quantity": 13.5,
+            "used_quantity": 1.5,
+            "unit": "oz",
+            "match_score": 95
+        }
+    ],
+    "missing_items": [],
+    "insufficient_items": [],
+    "errors": [],
+    "summary": "Updated 2 items"
+}
 
 class PantryItemCreate(BaseModel):
     product_name: str = Field(..., example="Whole Milk", description="Name of the product.")
@@ -38,16 +107,14 @@ class PantryItemCreate(BaseModel):
     # product_id: Optional[str] = Field(None, description="Optional ID linking to a master products table.")
     # pantry_id: Optional[str] = Field(None, description="Optional ID if user has multiple pantries; service might handle default.")
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class PantryItemConsumption(BaseModel):
     quantity_amount: float = Field(..., ge=0, description="New quantity amount after consumption")
     used_quantity: Optional[float] = Field(None, description="Total amount that has been used")
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class RecipeIngredient(BaseModel):
@@ -82,8 +149,7 @@ class UserPantryItem(BaseModel):
     upc_code: Optional[str]
     product_created_at: Optional[datetime]
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 router = APIRouter(
@@ -421,6 +487,28 @@ async def complete_recipe(
         HTTPException: If there's an error updating the pantry
     """
     try:
+        # Validate ingredients are provided and not empty
+        if not request.ingredients or len(request.ingredients) == 0:
+            raise HTTPException(
+                status_code=422,
+                detail="No ingredients provided in the request"
+            )
+        
+        # Validate each ingredient
+        for idx, ingredient in enumerate(request.ingredients):
+            if not ingredient.ingredient_name:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Invalid ingredient at index {idx}: missing ingredient_name"
+                )
+        
+        # If mock data flag is set, return mock response
+        if is_recipe_completion_mock_enabled():
+            logger.info("Using mock data for recipe completion")
+            mock_response = MOCK_RECIPE_COMPLETION_RESPONSE.copy()
+            mock_response["recipe_name"] = request.recipe_name
+            return mock_response
+        
         # Get the user's current pantry items
         user_items = await pantry_service.get_user_pantry_items(request.user_id)
         
@@ -693,3 +781,88 @@ async def revert_pantry_changes(
     except Exception as e:
         logger.error(f"Error reverting pantry changes: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to revert changes: {str(e)}")
+
+
+class MockRecipeCompletionConfig(BaseModel):
+    use_mock_data: bool
+
+
+@router.post("/configure-mock-recipe-completion", summary="Toggle mock data for recipe completion")
+async def configure_mock_recipe_completion(config: MockRecipeCompletionConfig):
+    """Toggle the use of mock data for recipe completion"""
+    # Update RemoteControl instead of local variable
+    set_mock("recipe_completion", config.use_mock_data, "pantry_router")
+    logger.info(f"Mock recipe completion data {'enabled' if config.use_mock_data else 'disabled'}")
+    return {
+        "success": True,
+        "use_mock_data": use_mock_recipe_completion,
+        "message": f"Mock recipe completion data {'enabled' if use_mock_recipe_completion else 'disabled'}"
+    }
+
+
+@router.delete("/cleanup-trader-joes-items", summary="Remove all Trader Joe's items from pantry")
+async def cleanup_trader_joes_items(
+    user_id: int = 111,
+    db_service = Depends(get_database_service)
+):
+    """
+    Remove all Trader Joe's items from the user's pantry.
+    This helps clean up test data that may have been accidentally saved.
+    """
+    try:
+        # First, get all Trader Joe's items for the user
+        query = """
+        SELECT pi.pantry_item_id, pi.product_name, pi.quantity
+        FROM pantry_items pi
+        JOIN pantries p ON pi.pantry_id = p.pantry_id
+        WHERE p.user_id = %(user_id)s
+        AND LOWER(pi.product_name) LIKE %(pattern)s
+        """
+        
+        trader_joes_items = db_service.execute_query(
+            query,
+            {"user_id": user_id, "pattern": "%trader joe%"}
+        )
+        
+        if not trader_joes_items:
+            return {
+                "success": True,
+                "deleted_count": 0,
+                "message": "No Trader Joe's items found in pantry"
+            }
+        
+        # Delete the items
+        item_ids = [item["pantry_item_id"] for item in trader_joes_items]
+        
+        delete_query = """
+        DELETE FROM pantry_items
+        WHERE pantry_item_id IN %(item_ids)s
+        """
+        
+        db_service.execute_query(
+            delete_query,
+            {"item_ids": tuple(item_ids)}
+        )
+        
+        # Return details of what was deleted
+        deleted_items = [
+            {
+                "id": item["pantry_item_id"],
+                "name": item["product_name"],
+                "quantity": item["quantity"]
+            }
+            for item in trader_joes_items
+        ]
+        
+        logger.info(f"Deleted {len(deleted_items)} Trader Joe's items for user {user_id}")
+        
+        return {
+            "success": True,
+            "deleted_count": len(deleted_items),
+            "deleted_items": deleted_items,
+            "message": f"Successfully deleted {len(deleted_items)} Trader Joe's items"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error cleaning up Trader Joe's items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup items: {str(e)}")

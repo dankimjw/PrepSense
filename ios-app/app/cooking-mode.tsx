@@ -38,14 +38,43 @@ export default function CookingModeScreen() {
     if (params.recipe) {
       try {
         const recipeData = JSON.parse(params.recipe as string);
+        // Ensure ingredients is always an array and filter out any undefined/null values
+        if (recipeData.ingredients && !Array.isArray(recipeData.ingredients)) {
+          recipeData.ingredients = [];
+        } else if (recipeData.ingredients) {
+          recipeData.ingredients = recipeData.ingredients.filter((ing: any) => ing !== undefined && ing !== null && ing !== '');
+        } else {
+          recipeData.ingredients = [];
+        }
         setRecipe(recipeData);
       } catch (error) {
         console.error('Error parsing recipe data:', error);
         Alert.alert('Error', 'Failed to load recipe');
-        router.back();
+        router.push('/(tabs)/chat');
+      }
+    } else if (params.recipeData) {
+      // Handle new format from RecipeDetailCard
+      try {
+        const recipeData = JSON.parse(params.recipeData as string);
+        // Convert from Recipe service format to cooking mode format
+        const convertedRecipe = {
+          id: recipeData.id,
+          name: recipeData.title || recipeData.name,
+          ingredients: recipeData.ingredients || [],
+          instructions: recipeData.instructions || [],
+          nutrition: recipeData.nutrition || { calories: 0, protein: 0 },
+          time: recipeData.readyInMinutes || recipeData.time || 30,
+        };
+        // Filter out any undefined/null ingredients
+        convertedRecipe.ingredients = convertedRecipe.ingredients.filter((ing: any) => ing !== undefined && ing !== null && ing !== '');
+        setRecipe(convertedRecipe);
+      } catch (error) {
+        console.error('Error parsing recipe data:', error);
+        Alert.alert('Error', 'Failed to load recipe');
+        router.push('/(tabs)/chat');
       }
     }
-  }, [params.recipe]);
+  }, [params.recipe, params.recipeData]);
 
   useEffect(() => {
     // Cleanup timer on unmount
@@ -96,19 +125,38 @@ export default function CookingModeScreen() {
     try {
       setIsCompleting(true);
       
-      // Convert ingredient usages to the format needed by the API
+      // Convert ingredient usages to the format needed by the API with additional validation
       const ingredients: RecipeIngredient[] = ingredientUsages
-        .filter(usage => usage.selectedAmount > 0)
+        .filter(usage => {
+          // Enhanced validation to ensure no undefined ingredients are sent
+          if (!usage || !usage.ingredientName || !usage.ingredientName.trim()) {
+            console.warn('Filtering out invalid ingredient usage in cooking mode:', usage);
+            return false;
+          }
+          return usage.selectedAmount > 0;
+        })
         .map(usage => ({
-          ingredient_name: usage.ingredientName,
+          ingredient_name: usage.ingredientName.trim(),
           quantity: usage.selectedAmount,
-          unit: usage.requestedUnit,
-        }));
+          unit: usage.requestedUnit || 'unit',
+        }))
+        .filter(ingredient => {
+          // Final validation on the converted ingredients
+          if (!ingredient.ingredient_name || ingredient.ingredient_name === '') {
+            console.warn('Filtering out ingredient with empty name:', ingredient);
+            return false;
+          }
+          return true;
+        });
 
       if (ingredients.length === 0) {
+        console.error('No valid ingredients after filtering in cooking mode');
         Alert.alert('No Ingredients Selected', 'Please select at least some ingredients to use.');
         return;
       }
+
+      console.log('Sending ingredients to API:', ingredients.length, 'valid ingredients');
+      console.log('Ingredient names:', ingredients.map(ing => ing.ingredient_name));
 
       const result = await completeRecipe({
         user_id: 111, // TODO: Get actual user ID
@@ -180,7 +228,7 @@ export default function CookingModeScreen() {
                           console.error('Error updating rating:', error);
                         }
                       }
-                      router.back();
+                      router.push('/(tabs)/chat');
                     }
                   },
                   {
@@ -198,13 +246,13 @@ export default function CookingModeScreen() {
                           console.error('Error updating rating:', error);
                         }
                       }
-                      router.back();
+                      router.push('/(tabs)/chat');
                     }
                   },
                   {
                     text: 'Skip',
                     style: 'cancel',
-                    onPress: () => router.back()
+                    onPress: () => router.push('/(tabs)/chat')
                   }
                 ]
               );
@@ -213,7 +261,7 @@ export default function CookingModeScreen() {
           {
             text: 'Done',
             style: 'cancel',
-            onPress: () => router.back()
+            onPress: () => router.push('/(tabs)/chat')
           }
         ]
       );
@@ -235,7 +283,8 @@ export default function CookingModeScreen() {
           if (activeTimer) {
             clearInterval(activeTimer);
           }
-          router.back();
+          // Navigate back to chat tab
+          router.push('/(tabs)/chat');
         }},
       ]
     );
@@ -320,7 +369,7 @@ export default function CookingModeScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>No cooking instructions available</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.push('/(tabs)/chat')}>
             <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -358,42 +407,67 @@ export default function CookingModeScreen() {
       </View>
 
       {/* Main Content */}
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.stepContainer}>
-          <View style={styles.stepNumberCircle}>
-            <Text style={styles.stepNumber}>{currentStep + 1}</Text>
+      <View style={styles.contentWrapper}>
+        <ScrollView 
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.stepContainer}>
+            <View style={styles.stepNumberCircle}>
+              <Text style={styles.stepNumber}>{currentStep + 1}</Text>
+            </View>
+            
+            <Text style={styles.instruction}>
+              {recipe.instructions[currentStep]}
+            </Text>
           </View>
-          
-          <Text style={styles.instruction}>
-            {recipe.instructions[currentStep]}
-          </Text>
-        </View>
 
-        {/* Timer suggestion if instruction contains time */}
-        {recipe.instructions[currentStep].match(/\d+\s*(minutes?|mins?|hours?|hrs?|seconds?|secs?)/i) && !remainingTime && (
-          <TouchableOpacity style={styles.timerSuggestion} onPress={handleSetTimer}>
-            <Ionicons name="timer-outline" size={24} color="#297A56" />
-            <Text style={styles.timerText}>Set Timer</Text>
+          {/* Timer suggestion if instruction contains time */}
+          {recipe.instructions[currentStep].match(/\d+\s*(minutes?|mins?|hours?|hrs?|seconds?|secs?)/i) && !remainingTime && (
+            <TouchableOpacity style={styles.timerSuggestion} onPress={handleSetTimer}>
+              <Ionicons name="timer-outline" size={24} color="#297A56" />
+              <Text style={styles.timerText}>Set Timer</Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Active timer display */}
+          {remainingTime !== null && (
+            <View style={styles.activeTimer}>
+              <View style={styles.timerDisplay}>
+                <Ionicons name="timer" size={32} color="#297A56" />
+                <Text style={styles.timerCountdown}>{formatTime(remainingTime)}</Text>
+              </View>
+              <TouchableOpacity style={styles.cancelTimerButton} onPress={handleCancelTimer}>
+                <Text style={styles.cancelTimerText}>Cancel Timer</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </ScrollView>
+
+        {/* Subtle Navigation Arrows */}
+        {currentStep > 0 && (
+          <TouchableOpacity
+            testID="left-arrow"
+            style={styles.leftArrow}
+            onPress={handlePreviousStep}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="chevron-back" size={28} color="rgba(0,0,0,0.3)" />
           </TouchableOpacity>
         )}
 
-        {/* Active timer display */}
-        {remainingTime !== null && (
-          <View style={styles.activeTimer}>
-            <View style={styles.timerDisplay}>
-              <Ionicons name="timer" size={32} color="#297A56" />
-              <Text style={styles.timerCountdown}>{formatTime(remainingTime)}</Text>
-            </View>
-            <TouchableOpacity style={styles.cancelTimerButton} onPress={handleCancelTimer}>
-              <Text style={styles.cancelTimerText}>Cancel Timer</Text>
-            </TouchableOpacity>
-          </View>
+        {currentStep < totalSteps - 1 && (
+          <TouchableOpacity
+            testID="right-arrow"
+            style={styles.rightArrow}
+            onPress={handleNextStep}
+            activeOpacity={0.6}
+          >
+            <Ionicons name="chevron-forward" size={28} color="rgba(0,0,0,0.3)" />
+          </TouchableOpacity>
         )}
-      </ScrollView>
+      </View>
 
       {/* Navigation Controls */}
       <View style={styles.navigationContainer}>
@@ -439,14 +513,19 @@ export default function CookingModeScreen() {
       </View>
 
       {/* Recipe Completion Modal */}
-      <RecipeCompletionModal
-        visible={showCompletionModal}
-        onClose={() => setShowCompletionModal(false)}
-        onConfirm={handleRecipeCompletionConfirm}
-        recipe={recipe}
-        pantryItems={pantryItems}
-        loading={isCompleting}
-      />
+      {recipe && (
+        <RecipeCompletionModal
+          visible={showCompletionModal}
+          onClose={() => setShowCompletionModal(false)}
+          onConfirm={handleRecipeCompletionConfirm}
+          recipe={{
+            ...recipe,
+            ingredients: recipe.ingredients || []
+          }}
+          pantryItems={pantryItems}
+          loading={isCompleting}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -506,6 +585,10 @@ const styles = StyleSheet.create({
     height: '100%',
     backgroundColor: '#297A56',
     borderRadius: 4,
+  },
+  contentWrapper: {
+    flex: 1,
+    position: 'relative',
   },
   content: {
     flex: 1,
@@ -653,5 +736,45 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontSize: 14,
     fontWeight: '500',
+  },
+  leftArrow: {
+    position: 'absolute',
+    left: 10,
+    top: '50%',
+    marginTop: -25,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  rightArrow: {
+    position: 'absolute',
+    right: 10,
+    top: '50%',
+    marginTop: -25,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
 });

@@ -79,6 +79,7 @@ async def get_user_recipes(
     source: Optional[str] = Query(None, description="Filter by source"),
     is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
     rating: Optional[str] = Query(None, description="Filter by rating"),
+    status: Optional[str] = Query(None, description="Filter by status: 'saved' or 'cooked'"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -94,6 +95,7 @@ async def get_user_recipes(
             source=source,
             is_favorite=is_favorite,
             rating=rating,
+            status=status,
             limit=limit,
             offset=offset
         )

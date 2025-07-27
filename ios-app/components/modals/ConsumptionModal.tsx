@@ -16,7 +16,8 @@ import Slider from '@react-native-community/slider';
 import { useItems } from '../../context/ItemsContext';
 import { Config } from '../../config';
 import { apiClient, ApiError } from '../../services/apiClient';
-import Svg, { Circle, G } from 'react-native-svg';
+import Svg, { Circle, G, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import { shouldAllowDecimals, getQuantityRules } from '../../constants/quantityRules';
 
 const { width } = Dimensions.get('window');
 
@@ -36,9 +37,64 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
   const { updateItem } = useItems();
   const animatedValue = React.useRef(new Animated.Value(50)).current;
 
-  // For single unit items (quantity = 1), we still allow partial consumption
+  // Check if unit requires whole numbers only
+  const allowDecimals = item ? shouldAllowDecimals(item.name || '', item.quantity_unit || '') : true;
+  const quantityRules = item ? getQuantityRules(item.name || '', item.quantity_unit || '') : { allowDecimals: true, step: 1 };
+  
+  // Debug logging to help identify issues
+  if (item && __DEV__) {
+    console.log(`ConsumptionModal Debug - Item: "${item.name}", Unit: "${item.quantity_unit}", AllowDecimals: ${allowDecimals}`);
+  }
+  
+  // Helper function to detect liquid items with wrong database units
+  const isLiquidWithWrongUnit = (itemName: string) => {
+    const lowerName = itemName.toLowerCase();
+    return lowerName.includes('oil') || 
+           lowerName.includes('sauce') ||
+           lowerName.includes('vinegar') ||
+           lowerName.includes('milk') ||
+           lowerName.includes('juice') ||
+           lowerName.includes('honey') ||
+           lowerName.includes('syrup') ||
+           lowerName.includes('broth') ||
+           lowerName.includes('stock') ||
+           lowerName.includes('extract') ||
+           lowerName.includes('wine') ||
+           lowerName.includes('beer');
+  };
+
+  // For discrete units (like "bunches", "each"), we need different percentage options
   const isSingleUnit = item?.quantity_amount === 1;
-  const quickPercentages = [25, 50, 75, 100];
+  const isDiscreteUnit = !allowDecimals;
+  
+  // Create consistent quick percentages for all items
+  const quickPercentages = (() => {
+    // Always show standard percentages for continuous items (liquids, powders, etc.)
+    if (!isDiscreteUnit) {
+      return [25, 50, 75, 100];
+    }
+    
+    // For discrete units, create smart percentages based on quantity
+    const totalQty = item?.quantity_amount || 1;
+    
+    // Special case: if quantity is 1 but it's likely a liquid in wrong unit (like olive oil "ea")
+    // Force standard percentages to avoid bare modal
+    if (totalQty === 1 && item?.item_name && isLiquidWithWrongUnit(item.item_name)) {
+      return [25, 50, 75, 100]; // Force standard percentages for likely liquids
+    }
+    
+    if (totalQty <= 4) {
+      // For small discrete quantities, show percentages for each whole unit
+      const percentages = [];
+      for (let i = 1; i <= totalQty; i++) {
+        percentages.push(Math.round((i / totalQty) * 100));
+      }
+      return percentages;
+    } else {
+      // For larger discrete quantities, use standard fractions
+      return [25, 50, 75, 100];
+    }
+  })();
 
   React.useEffect(() => {
     // Reset to default percentage when item changes or modal opens
@@ -57,12 +113,31 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
 
   const calculateConsumedAmount = () => {
     if (!item) return 0;
-    return (item.quantity_amount * percentage) / 100;
+    
+    const rawAmount = (item.quantity_amount * percentage) / 100;
+    
+    // For discrete units, ensure consumed amount is a whole number
+    if (isDiscreteUnit) {
+      // Use smooth rounding with buffer zones for better UX
+      const rounded = Math.round(rawAmount);
+      return Math.max(1, Math.min(item.quantity_amount, rounded));
+    }
+    
+    return rawAmount;
   };
 
   const calculateRemainingAmount = () => {
     if (!item) return 0;
-    return item.quantity_amount - calculateConsumedAmount();
+    
+    const consumedAmount = calculateConsumedAmount();
+    const remaining = item.quantity_amount - consumedAmount;
+    
+    // For discrete units, ensure remaining is a whole number (or 0)
+    if (isDiscreteUnit) {
+      return Math.max(0, Math.floor(remaining));
+    }
+    
+    return Math.max(0, remaining);
   };
 
   const handleConfirm = async () => {
@@ -175,33 +250,64 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
 
           <View style={styles.gaugeContainer}>
             <View style={styles.gaugeWrapper}>
-              <Svg width={200} height={200} viewBox="0 0 200 200">
-                <G rotation={-90} origin="100, 100">
-                  {/* Background circle */}
+              <Svg width={220} height={220} viewBox="0 0 220 220">
+                <Defs>
+                  {/* Modern gradient definitions */}
+                  <SvgLinearGradient id="lowGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#10B981" stopOpacity="1" />
+                    <Stop offset="100%" stopColor="#059669" stopOpacity="1" />
+                  </SvgLinearGradient>
+                  <SvgLinearGradient id="mediumGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#F59E0B" stopOpacity="1" />
+                    <Stop offset="100%" stopColor="#D97706" stopOpacity="1" />
+                  </SvgLinearGradient>
+                  <SvgLinearGradient id="highGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#EF4444" stopOpacity="1" />
+                    <Stop offset="100%" stopColor="#DC2626" stopOpacity="1" />
+                  </SvgLinearGradient>
+                  <SvgLinearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <Stop offset="0%" stopColor="#F1F5F9" stopOpacity="1" />
+                    <Stop offset="100%" stopColor="#E2E8F0" stopOpacity="1" />
+                  </SvgLinearGradient>
+                </Defs>
+                <G rotation={-90} origin="110, 110">
+                  {/* Background circle with gradient */}
                   <Circle
-                    cx="100"
-                    cy="100"
-                    r="80"
-                    stroke="#E0E0E0"
-                    strokeWidth="20"
+                    cx="110"
+                    cy="110"
+                    r="85"
+                    stroke="url(#backgroundGradient)"
+                    strokeWidth="16"
                     fill="none"
                   />
-                  {/* Progress circle */}
+                  {/* Progress circle with dynamic gradient */}
                   <Circle
-                    cx="100"
-                    cy="100"
-                    r="80"
-                    stroke={percentage > 75 ? "#E74C3C" : percentage > 50 ? "#F39C12" : "#297A56"}
-                    strokeWidth="20"
+                    cx="110"
+                    cy="110"
+                    r="85"
+                    stroke={
+                      percentage > 75 
+                        ? "url(#highGradient)" 
+                        : percentage > 50 
+                        ? "url(#mediumGradient)" 
+                        : "url(#lowGradient)"
+                    }
+                    strokeWidth="16"
                     fill="none"
-                    strokeDasharray={`${2 * Math.PI * 80}`}
-                    strokeDashoffset={`${2 * Math.PI * 80 * (1 - percentage / 100)}`}
+                    strokeDasharray={`${2 * Math.PI * 85}`}
+                    strokeDashoffset={`${2 * Math.PI * 85 * (1 - percentage / 100)}`}
                     strokeLinecap="round"
+                    opacity="0.9"
                   />
                 </G>
               </Svg>
               <View style={styles.gaugeCenter}>
-                <Text style={styles.percentageText}>{percentage}%</Text>
+                <Text style={[
+                  styles.percentageText,
+                  percentage > 75 ? styles.highPercentage : 
+                  percentage > 50 ? styles.mediumPercentage : 
+                  styles.lowPercentage
+                ]}>{percentage}%</Text>
                 <Text style={styles.consumingText}>Consuming</Text>
               </View>
             </View>
@@ -211,42 +317,106 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
               minimumValue={0}
               maximumValue={100}
               value={percentage}
-              onValueChange={setPercentage}
-              step={5}
-              minimumTrackTintColor="transparent"
-              maximumTrackTintColor="transparent"
-              thumbTintColor="#297A56"
+              onValueChange={(value) => {
+                if (isDiscreteUnit) {
+                  // Check if this is a liquid item with wrong database unit
+                  const isLiquidItemWithWrongUnit = item?.name && isLiquidWithWrongUnit(item.name);
+                  
+                  if (isLiquidItemWithWrongUnit) {
+                    // Treat as continuous liquid for smooth slider experience
+                    setPercentage(value);
+                  } else {
+                    // Create smooth buffer zones around discrete values
+                    const discreteValues = [];
+                    for (let i = 1; i <= item.quantity_amount; i++) {
+                      discreteValues.push((i / item.quantity_amount) * 100);
+                    }
+                    
+                    // Find closest discrete value with tolerance buffer
+                    let closestValue = value;
+                    let minDistance = Infinity;
+                    
+                    for (const discreteValue of discreteValues) {
+                      const distance = Math.abs(value - discreteValue);
+                      // Use a tolerance buffer of ±5% for smoother feeling
+                      if (distance < minDistance && distance <= 5) {
+                        minDistance = distance;
+                        closestValue = discreteValue;
+                      }
+                    }
+                    
+                    // If we're not close to any discrete value, allow free movement
+                    // but still constrain to valid range
+                    if (minDistance > 5) {
+                      closestValue = value;
+                    }
+                    
+                    setPercentage(Math.min(100, Math.max(0, closestValue)));
+                  }
+                } else {
+                  setPercentage(value);
+                }
+              }}
+              step={isDiscreteUnit ? 1 : 5}
+              minimumTrackTintColor={
+                percentage > 75 ? "#EF4444" : 
+                percentage > 50 ? "#F59E0B" : 
+                "#10B981"
+              }
+              maximumTrackTintColor="#E2E8F0"
+              thumbTintColor={
+                percentage > 75 ? "#DC2626" : 
+                percentage > 50 ? "#D97706" : 
+                "#059669"
+              }
             />
           </View>
 
           <View style={styles.quickButtons}>
-            {quickPercentages.map((percent) => (
-              <TouchableOpacity
-                key={percent}
-                style={[
-                  styles.quickButton,
-                  percentage === percent && styles.quickButtonActive,
-                ]}
-                onPress={() => setPercentage(percent)}
-              >
-                <Text
+            {quickPercentages.map((percent) => {
+              // For discrete units with small quantities, show the actual unit count
+              const showUnitCount = isDiscreteUnit && item && item.quantity_amount <= 4;
+              const unitCount = showUnitCount ? Math.round((percent / 100) * item.quantity_amount) : null;
+              
+              return (
+                <TouchableOpacity
+                  key={percent}
                   style={[
-                    styles.quickButtonText,
-                    percentage === percent && styles.quickButtonTextActive,
+                    styles.quickButton,
+                    percentage === percent && styles.quickButtonActive,
+                    showUnitCount && styles.quickButtonWithUnit,
                   ]}
+                  onPress={() => setPercentage(percent)}
                 >
-                  {percent}%
-                </Text>
-              </TouchableOpacity>
-            ))}
+                  <Text
+                    style={[
+                      styles.quickButtonText,
+                      percentage === percent && styles.quickButtonTextActive,
+                    ]}
+                  >
+                    {percent}%
+                  </Text>
+                  {showUnitCount && (
+                    <Text
+                      style={[
+                        styles.quickButtonUnit,
+                        percentage === percent && styles.quickButtonUnitActive,
+                      ]}
+                    >
+                      ({unitCount} {item.quantity_unit})
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <View style={styles.consumptionInfo}>
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Consuming:</Text>
               <Text style={styles.infoValueConsuming}>
-                {isSingleUnit 
-                  ? `${percentage}% of item`
+                {isDiscreteUnit 
+                  ? `${calculateConsumedAmount()} ${item.quantity_unit}`
                   : `${calculateConsumedAmount().toFixed(1)} ${item.quantity_unit}`
                 }
               </Text>
@@ -254,12 +424,20 @@ export default function ConsumptionModal({ visible, item, onClose, onExpirationP
             <View style={styles.infoRow}>
               <Text style={styles.infoLabel}>Remaining:</Text>
               <Text style={styles.infoValueRemaining}>
-                {isSingleUnit
-                  ? `${calculateRemainingAmount() > 0 ? 'Partial item' : 'None'}`
+                {isDiscreteUnit
+                  ? `${calculateRemainingAmount()} ${item.quantity_unit}`
                   : `${calculateRemainingAmount().toFixed(1)} ${item.quantity_unit}`
                 }
               </Text>
             </View>
+            {isDiscreteUnit && (
+              <Text style={styles.discreteUnitNote}>
+                {item?.name && isLiquidWithWrongUnit(item.name)
+                  ? '🧪 Liquid mode: Continuous consumption (database unit will be updated)'
+                  : `📏 Smart mode: Slider snaps to whole ${item.quantity_unit} with smooth buffer zones`
+                }
+              </Text>
+            )}
           </View>
 
           <TouchableOpacity
@@ -393,10 +571,18 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   gaugeWrapper: {
-    width: 200,
-    height: 200,
+    width: 220,
+    height: 220,
     position: 'relative',
     marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   gaugeCenter: {
     position: 'absolute',
@@ -410,7 +596,16 @@ const styles = StyleSheet.create({
   percentageText: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#297A56',
+    color: '#1F2937',
+  },
+  lowPercentage: {
+    color: '#059669',
+  },
+  mediumPercentage: {
+    color: '#D97706',
+  },
+  highPercentage: {
+    color: '#DC2626',
   },
   consumingText: {
     fontSize: 14,
@@ -432,18 +627,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     borderWidth: 2,
-    borderColor: '#297A56',
-    backgroundColor: 'white',
+    borderColor: '#E2E8F0',
+    backgroundColor: '#F8FAFC',
   },
   quickButtonActive: {
-    backgroundColor: '#297A56',
+    backgroundColor: '#10B981',
+    borderColor: '#059669',
   },
   quickButtonText: {
-    color: '#297A56',
+    color: '#64748B',
     fontWeight: '600',
   },
   quickButtonTextActive: {
     color: 'white',
+  },
+  quickButtonWithUnit: {
+    paddingVertical: 8,
+    minHeight: 50,
+  },
+  quickButtonUnit: {
+    fontSize: 10,
+    color: '#94A3B8',
+    marginTop: 2,
+  },
+  quickButtonUnitActive: {
+    color: 'rgba(255, 255, 255, 0.8)',
   },
   consumptionInfo: {
     width: '100%',
@@ -464,12 +672,19 @@ const styles = StyleSheet.create({
   infoValueConsuming: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#E74C3C',
+    color: '#DC2626',
   },
   infoValueRemaining: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#297A56',
+    color: '#059669',
+  },
+  discreteUnitNote: {
+    fontSize: 12,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 8,
   },
   confirmButton: {
     width: '100%',

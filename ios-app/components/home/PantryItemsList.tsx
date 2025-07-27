@@ -8,6 +8,8 @@ interface PantryItemsListProps {
   showSeeAll?: boolean;
   onItemPress: (item: PantryItemData) => void;
   onEditPress?: (item: PantryItemData) => void;
+  onSwipeEdit?: (item: PantryItemData) => void;
+  onDelete?: (item: PantryItemData) => void;
   onSeeAllPress?: () => void;
 }
 
@@ -17,6 +19,8 @@ export const PantryItemsList: React.FC<PantryItemsListProps> = ({
   showSeeAll = true,
   onItemPress,
   onEditPress,
+  onSwipeEdit,
+  onDelete,
   onSeeAllPress,
 }) => {
   return (
@@ -37,6 +41,8 @@ export const PantryItemsList: React.FC<PantryItemsListProps> = ({
             item={item}
             onPress={onItemPress}
             onEditPress={onEditPress}
+            onSwipeEdit={onSwipeEdit}
+            onDelete={onDelete}
           />
         ))}
       </View>
