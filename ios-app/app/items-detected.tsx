@@ -14,39 +14,17 @@ import { CustomHeader } from './components/CustomHeader';
 import { SafeAreaView as SafeAreaViewRN } from 'react-native-safe-area-context';
 import { useItems, type Item } from '../context/ItemsContext';
 import { Config } from '../config';
+import { getCategoryBgColor, normalizeCategoryLabel } from '../utils/categoryConfig';
 
 /* helpers */
 const enc = (o: any) => Buffer.from(JSON.stringify(o)).toString('base64');
 const dec = (s: string) => JSON.parse(Buffer.from(s, 'base64').toString('utf8'));
 const CAMERA_ROUTE = '/upload-photo';
 
-// Helper function to get category color
+// Helper function to get category color - now uses centralized config
 const getCategoryColor = (category: string) => {
-  const colors = {
-    'Dairy': '#E0F2FE',
-    'Meat': '#FEE2E2',
-    'Produce': '#DCFCE7',
-    'Bakery': '#FEF3C7',
-    'Pantry': '#EDE9FE',
-    'Beverages': '#E0E7FF',
-    'Frozen': '#E0F2F9',
-    'Snacks': '#FCE7F3',
-    'Canned Goods': '#F3E8FF',
-    'Deli': '#FEF08A',
-    'Seafood': '#BFDBFE',
-    'Dairy & Eggs': '#DBEAFE',
-    'Bakery & Bread': '#FEF3C7',
-    'Meat & Seafood': '#FECACA',
-    'Fruits & Vegetables': '#DCFCE7',
-    'Dairy & Alternatives': '#E0F2FE',
-    'Bakery & Pastries': '#FEF3C7',
-    'Meat & Poultry': '#FEE2E2',
-    'Fruits': '#DCFCE7',
-    'Vegetables': '#DCFCE7',
-    'Default': '#F3F4F6',
-  };
-  
-  return colors[category as keyof typeof colors] || colors['Default'];
+  const normalizedCategory = normalizeCategoryLabel(category);
+  return getCategoryBgColor(normalizedCategory);
 };
 
 // Using Item type from ItemsContext
@@ -106,11 +84,9 @@ export default function ItemsDetected() {
   const [isSaving, setIsSaving] = useState(false);
   const [savedToBigQuery, setSavedToBigQuery] = useState(false);
   
-  // Just add to local context and navigate home
-  const done = () => {
-    // Add all items to the context
-    addItems(items);
-    // Navigate back to home
+  // Navigate home without saving (true skip)
+  const skip = () => {
+    // Don't add items - just navigate back
     router.replace('/(tabs)');
   };
   
@@ -200,37 +176,17 @@ export default function ItemsDetected() {
     }
   };
 
-  const getCategoryColor = (category: string): string => {
-    const colors: Record<string, string> = {
-      'Dairy': '#4F46E5',
-      'Meat': '#DC2626',
-      'Produce': '#16A34A',
-      'Bakery': '#D97706',
-      'Pantry': '#9333EA',
-      'Beverages': '#0284C7',
-      'Frozen': '#0EA5E9',
-      'Snacks': '#E11D48',
-      'Canned Goods': '#F59E0B',
-      'Deli': '#10B981',
-      'Seafood': '#06B6D4',
-      'Dairy & Eggs': '#8B5CF6',
-      'Bakery & Bread': '#F59E0B',
-      'Meat & Seafood': '#EF4444',
-      'Fruits & Vegetables': '#10B981',
-      'Dairy & Alternatives': '#3B82F6',
-      'Bakery & Pastries': '#D97706',
-      'Meat & Poultry': '#DC2626',
-      'Fruits': '#22C55E',
-      'Vegetables': '#10B981',
-    };
-    return colors[category] || '#6B7280';
+  // Using centralized category colors for this function too
+  const getCategoryColorLocal = (category: string): string => {
+    const normalizedCategory = normalizeCategoryLabel(category);
+    return getCategoryBgColor(normalizedCategory);
   };
 
   if (items.length === 0) {
     return (
       <View style={styles.center}>
         <Text>No items detected.</Text>
-        <Pressable onPress={done}><Text style={styles.link}>Back</Text></Pressable>
+        <Pressable onPress={skip}><Text style={styles.link}>Back</Text></Pressable>
       </View>
     );
   }
@@ -292,7 +248,7 @@ export default function ItemsDetected() {
                   <View style={[
                     styles.categoryChip,
                     { 
-                      backgroundColor: getCategoryColor(item.category || 'Uncategorized'),
+                      backgroundColor: getCategoryColor(item.category || ''),
                       opacity: item.category ? 1 : 0.7
                     }
                   ]}>
@@ -309,7 +265,7 @@ export default function ItemsDetected() {
       </View>
       <View style={styles.bottomBar}>
         <View style={styles.buttonContainer}>
-          <Pressable style={styles.skipButton} onPress={done}>
+          <Pressable style={styles.skipButton} onPress={skip}>
             <Text style={styles.skipButtonText}>Skip</Text>
           </Pressable>
           <Pressable 

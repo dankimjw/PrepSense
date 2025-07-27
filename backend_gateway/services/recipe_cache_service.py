@@ -18,6 +18,10 @@ class RecipeCacheService:
         # Structure: {user_id: {'recipes': [...], 'shown_ids': set(), 'last_refresh': datetime}}
         self._cache: Dict[int, Dict[str, Any]] = {}
         
+        # Simple key-value cache for general recipe data (e.g., random recipes)
+        # Structure: {key: {'data': {...}, 'expires_at': datetime}}
+        self._simple_cache: Dict[str, Dict[str, Any]] = {}
+        
         # Cache expiration time
         self.cache_duration = timedelta(hours=24)
         
@@ -175,3 +179,45 @@ class RecipeCacheService:
             'cache_age_minutes': (datetime.now() - cache_data['last_refresh']).seconds // 60,
             'pantry_hash': pantry_hash
         }
+    
+    async def get_recipe_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """
+        Get cached recipe data by key
+        
+        Args:
+            cache_key: Cache key to retrieve
+            
+        Returns:
+            Cached data or None if not found/expired
+        """
+        if cache_key not in self._simple_cache:
+            return None
+        
+        cache_entry = self._simple_cache[cache_key]
+        
+        # Check if expired
+        if datetime.now() > cache_entry['expires_at']:
+            del self._simple_cache[cache_key]
+            logger.info(f"Cache expired for key: {cache_key}")
+            return None
+        
+        logger.info(f"Cache hit for key: {cache_key}")
+        return cache_entry['data']
+    
+    async def cache_recipe_data(self, cache_key: str, data: Dict[str, Any], ttl_minutes: int = 30):
+        """
+        Cache recipe data with TTL
+        
+        Args:
+            cache_key: Cache key to store under
+            data: Data to cache
+            ttl_minutes: Time to live in minutes
+        """
+        expires_at = datetime.now() + timedelta(minutes=ttl_minutes)
+        
+        self._simple_cache[cache_key] = {
+            'data': data,
+            'expires_at': expires_at
+        }
+        
+        logger.info(f"Cached data for key: {cache_key} (expires in {ttl_minutes} minutes)")

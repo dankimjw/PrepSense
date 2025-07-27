@@ -18,6 +18,8 @@ import { Recipe } from '../../services/recipeService';
 import { pantryService } from '../../services/pantryService';
 import { recipeService } from '../../services/recipeService';
 import { QuickCompleteModal } from '../modals/QuickCompleteModal';
+import { getIngredientIcon, capitalizeIngredientName } from '../../utils/ingredientIcons';
+import { Config } from '../../config';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_IMAGE_HEIGHT = SCREEN_WIDTH * 0.6; // 16:10 aspect ratio
@@ -54,9 +56,12 @@ export default function RecipeDetailCardV2({
   const bookmarkAnimation = useRef(new Animated.Value(1)).current;
 
   // Process ingredients with availability status
-  const processedIngredients: IngredientWithStatus[] = recipe.extendedIngredients?.map(ing => ({
+  const processedIngredients: IngredientWithStatus[] = recipe.extendedIngredients?.filter(ing => 
+    // Filter out any undefined/null ingredients or ingredients with empty names
+    ing && (ing.name || ing.original) && (ing.name || ing.original).trim() !== ''
+  ).map(ing => ({
     original: ing.original || ing.name || '',
-    name: ing.name || ing.original || '',
+    name: capitalizeIngredientName(ing.name || ing.original || ''),
     amount: ing.amount,
     unit: ing.unit,
     isAvailable: recipe.available_ingredients?.includes(ing.original) || false,
@@ -107,6 +112,11 @@ export default function RecipeDetailCardV2({
   };
 
   const handleCookNow = () => {
+    // Close any open modals before navigating
+    setShowRatingModal(false);
+    setShowNutritionModal(false);
+    setShowQuickCompleteModal(false);
+    
     // Navigate to cooking mode or start cooking flow
     router.push({
       pathname: '/cooking-mode',
@@ -141,8 +151,30 @@ export default function RecipeDetailCardV2({
     setShowQuickCompleteModal(true);
   };
 
-  const handleQuickCompleteConfirm = () => {
+  const handleQuickCompleteConfirm = async () => {
     setShowQuickCompleteModal(false);
+    
+    // Mark recipe as cooked in the backend
+    if (recipe.id) {
+      try {
+        const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/mark-cooked`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        if (response.ok) {
+          console.log('Recipe marked as cooked after QuickComplete');
+        } else {
+          console.error('Failed to mark recipe as cooked:', response.status);
+        }
+      } catch (error) {
+        console.error('Error marking recipe as cooked:', error);
+        // Continue with the flow even if marking as cooked fails
+      }
+    }
+    
     setHasCookedRecipe(true);
     setShowRatingModal(true);
   };
@@ -300,18 +332,23 @@ export default function RecipeDetailCardV2({
           {displayedIngredients.map((ingredient, index) => (
             <View key={index} testID={`ingredient-row-${index}`} style={styles.ingredientRow}>
               <View testID={`ingredient-icon-${index}`} style={styles.ingredientIcon}>
+                <View style={styles.foodIconContainer}>
+                  <Text style={styles.foodIcon}>{getIngredientIcon(ingredient.name)}</Text>
+                </View>
                 {ingredient.isAvailable ? (
                   <Ionicons 
                     name="checkmark-circle" 
-                    size={20} 
+                    size={16} 
                     color="#4CAF50" 
+                    style={styles.statusIcon}
                     accessibilityLabel="Ingredient available"
                   />
                 ) : (
                   <Ionicons 
                     name="add-circle-outline" 
-                    size={20} 
+                    size={16} 
                     color="#FF9800" 
+                    style={styles.statusIcon}
                     accessibilityLabel="Ingredient missing"
                   />
                 )}
@@ -707,7 +744,29 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   ingredientIcon: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginRight: 12,
+    position: 'relative',
+  },
+  foodIconContainer: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#F8F9FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 4,
+  },
+  foodIcon: {
+    fontSize: 16,
+  },
+  statusIcon: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'white',
+    borderRadius: 8,
   },
   ingredientText: {
     flex: 1,

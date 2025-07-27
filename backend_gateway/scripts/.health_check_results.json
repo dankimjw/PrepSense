@@ -1,0 +1,35 @@
+{
+  "timestamp": "2025-07-26T22:45:55.871990",
+  "success_rate": 42.857142857142854,
+  "results": {
+    "backend": {
+      "basic_connectivity": true,
+      "api_endpoints": {
+        "/api/v1/units": true,
+        "/api/v1/demo/recipes": true,
+        "/api/v1/stats/comprehensive?timeframe=week": false
+      },
+      "database_connection": false,
+      "external_apis": {}
+    },
+    "database": {
+      "read_operations": false,
+      "write_operations": false,
+      "complex_queries": false
+    },
+    "error_handling": {
+      "handles_404": true,
+      "handles_invalid_data": false,
+      "handles_auth_errors": false
+    },
+    "frontend": {
+      "metro_bundler": true,
+      "bundle_valid": false,
+      "simulator_running": true
+    }
+  },
+  "errors": [
+    "/api/v1/stats/comprehensive?timeframe=week: {\"detail\":\"Failed to get statistics: column \\\"status\\\" does not exist\\nLINE 9:                 COUNT"
+  ],
+  "warnings": []
+}

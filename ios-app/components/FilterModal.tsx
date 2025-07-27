@@ -2,34 +2,20 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { FOOD_CATEGORIES } from '../utils/categoryConfig';
 
 interface FilterModalProps {
   visible: boolean;
   onClose: () => void;
   onApply: (filters: {
     categories: string[];
-    sortBy: 'name' | 'expiry' | 'category' | 'date_added';
+    sortBy: 'name' | 'expiry' | 'category' | 'dateAdded';
     sortOrder: 'asc' | 'desc';
   }) => void;
   selectedCategories: string[];
-  sortBy: 'name' | 'expiry' | 'category' | 'date_added';
+  sortBy: 'name' | 'expiry' | 'category' | 'dateAdded';
   sortOrder: 'asc' | 'desc';
 }
-
-const categories = [
-  'Dairy',
-  'Meat',
-  'Produce',
-  'Pantry',
-  'Beverages',
-  'Baking',
-  'Frozen',
-  'Canned Goods',
-  'Vegetables',
-  'Fruits',
-  'Bakery',
-  'Other'
-];
 
 export const FilterModal: React.FC<FilterModalProps> = ({
   visible,
@@ -83,22 +69,22 @@ export const FilterModal: React.FC<FilterModalProps> = ({
           <ScrollView style={styles.scrollView}>
             <Text style={styles.sectionTitle}>Categories</Text>
             <View style={styles.categoriesContainer}>
-              {categories.map(category => (
+              {FOOD_CATEGORIES.map(category => (
                 <TouchableOpacity
-                  key={category}
+                  key={category.id}
                   style={[
                     styles.categoryButton,
-                    localSelectedCategories.includes(category) && styles.categoryButtonSelected,
+                    localSelectedCategories.includes(category.label) && styles.categoryButtonSelected,
                   ]}
-                  onPress={() => toggleCategory(category)}
+                  onPress={() => toggleCategory(category.label)}
                 >
                   <Text
                     style={[
                       styles.categoryText,
-                      localSelectedCategories.includes(category) && styles.categoryTextSelected,
+                      localSelectedCategories.includes(category.label) && styles.categoryTextSelected,
                     ]}
                   >
-                    {category}
+                    {category.label}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -164,18 +150,18 @@ export const FilterModal: React.FC<FilterModalProps> = ({
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.sortOption, localSortBy === 'date_added' && styles.sortOptionSelected]}
-                onPress={() => setLocalSortBy('date_added')}
+                style={[styles.sortOption, localSortBy === 'dateAdded' && styles.sortOptionSelected]}
+                onPress={() => setLocalSortBy('dateAdded')}
               >
                 <Ionicons
                   name="time"
                   size={20}
-                  color={localSortBy === 'date_added' ? '#297A56' : '#4B5563'}
+                  color={localSortBy === 'dateAdded' ? '#297A56' : '#4B5563'}
                 />
                 <Text
                   style={[
                     styles.sortOptionText,
-                    localSortBy === 'date_added' && styles.sortOptionTextSelected,
+                    localSortBy === 'dateAdded' && styles.sortOptionTextSelected,
                   ]}
                 >
                   Date Added

@@ -57,12 +57,21 @@ class VisionService:
             "- For each item identified, follow this detailed reasoning:\n"
             "  1. Read all visible text and branding on the packaging to identify the full item name.\n"
             "     - Include brand and type (e.g., 'Oasis Orange Juice', 'Great Value Basmati Rice').\n"
-            "  2. Scan the package for quantity indicators. These are often found next to weight (g, kg), volume (ml, L), or counts (e.g., '6-pack').\n"
-            "     - Convert all quantity details into a consistent quantity string (e.g., '500 g pack', '1.5 L bottle', '6 eggs').\n"
-            "     - Extract numerical value and unit separately.\n"
-            "       Examples:\n"
-            "         '1.5 L bottle' -> quantity_amount: 1.5, quantity_unit: 'L'\n"
-            "         '6 pack' -> quantity_amount: 6, quantity_unit: 'units'\n"
+            "  2. Scan the package for quantity indicators and use appropriate units based on category:\n"
+            "     - PRODUCE (fruits/vegetables): Use 'lb', 'oz', 'each', 'bunch', 'head', 'container', 'bag' (NOT ml, L, fl oz)\n"
+            "       Examples: '2 lb strawberries', '1 head lettuce', '3 each apples'\n"
+            "     - DAIRY: Liquid dairy use 'gallon', 'quart', 'pint', 'fl oz'; Solid dairy use 'oz', 'lb', 'slice'; Eggs use 'dozen' or 'each'\n"
+            "       Examples: '1 gallon milk', '8 oz cheese', '1 dozen eggs'\n"
+            "     - MEAT/SEAFOOD: Use 'lb', 'oz', 'piece', 'package' (NOT ml, L, each)\n"
+            "       Examples: '1.5 lb ground beef', '4 piece chicken breast'\n"
+            "     - BEVERAGES: Use 'bottle', 'can', 'gallon', 'liter', 'fl oz' (NOT lb, oz, each)\n"
+            "       Examples: '2 liter soda', '12 can beer', '64 fl oz juice'\n"
+            "     - BAKERY/GRAINS: Use 'loaf', 'each', 'lb', 'oz', 'package'\n"
+            "       Examples: '1 loaf bread', '2 lb rice', '16 oz pasta'\n"
+            "     - CANNED GOODS: Use 'can', 'oz', 'jar' \n"
+            "       Examples: '15 oz can beans', '24 oz jar sauce'\n"
+            "     - SPICES: Use 'oz', 'container', 'jar' (NOT lb, gallon)\n"
+            "       Examples: '2 oz pepper', '1 jar oregano'\n"
             "  3. Item Count Details:\n"
             "     - For each distinct food item type identified, carefully count all visible units of that exact item in the image.\n"
             "     - This total visual count should be an integer, and you must include it in the 'count' field for that item's JSON object.\n"
@@ -121,7 +130,19 @@ class VisionService:
                 max_tokens=1500,
                 temperature=0.5,
             )
-            return response.choices[0].message.content.strip()
+            
+            # Log the full OpenAI vision response for debugging
+            print(f"\n👁️ OpenAI Vision API Response:")
+            print(f"   Model: gpt-4o (vision)")
+            print(f"   Usage: {response.usage}")
+            print(f"   Response ID: {response.id}")
+            
+            vision_result = response.choices[0].message.content.strip()
+            print(f"   Vision Result Preview:")
+            print(f"   {vision_result[:300]}...")
+            print(f"   Full Result Length: {len(vision_result)} characters\n")
+            
+            return vision_result
 
         except Exception as e:
             print(f"Error communicating with OpenAI API: {e}") # Log the actual error

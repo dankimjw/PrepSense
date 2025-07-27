@@ -29,6 +29,44 @@ class SpoonacularService:
         self.max_retries = 3
         self.openai_service = OpenAIRecipeService()
     
+    def parse_ingredients(self, ingredients: List[str]) -> List[Dict[str, Any]]:
+        """
+        Parse ingredients using Spoonacular API to get nutritional info and categories
+        
+        Args:
+            ingredients: List of ingredient names
+            
+        Returns:
+            List of parsed ingredient dictionaries
+        """
+        if not self.api_key:
+            logger.warning("No Spoonacular API key available for ingredient parsing")
+            return []
+            
+        try:
+            import requests
+            
+            url = f"{self.base_url}/recipes/parseIngredients"
+            
+            params = {
+                'apiKey': self.api_key,
+                'language': 'en'
+            }
+            
+            # Join ingredients as comma-separated string
+            data = {
+                'ingredientList': '\n'.join(ingredients)
+            }
+            
+            response = requests.post(url, params=params, data=data, timeout=30)
+            response.raise_for_status()
+            
+            return response.json()
+            
+        except Exception as e:
+            logger.error(f"Error parsing ingredients with Spoonacular: {str(e)}")
+            return []
+    
     async def search_recipes_by_ingredients_with_allergen_filter(
         self,
         ingredients: List[str],

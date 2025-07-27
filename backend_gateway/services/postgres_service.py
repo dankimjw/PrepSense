@@ -13,6 +13,8 @@ import psycopg2
 from psycopg2.extras import RealDictCursor, execute_batch
 from psycopg2.pool import SimpleConnectionPool
 import threading
+import numpy as np
+from .embedding_service import get_embedding_service, EmbeddingService
 
 logger = logging.getLogger(__name__)
 
@@ -66,18 +68,24 @@ class PostgresService:
             if conn:
                 self.pool.putconn(conn)
                 
-    def execute_query(self, query: str, params: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+    def execute_query(
+        self, 
+        query: str, 
+        params: Optional[Dict[str, Any]] = None, 
+        fetch: str = "all"
+    ) -> Optional[Union[List[Dict[str, Any]], Dict[str, Any]]]:
         """
-        Execute a query and return results
+        Execute a SQL query and fetch results as dictionaries.
         
         Args:
-            query: SQL query with %(param_name)s placeholders
-            params: Dictionary of parameters
-            
+            query: The SQL query to execute
+            params: Dictionary of parameters to bind
+            fetch: "all", "one", or "none"
+        
         Returns:
-            List of dictionaries representing rows
+            List of dicts, single dict, or None
         """
-        with self.get_cursor() as cursor:
+        with self.get_cursor(dict_cursor=True) as cursor:
             # Convert BigQuery syntax to PostgreSQL
             # Remove backticks and project/dataset prefixes
             query = query.replace('`', '"')
@@ -524,3 +532,383 @@ class PostgresService:
                     )
                     
         return self.get_user_preferences(user_id)
+    
+    async def semantic_search_recipes(
+        self, 
+        query: str, 
+        limit: int = 10,
+        similarity_threshold: float = 0.3
+    ) -> List[Dict[str, Any]]:
+        """
+        Search recipes using semantic similarity
+        
+        Args:
+            query: Search query text
+            limit: Maximum number of results
+            similarity_threshold: Minimum similarity score (0-1)
+            
+        Returns:
+            List of recipes with similarity scores
+        """
+        # Get embedding service
+        embedding_service = get_embedding_service()
+        
+        # Generate embedding for query
+        query_embedding = await embedding_service.generate_query_embedding(query, query_type="recipe")
+        
+        # Convert to PostgreSQL array format
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        with self.get_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT * FROM find_similar_recipes(
+                    %(embedding)s::vector,
+                    %(limit)s,
+                    %(threshold)s
+                )
+                """,
+                {
+                    "embedding": embedding_str,
+                    "limit": limit,
+                    "threshold": similarity_threshold
+                }
+            )
+            return cursor.fetchall()
+    
+    async def semantic_search_products(
+        self, 
+        query: str, 
+        limit: int = 10,
+        similarity_threshold: float = 0.3
+    ) -> List[Dict[str, Any]]:
+        """
+        Search products using semantic similarity
+        
+        Args:
+            query: Search query text
+            limit: Maximum number of results
+            similarity_threshold: Minimum similarity score (0-1)
+            
+        Returns:
+            List of products with similarity scores
+        """
+        # Get embedding service
+        embedding_service = get_embedding_service()
+        
+        # Generate embedding for query
+        query_embedding = await embedding_service.generate_query_embedding(query, query_type="product")
+        
+        # Convert to PostgreSQL array format
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        with self.get_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT * FROM find_similar_products(
+                    %(embedding)s::vector,
+                    %(limit)s,
+                    %(threshold)s
+                )
+                """,
+                {
+                    "embedding": embedding_str,
+                    "limit": limit,
+                    "threshold": similarity_threshold
+                }
+            )
+            return cursor.fetchall()
+    
+    async def hybrid_recipe_search(
+        self,
+        query: str,
+        available_ingredients: List[str],
+        limit: int = 10,
+        semantic_weight: float = 0.6,
+        ingredient_weight: float = 0.4
+    ) -> List[Dict[str, Any]]:
+        """
+        Perform hybrid search combining semantic similarity and ingredient matching
+        
+        Args:
+            query: Search query text
+            available_ingredients: List of available ingredient names
+            limit: Maximum number of results
+            semantic_weight: Weight for semantic similarity (0-1)
+            ingredient_weight: Weight for ingredient matching (0-1)
+            
+        Returns:
+            List of recipes with combined scores
+        """
+        # Get embedding service
+        embedding_service = get_embedding_service()
+        
+        # Generate embedding for query
+        query_embedding = await embedding_service.generate_query_embedding(query, query_type="recipe")
+        
+        # Convert to PostgreSQL array format
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        with self.get_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT * FROM hybrid_recipe_search(
+                    %(embedding)s::vector,
+                    %(ingredients)s::text[],
+                    %(limit)s,
+                    %(semantic_weight)s,
+                    %(ingredient_weight)s
+                )
+                """,
+                {
+                    "embedding": embedding_str,
+                    "ingredients": available_ingredients,
+                    "limit": limit,
+                    "semantic_weight": semantic_weight,
+                    "ingredient_weight": ingredient_weight
+                }
+            )
+            return cursor.fetchall()
+    
+    async def find_similar_pantry_items(
+        self,
+        item_name: str,
+        limit: int = 5
+    ) -> List[Dict[str, Any]]:
+        """
+        Find pantry items similar to a given item name
+        
+        Args:
+            item_name: Name of the item to find similar items for
+            limit: Maximum number of results
+            
+        Returns:
+            List of similar pantry items
+        """
+        # Get embedding service
+        embedding_service = get_embedding_service()
+        
+        # Generate embedding for item
+        query_embedding = await embedding_service.generate_query_embedding(item_name, query_type="pantry")
+        
+        # Convert to PostgreSQL array format
+        embedding_str = "[" + ",".join(map(str, query_embedding)) + "]"
+        
+        with self.get_cursor() as cursor:
+            cursor.execute(
+                """
+                SELECT 
+                    pi.*,
+                    1 - (pi.embedding <=> %(embedding)s::vector) as similarity_score
+                FROM pantry_items pi
+                WHERE pi.embedding IS NOT NULL
+                    AND 1 - (pi.embedding <=> %(embedding)s::vector) > 0.3
+                ORDER BY pi.embedding <=> %(embedding)s::vector
+                LIMIT %(limit)s
+                """,
+                {
+                    "embedding": embedding_str,
+                    "limit": limit
+                }
+            )
+            return cursor.fetchall()
+    
+    async def update_recipe_embedding(self, recipe_id: int) -> bool:
+        """
+        Update or create embedding for a specific recipe
+        
+        Args:
+            recipe_id: ID of the recipe to update
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get recipe data
+            with self.get_cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM recipes WHERE recipe_id = %(id)s",
+                    {"id": recipe_id}
+                )
+                recipe = cursor.fetchone()
+                
+            if not recipe:
+                logger.error(f"Recipe {recipe_id} not found")
+                return False
+            
+            # Get embedding service
+            embedding_service = get_embedding_service()
+            
+            # Parse recipe data for embedding generation
+            recipe_info = {
+                'id': recipe['recipe_id'],
+                'name': recipe['recipe_name'],
+                'cuisine': recipe.get('cuisine_type'),
+                'description': '',
+                'ingredients': [],
+                'tags': []
+            }
+            
+            # Extract from recipe_data JSON if available
+            if recipe.get('recipe_data'):
+                import json
+                try:
+                    data = json.loads(recipe['recipe_data'])
+                    recipe_info['description'] = data.get('description', '')
+                    recipe_info['ingredients'] = data.get('ingredients', [])
+                    recipe_info['tags'] = data.get('tags', [])
+                except:
+                    pass
+            
+            # Generate embedding
+            embedding = await embedding_service.generate_recipe_embedding(recipe_info)
+            
+            # Convert to PostgreSQL array format
+            embedding_str = "[" + ",".join(map(str, embedding)) + "]"
+            
+            # Update recipe with embedding
+            with self.get_cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE recipes 
+                    SET embedding = %(embedding)s::vector,
+                        embedding_updated_at = CURRENT_TIMESTAMP
+                    WHERE recipe_id = %(id)s
+                    """,
+                    {
+                        "embedding": embedding_str,
+                        "id": recipe_id
+                    }
+                )
+            
+            logger.info(f"Updated embedding for recipe {recipe_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating recipe embedding: {e}")
+            return False
+    
+    async def update_product_embedding(self, product_id: int) -> bool:
+        """
+        Update or create embedding for a specific product
+        
+        Args:
+            product_id: ID of the product to update
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get product data
+            with self.get_cursor() as cursor:
+                cursor.execute(
+                    "SELECT * FROM products WHERE id = %(id)s",
+                    {"id": product_id}
+                )
+                product = cursor.fetchone()
+                
+            if not product:
+                logger.error(f"Product {product_id} not found")
+                return False
+            
+            # Get embedding service
+            embedding_service = get_embedding_service()
+            
+            # Generate embedding
+            embedding = await embedding_service.generate_product_embedding(product)
+            
+            # Convert to PostgreSQL array format
+            embedding_str = "[" + ",".join(map(str, embedding)) + "]"
+            
+            # Update product with embedding
+            with self.get_cursor() as cursor:
+                cursor.execute(
+                    """
+                    UPDATE products 
+                    SET embedding = %(embedding)s::vector,
+                        embedding_updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %(id)s
+                    """,
+                    {
+                        "embedding": embedding_str,
+                        "id": product_id
+                    }
+                )
+            
+            logger.info(f"Updated embedding for product {product_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating product embedding: {e}")
+            return False
+    
+    async def log_search_query(
+        self,
+        user_id: Optional[int],
+        query_text: str,
+        query_type: str,
+        results_count: int,
+        clicked_result_id: Optional[int] = None
+    ) -> bool:
+        """
+        Log a search query with its embedding for analytics
+        
+        Args:
+            user_id: ID of the user performing the search
+            query_text: The search query
+            query_type: Type of search (recipe, product, pantry, general)
+            results_count: Number of results returned
+            clicked_result_id: ID of the result the user clicked on
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            # Get embedding service
+            embedding_service = get_embedding_service()
+            
+            # Generate embedding for query
+            embedding = await embedding_service.generate_query_embedding(query_text, query_type)
+            
+            # Convert to PostgreSQL array format
+            embedding_str = "[" + ",".join(map(str, embedding)) + "]"
+            
+            with self.get_cursor() as cursor:
+                cursor.execute(
+                    """
+                    INSERT INTO search_query_embeddings 
+                    (user_id, query_text, query_type, embedding, results_count, clicked_result_id)
+                    VALUES (%(user_id)s, %(query_text)s, %(query_type)s, %(embedding)s::vector, 
+                            %(results_count)s, %(clicked_result_id)s)
+                    """,
+                    {
+                        "user_id": user_id,
+                        "query_text": query_text,
+                        "query_type": query_type,
+                        "embedding": embedding_str,
+                        "results_count": results_count,
+                        "clicked_result_id": clicked_result_id
+                    }
+                )
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error logging search query: {e}")
+            return False
+
+
+# --- Singleton helper for other modules ---
+_service_instance: Optional["PostgresService"] = None
+
+def get_postgres_service() -> "PostgresService":
+    """
+    Lazily create (once) and return a PostgresService instance.
+    
+    Other modules previously expected this helper to exist.
+    """
+    global _service_instance
+    if _service_instance is None:
+        from backend_gateway.config.database import db_config
+        _service_instance = PostgresService(db_config.postgres_config)
+    return _service_instance

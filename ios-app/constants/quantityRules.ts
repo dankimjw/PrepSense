@@ -48,13 +48,19 @@ const WHOLE_NUMBER_ITEMS = [
 
 // Units that typically indicate whole items
 const WHOLE_NUMBER_UNITS = [
-  'each', 'piece', 'pieces', 'item', 'items', 'pcs', 'pc',
+  'each', 'ea', 'piece', 'pieces', 'item', 'items', 'pcs', 'pc',
   'bottle', 'bottles', 'can', 'cans', 'jar', 'jars',
   'package', 'packages', 'pkg', 'pack', 'packs',
   'bag', 'bags', 'box', 'boxes', 'carton', 'cartons',
   'container', 'containers', 'tube', 'tubes', 'roll', 'rolls',
   'stick', 'sticks', 'bar', 'bars', 'block', 'blocks',
-  'loaf', 'loaves', 'slice', 'slices'
+  'loaf', 'loaves', 'slice', 'slices',
+  'bunch', 'bunches', 'head', 'heads', 'dozen', 'dozens',
+  'clove', 'cloves', 'bulb', 'bulbs', 'stalk', 'stalks',
+  'sprig', 'sprigs', 'leaf', 'leaves', 'pod', 'pods',
+  'ear', 'ears', 'kernel', 'kernels', 'berry', 'berries',
+  'whole', 'halves', 'quarter', 'quarters',
+  'serving', 'servings', 'portion', 'portions'
 ];
 
 /**
@@ -64,9 +70,69 @@ export function shouldAllowDecimals(itemName: string, unit: string): boolean {
   const normalizedName = itemName.toLowerCase().trim();
   const normalizedUnit = unit.toLowerCase().trim();
   
-  // Check if unit requires whole numbers
+  // Always allow decimals for liquid/volume units regardless of name
+  const LIQUID_VOLUME_UNITS = [
+    'ml', 'milliliter', 'millilitre', 'milliliters', 'millilitres',
+    'l', 'liter', 'litre', 'liters', 'litres',
+    'fl oz', 'fluid ounce', 'fluid ounces', 'floz',
+    'cup', 'cups', 'c',
+    'tbsp', 'tablespoon', 'tablespoons', 'tbs', 'tb',
+    'tsp', 'teaspoon', 'teaspoons', 'ts', 't',
+    'pint', 'pints', 'pt', 'pts',
+    'quart', 'quarts', 'qt', 'qts',
+    'gallon', 'gallons', 'gal', 'gals'
+  ];
+  
+  // Always allow decimals for weight units regardless of name
+  const WEIGHT_UNITS = [
+    'g', 'gram', 'grams', 'gr', 'grs',
+    'kg', 'kilogram', 'kilograms', 'kilo', 'kilos',
+    'oz', 'ounce', 'ounces', 'ounce',
+    'lb', 'lbs', 'pound', 'pounds', 'lbm',
+    'mg', 'milligram', 'milligrams'
+  ];
+  
+  // Always allow decimals for liquid/volume/weight units
+  if (LIQUID_VOLUME_UNITS.includes(normalizedUnit) || WEIGHT_UNITS.includes(normalizedUnit)) {
+    return true;
+  }
+  
+  // Check if unit requires whole numbers (count-based units)
   if (WHOLE_NUMBER_UNITS.includes(normalizedUnit)) {
     return false;
+  }
+  
+  // Check if item name contains any whole number keywords, but only for count-type units
+  // Don't apply this restriction if it's clearly a liquid/continuous item
+  const isLiquidItem = normalizedName.includes('oil') || 
+                      normalizedName.includes('sauce') || 
+                      normalizedName.includes('vinegar') || 
+                      normalizedName.includes('juice') || 
+                      normalizedName.includes('milk') || 
+                      normalizedName.includes('cream') ||
+                      normalizedName.includes('syrup') ||
+                      normalizedName.includes('honey') ||
+                      normalizedName.includes('liquid') ||
+                      normalizedName.includes('water') ||
+                      normalizedName.includes('broth') ||
+                      normalizedName.includes('stock') ||
+                      normalizedName.includes('wine') ||
+                      normalizedName.includes('beer') ||
+                      normalizedName.includes('vodka') ||
+                      normalizedName.includes('whiskey') ||
+                      normalizedName.includes('rum') ||
+                      normalizedName.includes('gin') ||
+                      normalizedName.includes('tequila') ||
+                      normalizedName.includes('brandy') ||
+                      normalizedName.includes('liqueur') ||
+                      normalizedName.includes('extract') ||
+                      normalizedName.includes('essence') ||
+                      normalizedName.includes('paste') ||
+                      normalizedName.includes('puree') ||
+                      normalizedName.includes('concentrate');
+  
+  if (isLiquidItem) {
+    return true;
   }
   
   // Check if item name contains any whole number keywords

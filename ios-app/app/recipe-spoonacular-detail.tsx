@@ -64,7 +64,7 @@ interface RecipeDetail {
 }
 
 export default function RecipeSpoonacularDetail() {
-  const { recipeId } = useLocalSearchParams();
+  const { recipeId, recipeData } = useLocalSearchParams();
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'ingredients' | 'instructions' | 'nutrition'>('ingredients');
@@ -80,9 +80,21 @@ export default function RecipeSpoonacularDetail() {
   const { user } = useAuth();
 
   useEffect(() => {
-    fetchRecipeDetails();
+    // If recipe data is passed directly, use it
+    if (recipeData) {
+      try {
+        const parsedRecipe = JSON.parse(recipeData as string);
+        setRecipe(parsedRecipe);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error parsing recipe data:', error);
+        fetchRecipeDetails();
+      }
+    } else {
+      fetchRecipeDetails();
+    }
     fetchPantryItems();
-  }, [recipeId]);
+  }, [recipeId, recipeData]);
 
   // Check ingredients when pantryItems change
   useEffect(() => {
@@ -188,8 +200,13 @@ export default function RecipeSpoonacularDetail() {
   const filterValidIngredients = (ingredients: RecipeDetail['extendedIngredients']) => {
     return ingredients
       .filter((ingredient) => {
-        const lowerName = ingredient.name.toLowerCase();
-        const lowerOriginal = ingredient.original.toLowerCase();
+        const lowerName = (ingredient.name || '').toLowerCase();
+        const lowerOriginal = (ingredient.original || '').toLowerCase();
+        
+        // Skip if both name and original are empty
+        if (!ingredient.name && !ingredient.original) {
+          return false;
+        }
         
         // Filter out items that are clearly not ingredients
         const nonIngredientPatterns = [
@@ -211,7 +228,7 @@ export default function RecipeSpoonacularDetail() {
       })
       // Remove duplicates based on ingredient name
       .filter((ingredient, index, self) => 
-        index === self.findIndex(i => i.name === ingredient.name)
+        index === self.findIndex(i => (i.name || i.original) === (ingredient.name || ingredient.original))
       );
   };
 
@@ -260,8 +277,8 @@ export default function RecipeSpoonacularDetail() {
       // Convert ingredients to shopping list items
       const newItems = ingredientsToAdd.map((ingredient, index) => {
         // For Spoonacular, we have both original string and parsed name
-        const cleanedOriginal = ingredient.original.trim();
-        const fallbackName = ingredient.name.trim();
+        const cleanedOriginal = (ingredient.original || '').trim();
+        const fallbackName = (ingredient.name || '').trim();
         
         // Try to parse the original ingredient string
         const parsed = parseIngredientsList([cleanedOriginal])[0];
@@ -342,7 +359,7 @@ export default function RecipeSpoonacularDetail() {
             onPress: () => {
               const missingIngredientsList = recipe.extendedIngredients
                 .filter(ing => missingIngredients.has(ing.id))
-                .map(ing => ing.original);
+                .map(ing => ing.original || ing.name || '');
               
               router.push({
                 pathname: '/select-ingredients',
@@ -372,7 +389,9 @@ export default function RecipeSpoonacularDetail() {
     // Convert Spoonacular recipe to our Recipe format for cooking mode
     const recipeForCooking = {
       name: recipe.title,
-      ingredients: recipe.extendedIngredients.map(ing => ing.original),
+      ingredients: recipe.extendedIngredients
+        .map(ing => ing.original || ing.name || '')
+        .filter(ing => ing && ing.trim() !== ''), // Filter out empty or undefined ingredients
       instructions: recipe.analyzedInstructions[0]?.steps
         .map(step => cleanInstructionText(step.step))
         .filter(text => text.length > 0) || [],
@@ -582,7 +601,14 @@ export default function RecipeSpoonacularDetail() {
       <View style={{ height: insets.top }} />
       
       <View style={styles.imageContainer}>
-        <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+        <Image 
+          source={{ 
+            uri: recipe.image?.startsWith('http') 
+              ? recipe.image 
+              : `${Config.API_BASE_URL.replace('/api/v1', '')}${recipe.image?.startsWith('/') ? '' : '/'}${recipe.image}`
+          }} 
+          style={styles.recipeImage} 
+        />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.6)']}
           style={styles.gradient}
@@ -717,7 +743,7 @@ export default function RecipeSpoonacularDetail() {
                 onPress={() => {
                   const missingIngredientsList = filterValidIngredients(recipe.extendedIngredients)
                     .filter(ing => missingIngredients.has(ing.id))
-                    .map(ing => ing.original);
+                    .map(ing => ing.original || ing.name || '');
                   
                   router.push({
                     pathname: '/select-ingredients',
@@ -744,7 +770,7 @@ export default function RecipeSpoonacularDetail() {
                       <Ionicons name="close-circle" size={20} color="#EF4444" />
                     )}
                     <Text style={[styles.ingredientText, !isAvailable && styles.missingIngredientText]}>
-                      {ingredient.original}
+                      {ingredient.original || ingredient.name || ''}
                     </Text>
                     {isAvailable && (
                       <Text style={styles.availableText}>In pantry</Text>
@@ -826,7 +852,7 @@ export default function RecipeSpoonacularDetail() {
               onPress={() => {
                 const missingList = recipe.extendedIngredients
                   .filter(ing => missingIngredients.has(ing.id))
-                  .map(ing => ing.original);
+                  .map(ing => ing.original || ing.name || '');
                 router.push({
                   pathname: '/select-ingredients',
                   params: { 
@@ -854,7 +880,7 @@ export default function RecipeSpoonacularDetail() {
           <TouchableOpacity 
             style={styles.addAllToListButton}
             onPress={() => {
-              const allIngredients = recipe.extendedIngredients.map(ing => ing.original);
+              const allIngredients = recipe.extendedIngredients.map(ing => ing.original || ing.name || '');
               router.push({
                 pathname: '/select-ingredients',
                 params: { 

@@ -148,7 +148,7 @@ async def get_recipe_information(
 ) -> Dict[str, Any]:
     """
     Get detailed information about a specific recipe.
-    This endpoint also checks for stored recipe images in GCS and generates new ones using OpenAI if needed.
+    This endpoint uses Spoonacular images when available, with local backups.
     """
     try:
         # First, try to get recipe from Spoonacular
@@ -187,40 +187,33 @@ async def get_recipe_information(
                 logger.error(f"Database fallback also failed: {str(db_error)}")
                 raise spoon_error
         
-        # Check if we have a stored image or generate a new one
-        try:
-            # Extract recipe details for image generation
-            recipe_title = recipe.get('title', '')
-            ingredients = []
+        # Check for local images first, then fall back to Spoonacular
+        if recipe and 'image' in recipe and recipe['image']:
+            from pathlib import Path
+            import glob
             
-            # Extract ingredient names from the recipe
-            if 'extendedIngredients' in recipe:
-                ingredients = [ing.get('name', '') for ing in recipe['extendedIngredients'] if ing.get('name')]
+            # Look for any file that starts with recipe_{recipe_id}_
+            recipe_images_dir = Path("Recipe Images")
+            pattern = f"recipe_{recipe_id}_*.jpg"
+            matching_files = list(recipe_images_dir.glob(pattern))
             
-            # Get cuisine type if available
-            cuisine = None
-            if 'cuisines' in recipe and recipe['cuisines']:
-                cuisine = recipe['cuisines'][0]
-            
-            # Generate or retrieve image from GCS
-            stored_image_url = await recipe_image_service.generate_and_store_recipe_image(
-                recipe_id=str(recipe_id),
-                recipe_title=recipe_title,
-                ingredients=ingredients[:5],  # Use top 5 ingredients
-                cuisine=cuisine,
-                force_regenerate=False
-            )
-            
-            # Replace Spoonacular image with our stored/generated image
-            if stored_image_url:
-                recipe['image'] = stored_image_url
-                logger.info(f"Using stored/generated image for recipe {recipe_id}: {stored_image_url}")
+            if matching_files:
+                # Use the first matching file
+                local_filename = matching_files[0].name
+                # Need full URL for iOS app - get actual IP address
+                import socket
+                from backend_gateway.core.config import settings
+                # Get the actual IP address
+                hostname = socket.gethostname()
+                local_ip = socket.gethostbyname(hostname)
+                base_url = f"http://{local_ip}:{settings.SERVER_PORT}"
+                # URL encode the path
+                from urllib.parse import quote
+                recipe['image'] = f"{base_url}/Recipe%20Images/{local_filename}"
+                recipe['local_image'] = True
+                logger.info(f"Using local image for recipe {recipe_id}: {local_filename} at {base_url}")
             else:
-                logger.warning(f"Could not generate/retrieve image for recipe {recipe_id}, using Spoonacular image")
-                
-        except Exception as img_error:
-            logger.error(f"Error handling recipe image for ID {recipe_id}: {str(img_error)}")
-            # Continue with Spoonacular image if image generation fails
+                logger.info(f"Using original Spoonacular image for recipe {recipe_id}")
         
         # Improve recipe instructions parsing
         if recipe and 'analyzedInstructions' in recipe:

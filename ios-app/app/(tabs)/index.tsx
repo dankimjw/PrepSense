@@ -9,6 +9,7 @@ import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
 import { QuickActions } from '../../components/home/QuickActions';
 import { PantryItemsList } from '../../components/home/PantryItemsList';
+import { SortFilterBar } from '../../components/home/SortFilterBar';
 import { TipCard } from '../../components/home/TipCard';
 import { useItemsWithFilters } from '../../hooks/useItemsWithFilters';
 import { 
@@ -20,11 +21,14 @@ import {
 import { enc } from '../../utils/encoding';
 import type { PantryItemData } from '../../components/home/PantryItem';
 import ConsumptionModal from '../../components/modals/ConsumptionModal';
+import { normalizeCategoryLabel } from '../../utils/categoryConfig';
 import { ExpirationDateModal } from '../../components/modals/ExpirationDateModal';
 import { PantryItemActionSheet } from '../../components/modals/PantryItemActionSheet';
 import EditItemModal from '../../components/modals/EditItemModal';
 import { deletePantryItem } from '../../services/api';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import WasteImpactCard from '../../components/WasteImpactCard';
+// import { useSupplyChainImpact } from '../../hooks/useSupplyChainImpact'; // Disabled for demo
 
 const IndexScreen: React.FC = () => {
   // State management
@@ -43,6 +47,8 @@ const IndexScreen: React.FC = () => {
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
+  // const { todayImpact } = useSupplyChainImpact('demo_user'); // Disabled for demo
+  const todayImpact = null; // Disabled for demo
   const router = useRouter();
   const params = useLocalSearchParams();
   const insets = useSafeAreaInsets();
@@ -63,7 +69,7 @@ const IndexScreen: React.FC = () => {
         item_name: item.item_name?.trim() || 'Unnamed Item',
         name: item.item_name?.trim() || 'Unnamed Item',
         expiry: formatExpirationDate(expirationDate),
-        category: item.category || 'Uncategorized',
+        category: normalizeCategoryLabel(item.category || ''),
         quantity_amount: item.quantity_amount || 0,
         quantity_unit: (item.quantity_unit || 'each').trim(),
         expected_expiration: expirationDate,
@@ -140,7 +146,7 @@ const IndexScreen: React.FC = () => {
   // Handle filter apply
   const handleFilterApply = (filterData: { 
     categories: string[]; 
-    sortBy: 'name' | 'expiry' | 'category'; 
+    sortBy: 'name' | 'expiry' | 'category' | 'dateAdded'; 
     sortOrder: 'asc' | 'desc' 
   }) => {
     updateFilters({
@@ -157,10 +163,16 @@ const IndexScreen: React.FC = () => {
     setConsumptionModalVisible(true);
   };
 
-  // Handle edit item
+  // Handle edit item (from more button)
   const handleEditItem = (item: PantryItemData) => {
     setSelectedItemForAction(item);
     setActionSheetVisible(true);
+  };
+
+  // Handle swipe edit item (direct to edit modal)
+  const handleSwipeEditItem = (item: PantryItemData) => {
+    setSelectedItemForEdit(item);
+    setEditModalVisible(true);
   };
 
   // Handle update expiration date from action sheet
@@ -198,6 +210,18 @@ const IndexScreen: React.FC = () => {
           }])
         }
       });
+    }
+  };
+
+  // Handle swipe delete item (without confirmation)
+  const handleSwipeDelete = async (item: PantryItemData) => {
+    try {
+      await deletePantryItem(item.id);
+      // Refresh the items list
+      fetchItems();
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      Alert.alert('Error', 'Failed to delete item');
     }
   };
 
@@ -262,31 +286,14 @@ const IndexScreen: React.FC = () => {
         }}
       />
       
-      {/* Quick Test Filter Toggle */}
-      <TouchableOpacity
-        style={[
-          styles.testFilterToggle,
-          filters.selectedCategories.includes('Test') && styles.testFilterToggleActive
-        ]}
-        onPress={() => {
-          const isTestSelected = filters.selectedCategories.includes('Test');
-          updateFilters({
-            selectedCategories: isTestSelected ? [] : ['Test']
-          });
-        }}
-      >
-        <MaterialCommunityIcons 
-          name="test-tube" 
-          size={20} 
-          color={filters.selectedCategories.includes('Test') ? '#fff' : '#297A56'} 
-        />
-        <Text style={[
-          styles.testFilterText,
-          filters.selectedCategories.includes('Test') && styles.testFilterTextActive
-        ]}>
-          {filters.selectedCategories.includes('Test') ? 'Showing Test Items' : 'Show Test Items Only'}
-        </Text>
-      </TouchableOpacity>
+      {/* Sort Filter Bar */}
+      <SortFilterBar
+        sortBy={filters.sortBy}
+        sortOrder={filters.sortOrder}
+        onSortChange={(sortBy) => updateFilters({ sortBy })}
+        onSortOrderToggle={() => updateFilters({ sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' })}
+      />
+      
       
       {/* Filter Modal */}
       <FilterModal
@@ -357,11 +364,26 @@ const IndexScreen: React.FC = () => {
         {/* Quick Actions */}
         <QuickActions />
 
+        {/* Supply Chain Impact Alert */}
+        {todayImpact && todayImpact.items_at_risk > 0 && (
+          <WasteImpactCard
+            expiringItems={todayImpact.items.map(item => ({
+              name: item.name,
+              daysLeft: item.daysLeft,
+              quantity: item.quantity,
+              unit: item.unit
+            }))}
+            onPress={() => router.push('/supply-chain-impact')}
+          />
+        )}
+
         {/* Pantry Items */}
         <PantryItemsList
           items={recentItems}
           onItemPress={handleItemPress}
           onEditPress={handleEditItem}
+          onSwipeEdit={handleSwipeEditItem}
+          onDelete={handleSwipeDelete}
         />
 
         {/* Tips Section */}
@@ -539,30 +561,5 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontWeight: '500',
     fontSize: 14,
-  },
-  testFilterToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F3F4F6',
-    marginHorizontal: 16,
-    marginVertical: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  testFilterToggleActive: {
-    backgroundColor: '#297A56',
-    borderColor: '#297A56',
-  },
-  testFilterText: {
-    marginLeft: 8,
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#297A56',
-  },
-  testFilterTextActive: {
-    color: '#fff',
   },
 });

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -6,129 +6,74 @@ import {
   TouchableOpacity,
   Alert,
   ScrollView,
-  ActivityIndicator,
-  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-import { Config } from '../config';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Buffer } from 'buffer';
+import { imageDataStore } from '../utils/imageDataStore';
 
 
 export default function ReceiptScannerScreen() {
   const router = useRouter();
-  const [image, setImage] = useState<string | null>(null);
-  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     requestPermissions();
   }, []);
 
   const requestPermissions = async () => {
-    const { status: cameraStatus } = await ImagePicker.requestCameraPermissionsAsync();
-    const { status: libraryStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
-    if (cameraStatus !== 'granted' || libraryStatus !== 'granted') {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
       Alert.alert(
         'Permissions Required',
-        'Camera and photo library permissions are required to scan receipts.',
+        'Photo library permissions are required to scan receipts.',
         [{ text: 'OK' }]
       );
     }
   };
 
-  const pickImage = async (source: 'camera' | 'library') => {
-    let result;
-    
-    if (source === 'camera') {
-      result = await ImagePicker.launchCameraAsync({
-        mediaTypes: [ImagePicker.MediaType.Images],
-        allowsEditing: true,
-        quality: 0.8,
-        base64: true,
-      });
-    } else {
-      result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: [ImagePicker.MediaType.Images],
-        allowsEditing: true,
-        quality: 0.8,
-        base64: true,
-      });
-    }
-
-    if (!result.canceled && result.assets[0]) {
-      setImage(result.assets[0].uri);
-      if (result.assets[0].base64) {
-        scanReceipt(result.assets[0].base64);
-      }
-    }
-  };
-
-  const scanReceipt = async (base64Image: string) => {
-    setIsScanning(true);
-    
+  const pickImage = async () => {
     try {
-      const response = await fetch(`${Config.API_BASE_URL}/ocr/scan-receipt`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          image_base64: base64Image,
-          user_id: 111,
-        }),
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        quality: 0.8,
+        base64: true,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to scan receipt');
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.items.length > 0) {
-        // Transform OCR items to match upload-photo item format
-        const transformedItems = data.items.map((item: any) => ({
-          item_name: item.name,
-          quantity_amount: item.quantity || 1,
-          quantity_unit: item.unit || 'each',
-          expected_expiration: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Default 7 days
-          category: item.category || 'Uncategorized',
-          count: 1,
-          price: item.price
-        }));
-
-        // Navigate to items-detected screen for full editing experience
-        const dataParam = Buffer.from(JSON.stringify(transformedItems)).toString('base64');
+      if (!result.canceled && result.assets && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        const base64Image = result.assets[0].base64;
+        
+        if (!base64Image) {
+          Alert.alert('Error', 'Failed to process image');
+          return;
+        }
+        
+        // Store image data in memory store
+        const imageKey = `receipt_${Date.now()}`;
+        imageDataStore.storeImageData(imageKey, base64Image);
+        
+        // Navigate immediately with just the key reference
+        console.log('Receipt image selected, navigating to loading-facts immediately...');
+        console.log('Base64 length:', base64Image.length);
         
         router.replace({
-          pathname: '/items-detected',
+          pathname: '/loading-facts',
           params: { 
-            data: dataParam,
-            photoUri: image,
-            source: 'receipt-scanner'
+            photoUri: imageUri,
+            scanMode: 'receipt',
+            imageKey: imageKey, // Pass key instead of data
           },
         });
-        return;
-      } else {
-        Alert.alert(
-          'No Items Found',
-          'Could not extract any items from the receipt. Try taking a clearer photo.',
-          [{ text: 'OK' }]
-        );
       }
     } catch (error) {
-      console.error('Error scanning receipt:', error);
-      Alert.alert(
-        'Scan Failed',
-        'Failed to scan receipt. Please try again with a clearer image.',
-        [{ text: 'OK' }]
-      );
-    } finally {
-      setIsScanning(false);
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to select image');
     }
   };
+
+  // Removed scanReceipt - navigation happens immediately in pickImage
 
 
 
@@ -148,61 +93,45 @@ export default function ReceiptScannerScreen() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {!image ? (
-          // Image selection view
-          <View style={styles.scanContainer}>
-            <LinearGradient
-              colors={['#297A56', '#1F5A40']}
-              style={styles.iconContainer}
+        {/* Image selection view - always shown since we navigate immediately */}
+        <View style={styles.scanContainer}>
+          <LinearGradient
+            colors={['#297A56', '#1F5A40']}
+            style={styles.iconContainer}
+          >
+            <MaterialIcons name="receipt-long" size={80} color="#fff" />
+          </LinearGradient>
+          
+          <Text style={styles.title}>Scan Your Receipt</Text>
+          <Text style={styles.subtitle}>
+            Take a photo or select from gallery to automatically add items to your pantry
+          </Text>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.primaryButton}
+              onPress={pickImage}
             >
-              <MaterialIcons name="receipt-long" size={80} color="#fff" />
-            </LinearGradient>
-            
-            <Text style={styles.title}>Scan Your Receipt</Text>
-            <Text style={styles.subtitle}>
-              Take a photo or select from gallery to automatically add items to your pantry
-            </Text>
+              <Ionicons name="camera" size={24} color="#fff" />
+              <Text style={styles.primaryButtonText}>Take Photo</Text>
+            </TouchableOpacity>
 
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity
-                style={styles.primaryButton}
-                onPress={() => pickImage('camera')}
-              >
-                <Ionicons name="camera" size={24} color="#fff" />
-                <Text style={styles.primaryButtonText}>Take Photo</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={() => pickImage('library')}
-              >
-                <Ionicons name="images" size={24} color="#297A56" />
-                <Text style={styles.secondaryButtonText}>Choose from Gallery</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.tipsContainer}>
-              <Text style={styles.tipsTitle}>Tips for best results:</Text>
-              <Text style={styles.tipText}>• Ensure good lighting and minimal shadows</Text>
-              <Text style={styles.tipText}>• Keep receipt flat and fully visible</Text>
-              <Text style={styles.tipText}>• Avoid blurry or angled photos</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.secondaryButton}
+              onPress={pickImage}
+            >
+              <Ionicons name="images" size={24} color="#297A56" />
+              <Text style={styles.secondaryButtonText}>Choose from Gallery</Text>
+            </TouchableOpacity>
           </View>
-        ) : (
-          // Results view
-          <View style={styles.resultsContainer}>
-            <View style={styles.imagePreview}>
-              <Image source={{ uri: image }} style={styles.receiptImage} />
-              {isScanning && (
-                <View style={styles.scanningOverlay}>
-                  <ActivityIndicator size="large" color="#fff" />
-                  <Text style={styles.scanningText}>Scanning receipt...</Text>
-                </View>
-              )}
-            </View>
 
+          <View style={styles.tipsContainer}>
+            <Text style={styles.tipsTitle}>Tips for best results:</Text>
+            <Text style={styles.tipText}>• Ensure good lighting and minimal shadows</Text>
+            <Text style={styles.tipText}>• Keep receipt flat and fully visible</Text>
+            <Text style={styles.tipText}>• Avoid blurry or angled photos</Text>
           </View>
-        )}
+        </View>
       </ScrollView>
 
     </View>
@@ -320,35 +249,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 6,
-  },
-  resultsContainer: {
-    padding: 16,
-  },
-  imagePreview: {
-    position: 'relative',
-    marginBottom: 20,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  receiptImage: {
-    width: '100%',
-    height: 300,
-    resizeMode: 'contain',
-    backgroundColor: '#f0f0f0',
-  },
-  scanningOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  scanningText: {
-    color: '#fff',
-    fontSize: 16,
-    marginTop: 12,
   },
 });
