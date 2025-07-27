@@ -1,7 +1,9 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useRef } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Pressable } from 'react-native';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { getCategoryColor } from '../../utils/itemHelpers';
+import Swipeable from 'react-native-gesture-handler/Swipeable';
+import { RectButton } from 'react-native-gesture-handler';
+import { getCategoryBgColor } from '../../utils/itemHelpers';
 import { formatQuantity } from '../../utils/numberFormatting';
 
 export interface PantryItemData {
@@ -28,14 +30,110 @@ interface PantryItemProps {
   item: PantryItemData;
   onPress: (item: PantryItemData) => void;
   onEditPress?: (item: PantryItemData) => void;
+  onSwipeEdit?: (item: PantryItemData) => void;
+  onDelete?: (item: PantryItemData) => void;
 }
 
-export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPress }) => {
+export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPress, onSwipeEdit, onDelete }) => {
+  const swipeableRef = useRef<Swipeable>(null);
+
+  const renderLeftActions = (
+    progress: Animated.AnimatedValue,
+    dragX: Animated.AnimatedValue
+  ) => {
+    const trans = dragX.interpolate({
+      inputRange: [0, 100],
+      outputRange: [-100, 0],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <RectButton
+        style={styles.editAction}
+        onPress={() => {
+          swipeableRef.current?.close();
+          if (onSwipeEdit) {
+            onSwipeEdit(item);
+          }
+        }}
+      >
+        <Animated.View
+          style={[
+            styles.editActionContent,
+            {
+              transform: [{ translateX: trans }],
+            },
+          ]}
+        >
+          <Ionicons name="create-outline" size={24} color="#FFFFFF" />
+          <Animated.Text style={styles.editActionText}>Edit</Animated.Text>
+        </Animated.View>
+      </RectButton>
+    );
+  };
+
+  const renderRightActions = (
+    progress: Animated.AnimatedValue,
+    dragX: Animated.AnimatedValue
+  ) => {
+    const trans = dragX.interpolate({
+      inputRange: [-100, 0],
+      outputRange: [0, 100],
+      extrapolate: 'clamp',
+    });
+
+    return (
+      <RectButton
+        style={styles.deleteAction}
+        onPress={() => {
+          swipeableRef.current?.close();
+          if (onDelete) {
+            onDelete(item);
+          }
+        }}
+      >
+        <Animated.View
+          style={[
+            styles.deleteActionContent,
+            {
+              transform: [{ translateX: trans }],
+            },
+          ]}
+        >
+          <Ionicons name="trash-outline" size={24} color="#FFFFFF" />
+          <Animated.Text style={styles.deleteActionText}>Delete</Animated.Text>
+        </Animated.View>
+      </RectButton>
+    );
+  };
+
   return (
-    <TouchableOpacity 
-      style={styles.itemCard}
-      onPress={() => onPress(item)}
+    <Swipeable
+      ref={swipeableRef}
+      renderLeftActions={renderLeftActions}
+      renderRightActions={renderRightActions}
+      leftThreshold={40}
+      rightThreshold={40}
+      friction={1.5}
+      overshootLeft={false}
+      overshootRight={false}
+      onSwipeableWillOpen={(direction) => {
+        console.log('Swipeable will open:', direction);
+        if (direction === 'left' && onSwipeEdit) {
+          // Automatically trigger edit when swiped right (which opens left actions)
+          setTimeout(() => {
+            swipeableRef.current?.close();
+            onSwipeEdit(item);
+          }, 100);
+        }
+      }}
+      onSwipeableOpen={(direction) => console.log('Swiped open:', direction)}
+      onSwipeableClose={(direction) => console.log('Swiped close:', direction)}
     >
+      <Pressable 
+        style={styles.itemCard}
+        onPress={() => onPress(item)}
+      >
       <View style={[
         styles.itemIcon,
         { 
@@ -82,18 +180,32 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
         </View>
         <View style={styles.itemDetails}>
           <View style={[styles.categoryTag, { 
-            backgroundColor: getCategoryColor(item.category),
+            backgroundColor: getCategoryBgColor(item.category),
             opacity: item.daysUntilExpiry <= 3 ? 0.9 : 0.7
           }]}>
             <Text style={styles.categoryText}>{item.category}</Text>
           </View>
-          <Text style={[
-            styles.itemExpiry,
-            item.daysUntilExpiry <= 0 ? styles.expired : null,
-            item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
+          <View style={[
+            styles.expiryContainer,
+            item.daysUntilExpiry <= 0 ? styles.expiredContainer : null,
+            item.daysUntilExpiry <= 3 && item.daysUntilExpiry > 0 ? styles.expiringSoonContainer : null
           ]}>
-            {item.expiry}
-          </Text>
+            <Ionicons 
+              name="time-outline" 
+              size={16} 
+              color={
+                item.daysUntilExpiry <= 0 ? '#DC2626' :
+                item.daysUntilExpiry <= 3 ? '#D97706' : '#6B7280'
+              } 
+            />
+            <Text style={[
+              styles.itemExpiry,
+              item.daysUntilExpiry <= 0 ? styles.expired : null,
+              item.daysUntilExpiry <= 3 ? styles.expiringSoon : null
+            ]}>
+              {item.expiry}
+            </Text>
+          </View>
         </View>
       </View>
       <TouchableOpacity 
@@ -107,7 +219,8 @@ export const PantryItem: React.FC<PantryItemProps> = ({ item, onPress, onEditPre
       >
         <Ionicons name="ellipsis-vertical" size={20} color="#6B7280" />
       </TouchableOpacity>
-    </TouchableOpacity>
+      </Pressable>
+    </Swipeable>
   );
 };
 
@@ -174,16 +287,33 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   itemExpiry: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#6B7280',
-    marginLeft: 8,
+    marginLeft: 4,
+    fontWeight: '500',
   },
   expiringSoon: {
     color: '#D97706',
+    fontWeight: '600',
   },
   expired: {
     color: '#DC2626',
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  expiryContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 8,
+    backgroundColor: 'rgba(107, 114, 128, 0.08)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  expiringSoonContainer: {
+    backgroundColor: 'rgba(217, 119, 6, 0.12)',
+  },
+  expiredContainer: {
+    backgroundColor: 'rgba(220, 38, 38, 0.12)',
   },
   categoryTag: {
     alignSelf: 'flex-start',
@@ -198,5 +328,45 @@ const styles = StyleSheet.create({
   },
   moreButton: {
     padding: 8,
+  },
+  deleteAction: {
+    backgroundColor: '#DC2626',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+    borderRadius: 12,
+    width: 100,
+  },
+  deleteActionContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    flex: 1,
+  },
+  deleteActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
+  },
+  editAction: {
+    backgroundColor: '#297A56',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+    borderRadius: 12,
+    width: 100,
+  },
+  editActionContent: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    flex: 1,
+  },
+  editActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });
