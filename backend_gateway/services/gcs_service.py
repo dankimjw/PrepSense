@@ -87,17 +87,18 @@ class GCSService:
                 content_type='image/png'
             )
             
-            # Try to make blob publicly accessible
-            try:
-                blob.make_public()
-                public_url = blob.public_url
-            except Exception as e:
-                logger.warning(f"Could not make blob public: {str(e)}")
-                # Return authenticated URL instead
-                public_url = f"https://storage.googleapis.com/{self.bucket_name}/{filename}"
-            logger.info(f"Uploaded image for recipe {recipe_id} to {public_url}")
+            # Generate signed URL for uniform bucket-level access
+            # Signed URL valid for maximum allowed 7 days
+            from datetime import datetime, timezone, timedelta
+            expiration_date = datetime.now(timezone.utc) + timedelta(days=7)
+            signed_url = blob.generate_signed_url(
+                version="v4",
+                expiration=expiration_date,
+                method="GET"
+            )
+            logger.info(f"Uploaded image for recipe {recipe_id} with signed URL")
             
-            return public_url
+            return signed_url
             
         except Exception as e:
             logger.error(f"Error uploading image for recipe {recipe_id}: {str(e)}")
@@ -124,12 +125,15 @@ class GCSService:
                     latest_blob = blob
             
             if latest_blob:
-                try:
-                    # Try to get public URL
-                    return latest_blob.public_url
-                except Exception:
-                    # Fall back to signed URL
-                    return f"https://storage.googleapis.com/{self.bucket_name}/{latest_blob.name}"
+                # Generate signed URL for uniform bucket-level access
+                from datetime import datetime, timezone, timedelta
+                expiration_date = datetime.now(timezone.utc) + timedelta(days=7)
+                signed_url = latest_blob.generate_signed_url(
+                    version="v4",
+                    expiration=expiration_date,
+                    method="GET"
+                )
+                return signed_url
             
             return None
             

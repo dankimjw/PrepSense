@@ -5,7 +5,8 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from pydantic import BaseSettings, Field, HttpUrl, validator
+from pydantic import Field, HttpUrl, field_validator, ConfigDict
+from pydantic_settings import BaseSettings
 
 
 class MonitoringConfig(BaseSettings):
@@ -67,7 +68,8 @@ class MonitoringConfig(BaseSettings):
         description='Warning threshold for database query time in milliseconds'
     )
     
-    @validator('LOG_LEVEL')
+    @field_validator('LOG_LEVEL')
+    @classmethod
     def validate_log_level(cls, v: str) -> str:
         """Validate that LOG_LEVEL is a valid logging level."""
         valid_levels = ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']
@@ -75,9 +77,10 @@ class MonitoringConfig(BaseSettings):
             raise ValueError(f'LOG_LEVEL must be one of {valid_levels}')
         return v.upper()
     
-    class Config:
-        env_file = '.env'
-        env_file_encoding = 'utf-8'
+    model_config = ConfigDict(
+        env_file='.env',
+        env_file_encoding='utf-8'
+    )
 
 
 # Initialize monitoring config

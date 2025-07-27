@@ -35,7 +35,14 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you select images for scanning.",
+          "cameraPermission": "The app accesses your camera to let you take photos of items to scan."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

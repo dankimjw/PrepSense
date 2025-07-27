@@ -16,26 +16,9 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { savePantryItem } from '../../services/api';
 import { formatQuantity } from '../../utils/numberFormatting';
-
-// Food categories with their allowed unit types
-const FOOD_CATEGORIES = [
-  { id: 'produce', label: 'Produce', icon: '🥬', color: '#4ADE80' },
-  { id: 'dairy', label: 'Dairy', icon: '🥛', color: '#60A5FA' },
-  { id: 'meat', label: 'Meat', icon: '🥩', color: '#F87171' },
-  { id: 'seafood', label: 'Seafood', icon: '🐟', color: '#93C5FD' },
-  { id: 'grains', label: 'Grains', icon: '🌾', color: '#FBBF24' },
-  { id: 'bakery', label: 'Bakery', icon: '🍞', color: '#D97706' },
-  { id: 'beverages', label: 'Beverages', icon: '🥤', color: '#06B6D4' },
-  { id: 'condiments', label: 'Condiments', icon: '🍯', color: '#F59E0B' },
-  { id: 'oils', label: 'Oils & Vinegars', icon: '🫒', color: '#84CC16' },
-  { id: 'baking', label: 'Baking', icon: '🧁', color: '#F472B6' },
-  { id: 'spices', label: 'Spices', icon: '🌶️', color: '#EF4444' },
-  { id: 'pasta', label: 'Pasta & Rice', icon: '🍝', color: '#A78BFA' },
-  { id: 'canned', label: 'Canned Goods', icon: '🥫', color: '#FB923C' },
-  { id: 'frozen', label: 'Frozen', icon: '🧊', color: '#67E8F9' },
-  { id: 'snacks', label: 'Snacks', icon: '🍿', color: '#FACC15' },
-  { id: 'other', label: 'Other', icon: '📦', color: '#9CA3AF' },
-];
+import { FOOD_CATEGORIES, getIngredientIcon, capitalizeIngredientName } from '../../utils/ingredientIcons';
+import { formatQuantityInput, validateQuantity, shouldAllowDecimals } from '../../constants/quantityRules';
+import { validateUnit, getUnitSuggestions, shouldSuggestUnitChange } from '../../services/unitValidationService';
 
 // Unit rules for each food category
 const CATEGORY_UNIT_RULES = {
@@ -148,6 +131,8 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
   // UI state
   const [isLoading, setIsLoading] = useState(false);
   const [unitPreview, setUnitPreview] = useState('');
+  const [unitValidationResult, setUnitValidationResult] = useState<any>(null);
+  const [isValidatingUnit, setIsValidatingUnit] = useState(false);
 
   // Reset form when modal opens/closes
   useEffect(() => {
@@ -172,6 +157,35 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
       setUnitPreview('');
     }
   }, [quantity, selectedUnit]);
+
+  // Validate unit when item name or unit changes
+  useEffect(() => {
+    const validateCurrentUnit = async () => {
+      if (itemName && selectedUnit) {
+        setIsValidatingUnit(true);
+        try {
+          const validation = await validateUnit(itemName, selectedUnit, parseFloat(quantity) || undefined);
+          setUnitValidationResult(validation);
+          
+          // Show warning if unit is not appropriate
+          if (shouldSuggestUnitChange(validation)) {
+            // Don't auto-change, just show the suggestion
+            console.log(`Unit validation: ${validation.reason}`);
+          }
+        } catch (error) {
+          console.error('Unit validation failed:', error);
+          setUnitValidationResult(null);
+        } finally {
+          setIsValidatingUnit(false);
+        }
+      } else {
+        setUnitValidationResult(null);
+      }
+    };
+
+    const debounceTimer = setTimeout(validateCurrentUnit, 500);
+    return () => clearTimeout(debounceTimer);
+  }, [itemName, selectedUnit, quantity]);
 
   const getUnitLabel = (unitId: string) => {
     if (!selectedCategory || !selectedUnitType) return unitId;
@@ -205,6 +219,37 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
       return;
     }
 
+    // Validate quantity
+    const quantityValue = parseFloat(quantity);
+    const validation = validateQuantity(quantityValue, itemName, selectedUnit);
+    
+    if (!validation.isValid) {
+      Alert.alert('Invalid Quantity', validation.error || 'Please enter a valid quantity.');
+      return;
+    }
+
+    // Check unit validation result
+    if (unitValidationResult && unitValidationResult.severity === 'error') {
+      Alert.alert(
+        'Unit Warning',
+        `${unitValidationResult.reason}\n\nWould you like to use "${unitValidationResult.suggested_unit}" instead?`,
+        [
+          {
+            text: 'Keep Current',
+            style: 'cancel',
+          },
+          {
+            text: `Use ${unitValidationResult.suggested_unit}`,
+            onPress: () => {
+              setSelectedUnit(unitValidationResult.suggested_unit);
+              // Don't submit yet, let user review the change
+            },
+          },
+        ]
+      );
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -212,7 +257,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
       
       await savePantryItem(111, { // TODO: Get actual user ID
         item_name: itemName,
-        quantity_amount: parseFloat(quantity),
+        quantity_amount: quantityValue,
         quantity_unit: selectedUnit,
         expected_expiration: expirationDate.toISOString(),
         category: categoryInfo?.label || 'Other',
@@ -251,7 +296,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
               ]}
               onPress={() => handleCategorySelect(category.id)}
             >
-              <Text style={styles.categoryIcon}>{category.icon}</Text>
+              <Text style={styles.categoryIcon}>{category.emoji}</Text>
               <Text style={[
                 styles.categoryLabel,
                 selectedCategory === category.id && styles.categoryLabelSelected
@@ -284,7 +329,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={[styles.selectedCategoryBadge, { backgroundColor: categoryInfo?.color + '20' }]}>
-            <Text style={styles.categoryIcon}>{categoryInfo?.icon}</Text>
+            <Text style={styles.categoryIcon}>{categoryInfo?.emoji}</Text>
             <Text style={[styles.selectedCategoryText, { color: categoryInfo?.color }]}>
               {categoryInfo?.label}
             </Text>
@@ -295,7 +340,11 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
             <TextInput
               style={styles.input}
               value={itemName}
-              onChangeText={setItemName}
+              onChangeText={(text) => {
+                // Apply proper capitalization as user types
+                const capitalized = capitalizeIngredientName(text);
+                setItemName(capitalized);
+              }}
               placeholder="e.g., Whole Milk, Chicken Breast, Tomatoes"
               placeholderTextColor="#9CA3AF"
             />
@@ -307,7 +356,14 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
               <TextInput
                 style={styles.input}
                 value={quantity}
-                onChangeText={setQuantity}
+                onChangeText={(text) => {
+                  if (itemName && selectedUnit) {
+                    const formatted = formatQuantityInput(text, itemName, selectedUnit);
+                    setQuantity(formatted);
+                  } else {
+                    setQuantity(text);
+                  }
+                }}
                 placeholder="0"
                 keyboardType="numeric"
                 placeholderTextColor="#9CA3AF"
@@ -366,6 +422,46 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
               </ScrollView>
             </View>
           </View>
+
+          {/* Unit validation feedback */}
+          {unitValidationResult && unitValidationResult.severity !== 'info' && (
+            <View style={[
+              styles.validationContainer,
+              unitValidationResult.severity === 'error' ? styles.validationError : styles.validationWarning
+            ]}>
+              <Ionicons 
+                name={unitValidationResult.severity === 'error' ? 'alert-circle' : 'warning'} 
+                size={16} 
+                color={unitValidationResult.severity === 'error' ? '#EF4444' : '#F59E0B'} 
+              />
+              <Text style={[
+                styles.validationText,
+                unitValidationResult.severity === 'error' ? styles.validationTextError : styles.validationTextWarning
+              ]}>
+                {unitValidationResult.reason}
+              </Text>
+              {unitValidationResult.suggested_unit !== selectedUnit && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setSelectedUnit(unitValidationResult.suggested_unit);
+                    // Find and set the appropriate unit type
+                    const rules = CATEGORY_UNIT_RULES[selectedCategory || 'other'] || CATEGORY_UNIT_RULES.other;
+                    for (const [type, units] of Object.entries(rules.units)) {
+                      if (units.some((u: any) => u.id === unitValidationResult.suggested_unit)) {
+                        setSelectedUnitType(type);
+                        break;
+                      }
+                    }
+                  }}
+                  style={styles.suggestionButton}
+                >
+                  <Text style={styles.suggestionButtonText}>
+                    Use {unitValidationResult.suggested_unit}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           {unitPreview ? (
             <View style={styles.previewContainer}>
@@ -742,5 +838,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  validationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    marginBottom: 12,
+    flexWrap: 'wrap',
+  },
+  validationError: {
+    backgroundColor: '#FEE2E2',
+  },
+  validationWarning: {
+    backgroundColor: '#FEF3C7',
+  },
+  validationText: {
+    fontSize: 13,
+    marginLeft: 6,
+    flex: 1,
+  },
+  validationTextError: {
+    color: '#991B1B',
+  },
+  validationTextWarning: {
+    color: '#92400E',
+  },
+  suggestionButton: {
+    marginLeft: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  suggestionButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#374151',
   },
 });

@@ -207,7 +207,7 @@ class FoodDatabaseService:
         """Categorize using Spoonacular API"""
         try:
             # Use the parse ingredients endpoint
-            parsed = self.spoonacular.parse_ingredients([item_name])
+            parsed = await self.spoonacular.openai_service.parse_ingredients_from_text(item_name)
             if parsed and len(parsed) > 0:
                 ingredient = parsed[0]
                 

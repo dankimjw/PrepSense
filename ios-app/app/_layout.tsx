@@ -1,7 +1,7 @@
 // app/_layout.tsx - Part of the PrepSense mobile app
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { useColorScheme, View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useColorScheme, View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
 import { CustomHeader } from './components/CustomHeader';
 import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
@@ -10,6 +10,28 @@ import { UserPreferencesProvider } from '../context/UserPreferencesContext';
 import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
 import ConfigurationError from './components/ConfigurationError';
 import { ToastProvider } from '../hooks/useToast';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+
+// Configure warning/error suppression
+if (process.env.EXPO_PUBLIC_SUPPRESS_WARNINGS === 'true') {
+  // Suppress ALL logs (warnings and errors) in the app
+  LogBox.ignoreAllLogs(true);
+} else {
+  // Selectively ignore specific warnings
+  LogBox.ignoreLogs([
+    // React Native warnings
+    'Warning: componentWillReceiveProps',
+    'Warning: componentWillMount',
+    'Non-serializable values were found',
+    'VirtualizedLists should never be nested',
+    // Expo warnings
+    'Constants.platform.ios.model',
+    'Constants.deviceId',
+    // AsyncStorage warnings
+    'AsyncStorage has been extracted',
+    // Add more specific warnings to ignore here
+  ]);
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -255,8 +277,10 @@ function AppContent() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </GestureHandlerRootView>
   );
 }

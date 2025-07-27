@@ -6,15 +6,16 @@ Implemented a sophisticated multi-agent AI system using CrewAI to generate perso
 ## Architecture
 
 ### Multi-Agent System
-The implementation uses 7 specialized AI agents that work together:
+The implementation uses 8 specialized AI agents that work together:
 
 1. **Pantry Scan Agent** - Retrieves available ingredients from PostgreSQL
 2. **Ingredient Filter Agent** - Filters out expired/unusable items
-3. **Recipe Search Agent** - Finds recipes using available ingredients
-4. **Nutritional Agent** - Evaluates nutritional balance
+3. **Recipe Search Agent** - Finds recipes using available ingredients with proper units
+4. **Nutritional Agent** - Evaluates nutritional balance with unit conversions
 5. **User Preferences Agent** - Applies dietary restrictions and allergens
 6. **Recipe Scoring Agent** - Ranks recipes by quality match
-7. **Response Formatting Agent** - Formats results for API response
+7. **Sustainability Agent** - Evaluates environmental impact and food waste reduction
+8. **Response Formatting Agent** - Formats results with units and eco-scores
 
 ### Key Components
 

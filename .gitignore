@@ -170,3 +170,20 @@ MY_PANTRY_RECIPE_FLOW.md
 DEVELOPER_GUIDE.md
 COMPREHENSIVE_TEST_PLAN.md
 CLAUDE_INSTANCE_ROLES.md
+Food Data/FoodData_Central_AllData/*.zip
+
+# Large data files
+*.db
+*.csv
+*.zip
+Food Data/**/*.db
+Food Data/**/*.csv
+Food Data/**/*.zip
+
+# Image directories
+Food Data/**/Food Images/
+Recipe Images/
+
+# Data directories
+Food Data/
+data/

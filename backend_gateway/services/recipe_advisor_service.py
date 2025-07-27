@@ -186,16 +186,25 @@ class CrewAIService:
             logger.info(f"   - Protein sources: {len(pantry_analysis['protein_sources'])} items")
             logger.info(f"   - Staples: {len(pantry_analysis['staples'])} items")
 
-            # Step 4: Check saved recipes first
-            logger.info("\n💾 STEP 4: Checking saved recipes...")
-            saved_recipes = await self._get_matching_saved_recipes(user_id, valid_items)
-            logger.info(f"✅ Found {len(saved_recipes)} matching saved recipes")
+            # Step 4: Check for mock recipes first (for testing)
+            from backend_gateway.routers.mock_recipe_router import get_mock_recipes_for_chat
+            from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled
+            if is_chat_recipes_mock_enabled():
+                logger.info("\n🧪 MOCK MODE: Using test recipes...")
+                saved_recipes = get_mock_recipes_for_chat() or []
+                spoonacular_recipes = []
+                logger.info(f"✅ Loaded {len(saved_recipes)} mock recipes for testing")
+            else:
+                # Normal flow: Check saved recipes first
+                logger.info("\n💾 STEP 4: Checking saved recipes...")
+                saved_recipes = await self._get_matching_saved_recipes(user_id, valid_items)
+                logger.info(f"✅ Found {len(saved_recipes)} matching saved recipes")
 
-            # Step 5: Get Spoonacular recipes (fewer if we have saved matches)
-            num_spoon_recipes = 10 - len(saved_recipes) if len(saved_recipes) < 5 else 5
-            logger.info(f"\n🥄 STEP 5: Fetching {num_spoon_recipes} Spoonacular recipes...")
-            spoonacular_recipes = await self._get_spoonacular_recipes(valid_items, message, user_preferences, num_spoon_recipes)
-            logger.info(f"✅ Found {len(spoonacular_recipes)} Spoonacular recipes")
+                # Step 5: Get Spoonacular recipes (fewer if we have saved matches)
+                num_spoon_recipes = 10 - len(saved_recipes) if len(saved_recipes) < 5 else 5
+                logger.info(f"\n🥄 STEP 5: Fetching {num_spoon_recipes} Spoonacular recipes...")
+                spoonacular_recipes = await self._get_spoonacular_recipes(valid_items, message, user_preferences, num_spoon_recipes)
+                logger.info(f"✅ Found {len(spoonacular_recipes)} Spoonacular recipes")
 
             # Step 6: Combine and rank all recipes
             logger.info("\n🔀 STEP 6: Combining recipe sources...")
@@ -700,9 +709,20 @@ class CrewAIService:
                 max_tokens=2000
             )
 
+            # Log the full OpenAI chat response for debugging
+            print(f"\n🤖 OpenAI Chat Completion Response:")
+            print(f"   Model: gpt-4o")
+            print(f"   Usage: {response.usage}")
+            print(f"   Response ID: {response.id}")
+            print(f"   Response object: {response}")
+            
             logger.info("✅ OpenAI API call successful")
             recipes_text = response.choices[0].message.content.strip()
             logger.info(f"📄 Response length: {len(recipes_text)} characters")
+            
+            print(f"   Generated Content Preview:")
+            print(f"   {recipes_text[:200]}...")
+            print(f"   Full Content Length: {len(recipes_text)} characters\n")
 
             # Clean up the response if it has markdown code blocks
             if recipes_text.startswith('```json'):

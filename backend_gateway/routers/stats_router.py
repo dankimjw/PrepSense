@@ -54,7 +54,7 @@ async def get_comprehensive_stats(
                 AVG(pi.quantity) as avg_quantity
             FROM pantry_items pi
             JOIN pantries p ON pi.pantry_id = p.pantry_id
-            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            WHERE p.user_id = %(user_id)s
         ),
         category_breakdown AS (
             SELECT 
@@ -62,7 +62,7 @@ async def get_comprehensive_stats(
                 COUNT(*) as count
             FROM pantry_items pi
             JOIN pantries p ON pi.pantry_id = p.pantry_id
-            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            WHERE p.user_id = %(user_id)s
             GROUP BY pi.category
             ORDER BY count DESC
             LIMIT 5
@@ -73,7 +73,7 @@ async def get_comprehensive_stats(
                 COUNT(*) as purchase_count
             FROM pantry_items pi
             JOIN pantries p ON pi.pantry_id = p.pantry_id
-            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            WHERE p.user_id = %(user_id)s
             AND pi.created_at >= %(start_date)s
             GROUP BY pi.product_name
             ORDER BY purchase_count DESC
@@ -148,7 +148,7 @@ async def get_comprehensive_stats(
             FROM pantry_items pi
             JOIN pantries p ON pi.pantry_id = p.pantry_id
             LEFT JOIN pantry_history ph ON pi.pantry_item_id = ph.pantry_item_id
-            WHERE p.user_id = %(user_id)s AND pi.status = 'available'
+            WHERE p.user_id = %(user_id)s
         )
         SELECT 
             unexpired_items * 0.3 as food_saved_kg,  -- Avg 0.3kg per item

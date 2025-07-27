@@ -3,8 +3,9 @@
 # File: PrepSense/backend_gateway/routers/images_router.py
 from fastapi import APIRouter, File, UploadFile, HTTPException, Depends
 from typing import Dict, Any, List, Optional # For type hinting
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
+import base64
 
 # Correct import for the centralized VisionService
 from backend_gateway.services.vision_service import VisionService
@@ -43,6 +44,13 @@ class CleanupRequest(BaseModel):
     hours_ago: Optional[float] = None
 
 router = APIRouter()
+
+# Pydantic model for OCR-style requests
+class ScanRequest(BaseModel):
+    image_base64: str = Field(..., alias="image_data")
+    mime_type: Optional[str] = None
+    
+    model_config = ConfigDict(populate_by_name=True)
 
 @router.post("/upload", response_model=Dict[str, List[Dict[str, Any]]]) # Define a response model
 async def upload_image(
@@ -205,3 +213,54 @@ async def delete_single_item(
     except Exception as e:
         print(f"Error deleting item: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to delete item: {str(e)}")
+
+@router.post("/scan-items-vision", response_model=Dict[str, Any])
+async def scan_items_vision(
+    request: ScanRequest,
+    vision_service: VisionService = Depends(get_vision_service)
+):
+    """
+    Scan items using the original vision service (gpt-4o).
+    This endpoint provides OCR-compatible interface but uses the more accurate vision service.
+    """
+    
+    try:
+        # Decode base64 image
+        if request.image_base64.startswith('data:'):
+            base64_data = request.image_base64.split(',', 1)[1]
+        else:
+            base64_data = request.image_base64
+            
+        # Call vision service
+        openai_raw_response = vision_service.classify_food_items(base64_data, request.mime_type)
+        
+        # Parse response
+        parsed_items = vision_service.parse_openai_response(openai_raw_response)
+        
+        # Convert to OCR-style response
+        ocr_items = []
+        for item in parsed_items:
+            ocr_items.append({
+                "name": item.get("item_name", "Unknown Item"),
+                "brand": item.get("brand", ""),
+                "quantity": item.get("quantity_amount", 1),
+                "unit": item.get("quantity_unit", "unit"),
+                "barcode": item.get("barcode"),
+                "category": item.get("category"),
+                "product_name": f"{item.get('brand', '')} {item.get('item_name', '')}".strip(),
+                "expiration_date": item.get("expected_expiration")
+            })
+        
+        return {
+            "success": True,
+            "items": ocr_items,
+            "message": f"Successfully identified {len(ocr_items)} items using vision service."
+        }
+        
+    except Exception as e:
+        print(f"Error in scan_items_vision: {str(e)}")
+        return {
+            "success": False,
+            "items": [],
+            "message": f"Failed to process image: {str(e)}"
+        }

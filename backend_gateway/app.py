@@ -79,12 +79,26 @@ app.add_middleware(
 
 # Mount static files for recipe images
 from pathlib import Path
+
+# Mount the new static directory with imported recipe images
+static_path = Path("backend_gateway/static")
+if static_path.exists():
+    app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+    logger.info(f"Mounted static directory at {static_path.absolute()}")
+else:
+    # Try relative path from current file
+    static_path = Path(__file__).parent / "static"
+    if static_path.exists():
+        app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+        logger.info(f"Mounted static directory at {static_path.absolute()}")
+    else:
+        logger.warning(f"Static directory not found")
+
+# Also mount old Recipe Images directory if it exists
 recipe_images_path = Path("Recipe Images")
 if recipe_images_path.exists():
     app.mount("/Recipe Images", StaticFiles(directory=str(recipe_images_path)), name="recipe_images")
     logger.info(f"Mounted Recipe Images directory at {recipe_images_path.absolute()}")
-else:
-    logger.warning(f"Recipe Images directory not found at {recipe_images_path.absolute()}")
 
 # Include routers
 # Health endpoint without prefix for readiness probes

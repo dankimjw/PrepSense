@@ -80,14 +80,12 @@ async def login_for_access_token(
 
 # Dependencies
 async def get_current_user(
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(oauth2_scheme_optional),
+    token: Optional[str] = Depends(oauth2_scheme_optional),
     user_service: UserService = Depends(get_user_service)
 ) -> Optional[UserInDB]:
-    if credentials is None:
+    if token is None:
         logger.info("Get_current_user: No token provided.")
         return None
-
-    token = credentials.credentials
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials (token invalid or expired)",
