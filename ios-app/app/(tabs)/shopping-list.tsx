@@ -14,6 +14,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AddToPantryModal } from '../../components/modals/AddToPantryModal';
+import { TabScreenTransition } from '../../components/navigation/TabScreenTransition';
 
 interface ShoppingItem {
   id: string;
@@ -173,10 +174,11 @@ export default function ShoppingListScreen() {
   const checkedItems = items.filter(item => item.checked);
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
+    <TabScreenTransition routeName="shopping-list" transitionStyle="fade">
+      <KeyboardAvoidingView 
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <Text style={styles.headerTitle}>Shopping List</Text>
         <View style={styles.headerButtons}>
@@ -341,6 +343,7 @@ export default function ShoppingListScreen() {
         />
       )}
     </KeyboardAvoidingView>
+    </TabScreenTransition>
   );
 }
 

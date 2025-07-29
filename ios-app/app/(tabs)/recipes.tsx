@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -60,8 +60,6 @@ interface SavedRecipe {
   rating: 'thumbs_up' | 'thumbs_down' | 'neutral';
   is_favorite?: boolean;
   source: string;
-  status?: 'saved' | 'cooked';
-  cooked_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -77,6 +75,7 @@ export default function RecipesScreen() {
   const [activeTab, setActiveTab] = useState<'pantry' | 'discover' | 'my-recipes'>('pantry');
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [myRecipesFilter, setMyRecipesFilter] = useState<'all' | 'thumbs_up' | 'thumbs_down' | 'favorites'>('all');
+  const [myRecipesTab, setMyRecipesTab] = useState<'saved' | 'cooked'>('saved');
   const [sortBy, setSortBy] = useState<SortOption>('name');
   const [showSortModal, setShowSortModal] = useState(false);
   const [searchFocused, setSearchFocused] = useState(false);
@@ -337,12 +336,18 @@ export default function RecipesScreen() {
       // }
 
       let filterParam = '';
+      // Add status filter based on current tab
+      if (myRecipesTab === 'saved') {
+        filterParam = '?status=saved';
+      } else if (myRecipesTab === 'cooked') {
+        filterParam = '?status=cooked';
+      }
       
-      // Add filters based on selection
+      // Add additional filters
       if (myRecipesFilter === 'favorites') {
-        filterParam = '?is_favorite=true';
+        filterParam += filterParam ? '&is_favorite=true' : '?is_favorite=true';
       } else if (myRecipesFilter !== 'all') {
-        filterParam = `?rating=${myRecipesFilter}`;
+        filterParam += filterParam ? `&rating=${myRecipesFilter}` : `?rating=${myRecipesFilter}`;
       }
       
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
@@ -740,109 +745,54 @@ export default function RecipesScreen() {
     }
   };
 
-  // Filter recipes based on search query
-  const getFilteredRecipes = () => {
-    console.log('getFilteredRecipes called, recipes:', recipes.length, 'activeTab:', activeTab);
-    let filteredRecipes = [...recipes];
+  // Memoize filtered recipes to prevent unnecessary recalculations
+  const filteredRecipes = useMemo(() => {
+    let filtered = [...recipes];
     
     if (searchQuery && activeTab === 'pantry') {
-      filteredRecipes = recipes.filter(recipe => 
+      filtered = recipes.filter(recipe => 
         recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
     // Sort recipes
     if (sortBy === 'name') {
-      filteredRecipes.sort((a, b) => a.title.localeCompare(b.title));
+      filtered.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === 'missing') {
-      filteredRecipes.sort((a, b) => 
+      filtered.sort((a, b) => 
         (a.missedIngredientCount || 0) - (b.missedIngredientCount || 0)
       );
     }
     
-    console.log('Filtered recipes count:', filteredRecipes.length);
-    return filteredRecipes;
-  };
+    return filtered;
+  }, [recipes, searchQuery, activeTab, sortBy]);
 
-  // Filter saved recipes based on search query and preferences
-  const getFilteredSavedRecipes = () => {
-    let filteredRecipes = [...savedRecipes];
+  // Memoize filtered saved recipes to prevent unnecessary recalculations
+  const filteredSavedRecipes = useMemo(() => {
+    let filtered = [...savedRecipes];
     
     if (searchQuery) {
-      filteredRecipes = savedRecipes.filter(recipe => 
+      filtered = savedRecipes.filter(recipe => 
         recipe.recipe_title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
     
-    // Apply dietary, cuisine, and meal type filters
-    if (selectedFilters.length > 0) {
-      filteredRecipes = filteredRecipes.filter(recipe => {
-        const recipeData = recipe.recipe_data;
-        
-        // Check dietary filters
-        const dietaryMatches = selectedFilters.filter(filter => 
-          dietaryFilters.some(df => df.id === filter)
-        );
-        if (dietaryMatches.length > 0) {
-          const recipeDiets = (recipeData?.diets || recipeData?.dietary_tags || []).map((d: string) => d.toLowerCase());
-          const hasMatchingDiet = dietaryMatches.some(filter => 
-            recipeDiets.includes(filter) || 
-            (filter === 'gluten-free' && recipeDiets.includes('gluten free')) ||
-            (filter === 'dairy-free' && recipeDiets.includes('dairy free')) ||
-            (filter === 'low-carb' && recipeDiets.includes('low carb'))
-          );
-          if (!hasMatchingDiet) return false;
-        }
-        
-        // Check cuisine filters
-        const cuisineMatches = selectedFilters.filter(filter => 
-          cuisineFilters.some(cf => cf.id === filter)
-        );
-        if (cuisineMatches.length > 0) {
-          const recipeCuisines = (recipeData?.cuisines || recipeData?.cuisine_tags || []).map((c: string) => c.toLowerCase());
-          const hasMatchingCuisine = cuisineMatches.some(filter => 
-            recipeCuisines.includes(filter) ||
-            recipeCuisines.some((cuisine: string) => cuisine.includes(filter))
-          );
-          if (!hasMatchingCuisine) return false;
-        }
-        
-        // Check meal type filters
-        const mealTypeMatches = selectedFilters.filter(filter => 
-          mealTypeFilters.some(mf => mf.id === filter)
-        );
-        if (mealTypeMatches.length > 0) {
-          const recipeDishTypes = (recipeData?.dishTypes || recipeData?.meal_type || []).map((t: string) => t.toLowerCase());
-          const recipeTitle = recipe.recipe_title.toLowerCase();
-          const hasMatchingMealType = mealTypeMatches.some(filter => 
-            recipeDishTypes.includes(filter) ||
-            recipeDishTypes.some((dishType: string) => dishType.includes(filter)) ||
-            recipeTitle.includes(filter)
-          );
-          if (!hasMatchingMealType) return false;
-        }
-        
-        return true;
-      });
-    }
-    
     // Sort recipes
     if (sortBy === 'name') {
-      filteredRecipes.sort((a, b) => a.recipe_title.localeCompare(b.recipe_title));
+      filtered.sort((a, b) => a.recipe_title.localeCompare(b.recipe_title));
     } else if (sortBy === 'date') {
-      filteredRecipes.sort((a, b) => 
+      filtered.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     } else if (sortBy === 'rating') {
-      filteredRecipes.sort((a, b) => {
+      filtered.sort((a, b) => {
         const ratingOrder = { thumbs_up: 2, neutral: 1, thumbs_down: 0 };
         return ratingOrder[b.rating] - ratingOrder[a.rating];
       });
     }
     
-    return filteredRecipes;
-  };
-
+    return filtered;
+  }, [savedRecipes, searchQuery, sortBy]);
 
   useEffect(() => {
     if (activeTab === 'pantry') {
@@ -858,12 +808,12 @@ export default function RecipesScreen() {
     }
   }, [activeTab, fetchRecipesFromPantry, selectedFilters, myRecipesFilter]);
 
-  // Add separate effect to handle filter changes on my-recipes tab
+  // Add separate effect to handle filter and tab changes on my-recipes tab
   useEffect(() => {
     if (activeTab === 'my-recipes') {
       fetchMyRecipes();
     }
-  }, [myRecipesFilter]);
+  }, [myRecipesFilter, myRecipesTab]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -884,55 +834,25 @@ export default function RecipesScreen() {
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      if (recipe.source === 'chat' || recipe.source === 'generated') {
+      if (recipe.source === 'chat') {
         // Chat-generated recipes should go to recipe-details
         router.push({
           pathname: '/recipe-details',
           params: { recipe: JSON.stringify(recipe.recipe_data) },
         });
       } else {
-        // All other saved recipes (including kaggle_dataset) should use spoonacular detail screen
-        // But we need to pass the full recipe data since we can't fetch from API
-        const recipeData = recipe.recipe_data;
-        
-        // Create a spoonacular-compatible recipe object
-        const spoonacularRecipe = {
-          id: recipe.recipe_id || recipeData.id || recipeData.external_recipe_id,
-          title: recipeData.title || recipe.recipe_title,
-          image: recipe.recipe_image,
-          readyInMinutes: recipeData.readyInMinutes || recipeData.time || 30,
-          servings: recipeData.servings || 4,
-          summary: recipeData.summary || '',
-          cuisines: recipeData.cuisines || recipeData.cuisine_tags || [],
-          diets: recipeData.diets || recipeData.dietary_tags || [],
-          dishTypes: recipeData.dishTypes || [],
-          extendedIngredients: recipeData.extendedIngredients || recipeData.ingredients?.map((ing: any, idx: number) => ({
-            id: idx,
-            name: typeof ing === 'string' ? ing : (ing.name || ing.ingredient || ''),
-            amount: ing.amount || 1,
-            unit: ing.unit || '',
-            original: typeof ing === 'string' ? ing : (ing.original || ing.name || ing.ingredient || '')
-          })) || [],
-          analyzedInstructions: recipeData.analyzedInstructions || [{
-            name: '',
-            steps: (recipeData.instructions || []).map((instruction: string, idx: number) => ({
-              number: idx + 1,
-              step: instruction,
-              ingredients: [],
-              equipment: []
-            }))
-          }],
-          nutrition: recipeData.nutrition
-        };
-        
-        // Navigate to spoonacular detail with the recipe data
-        router.push({
-          pathname: '/recipe-spoonacular-detail',
-          params: { 
-            recipeId: (recipe.recipe_id || recipeData.id || Date.now()).toString(),
-            recipeData: JSON.stringify(spoonacularRecipe)
-          },
-        });
+        // Spoonacular recipes go to recipe-spoonacular-detail
+        // Check if recipe_id exists (might be null for external recipes)
+        const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
+        if (recipeId) {
+          router.push({
+            pathname: '/recipe-spoonacular-detail',
+            params: { recipeId: recipeId.toString() },
+          });
+        } else {
+          console.error('No recipe ID found for saved recipe:', recipe);
+          Alert.alert('Error', 'Unable to open recipe details');
+        }
       }
     } else {
       // This is a regular recipe from search/discovery
@@ -1021,23 +941,14 @@ export default function RecipesScreen() {
     </View>
   );
 
-  const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => {
-    // Fix image URL if it's a relative path
-    let imageUrl = savedRecipe.recipe_image;
-    if (imageUrl && !imageUrl.startsWith('http')) {
-      // If it's a relative path, prepend the backend URL (without /api/v1)
-      const baseUrl = Config.API_BASE_URL.replace('/api/v1', '');
-      imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-    }
-    
-    return (
-      <View key={savedRecipe.id} testID={`saved-recipe-card-wrapper-${savedRecipe.id}`} style={styles.recipeCardWrapper}>
-        <TouchableOpacity
-          testID={`saved-recipe-card-${savedRecipe.id}`}
-          style={styles.recipeCard}
-          onPress={() => navigateToRecipeDetail(savedRecipe)}
-        >
-          <Image source={{ uri: imageUrl }} style={styles.recipeImage} />
+  const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => (
+    <View key={savedRecipe.id} testID={`saved-recipe-card-wrapper-${savedRecipe.id}`} style={styles.recipeCardWrapper}>
+      <TouchableOpacity
+        testID={`saved-recipe-card-${savedRecipe.id}`}
+        style={styles.recipeCard}
+        onPress={() => navigateToRecipeDetail(savedRecipe)}
+      >
+        <Image source={{ uri: savedRecipe.recipe_image }} style={styles.recipeImage} />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.8)']}
           style={styles.gradient}
@@ -1046,45 +957,47 @@ export default function RecipesScreen() {
           <Text testID={`saved-recipe-title-${savedRecipe.id}`} style={styles.recipeTitle} numberOfLines={2}>
             {savedRecipe.recipe_title}
           </Text>
-          {/* Show rating buttons in both Saved and Cooked tabs */}
-          <View testID={`rating-buttons-${savedRecipe.id}`} style={styles.ratingButtons}>
-            <TouchableOpacity 
-              testID={`thumbs-up-button-${savedRecipe.id}`}
-              style={[
-                styles.ratingButton,
-                savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
-              ]}
-              onPress={() => updateRecipeRating(
-                savedRecipe.id, 
-                savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
-              )}
-            >
-              <Ionicons 
-                name="thumbs-up" 
-                size={16} 
-                color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
-                accessibilityLabel="Rate recipe positively"
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              testID={`thumbs-down-button-${savedRecipe.id}`}
-              style={[
-                styles.ratingButton,
-                savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
-              ]}
-              onPress={() => updateRecipeRating(
-                savedRecipe.id, 
-                savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
-              )}
-            >
-              <Ionicons 
-                name="thumbs-down" 
-                size={16} 
-                color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
-                accessibilityLabel="Rate recipe negatively"
-              />
-            </TouchableOpacity>
-          </View>
+          {/* Only show rating buttons in Cooked tab */}
+          {myRecipesTab === 'cooked' && (
+            <View testID={`rating-buttons-${savedRecipe.id}`} style={styles.ratingButtons}>
+              <TouchableOpacity 
+                testID={`thumbs-up-button-${savedRecipe.id}`}
+                style={[
+                  styles.ratingButton,
+                  savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
+                ]}
+                onPress={() => updateRecipeRating(
+                  savedRecipe.id, 
+                  savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
+                )}
+              >
+                <Ionicons 
+                  name="thumbs-up" 
+                  size={16} 
+                  color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                  accessibilityLabel="Rate recipe positively"
+                />
+              </TouchableOpacity>
+              <TouchableOpacity 
+                testID={`thumbs-down-button-${savedRecipe.id}`}
+                style={[
+                  styles.ratingButton,
+                  savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
+                ]}
+                onPress={() => updateRecipeRating(
+                  savedRecipe.id, 
+                  savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
+                )}
+              >
+                <Ionicons 
+                  name="thumbs-down" 
+                  size={16} 
+                  color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                  accessibilityLabel="Rate recipe negatively"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
         <View testID={`card-actions-${savedRecipe.id}`} style={styles.cardActions}>
           <TouchableOpacity 
@@ -1109,8 +1022,7 @@ export default function RecipesScreen() {
         </View>
       </TouchableOpacity>
     </View>
-    );
-  };
+  );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -1186,168 +1098,107 @@ export default function RecipesScreen() {
 
       {/* Filter Grid */}
       {activeTab === 'my-recipes' ? (
-        <View style={styles.myRecipesFiltersContainer}>
-          {/* Main Filter Row - All, Favorites, Liked, Disliked */}
-          <View style={styles.filterContainer}>
-            <ScrollView 
-              horizontal
-              style={styles.filterScrollView}
-              contentContainerStyle={styles.filterContent}
-              showsHorizontalScrollIndicator={false}
+        <View style={styles.myRecipesTabContainer}>
+          {/* Saved/Cooked Tabs */}
+          <View testID="my-recipes-tabs" style={styles.myRecipesTabs}>
+            <TouchableOpacity
+              testID="saved-tab"
+              style={[
+                styles.myRecipesTab,
+                myRecipesTab === 'saved' && styles.myRecipesTabActive
+              ]}
+              onPress={() => {
+                setMyRecipesTab('saved');
+                setMyRecipesFilter('all'); // Reset filter when switching tabs
+              }}
             >
-              <TouchableOpacity
-                testID="filter-all"
-                style={[
-                  styles.filterButton,
-                  myRecipesFilter === 'all' && styles.filterButtonActive
-                ]}
-                onPress={() => setMyRecipesFilter('all')}
-              >
-                <Text style={styles.filterIcon}>📋</Text>
-                <Text style={[
-                  styles.filterText,
-                  myRecipesFilter === 'all' && styles.filterTextActive
-                ]}>
-                  All
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="filter-favorites"
-                style={[
-                  styles.filterButton,
-                  myRecipesFilter === 'favorites' && styles.filterButtonActive
-                ]}
-                onPress={() => setMyRecipesFilter('favorites')}
-              >
-                <Text style={styles.filterIcon}>❤️</Text>
-                <Text style={[
-                  styles.filterText,
-                  myRecipesFilter === 'favorites' && styles.filterTextActive
-                ]}>
-                  Favorites
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="filter-thumbs-up"
-                style={[
-                  styles.filterButton,
-                  myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
-                ]}
-                onPress={() => setMyRecipesFilter('thumbs_up')}
-              >
-                <Text style={styles.filterIcon}>👍</Text>
-                <Text style={[
-                  styles.filterText,
-                  myRecipesFilter === 'thumbs_up' && styles.filterTextActive
-                ]}>
-                  Liked
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                testID="filter-thumbs-down"
-                style={[
-                  styles.filterButton,
-                  myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
-                ]}
-                onPress={() => setMyRecipesFilter('thumbs_down')}
-              >
-                <Text style={styles.filterIcon}>👎</Text>
-                <Text style={[
-                  styles.filterText,
-                  myRecipesFilter === 'thumbs_down' && styles.filterTextActive
-                ]}>
-                  Disliked
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
+              <Text style={[
+                styles.myRecipesTabText,
+                myRecipesTab === 'saved' && styles.myRecipesTabTextActive
+              ]}>
+                🔖 Saved
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="cooked-tab"
+              style={[
+                styles.myRecipesTab,
+                myRecipesTab === 'cooked' && styles.myRecipesTabActive
+              ]}
+              onPress={() => {
+                setMyRecipesTab('cooked');
+                setMyRecipesFilter('all'); // Reset filter when switching tabs
+              }}
+            >
+              <Text style={[
+                styles.myRecipesTabText,
+                myRecipesTab === 'cooked' && styles.myRecipesTabTextActive
+              ]}>
+                🍳 Cooked
+              </Text>
+            </TouchableOpacity>
           </View>
           
-          {/* Dietary Filters Row */}
-          <View style={styles.filterRow}>
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRowContent}
-            >
-              {dietaryFilters.map(filter => (
+          {/* Only show rating filters in Cooked tab */}
+          {myRecipesTab === 'cooked' && (
+            <View style={styles.filterContainer}>
+              <ScrollView 
+                horizontal
+                style={styles.filterScrollView}
+                contentContainerStyle={styles.filterContent}
+                showsHorizontalScrollIndicator={false}
+              >
                 <TouchableOpacity
-                  key={filter.id}
-                  testID={`my-recipes-dietary-filter-${filter.id}`}
+                  testID="filter-all"
                   style={[
                     styles.filterButton,
-                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    myRecipesFilter === 'all' && styles.filterButtonActive
                   ]}
-                  onPress={() => toggleFilter(filter.id)}
+                  onPress={() => setMyRecipesFilter('all')}
                 >
-                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={styles.filterIcon}>📋</Text>
                   <Text style={[
                     styles.filterText,
-                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                    myRecipesFilter === 'all' && styles.filterTextActive
                   ]}>
-                    {filter.label}
+                    All
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Cuisine Filters Row */}
-          <View style={styles.filterRow}>
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRowContent}
-            >
-              {cuisineFilters.map(filter => (
                 <TouchableOpacity
-                  key={filter.id}
-                  testID={`my-recipes-cuisine-filter-${filter.id}`}
+                  testID="filter-thumbs-up"
                   style={[
                     styles.filterButton,
-                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    myRecipesFilter === 'thumbs_up' && styles.filterButtonActive
                   ]}
-                  onPress={() => toggleFilter(filter.id)}
+                  onPress={() => setMyRecipesFilter('thumbs_up')}
                 >
-                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={styles.filterIcon}>👍</Text>
                   <Text style={[
                     styles.filterText,
-                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                    myRecipesFilter === 'thumbs_up' && styles.filterTextActive
                   ]}>
-                    {filter.label}
+                    Liked
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          {/* Meal Type Filters Row */}
-          <View style={styles.filterRow}>
-            <ScrollView 
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.filterRowContent}
-            >
-              {mealTypeFilters.map(filter => (
                 <TouchableOpacity
-                  key={filter.id}
-                  testID={`my-recipes-meal-type-filter-${filter.id}`}
+                  testID="filter-thumbs-down"
                   style={[
                     styles.filterButton,
-                    selectedFilters.includes(filter.id) && styles.filterButtonActive
+                    myRecipesFilter === 'thumbs_down' && styles.filterButtonActive
                   ]}
-                  onPress={() => toggleFilter(filter.id)}
+                  onPress={() => setMyRecipesFilter('thumbs_down')}
                 >
-                  <Text style={styles.filterIcon}>{filter.icon}</Text>
+                  <Text style={styles.filterIcon}>👎</Text>
                   <Text style={[
                     styles.filterText,
-                    selectedFilters.includes(filter.id) && styles.filterTextActive
+                    myRecipesFilter === 'thumbs_down' && styles.filterTextActive
                   ]}>
-                    {filter.label}
+                    Disliked
                   </Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+              </ScrollView>
+            </View>
+          )}
         </View>
       ) : activeTab === 'discover' ? (
         <Animated.View 
@@ -1554,11 +1405,15 @@ export default function RecipesScreen() {
                 <Text testID="empty-my-recipes-text" style={styles.emptyText}>
                   {searchQuery 
                     ? `No recipes found matching "${searchQuery}"`
-                    : myRecipesFilter === 'all' 
-                    ? 'No saved recipes yet. Save recipes from other tabs to see them here!'
-                    : myRecipesFilter === 'favorites'
-                    ? 'No favorite recipes yet. Tap the heart icon on recipes you love!'
-                    : `No ${myRecipesFilter === 'thumbs_up' ? 'liked' : 'disliked'} recipes found`}
+                    : myRecipesTab === 'saved'
+                    ? 'Bookmarks save recipes you want to try. Tap the bookmark icon on any recipe to add one.'
+                    : myRecipesTab === 'cooked' && myRecipesFilter === 'all'
+                    ? 'Nothing cooked yet. After you finish cooking a recipe it will appear here, ready for you to rate.'
+                    : myRecipesFilter === 'thumbs_up'
+                    ? 'No liked recipes yet. Cook some recipes and rate them!'
+                    : myRecipesFilter === 'thumbs_down'
+                    ? 'No disliked recipes yet.'
+                    : 'No recipes found'}
                 </Text>
               </View>
             ) : (
@@ -1730,10 +1585,33 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
-  myRecipesFiltersContainer: {
+  myRecipesTabContainer: {
     backgroundColor: '#fff',
+  },
+  myRecipesTabs: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
+  },
+  myRecipesTab: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  myRecipesTabActive: {
+    backgroundColor: '#297A56',
+  },
+  myRecipesTabText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#6B7280',
+  },
+  myRecipesTabTextActive: {
+    color: '#fff',
   },
   discoverFiltersContainer: {
     backgroundColor: '#fff',

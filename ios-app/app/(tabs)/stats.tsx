@@ -6,8 +6,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { fetchPantryItems } from '../../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
+import { useTabData } from '../../context/TabDataProvider';
 import { LineChart, BarChart } from 'react-native-chart-kit';
 import { Config } from '../../config';
+import { TabScreenTransition } from '../../components/navigation/TabScreenTransition';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -43,6 +45,7 @@ interface PantryItem {
 
 export default function StatsScreen() {
   const { token, isAuthenticated } = useAuth();
+  const { statsData, isLoadingStats, refreshStatsData } = useTabData();
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<StatsData | null>(null);
@@ -61,6 +64,52 @@ export default function StatsScreen() {
 
   const loadStats = async () => {
     try {
+      // Use preloaded data if available and fresh
+      if (statsData && !refreshing) {
+        const { comprehensiveStats, pantryItems: preloadedPantryItems, cookingTrends } = statsData;
+        
+        if (comprehensiveStats) {
+          const { pantry, recipes, sustainability } = comprehensiveStats;
+          
+          // Set cooking history if available
+          if (recipes.cooking_history && cookingTrends) {
+            setCookingHistory({
+              summary: {
+                days_cooked_this_week: recipes.cooking_history.cooked_this_week,
+                days_cooked_this_month: recipes.cooking_history.cooked_this_month,
+                cooking_streak: recipes.cooking_history.current_streak
+              }
+            });
+          }
+          
+          // Prepare stats data from preloaded response
+          const statsData: StatsData = {
+            pantry: {
+              totalItems: pantry.summary.total_items,
+              expiredItems: pantry.summary.expired_items,
+              expiringItems: pantry.summary.expiring_soon,
+              recentlyAdded: pantry.summary.recently_added,
+              topProducts: pantry.top_products?.map(p => ({ name: p.product_name, count: p.purchase_count })) || [],
+              foodSavedKg: sustainability.food_saved_kg,
+              co2SavedKg: sustainability.co2_saved_kg,
+            },
+            recipes: {
+              cookedThisWeek: recipes.cooking_history.cooked_this_week,
+              cookedThisMonth: recipes.cooking_history.cooked_this_month,
+              totalCooked: recipes.total_recipes,
+              favoriteRecipes: recipes.favorite_recipes || [],
+              cookingStreak: recipes.cooking_history.current_streak,
+            },
+          };
+          
+          setStats(statsData);
+          setPantryItems(preloadedPantryItems);
+          setIsLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
+      
       setIsLoading(true);
       
       // Fetch comprehensive stats from new endpoint
@@ -530,9 +579,10 @@ export default function StatsScreen() {
     </View>
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadStats();
+    await refreshStatsData();
+    await loadStats();
   };
 
   if (isLoading) {
@@ -673,17 +723,18 @@ export default function StatsScreen() {
   const cookingFrequencyData = generateCookingFrequencyData();
 
   return (
-    <ScrollView 
-      style={styles.container}
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl
-          refreshing={refreshing}
-          onRefresh={onRefresh}
-          tintColor="#297A56"
-        />
-      }
-    >
+    <TabScreenTransition routeName="stats" transitionStyle="scale">
+      <ScrollView 
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#297A56"
+          />
+        }
+      >
       {/* Header with gradient */}
       <LinearGradient
         colors={['#297A56', '#1F5A40']}
@@ -1063,6 +1114,7 @@ export default function StatsScreen() {
 
       <View style={{ height: 100 }} />
     </ScrollView>
+    </TabScreenTransition>
   );
 }
 

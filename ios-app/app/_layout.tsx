@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { PreloadDebugOverlay } from '../components/PreloadDebugOverlay';
 import { initPreloadDebug } from '../utils/debugPreload';
 import AnimatedIntroScreen from '../components/AnimatedIntroScreen';
+import EnhancedAnimatedIntroScreenV2 from '../components/EnhancedAnimatedIntroScreenV2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Initialize debug commands in development
@@ -164,7 +165,7 @@ function AppContent() {
 
   // Show intro screen if needed
   if (showIntro && !isCheckingIntro) {
-    return <AnimatedIntroScreen onFinished={handleIntroFinished} />;
+    return <EnhancedAnimatedIntroScreenV2 onFinished={handleIntroFinished} />;
   }
 
   // Show a loading indicator while checking environment or auth state

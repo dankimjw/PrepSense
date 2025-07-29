@@ -3,6 +3,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, StyleSheet, Dimensions, View, Modal, Text, TouchableOpacity, Animated } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useState, useRef } from 'react';
+import ReAnimated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+const AnimatedPressable = ReAnimated.createAnimatedComponent(Pressable);
+const AnimatedTouchableOpacity = ReAnimated.createAnimatedComponent(TouchableOpacity);
 
 // Get screen width to calculate tab positions
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -41,6 +50,10 @@ function AddButton() {
   const slideAnims = useRef(
     suggestedMessages.map(() => new Animated.Value(-50))
   ).current;
+  
+  // Reanimated values for button press animations
+  const addButtonScale = useSharedValue(1);
+  const lightbulbScale = useSharedValue(1);
   
   // Ensure animations are initialized
   if (!fadeAnim || !slideAnims || slideAnims.length === 0) {
@@ -175,17 +188,11 @@ function AddButton() {
   return (
     <>
       {/* Lightbulb Button - Always visible */}
-      <TouchableOpacity
-        style={styles.lightbulbFab}
+      <AnimatedLightbulbButton
+        scale={lightbulbScale}
         onPress={toggleSuggestions}
-        activeOpacity={0.8}
-      >
-        <Ionicons 
-          name={showSuggestions ? "bulb" : "bulb-outline"} 
-          size={24} 
-          color="#fff" 
-        />
-      </TouchableOpacity>
+        showSuggestions={showSuggestions}
+      />
       
       {/* Floating Suggestions */}
       {showSuggestions && (
@@ -229,11 +236,10 @@ function AddButton() {
       )}
       
       {/* Add Button */}
-      <Pressable
+      <AnimatedAddButton
+        scale={addButtonScale}
         onPress={toggleModal}
-        style={styles.fab}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </Pressable>
+      />
 
       {/* Add Button Modal */}
       {modalVisible && (
@@ -303,6 +309,63 @@ function AddButton() {
     </>
   );
 }
+
+// Animated Lightbulb Button Component
+const AnimatedLightbulbButton = ({ scale, onPress, showSuggestions }: any) => {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  return (
+    <AnimatedTouchableOpacity
+      style={[styles.lightbulbFab, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      <Ionicons 
+        name={showSuggestions ? "bulb" : "bulb-outline"} 
+        size={24} 
+        color="#fff" 
+      />
+    </AnimatedTouchableOpacity>
+  );
+};
+
+// Animated Add Button Component
+const AnimatedAddButton = ({ scale, onPress }: any) => {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9, { damping: 15, stiffness: 300 });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, { damping: 15, stiffness: 300 });
+  };
+
+  return (
+    <AnimatedPressable
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      style={[styles.fab, animatedStyle]}
+    >
+      <Ionicons name="add" size={28} color="#fff" />
+    </AnimatedPressable>
+  );
+};
 
 export default AddButton;
 

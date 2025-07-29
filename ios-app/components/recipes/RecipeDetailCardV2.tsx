@@ -12,14 +12,12 @@ import {
   Modal,
   Platform
 } from 'react-native';
-import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Recipe } from '../../services/recipeService';
-import { pantryService } from '../../services/pantryService';
-import { recipeService } from '../../services/recipeService';
-import { QuickCompleteModal } from '../modals/QuickCompleteModal';
 import { getIngredientIcon, capitalizeIngredientName } from '../../utils/ingredientIcons';
 import { Config } from '../../config';
+import { recipeService } from '../../services/recipeService';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const HERO_IMAGE_HEIGHT = SCREEN_WIDTH * 0.6; // 16:10 aspect ratio
@@ -51,7 +49,6 @@ export default function RecipeDetailCardV2({
   const [hasCookedRecipe, setHasCookedRecipe] = useState(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [showNutritionModal, setShowNutritionModal] = useState(false);
-  const [showQuickCompleteModal, setShowQuickCompleteModal] = useState(false);
   
   const bookmarkAnimation = useRef(new Animated.Value(1)).current;
 
@@ -96,18 +93,21 @@ export default function RecipeDetailCardV2({
       }),
     ]).start();
 
-    setIsBookmarked(!isBookmarked);
+    const newBookmarkState = !isBookmarked;
+    setIsBookmarked(newBookmarkState);
     
     try {
-      if (!isBookmarked) {
+      if (newBookmarkState) {
+        // Save the recipe
         await recipeService.saveRecipe(recipe, 111); // Demo user
       } else {
         // Remove from saved recipes
-        // await recipeService.removeRecipe(recipe.id, 111);
+        await recipeService.removeRecipe(recipe.id, 111);
       }
     } catch (error) {
       console.error('Error toggling bookmark:', error);
-      setIsBookmarked(isBookmarked); // Revert on error
+      // Revert on error
+      setIsBookmarked(!newBookmarkState);
     }
   };
 
@@ -115,7 +115,6 @@ export default function RecipeDetailCardV2({
     // Close any open modals before navigating
     setShowRatingModal(false);
     setShowNutritionModal(false);
-    setShowQuickCompleteModal(false);
     
     // Navigate to cooking mode or start cooking flow
     router.push({
@@ -139,48 +138,16 @@ export default function RecipeDetailCardV2({
       // Save rating to backend
       await recipeService.rateRecipe(recipe.id, 111, rating); // Demo user
       
+      // Update the recipe's favorite status based on rating
+      setIsBookmarked(rating === 'thumbs_up');
+      
       if (onRatingSubmitted) {
         onRatingSubmitted(rating);
       }
     } catch (error) {
       console.error('Error submitting rating:', error);
+      // Consider showing an error message to the user
     }
-  };
-
-  const handleQuickComplete = () => {
-    setShowQuickCompleteModal(true);
-  };
-
-  const handleQuickCompleteConfirm = async () => {
-    setShowQuickCompleteModal(false);
-    
-    // Mark recipe as cooked in the backend
-    if (recipe.id) {
-      try {
-        const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/mark-cooked`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          console.log('Recipe marked as cooked after QuickComplete');
-        } else {
-          console.error('Failed to mark recipe as cooked:', response.status);
-        }
-      } catch (error) {
-        console.error('Error marking recipe as cooked:', error);
-        // Continue with the flow even if marking as cooked fails
-      }
-    }
-    
-    setHasCookedRecipe(true);
-    setShowRatingModal(true);
-  };
-
-  const handleQuickCompleteClose = () => {
-    setShowQuickCompleteModal(false);
   };
 
 
@@ -251,20 +218,7 @@ export default function RecipeDetailCardV2({
             </Text>
           </TouchableOpacity>
 
-          {/* Quick Complete Button - Show only if there are available ingredients */}
-          {recipe.available_ingredients && recipe.available_ingredients.length > 0 && (
-            <TouchableOpacity 
-              testID="quick-complete-button"
-              style={[styles.actionButton, styles.quickCompleteButton]}
-              onPress={handleQuickComplete}
-              activeOpacity={0.9}
-            >
-              <Ionicons name="flash" size={20} color="#6366F1" />
-              <Text testID="quick-complete-text" style={styles.quickCompleteButtonText}>
-                Quick Complete
-              </Text>
-            </TouchableOpacity>
-          )}
+
         </View>
       ) : (
         <TouchableOpacity 
@@ -523,17 +477,7 @@ export default function RecipeDetailCardV2({
         </View>
       </Modal>
 
-      {/* Quick Complete Modal */}
-      <QuickCompleteModal
-        testID="quick-complete-modal"
-        visible={showQuickCompleteModal}
-        onClose={handleQuickCompleteClose}
-        onConfirm={handleQuickCompleteConfirm}
-        recipeId={recipe.id}
-        recipeName={recipe.title}
-        userId={111} // Demo user
-        servings={recipe.servings}
-      />
+
     </ScrollView>
   );
 }
@@ -637,17 +581,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFF',
   },
-  quickCompleteButton: {
-    backgroundColor: '#F3F4F6',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  quickCompleteButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6366F1',
-  },
+
   
   // Title
   title: {
