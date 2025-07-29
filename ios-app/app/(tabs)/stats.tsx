@@ -46,7 +46,7 @@ interface PantryItem {
 export default function StatsScreen() {
   const { token, isAuthenticated } = useAuth();
   const { statsData, isLoadingStats, refreshStatsData } = useTabData();
-  const [isLoading, setIsLoading] = useState(true);
+  // const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState<StatsData | null>(null);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'year'>('week');
@@ -104,13 +104,13 @@ export default function StatsScreen() {
           
           setStats(statsData);
           setPantryItems(preloadedPantryItems);
-          setIsLoading(false);
+          // setIsLoading(false); // Now handled by TabDataProvider
           setRefreshing(false);
           return;
         }
       }
       
-      setIsLoading(true);
+      // setIsLoading(true); // Now handled by TabDataProvider
       
       // Fetch comprehensive stats from new endpoint
       const statsResponse = await fetch(`${Config.API_BASE_URL}/stats/comprehensive?user_id=111&timeframe=${timeRange}`, {
@@ -332,7 +332,7 @@ export default function StatsScreen() {
     } catch (error) {
       console.error('Error loading stats:', error);
     } finally {
-      setIsLoading(false);
+      // setIsLoading(false); // Now handled by TabDataProvider
       setRefreshing(false);
     }
   };
@@ -585,7 +585,7 @@ export default function StatsScreen() {
     await loadStats();
   };
 
-  if (isLoading) {
+  if (isLoadingStats && !statsData) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />

@@ -168,6 +168,23 @@ export default function RecipesScreen() {
 
   const fetchRecipesFromPantry = useCallback(async () => {
     console.log('fetchRecipesFromPantry called');
+    
+    // Use preloaded data if available and fresh
+    if (recipesData?.pantryRecipes && !refreshing) {
+      const pantryItemNames = items.map(item => item.item_name);
+      const processedRecipes = recipesData.pantryRecipes.map(recipe => {
+        const counts = recalculateIngredientCounts(recipe, pantryItemNames);
+        return { 
+          ...recipe, 
+          usedIngredientCount: counts.usedCount, 
+          missedIngredientCount: counts.missedCount 
+        };
+      });
+      setRecipes(processedRecipes);
+      setPantryIngredients(pantryItemNames);
+      return;
+    }
+    
     try {
       setLoading(true);
       console.log('Fetching from:', `${Config.API_BASE_URL}/recipes/search/from-pantry`);
@@ -238,7 +255,7 @@ export default function RecipesScreen() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [items, recipesData, refreshing]);
 
   const searchRecipes = async (query: string = searchQuery) => {
     if (!query.trim() && activeTab === 'discover') {
@@ -327,6 +344,18 @@ export default function RecipesScreen() {
   };
 
   const fetchMyRecipes = async () => {
+    // Use preloaded data if available and fresh
+    if (recipesData?.myRecipes && !refreshing) {
+      const filterMap = {
+        'all': recipesData.myRecipes,
+        'thumbs_up': recipesData.myRecipes.filter(r => r.rating === 'thumbs_up'),
+        'thumbs_down': recipesData.myRecipes.filter(r => r.rating === 'thumbs_down'),
+        'favorites': recipesData.myRecipes.filter(r => r.is_favorite)
+      };
+      setSavedRecipes(filterMap[myRecipesFilter] || recipesData.myRecipes);
+      return;
+    }
+    
     try {
       setLoading(true);
       // Authentication temporarily disabled - using hardcoded user_id = 111
