@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Pressable, Alert, ActivityIndicator, Image } fr
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Config } from '../../config';
 import GradientText from './GradientText';
 import { useAuth } from '../../context/AuthContext';
@@ -33,6 +33,8 @@ export function CustomHeader({
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [preferencesVisible, setPreferencesVisible] = useState(false);
+  const tapCountRef = useRef(0);
+  const tapTimerRef = useRef<NodeJS.Timeout | null>(null);
   
   const isAdmin = user?.is_admin;
   
@@ -73,6 +75,20 @@ export function CustomHeader({
     }
   };
 
+  const handleTitlePress = () => {
+    // Single tap - do nothing
+  };
+
+  const handleTitleLongPress = () => {
+    if (__DEV__) {
+      // @ts-ignore
+      if (global.showIntroAnimation) {
+        // @ts-ignore
+        global.showIntroAnimation();
+      }
+    }
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
@@ -90,9 +106,14 @@ export function CustomHeader({
         </View>
         
         {/* Title - Always centered */}
-        <View style={styles.titleContainer}>
+        <Pressable 
+          onPress={handleTitlePress}
+          onLongPress={handleTitleLongPress}
+          delayLongPress={600}
+          style={styles.titleContainer}
+        >
           <Text style={styles.title}>{headerTitle}</Text>
-        </View>
+        </Pressable>
         
         <View style={styles.rightButtons}>
           {shouldShowDb && (

@@ -7,10 +7,20 @@ import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import { UserPreferencesProvider } from '../context/UserPreferencesContext';
+import { TabDataProvider } from '../context/TabDataProvider';
 import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
 import ConfigurationError from './components/ConfigurationError';
 import { ToastProvider } from '../hooks/useToast';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { PreloadDebugOverlay } from '../components/PreloadDebugOverlay';
+import { initPreloadDebug } from '../utils/debugPreload';
+import AnimatedIntroScreen from '../components/AnimatedIntroScreen';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Initialize debug commands in development
+if (__DEV__) {
+  initPreloadDebug();
+}
 
 // Configure warning/error suppression
 if (process.env.EXPO_PUBLIC_SUPPRESS_WARNINGS === 'true') {
@@ -54,9 +64,41 @@ function AppContent() {
   const router = useRouter();
   const [envStatus, setEnvStatus] = useState<EnvironmentStatus | null>(null);
   const [isValidatingEnv, setIsValidatingEnv] = useState(true);
+  const [showIntro, setShowIntro] = useState(false);
+  const [isCheckingIntro, setIsCheckingIntro] = useState(true);
 
   // Check if the current route is in the auth group
   const isAuthRoute = segments[0] === '(auth)';
+
+  // Check if intro has been shown before
+  useEffect(() => {
+    const checkIntroShown = async () => {
+      try {
+        const hasShownIntro = await AsyncStorage.getItem('hasShownIntro');
+        // Don't show intro automatically, wait for keyboard trigger
+        setShowIntro(false);
+      } catch (error) {
+        console.error('Error checking intro status:', error);
+        setShowIntro(false);
+      } finally {
+        setIsCheckingIntro(false);
+      }
+    };
+
+    checkIntroShown();
+  }, []);
+
+  // Expose intro trigger globally for demo
+  useEffect(() => {
+    if (__DEV__) {
+      // @ts-ignore
+      global.showIntroAnimation = () => {
+        console.log('🎬 Triggering intro animation...');
+        setShowIntro(true);
+      };
+      console.log('💡 To show intro: global.showIntroAnimation() or triple-tap PrepSense logo');
+    }
+  }, []);
 
   // Validate environment on app start
   useEffect(() => {
@@ -110,8 +152,23 @@ function AppContent() {
     }
   }, [isLoading, isAuthenticated, isAuthRoute, pathname]);
 
+  // Handle intro screen completion
+  const handleIntroFinished = async () => {
+    try {
+      await AsyncStorage.setItem('hasShownIntro', 'true');
+      setShowIntro(false);
+    } catch (error) {
+      console.error('Error saving intro status:', error);
+    }
+  };
+
+  // Show intro screen if needed
+  if (showIntro && !isCheckingIntro) {
+    return <AnimatedIntroScreen onFinished={handleIntroFinished} />;
+  }
+
   // Show a loading indicator while checking environment or auth state
-  if (isValidatingEnv || isLoading) {
+  if (isValidatingEnv || isLoading || isCheckingIntro) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />
@@ -142,8 +199,9 @@ function AppContent() {
       <ToastProvider>
         <UserPreferencesProvider>
           <ItemsProvider>
-          <View style={styles.container}>
-          <Stack>
+            <TabDataProvider>
+              <View style={styles.container}>
+                <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen 
               name="(auth)" 
@@ -266,8 +324,10 @@ function AppContent() {
                 animation: 'slide_from_right',
               }} 
             />
-          </Stack>
-        </View>
+                </Stack>
+              </View>
+              {/* {__DEV__ && <PreloadDebugOverlay />} */}
+            </TabDataProvider>
           </ItemsProvider>
         </UserPreferencesProvider>
       </ToastProvider>

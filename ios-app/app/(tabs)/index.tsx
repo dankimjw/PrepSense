@@ -1,6 +1,14 @@
 // app/(tabs)/index.tsx - Part of the PrepSense mobile app
-import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { TabScreenTransition } from '../../components/navigation/TabScreenTransition';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator, RefreshControl, TouchableOpacity, NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate,
+  runOnJS
+} from 'react-native-reanimated';
 import { useRouter, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +38,8 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import WasteImpactCard from '../../components/WasteImpactCard';
 // import { useSupplyChainImpact } from '../../hooks/useSupplyChainImpact'; // Disabled for demo
 
+const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
 const IndexScreen: React.FC = () => {
   // State management
   const [isLoading, setIsLoading] = useState(false);
@@ -44,6 +54,13 @@ const IndexScreen: React.FC = () => {
   const [selectedItemForAction, setSelectedItemForAction] = useState<PantryItemData | null>(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedItemForEdit, setSelectedItemForEdit] = useState<PantryItemData | null>(null);
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
+  
+  // Refs and animated values
+  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollY = useSharedValue(0);
+  const fabOpacity = useSharedValue(0);
+  const fabScale = useSharedValue(0.8);
   
   // Hooks
   const { items, filters, updateFilters, fetchItems, isInitialized } = useItemsWithFilters();
@@ -119,11 +136,13 @@ const IndexScreen: React.FC = () => {
     };
   }, [fetchItems, isInitialized]);
 
-  // Refresh when screen comes into focus
+  // Smart refresh when screen comes into focus - only if data is stale
   useFocusEffect(
     useCallback(() => {
       if (!isLoading && isInitialized) {
-        fetchItems().catch(console.error);
+        // Let the PantryDataContext handle the smart refresh logic
+        // It will only fetch if data is stale or needs refresh
+        fetchItems(false).catch(console.error);
       }
     }, [isLoading, isInitialized, fetchItems])
   );
@@ -262,8 +281,9 @@ const IndexScreen: React.FC = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <Stack.Screen
+    <TabScreenTransition routeName="index" transitionStyle="slideUp">
+      <View style={styles.container}>
+        <Stack.Screen
         options={{
           header: () => (
             <CustomHeader 
@@ -350,8 +370,22 @@ const IndexScreen: React.FC = () => {
       )}
 
       <ScrollView 
+        ref={scrollViewRef}
         style={styles.scrollView} 
         showsVerticalScrollIndicator={false}
+        onScroll={(event: NativeSyntheticEvent<NativeScrollEvent>) => {
+          const offsetY = event.nativeEvent.contentOffset.y;
+          scrollY.value = offsetY;
+          
+          // Show button when scrolled down more than 200 pixels
+          const shouldShow = offsetY > 200;
+          if (shouldShow !== showScrollToTop) {
+            setShowScrollToTop(shouldShow);
+            fabOpacity.value = withSpring(shouldShow ? 1 : 0);
+            fabScale.value = withSpring(shouldShow ? 1 : 0.8);
+          }
+        }}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={isRefreshing}
@@ -387,9 +421,23 @@ const IndexScreen: React.FC = () => {
         />
 
         {/* Tips Section */}
-        <TipCard
-          text="Store bananas separately from other fruits to prevent them from ripening too quickly."
-        />
+        <TouchableOpacity
+          onLongPress={() => {
+            if (__DEV__) {
+              // @ts-ignore
+              if (global.showIntroAnimation) {
+                // @ts-ignore
+                global.showIntroAnimation();
+              }
+            }
+          }}
+          activeOpacity={1}
+          delayLongPress={800}
+        >
+          <TipCard
+            text="Store bananas separately from other fruits to prevent them from ripening too quickly."
+          />
+        </TouchableOpacity>
       </ScrollView>
 
       {/* Consumption Modal */}
@@ -506,7 +554,54 @@ const IndexScreen: React.FC = () => {
         }}
       />
 
-    </View>
+      {/* Animated Scroll to Top Button */}
+      <AnimatedScrollToTop
+        fabOpacity={fabOpacity}
+        fabScale={fabScale}
+        onPress={() => {
+          scrollViewRef.current?.scrollTo({ x: 0, y: 0, animated: true });
+          // Hide button after scrolling
+          setTimeout(() => {
+            setShowScrollToTop(false);
+            fabOpacity.value = withSpring(0);
+            fabScale.value = withSpring(0.8);
+          }, 300);
+        }}
+        />
+
+      </View>
+    </TabScreenTransition>
+  );
+};
+
+// Animated Scroll to Top Button Component
+const AnimatedScrollToTop = ({ 
+  fabOpacity, 
+  fabScale, 
+  onPress 
+}: { 
+  fabOpacity: any; 
+  fabScale: any; 
+  onPress: () => void;
+}) => {
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: fabOpacity.value,
+    transform: [
+      { scale: fabScale.value },
+      { translateY: interpolate(fabOpacity.value, [0, 1], [50, 0]) }
+    ],
+    // Hide from touch events when not visible
+    pointerEvents: fabOpacity.value > 0 ? 'auto' : 'none' as any,
+  }));
+
+  return (
+    <AnimatedTouchableOpacity
+      style={[styles.scrollToTopButton, animatedStyle]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Ionicons name="arrow-up" size={24} color="#fff" />
+    </AnimatedTouchableOpacity>
   );
 };
 
@@ -561,5 +656,43 @@ const styles = StyleSheet.create({
     color: '#297A56',
     fontWeight: '500',
     fontSize: 14,
+  },
+  scrollToTopButton: {
+    position: 'absolute',
+    bottom: 90,
+    left: 20,  // Changed from right to left to avoid conflicts
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#297A56',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  demoButton: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#5BA041',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 25,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  demoButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+    marginLeft: 6,
   },
 });
