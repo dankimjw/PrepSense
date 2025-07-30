@@ -296,7 +296,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
               ]}
               onPress={() => handleCategorySelect(category.id)}
             >
-              <Text style={styles.categoryIcon}>{category.emoji}</Text>
+              <Text style={styles.categoryIcon}>{category.icon}</Text>
               <Text style={[
                 styles.categoryLabel,
                 selectedCategory === category.id && styles.categoryLabelSelected
@@ -329,7 +329,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
 
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={[styles.selectedCategoryBadge, { backgroundColor: categoryInfo?.color + '20' }]}>
-            <Text style={styles.categoryIcon}>{categoryInfo?.emoji}</Text>
+            <Text style={styles.categoryIcon}>{categoryInfo?.icon}</Text>
             <Text style={[styles.selectedCategoryText, { color: categoryInfo?.color }]}>
               {categoryInfo?.label}
             </Text>

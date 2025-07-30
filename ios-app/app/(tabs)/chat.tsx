@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { CustomHeader } from '../components/CustomHeader';
 import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
 import Markdown from 'react-native-markdown-display';
+import { useTabData } from '../../context/TabDataProvider';
 
 type Message = {
   id: string;
@@ -15,7 +16,7 @@ type Message = {
   recipes?: Recipe[];
 };
 
-const suggestedMessages = [
+const defaultSuggestedMessages = [
   "What can I make for dinner?",
   "What can I make with only ingredients I have?",
   "What's good for breakfast?",
@@ -114,6 +115,10 @@ export default function ChatScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
+  const { chatData } = useTabData();
+  
+  // Use preloaded suggestions if available, otherwise use defaults
+  const suggestedMessages = chatData?.suggestedQuestions || defaultSuggestedMessages;
   
   // Check for suggestion from navigation
   useEffect(() => {

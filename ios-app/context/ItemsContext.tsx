@@ -19,7 +19,7 @@ type ItemsContextType = {
   addItems: (newItems: Item[]) => void;
   removeItem: (id: string) => void;
   updateItem: (id: string, updates: Partial<Item>) => void;
-  fetchItems: () => Promise<Item[]>;
+  fetchItems: (forceRefresh?: boolean) => Promise<Item[]>;
   isInitialized: boolean;
 };
 
@@ -30,9 +30,25 @@ const STORAGE_KEY = 'prepsense_items';
 export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [items, setItems] = useState<Item[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [lastFetchTime, setLastFetchTime] = useState<number | null>(null);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
   
-  // Fetch pantry items from backend
-  const fetchItems = useCallback(async () => {
+  // Data is considered stale after 5 minutes
+  const STALE_TIME = 5 * 60 * 1000;
+  
+  // Check if data is stale
+  const isDataStale = useCallback(() => {
+    if (!lastFetchTime) return true;
+    return Date.now() - lastFetchTime > STALE_TIME;
+  }, [lastFetchTime]);
+  
+  // Fetch pantry items from backend with smart refresh
+  const fetchItems = useCallback(async (forceRefresh: boolean = false) => {
+    // Skip fetch if data is fresh and no force refresh
+    if (!forceRefresh && !needsRefresh && lastFetchTime && !isDataStale()) {
+      console.log('Skipping fetch - data is fresh');
+      return items;
+    }
     try {
       console.log('Fetching pantry items for user 111...');
       // Use default user_id 111 as specified
@@ -51,6 +67,8 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
       }));
       
       setItems(transformedItems);
+      setLastFetchTime(Date.now());
+      setNeedsRefresh(false);
       return transformedItems;
     } catch (error) {
       console.error('Failed to fetch pantry items:', error);
@@ -61,7 +79,7 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         setIsInitialized(true);
       }
     }
-  }, [isInitialized]);
+  }, [isInitialized, items, needsRefresh, lastFetchTime, isDataStale]);
 
   // Load items from backend on initial render
   useEffect(() => {
@@ -71,6 +89,9 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   }, [fetchItems, isInitialized]);
 
   const addItems = async (newItems: Item[]) => {
+    // Mark data as needing refresh on mutations
+    setNeedsRefresh(true);
+    
     // Generate temporary IDs for immediate UI update
     const tempItems = newItems.map((item, index) => ({
       ...item,
@@ -142,6 +163,9 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const removeItem = async (id: string) => {
+    // Mark data as needing refresh on mutations
+    setNeedsRefresh(true);
+    
     // Store the item in case we need to restore it
     const removedItem = items.find(item => item.id === id);
     
@@ -163,6 +187,9 @@ export const ItemsProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   };
 
   const updateItem = async (id: string, updates: Partial<Item>) => {
+    // Mark data as needing refresh on mutations
+    setNeedsRefresh(true);
+    
     try {
       const itemToUpdate = items.find(item => item.id === id);
       if (!itemToUpdate) return;

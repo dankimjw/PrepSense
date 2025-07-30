@@ -45,6 +45,12 @@ coverage.xml
 .claude-config
 set_git_author.sh
 .claude_collaboration_reminder
+
+# Claude-related files and folders
+**/CLAUDE_*.md
+**/CLAUDE_*.txt
+Scratchpads/
+Archive/
 *.swp
 *.swo
 *~
@@ -187,3 +193,4 @@ Recipe Images/
 # Data directories
 Food Data/
 data/
+passwords.txt

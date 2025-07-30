@@ -2,12 +2,135 @@
 import { Tabs } from 'expo-router';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, TouchableOpacity, StyleSheet, Text, Platform, Modal, Pressable } from 'react-native';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import { CustomHeader } from '../components/CustomHeader';
 import AddButton from '../components/AddButton';
+import * as Haptics from 'expo-haptics';
+
+const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
+
+// Animated FAB component for the chat button
+function AnimatedFAB({ onPress }: { onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const rotation = useSharedValue(0);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { scale: scale.value },
+      { rotate: `${rotation.value}deg` },
+    ],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9, {
+      damping: 15,
+      stiffness: 300,
+    });
+    rotation.value = withSpring(-10, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 300,
+    });
+    rotation.value = withSpring(0, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  return (
+    <View style={styles.fabContainer}>
+      <AnimatedTouchable
+        style={[styles.fab, animatedStyle]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <MaterialCommunityIcons name="chef-hat" size={28} color="#fff" />
+      </AnimatedTouchable>
+    </View>
+  );
+}
+
+// Simple animated tab item component
+function TabItem({ route, iconName, labelText, isFocused, onPress }: {
+  route: any;
+  iconName: any;
+  labelText: string;
+  isFocused: boolean;
+  onPress: () => void;
+}) {
+  const scale = useSharedValue(1);
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const handlePressIn = () => {
+    scale.value = withSpring(0.9, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  const handlePressOut = () => {
+    scale.value = withSpring(1, {
+      damping: 15,
+      stiffness: 300,
+    });
+  };
+
+  return (
+    <AnimatedTouchable
+      accessibilityRole="button"
+      accessibilityState={isFocused ? { selected: true } : {}}
+      style={[styles.tab, animatedStyle]}
+      onPress={onPress}
+      onPressIn={handlePressIn}
+      onPressOut={handlePressOut}
+      activeOpacity={1}
+    >
+      <Ionicons 
+        name={iconName} 
+        size={24} 
+        color={isFocused ? '#297A56' : '#888'} 
+      />
+      <Text style={[styles.label, isFocused && { color: '#297A56' }]}>{labelText}</Text>
+    </AnimatedTouchable>
+  );
+}
 
 function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  // Track current tab index for animations
+  const currentTabIndex = useSharedValue(0);
+  const previousTabIndex = useRef(0);
+  
+  // Update animation when tab changes
+  useEffect(() => {
+    const currentIndex = state.routes.findIndex(r => r.name === state.routes[state.index].name);
+    if (currentIndex !== previousTabIndex.current) {
+      currentTabIndex.value = withSpring(currentIndex, {
+        damping: 20,
+        stiffness: 150,
+      });
+      previousTabIndex.current = currentIndex;
+    }
+  }, [state.index]);
+  
   // Filter out the admin, profile, and add tabs from the routes
   const filteredRoutes = state.routes.filter(route => 
     route.name !== 'admin' && route.name !== 'profile' && route.name !== 'add'
@@ -23,19 +146,13 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           if (route.name === 'admin') return null;
           if (route.name === 'chat') {
             return (
-              <TouchableOpacity
+              <AnimatedFAB
                 key={route.key}
-                accessibilityRole="button"
-                style={styles.fabContainer}
                 onPress={() => {
                   const router = require('expo-router').router;
                   router.push('/chat-modal');
                 }}
-              >
-                <View style={styles.fab}>
-                  <MaterialCommunityIcons name="chef-hat" size={28} color="#fff" />
-                </View>
-              </TouchableOpacity>
+              />
             );
           }
           const { options } = descriptors[route.key];
@@ -57,20 +174,17 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           else if (typeof label === 'function') labelText = '';
           else labelText = String(label);
           return (
-            <TouchableOpacity
+            <TabItem
               key={route.key}
-              accessibilityRole="button"
-              accessibilityState={isFocused ? { selected: true } : {}}
-              style={styles.tab}
-              onPress={() => navigation.navigate(route.name)}
-            >
-              <Ionicons 
-                name={iconName} 
-                size={24} 
-                color={isFocused ? '#297A56' : '#888'} 
-              />
-              <Text style={[styles.label, isFocused && { color: '#297A56' }]}>{labelText}</Text>
-            </TouchableOpacity>
+              route={route}
+              iconName={iconName}
+              labelText={labelText}
+              isFocused={isFocused}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                navigation.navigate(route.name);
+              }}
+            />
           );
         })}
       </View>
@@ -80,6 +194,40 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
 
 // Define the tabs we want to show in the bottom tab bar
 const mainTabs = ['index', 'stats', 'chat', 'recipes', 'shopping-list'];
+
+// Screen wrapper with fade animation
+function AnimatedScreen({ children, routeName }: { children: React.ReactNode; routeName: string }) {
+  const opacity = useSharedValue(0);
+  const translateY = useSharedValue(20);
+  
+  useFocusEffect(
+    React.useCallback(() => {
+      // Animate in
+      opacity.value = withTiming(1, { duration: 300 });
+      translateY.value = withSpring(0, {
+        damping: 20,
+        stiffness: 150,
+      });
+      
+      return () => {
+        // Reset for next time
+        opacity.value = 0;
+        translateY.value = 20;
+      };
+    }, [])
+  );
+  
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+    transform: [{ translateY: translateY.value }],
+  }));
+  
+  return (
+    <Animated.View style={[{ flex: 1 }, animatedStyle]}>
+      {children}
+    </Animated.View>
+  );
+}
 
 export default function TabsLayout() {
   return (

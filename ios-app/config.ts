@@ -16,7 +16,7 @@ const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // IMPORTANT: Never hardcode IP addresses as they change with network changes!
 // If ENV_API_URL is not set, we'll use localhost as a fallback and show a warning.
 const DEV_API_CONFIG = {
-  baseURL: ENV_API_URL || 'http://127.0.0.1:8001/api/v1', // Fallback to localhost:8001
+  baseURL: ENV_API_URL || 'http://127.0.0.1:8002/api/v1', // Fallback to localhost:8002 (test backend)
   timeout: 10000, // API request timeout in milliseconds (e.g., 10 seconds)
 };
 
