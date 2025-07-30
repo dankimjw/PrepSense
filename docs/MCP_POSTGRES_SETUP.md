@@ -10,7 +10,7 @@ The PostgreSQL MCP server is configured in `.mcp.json`:
 "postgres": {
   "type": "stdio",
   "command": "npx",
-  "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:***REMOVED***@***REMOVED***:5432/prepsense"],
+  "args": ["-y", "@modelcontextprotocol/server-postgres", "postgresql://postgres:[REMOVED]@[REMOVED_IP]:5432/prepsense"],
   "env": {}
 }
 ```
