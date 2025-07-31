@@ -22,6 +22,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
 import { useAuth } from '../../context/AuthContext';
+import { useTabData } from '../../context/TabDataProvider';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../../utils/ingredientMatcher';
 import { isValidRecipe } from '../../utils/contentValidation';
 
@@ -88,6 +89,7 @@ export default function RecipesScreen() {
   const router = useRouter();
   const { items } = useItems();
   const { user, token, isAuthenticated } = useAuth();
+  const { recipesData } = useTabData();
 
   const dietaryFilters = [
     { id: 'vegetarian', label: 'Vegetarian', icon: '🥗' },
@@ -1428,7 +1430,7 @@ export default function RecipesScreen() {
           showsVerticalScrollIndicator={false}
         >
           {activeTab === 'my-recipes' ? (
-            getFilteredSavedRecipes().length === 0 ? (
+            filteredSavedRecipes.length === 0 ? (
               <View testID="empty-my-recipes" style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" accessibilityLabel="No saved recipes" />
                 <Text testID="empty-my-recipes-text" style={styles.emptyText}>
@@ -1447,11 +1449,11 @@ export default function RecipesScreen() {
               </View>
             ) : (
               <View testID="my-recipes-grid" style={styles.recipesGrid}>
-                {getFilteredSavedRecipes().map((recipe, index) => renderSavedRecipeCard(recipe, index))}
+                {filteredSavedRecipes.map((recipe, index) => renderSavedRecipeCard(recipe, index))}
               </View>
             )
           ) : (
-            getFilteredRecipes().length === 0 ? (
+            filteredRecipes.length === 0 ? (
               <View testID="empty-recipes" style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="food-off" size={64} color="#ccc" accessibilityLabel="No recipes found" />
                 <Text testID="empty-recipes-text" style={styles.emptyText}>
@@ -1464,7 +1466,7 @@ export default function RecipesScreen() {
               </View>
             ) : (
               <View testID="recipes-grid" style={styles.recipesGrid}>
-                {getFilteredRecipes().map((recipe, index) => renderRecipeCard(recipe, index))}
+                {filteredRecipes.map((recipe, index) => renderRecipeCard(recipe, index))}
               </View>
             )
           )}
