@@ -6,10 +6,8 @@ import Animated, {
   withSequence,  
   withDelay,
   useAnimatedStyle,
-  runOnJS,
-  interpolate,
 } from 'react-native-reanimated';
-import Svg, { Path, G, LinearGradient, Defs, Stop, Rect, Circle } from 'react-native-svg';
+import Svg, { Path, LinearGradient, Defs, Stop, Rect, Circle } from 'react-native-svg';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get('window');
 
@@ -152,79 +150,7 @@ const BananaIcon = ({ size = 95, style = {} }: { size?: number; style?: any }) =
 );
 
 // Premium Avocado Icon - Inspired by the complex curved shapes in original SVG
-const AvocadoIcon = ({ size = 50, style = {} }: { size?: number; style?: any }) => (
-  <Animated.View style={[{ width: size, height: size }, style]}>
-    <Svg width={size} height={size} viewBox="0 0 100 100">
-      <G>
-        {/* Main avocado body */}
-        <Path
-          d="M50 15C35 15 25 25 22 40C20 55 25 70 35 80C40 85 45 88 50 88C55 88 60 85 65 80C75 70 80 55 78 40C75 25 65 15 50 15Z"
-          fill="#5BA041"
-        />
-        {/* Highlight */}
-        <Path
-          d="M45 25C40 25 35 30 35 35C35 40 40 45 45 45C50 45 55 40 55 35C55 30 50 25 45 25Z"
-          fill="#7FB96E"
-        />
-        {/* Pit */}
-        <Path
-          d="M50 45C45 45 42 48 42 52C42 58 45 62 50 62C55 62 58 58 58 52C58 48 55 45 50 45Z"
-          fill="#8b4513"
-        />
-      </G>
-    </Svg>
-  </Animated.View>
-);
-
-// Premium Corn Icon - Inspired by the grain patterns in original SVG
-const CornIcon = ({ size = 50, style = {} }: { size?: number; style?: any }) => (
-  <Animated.View style={[{ width: size, height: size }, style]}>
-    <Svg width={size} height={size} viewBox="0 0 100 100">
-      <G>
-        {/* Corn husk */}
-        <Path
-          d="M35 15L35 25C35 30 32 35 28 38L25 85C25 90 28 92 32 92L68 92C72 92 75 90 75 85L72 38C68 35 65 30 65 25L65 15C60 12 55 10 50 10C45 10 40 12 35 15Z"
-          fill="#7FB96E"
-        />
-        {/* Corn kernels pattern */}
-        <Path
-          d="M40 25C40 23 42 22 44 22C46 22 48 23 48 25L48 75C48 77 46 78 44 78C42 78 40 77 40 75L40 25Z M52 25C52 23 54 22 56 22C58 22 60 23 60 25L60 75C60 77 58 78 56 78C54 78 52 77 52 75L52 25Z"
-          fill="#FFD700"
-        />
-        {/* Top leaves */}
-        <Path
-          d="M45 10C42 8 40 12 42 15L48 20L52 15C54 12 52 8 49 10C48 8 46 8 45 10Z"
-          fill="#228b22"
-        />
-      </G>
-    </Svg>
-  </Animated.View>
-);
-
-// Premium Bell Pepper Icon - Inspired by the vegetable complexity in original SVG
-const BellPepperIcon = ({ size = 50, style = {} }: { size?: number; style?: any }) => (
-  <Animated.View style={[{ width: size, height: size }, style]}>
-    <Svg width={size} height={size} viewBox="0 0 100 100">
-      <G>
-        {/* Pepper body */}
-        <Path
-          d="M50 20C60 20 70 25 75 35C80 45 78 55 75 65C70 75 65 82 55 85C50 87 45 87 40 85C30 82 25 75 20 65C17 55 15 45 20 35C25 25 35 20 50 20Z"
-          fill="#FF6B6B"
-        />
-        {/* Highlight/shine */}
-        <Path
-          d="M45 30C40 30 38 35 40 38C42 40 45 42 48 40C50 38 52 35 50 32C48 30 46 30 45 30Z"
-          fill="#FF9999"
-        />
-        {/* Stem */}
-        <Path
-          d="M48 15C46 12 44 10 42 12C40 14 42 16 44 18L46 20L50 18L54 20L56 18C58 16 60 14 58 12C56 10 54 12 52 15C51 13 49 13 48 15Z"
-          fill="#228b22"
-        />
-      </G>
-    </Svg>
-  </Animated.View>
-);
+// Removed unused icon components to reduce bundle size
 
 interface AnimatedCharacterProps {
   char: string;
@@ -299,7 +225,7 @@ const AnimatedCharacter = ({ char, index, totalChars, isPaused }: AnimatedCharac
     };
 
     startIdleAnimation();
-  }, [index, isPaused]);
+  }, [index, isPaused, opacity, rotation, scale, translateX, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -337,7 +263,7 @@ const VegetableIcon = ({ Component, index, isPaused }: VegetableIconProps) => {
     const delay = 1500 + index * 200; // Start after text animation
     
     // Organized landing positions - shift first 5 vegetables left, give banana (index 5) more room
-    const totalVegetables = 6;
+    // Removed unused variable
     let endX, endY;
     
     if (index < 5) {
@@ -399,7 +325,7 @@ const VegetableIcon = ({ Component, index, isPaused }: VegetableIconProps) => {
     opacity.value = withDelay(delay, withSpring(1));
     
     // Keep vegetables on screen permanently - no fade out
-  }, [index, isPaused]);
+  }, [index, isPaused, opacity, rotation, scale, translateX, translateY]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [
@@ -469,7 +395,7 @@ const EnhancedAnimatedIntroScreenV2 = ({ onFinished }: EnhancedAnimatedIntroScre
     const interval = setInterval(breathingAnimation, 3500);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [breathingOpacity, breathingScale]);
 
   useEffect(() => {
     if (!hasStarted) return;
@@ -537,7 +463,7 @@ const EnhancedAnimatedIntroScreenV2 = ({ onFinished }: EnhancedAnimatedIntroScre
     const interval = setInterval(idleReanimation, 15000);
     
     return () => clearInterval(interval);
-  }, [hasStarted]);
+  }, [hasStarted, buttonOpacity, buttonScale, getStartedBreathingOpacity, getStartedBreathingScale, taglineOpacity, taglineScale]);
 
   const handleScreenPress = () => {
     if (!hasStarted) {

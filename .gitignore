@@ -194,3 +194,19 @@ Recipe Images/
 Food Data/
 data/
 passwords.txt
+
+logs/chat.json
+
+logs/notification.json
+
+logs/post_tool_use.json
+
+logs/pre_tool_use.json
+
+logs/session_start.json
+
+logs/stop.json
+
+logs/subagent_stop.json
+
+logs/user_prompt_submit.json
