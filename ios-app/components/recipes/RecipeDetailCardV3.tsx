@@ -40,6 +40,112 @@ interface IngredientWithStatus {
   pantryItemId?: number;
 }
 
+// Helper function to normalize recipe data structures
+const normalizeRecipeData = (recipe: Recipe) => {
+  // Handle chat-generated recipes that might have different data structure
+  const normalizedRecipe = { ...recipe };
+  
+  // Normalize ingredients - handle both Spoonacular and chat-generated formats
+  if (!normalizedRecipe.extendedIngredients && recipe.ingredients) {
+    // Convert chat-generated ingredients array to extendedIngredients format
+    if (Array.isArray(recipe.ingredients)) {
+      normalizedRecipe.extendedIngredients = recipe.ingredients.map((ingredient, index) => {
+        if (typeof ingredient === 'string') {
+          // Simple string format
+          return {
+            id: index + 1,
+            name: ingredient,
+            original: ingredient,
+            amount: undefined,
+            unit: undefined
+          };
+        } else if (typeof ingredient === 'object') {
+          // Object format with structured data
+          return {
+            id: ingredient.id || index + 1,
+            name: ingredient.name || ingredient.ingredient_name || '',
+            original: ingredient.original || ingredient.name || ingredient.ingredient_name || '',
+            amount: ingredient.amount || ingredient.quantity,
+            unit: ingredient.unit || ''
+          };
+        }
+        return {
+          id: index + 1,
+          name: String(ingredient),
+          original: String(ingredient),
+          amount: undefined,
+          unit: undefined
+        };
+      });
+    }
+  }
+  
+  // Normalize instructions - handle both Spoonacular and chat-generated formats
+  if (!normalizedRecipe.analyzedInstructions && recipe.instructions) {
+    if (Array.isArray(recipe.instructions)) {
+      // Array of strings format (chat-generated)
+      normalizedRecipe.analyzedInstructions = [{
+        name: '',
+        steps: recipe.instructions.map((instruction, index) => ({
+          number: index + 1,
+          step: typeof instruction === 'string' ? instruction : instruction.step || String(instruction),
+          ingredients: [],
+          equipment: []
+        }))
+      }];
+    } else if (typeof recipe.instructions === 'string') {
+      // Single string format - split by common delimiters
+      const steps = recipe.instructions
+        .split(/\d+\.\s*/)
+        .filter(step => step.trim().length > 0)
+        .map((step, index) => ({
+          number: index + 1,
+          step: step.trim(),
+          ingredients: [],
+          equipment: []
+        }));
+      
+      normalizedRecipe.analyzedInstructions = [{
+        name: '',
+        steps: steps.length > 0 ? steps : [{
+          number: 1,
+          step: recipe.instructions,
+          ingredients: [],
+          equipment: []
+        }]
+      }];
+    }
+  }
+  
+  // Ensure analyzedInstructions exists with at least empty structure
+  if (!normalizedRecipe.analyzedInstructions) {
+    normalizedRecipe.analyzedInstructions = [{
+      name: '',
+      steps: []
+    }];
+  }
+  
+  // Normalize nutrition data
+  if (!normalizedRecipe.nutrition && recipe.nutrition) {
+    normalizedRecipe.nutrition = {
+      calories: recipe.nutrition.calories || 0,
+      protein: recipe.nutrition.protein || 0,
+      carbs: recipe.nutrition.carbs || recipe.nutrition.carbohydrates || 0,
+      fat: recipe.nutrition.fat || 0,
+      fiber: recipe.nutrition.fiber || 0,
+      sugar: recipe.nutrition.sugar || 0,
+      ...recipe.nutrition
+    };
+  }
+  
+  // Set default values for missing properties
+  normalizedRecipe.readyInMinutes = normalizedRecipe.readyInMinutes || normalizedRecipe.time || 30;
+  normalizedRecipe.servings = normalizedRecipe.servings || 4;
+  normalizedRecipe.image = normalizedRecipe.image || 'https://via.placeholder.com/400x300?text=Recipe+Image';
+  
+  return normalizedRecipe;
+};
+
 export default function RecipeDetailCardV3({ 
   recipe, 
   onBack,
@@ -57,6 +163,9 @@ export default function RecipeDetailCardV3({
   const bookmarkAnimation = useRef(new Animated.Value(1)).current;
   const scrollY = useRef(new Animated.Value(0)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Normalize the recipe data to handle different formats
+  const normalizedRecipe = normalizeRecipeData(recipe);
 
   // Animated values for sticky header
   const headerOpacity = scrollY.interpolate({
@@ -77,14 +186,14 @@ export default function RecipeDetailCardV3({
     extrapolate: 'clamp',
   });
 
-  // Process ingredients with availability status
-  const processedIngredients: IngredientWithStatus[] = recipe.extendedIngredients?.map(ing => ({
+  // Process ingredients with availability status using normalized data
+  const processedIngredients: IngredientWithStatus[] = normalizedRecipe.extendedIngredients?.map(ing => ({
     original: ing.original || ing.name || '',
     name: capitalizeIngredientName(ing.name || ing.original || ''),
     amount: ing.amount,
     unit: ing.unit,
-    isAvailable: recipe.available_ingredients?.includes(ing.original) || false,
-    pantryItemId: recipe.pantry_item_matches?.[ing.original]?.[0]?.pantry_item_id
+    isAvailable: normalizedRecipe.available_ingredients?.includes(ing.original) || false,
+    pantryItemId: normalizedRecipe.pantry_item_matches?.[ing.original]?.[0]?.pantry_item_id
   })) || [];
 
   const availableIngredients = processedIngredients.filter(ing => ing.isAvailable);
@@ -95,7 +204,7 @@ export default function RecipeDetailCardV3({
     ? processedIngredients 
     : processedIngredients.slice(0, INITIAL_INGREDIENTS_SHOWN);
     
-  const instructions = recipe.analyzedInstructions?.[0]?.steps || [];
+  const instructions = normalizedRecipe.analyzedInstructions?.[0]?.steps || [];
 
   const handleBookmark = async () => {
     Animated.sequence([
@@ -115,7 +224,7 @@ export default function RecipeDetailCardV3({
     
     try {
       if (!isBookmarked) {
-        await recipeService.saveRecipe(recipe, 111); // Demo user
+        await recipeService.saveRecipe(normalizedRecipe, 111); // Demo user
       }
     } catch (error) {
       console.error('Error toggling bookmark:', error);
@@ -131,8 +240,8 @@ export default function RecipeDetailCardV3({
     router.push({
       pathname: '/cooking-mode',
       params: { 
-        recipeId: recipe.id,
-        recipeData: JSON.stringify(recipe)
+        recipeId: normalizedRecipe.id,
+        recipeData: JSON.stringify(normalizedRecipe)
       }
     });
   };
@@ -144,9 +253,9 @@ export default function RecipeDetailCardV3({
   const handleQuickCompleteConfirm = async () => {
     setShowQuickCompleteModal(false);
     
-    if (recipe.id) {
+    if (normalizedRecipe.id) {
       try {
-        const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipe.id}/mark-cooked`, {
+        const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${normalizedRecipe.id}/mark-cooked`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -169,7 +278,7 @@ export default function RecipeDetailCardV3({
     setUserRating(rating);
     
     try {
-      await recipeService.rateRecipe(recipe.id, 111, rating); // Demo user
+      await recipeService.rateRecipe(normalizedRecipe.id, 111, rating); // Demo user
       
       if (onRatingSubmitted) {
         onRatingSubmitted(rating);
@@ -217,7 +326,7 @@ export default function RecipeDetailCardV3({
           </TouchableOpacity>
           
           <Text style={styles.stickyTitle} numberOfLines={1}>
-            {recipe.title}
+            {normalizedRecipe.title}
           </Text>
           
           <View style={styles.stickyRightButtons}>
@@ -263,7 +372,7 @@ export default function RecipeDetailCardV3({
         {/* Hero Image Section */}
         <View style={styles.heroSection}>
           <Image 
-            source={{ uri: recipe.image || 'https://via.placeholder.com/400' }}
+            source={{ uri: normalizedRecipe.image || 'https://via.placeholder.com/400' }}
             style={styles.heroImage}
             resizeMode="cover"
           />
@@ -307,20 +416,20 @@ export default function RecipeDetailCardV3({
         </View>
         {/* Title and Info Card */}
         <View style={styles.infoCard}>
-          <Text style={styles.title}>{recipe.title}</Text>
+          <Text style={styles.title}>{normalizedRecipe.title}</Text>
           
           {/* Stat Bar */}
           <View style={styles.statBar}>
             <View style={styles.statItem}>
               <Ionicons name="time-outline" size={16} color="#666" />
-              <Text style={styles.statText}>{formatCookingTime(recipe.readyInMinutes || 30)}</Text>
+              <Text style={styles.statText}>{formatCookingTime(normalizedRecipe.readyInMinutes || 30)}</Text>
             </View>
             
             <TouchableOpacity 
               style={styles.statItem}
               onPress={() => setShowNutritionModal(true)}
             >
-              <Text style={styles.statText}>{recipe.nutrition?.calories || 0} kcal</Text>
+              <Text style={styles.statText}>{normalizedRecipe.nutrition?.calories || 0} kcal</Text>
               <Ionicons name="chevron-forward" size={12} color="#666" />
             </TouchableOpacity>
             
@@ -342,7 +451,7 @@ export default function RecipeDetailCardV3({
               <Text style={styles.cookNowButtonText}>Cook Now</Text>
             </TouchableOpacity>
 
-            {recipe.available_ingredients && recipe.available_ingredients.length > 0 && (
+            {normalizedRecipe.available_ingredients && normalizedRecipe.available_ingredients.length > 0 && (
               <TouchableOpacity 
                 style={[styles.actionButton, styles.quickCompleteButton]}
                 onPress={handleQuickComplete}
@@ -417,14 +526,23 @@ export default function RecipeDetailCardV3({
           </Text>
 
           <View style={styles.stepList}>
-            {instructions.map((step, index) => (
-              <View key={index} style={styles.stepRow}>
-                <View style={styles.stepNumber}>
-                  <Text style={styles.stepNumberText}>{step.number}</Text>
+            {instructions.length > 0 ? (
+              instructions.map((step, index) => (
+                <View key={index} style={styles.stepRow}>
+                  <View style={styles.stepNumber}>
+                    <Text style={styles.stepNumberText}>{step.number}</Text>
+                  </View>
+                  <Text style={styles.stepText}>{step.step}</Text>
                 </View>
-                <Text style={styles.stepText}>{step.step}</Text>
+              ))
+            ) : (
+              <View style={styles.noInstructionsContainer}>
+                <Ionicons name="information-circle-outline" size={24} color="#666" />
+                <Text style={styles.noInstructionsText}>
+                  No detailed instructions available for this recipe.
+                </Text>
               </View>
-            ))}
+            )}
           </View>
         </View>
 
@@ -497,22 +615,22 @@ export default function RecipeDetailCardV3({
             <View style={styles.nutritionGrid}>
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Calories</Text>
-                <Text style={styles.nutritionValue}>{recipe.nutrition?.calories || 0}</Text>
+                <Text style={styles.nutritionValue}>{normalizedRecipe.nutrition?.calories || 0}</Text>
               </View>
               
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Protein</Text>
-                <Text style={styles.nutritionValue}>{recipe.nutrition?.protein || 0}g</Text>
+                <Text style={styles.nutritionValue}>{normalizedRecipe.nutrition?.protein || 0}g</Text>
               </View>
               
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Carbs</Text>
-                <Text style={styles.nutritionValue}>{recipe.nutrition?.carbs || 0}g</Text>
+                <Text style={styles.nutritionValue}>{normalizedRecipe.nutrition?.carbs || 0}g</Text>
               </View>
               
               <View style={styles.nutritionItem}>
                 <Text style={styles.nutritionLabel}>Fat</Text>
-                <Text style={styles.nutritionValue}>{recipe.nutrition?.fat || 0}g</Text>
+                <Text style={styles.nutritionValue}>{normalizedRecipe.nutrition?.fat || 0}g</Text>
               </View>
             </View>
             
@@ -528,10 +646,10 @@ export default function RecipeDetailCardV3({
         visible={showQuickCompleteModal}
         onClose={() => setShowQuickCompleteModal(false)}
         onConfirm={handleQuickCompleteConfirm}
-        recipeId={recipe.id}
-        recipeName={recipe.title}
+        recipeId={normalizedRecipe.id}
+        recipeName={normalizedRecipe.title}
         userId={111}
-        servings={recipe.servings}
+        servings={normalizedRecipe.servings}
       />
     </View>
   );
@@ -827,6 +945,16 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: '#333',
     lineHeight: 22,
+  },
+  noInstructionsContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 8,
+  },
+  noInstructionsText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
   
   // Show More

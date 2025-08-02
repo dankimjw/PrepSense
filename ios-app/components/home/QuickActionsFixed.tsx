@@ -1,16 +1,14 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withDelay,
-  withSequence,
+  runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
 export interface QuickAction {
   id: string;
@@ -56,8 +54,8 @@ const defaultActions: QuickAction[] = [
   },
 ];
 
-// Animated Quick Action Card Component
-const AnimatedQuickActionCard = ({ 
+// Fixed Quick Action Card Component using Pressable
+const QuickActionCard = ({ 
   action, 
   index, 
   onPress 
@@ -80,7 +78,7 @@ const AnimatedQuickActionCard = ({
     scale.value = withDelay(delay, withSpring(1, { damping: 8, stiffness: 100 }));
   }, [index]);
 
-  const animatedStyle = useAnimatedStyle(() => ({
+  const animatedContainerStyle = useAnimatedStyle(() => ({
     transform: [
       { translateY: translateY.value },
       { scale: scale.value }
@@ -92,48 +90,34 @@ const AnimatedQuickActionCard = ({
     transform: [{ scale: iconScale.value }],
   }));
 
-  const handlePressIn = () => {
-    'worklet';
-    iconScale.value = withSpring(0.9, { damping: 6 });
-    scale.value = withSpring(0.95, { damping: 6 });
-  };
-
-  const handlePressOut = () => {
-    'worklet';
-    iconScale.value = withSpring(1, { damping: 6 });
-    scale.value = withSpring(1, { damping: 6 });
-  };
-  
-  const handlePress = () => {
-    // Ensure animations complete before navigating
-    handlePressOut();
-    // Small delay to let animation complete
-    setTimeout(() => {
-      onPress();
-    }, 100);
-  };
-
   return (
-    <AnimatedTouchableOpacity
-      style={[
-        styles.actionCard, 
-        { backgroundColor: action.color + '15' },
-        animatedStyle
-      ]}
-      onPress={handlePress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      activeOpacity={0.8}
-    >
-      <Animated.View style={[styles.actionIcon, { backgroundColor: action.color }, iconAnimatedStyle]}>
-        <Ionicons name={action.icon} size={24} color="white" />
-      </Animated.View>
-      <Text style={styles.actionText}>{action.title}</Text>
-    </AnimatedTouchableOpacity>
+    <Animated.View style={[styles.actionCardContainer, animatedContainerStyle]}>
+      <Pressable
+        style={({ pressed }) => [
+          styles.actionCard, 
+          { backgroundColor: action.color + '15' },
+          pressed && styles.actionCardPressed
+        ]}
+        onPress={onPress}
+        onPressIn={() => {
+          iconScale.value = withSpring(0.9, { damping: 6 });
+          scale.value = withSpring(0.95, { damping: 6 });
+        }}
+        onPressOut={() => {
+          iconScale.value = withSpring(1, { damping: 6 });
+          scale.value = withSpring(1, { damping: 6 });
+        }}
+      >
+        <Animated.View style={[styles.actionIcon, { backgroundColor: action.color }, iconAnimatedStyle]}>
+          <Ionicons name={action.icon} size={24} color="white" />
+        </Animated.View>
+        <Text style={styles.actionText} numberOfLines={1} ellipsizeMode="tail">{action.title}</Text>
+      </Pressable>
+    </Animated.View>
   );
 };
 
-export const QuickActions: React.FC<QuickActionsProps> = ({ actions = defaultActions }) => {
+export const QuickActionsFixed: React.FC<QuickActionsProps> = ({ actions = defaultActions }) => {
   const router = useRouter();
   const titleOpacity = useSharedValue(0);
   const titleTranslateY = useSharedValue(-20);
@@ -164,7 +148,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({ actions = defaultAct
       </Animated.Text>
       <View style={styles.quickActions}>
         {actions.map((action, index) => (
-          <AnimatedQuickActionCard
+          <QuickActionCard
             key={action.id}
             action={action}
             index={index}
@@ -188,13 +172,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 24,
   },
-  actionCard: {
+  actionCardContainer: {
     flex: 1,
     marginHorizontal: 4,
+  },
+  actionCard: {
+    minHeight: 110,
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  actionCardPressed: {
+    opacity: 0.8,
   },
   actionIcon: {
     width: 48,
@@ -212,3 +202,6 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
 });
+
+// Export as default for drop-in replacement
+export default QuickActionsFixed;

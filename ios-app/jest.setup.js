@@ -29,6 +29,13 @@ jest.mock('@react-native-async-storage/async-storage', () =>
 global.AnimatedValue = jest.fn();
 global.AnimatedValueXY = jest.fn();
 
+// Mock Dimensions
+jest.mock('react-native/Libraries/Utilities/Dimensions', () => ({
+  get: () => ({ width: 375, height: 667 }),
+  addEventListener: jest.fn(),
+  removeEventListener: jest.fn(),
+}));
+
 // Mock expo-router
 jest.mock('expo-router', () => ({
   useRouter: jest.fn(() => ({

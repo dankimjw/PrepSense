@@ -1,4 +1,5 @@
 // app/_layout.tsx - Part of the PrepSense mobile app
+import '../global.css';
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme, View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
@@ -17,6 +18,8 @@ import { initPreloadDebug } from '../utils/debugPreload';
 import AnimatedIntroScreen from '../components/AnimatedIntroScreen';
 import EnhancedAnimatedIntroScreenV2 from '../components/EnhancedAnimatedIntroScreenV2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { HybridProvider, StyleDebugger } from '../config/hybridProvider';
+import { DebugPanel } from '../components/debug/DebugPanel';
 
 // Initialize debug commands in development
 if (__DEV__) {
@@ -197,11 +200,12 @@ function AppContent() {
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <ToastProvider>
-        <UserPreferencesProvider>
-          <ItemsProvider>
-            <TabDataProvider>
-              <View style={styles.container}>
+      <HybridProvider>
+        <ToastProvider>
+          <UserPreferencesProvider>
+            <ItemsProvider>
+              <TabDataProvider>
+                <View style={styles.container}>
                 <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen 
@@ -313,6 +317,13 @@ function AppContent() {
               }} 
             />
             <Stack.Screen 
+              name="recipe-details" 
+              options={{ 
+                headerShown: false,
+                animation: 'slide_from_right',
+              }} 
+            />
+            <Stack.Screen 
               name="recipe-spoonacular-detail" 
               options={{ 
                 header: ({ navigation }) => (
@@ -328,10 +339,12 @@ function AppContent() {
                 </Stack>
               </View>
               {/* {__DEV__ && <PreloadDebugOverlay />} */}
+              {__DEV__ && <DebugPanel />}
             </TabDataProvider>
           </ItemsProvider>
         </UserPreferencesProvider>
       </ToastProvider>
+      </HybridProvider>
     </ThemeProvider>
   );
 }

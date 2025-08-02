@@ -1,9 +1,33 @@
 {
-  "timestamp": "2025-07-22T21:45:52.313977",
-  "success_rate": 0,
-  "results": {},
-  "errors": [
-    "Backend service not running"
-  ],
+  "timestamp": "2025-08-01T01:38:19.687262",
+  "success_rate": 42.857142857142854,
+  "results": {
+    "backend": {
+      "basic_connectivity": true,
+      "api_endpoints": {
+        "/api/v1/units": true,
+        "/api/v1/demo/recipes": true,
+        "/api/v1/stats/comprehensive?timeframe=week": true
+      },
+      "database_connection": false,
+      "external_apis": {}
+    },
+    "database": {
+      "read_operations": false,
+      "write_operations": false,
+      "complex_queries": false
+    },
+    "error_handling": {
+      "handles_404": true,
+      "handles_invalid_data": false,
+      "handles_auth_errors": false
+    },
+    "frontend": {
+      "metro_bundler": false,
+      "bundle_valid": false,
+      "simulator_running": true
+    }
+  },
+  "errors": [],
   "warnings": []
 }
