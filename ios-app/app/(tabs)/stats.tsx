@@ -43,6 +43,17 @@ interface PantryItem {
   category: string;
 }
 
+// Create a React Native compatible timeout with AbortController
+const createTimeoutSignal = (timeoutMs: number): AbortSignal => {
+  const controller = new AbortController();
+  
+  setTimeout(() => {
+    controller.abort();
+  }, timeoutMs);
+  
+  return controller.signal;
+};
+
 export default function StatsScreen() {
   const { token, isAuthenticated } = useAuth();
   const { statsData, isLoadingStats, refreshStatsData } = useTabData();
@@ -57,6 +68,8 @@ export default function StatsScreen() {
   const [modalItems, setModalItems] = useState<PantryItem[]>([]);
   const [cookingHistory, setCookingHistory] = useState<any>(null);
   const [isMetric, setIsMetric] = useState(true); // Default to metric
+  const [loadingError, setLoadingError] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   useEffect(() => {
     loadStats();
@@ -64,6 +77,8 @@ export default function StatsScreen() {
 
   const loadStats = async () => {
     try {
+      setLoadingError(null); // Clear any previous errors
+      
       // Use preloaded data if available and fresh
       if (statsData && !refreshing) {
         const { comprehensiveStats, pantryItems: preloadedPantryItems, cookingTrends } = statsData;
@@ -106,17 +121,23 @@ export default function StatsScreen() {
           setPantryItems(preloadedPantryItems);
           // setIsLoading(false); // Now handled by TabDataProvider
           setRefreshing(false);
+          setHasInitialized(true);
           return;
         }
       }
       
       // setIsLoading(true); // Now handled by TabDataProvider
       
+      // Use consistent API base URL from Config
+      const baseUrl = Config.API_BASE_URL;
+      
       // Fetch comprehensive stats from new endpoint
-      const statsResponse = await fetch(`${Config.API_BASE_URL}/stats/comprehensive?user_id=111&timeframe=${timeRange}`, {
+      const statsResponse = await fetch(`${baseUrl}/stats/comprehensive?user_id=111&timeframe=${timeRange}`, {
         headers: {
           'Content-Type': 'application/json',
         },
+        // Add timeout to prevent hanging requests - React Native compatible approach
+        signal: createTimeoutSignal(10000) // 10 second timeout
       });
       
       if (statsResponse.ok) {
@@ -157,12 +178,15 @@ export default function StatsScreen() {
         };
         
         setStats(statsData);
+        setHasInitialized(true);
         
         // Still fetch pantry items for modal display
         const fetchedPantryItems = await fetchPantryItems(111);
         setPantryItems(fetchedPantryItems);
         
         return; // Exit early since we got all data from comprehensive endpoint
+      } else {
+        throw new Error(`Stats API returned ${statsResponse.status}: ${statsResponse.statusText}`);
       }
       
       // Fallback to original logic if new endpoint fails
@@ -176,7 +200,7 @@ export default function StatsScreen() {
       let fetchedRecipes = [];
       try {
         if (token && isAuthenticated) {
-          const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
+          const response = await fetch(`${baseUrl}/user-recipes`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json',
@@ -199,7 +223,7 @@ export default function StatsScreen() {
       let cookingHistoryData = null;
       try {
         const historyDays = timeRange === 'week' ? 7 : timeRange === 'month' ? 30 : 365;
-        const historyResponse = await fetch(`${Config.API_BASE_URL}/cooking-history/trends?user_id=111&days=${historyDays}`, {
+        const historyResponse = await fetch(`${baseUrl}/cooking-history/trends?user_id=111&days=${historyDays}`, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -329,8 +353,12 @@ export default function StatsScreen() {
       };
       
       setStats(statsData);
+      setHasInitialized(true);
     } catch (error) {
       console.error('Error loading stats:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setLoadingError(errorMessage);
+      setHasInitialized(true); // Mark as initialized even on error to prevent infinite loading
     } finally {
       // setIsLoading(false); // Now handled by TabDataProvider
       setRefreshing(false);
@@ -585,7 +613,18 @@ export default function StatsScreen() {
     await loadStats();
   };
 
-  if (isLoadingStats && !statsData) {
+  const handleRetry = () => {
+    setLoadingError(null);
+    setStats(null);
+    setHasInitialized(false);
+    loadStats();
+  };
+
+  // Show loading spinner only when:
+  // 1. TabDataProvider is loading AND no cached statsData exists, OR
+  // 2. We're refreshing and haven't initialized yet, OR  
+  // 3. Haven't initialized and no error occurred
+  if ((isLoadingStats && !statsData) || (refreshing && !hasInitialized) || (!hasInitialized && !loadingError)) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />
@@ -594,11 +633,44 @@ export default function StatsScreen() {
     );
   }
 
-  if (!stats) {
+  // Show error screen only when:
+  // 1. We have initialized, AND
+  // 2. We have an error, AND  
+  // 3. We don't have any stats data to show
+  if (hasInitialized && loadingError && !stats) {
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle" size={64} color="#DC2626" />
         <Text style={styles.errorText}>Failed to load stats</Text>
+        <Text style={styles.errorSubtext}>{loadingError}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          <Text style={styles.retryButtonText}>Retry</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // Show empty state if no stats but no error (should be rare)
+  if (hasInitialized && !stats && !loadingError) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="bar-chart" size={64} color="#666" />
+        <Text style={styles.errorText}>No stats available</Text>
+        <Text style={styles.errorSubtext}>Try adding some items to your pantry</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={handleRetry}>
+          <Text style={styles.retryButtonText}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  // If we have stats, show the normal UI (even if there might be a loading error for non-critical data)
+  if (!stats) {
+    // This should not happen with the logic above, but just in case
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#297A56" />
+        <Text style={styles.loadingText}>Loading your stats...</Text>
       </View>
     );
   }
@@ -1145,6 +1217,26 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 18,
     color: '#DC2626',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  errorSubtext: {
+    marginTop: 8,
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+  },
+  retryButton: {
+    marginTop: 20,
+    backgroundColor: '#297A56',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontSize: 16,
     fontWeight: '600',
   },
   headerGradient: {
