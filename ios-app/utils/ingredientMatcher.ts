@@ -115,6 +115,8 @@ export function isIngredientAvailable(ingredient: RecipeIngredient, pantryItems:
 
 /**
  * Calculate ingredient availability for a recipe
+ * IMPORTANT: This function handles duplicate IDs by counting each ingredient instance,
+ * not unique IDs. Two ingredients with the same ID are counted as two separate ingredients.
  */
 export function calculateIngredientAvailability(
   recipeIngredients: RecipeIngredient[],
@@ -123,19 +125,25 @@ export function calculateIngredientAvailability(
   const availableIngredients = new Set<number>();
   const missingIngredients = new Set<number>();
   
+  let availableCount = 0;
+  let missingCount = 0;
+  
+  // Count each ingredient individually, even if they have the same ID
   recipeIngredients.forEach(ingredient => {
     if (isIngredientAvailable(ingredient, pantryItems)) {
       availableIngredients.add(ingredient.id);
+      availableCount++;
     } else {
       missingIngredients.add(ingredient.id);
+      missingCount++;
     }
   });
   
   return {
     availableIngredients,
     missingIngredients,
-    availableCount: availableIngredients.size,
-    missingCount: missingIngredients.size,
+    availableCount,
+    missingCount,
     totalCount: recipeIngredients.length
   };
 }

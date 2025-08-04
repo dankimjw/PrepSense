@@ -12,7 +12,7 @@ import Animated, {
 import { useRouter, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { SHOW_LOTTIE_DEMO_BUTTON } from '@/constants/featureFlags';
+import { SHOW_LOTTIE_DEMO_BUTTON, SHOW_RECIPE_COMPLETION_DEBUG_BUTTON } from '@/constants/featureFlags';
 import { CustomHeader } from '../components/CustomHeader';
 import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
@@ -569,6 +569,17 @@ const IndexScreen: React.FC = () => {
           }, 300);
         }}
         />
+
+      {SHOW_RECIPE_COMPLETION_DEBUG_BUTTON && (
+        <TouchableOpacity
+          style={[styles.demoButton, { bottom: 150 }]}
+          onPress={() => router.push('/test-recipe-completion')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="restaurant" size={20} color="white" />
+          <Text style={styles.demoButtonText}>Recipe Test</Text>
+        </TouchableOpacity>
+      )}
 
       {SHOW_LOTTIE_DEMO_BUTTON && (
         <TouchableOpacity

@@ -14,23 +14,7 @@ jest.mock('../../../config', () => ({
   Config: { API_BASE_URL: 'http://localhost:8000' }
 }));
 
-// Mock Animated for scroll animations
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  return {
-    ...RN,
-    Animated: {
-      ...RN.Animated,
-      spring: jest.fn(() => ({
-        start: jest.fn(),
-      })),
-      Value: jest.fn(() => ({
-        interpolate: jest.fn(() => 1),
-      })),
-      View: RN.View,
-    },
-  };
-});
+// Rely on global mocks from jest.setup.js for Animated
 
 // Mock fetch
 global.fetch = jest.fn();

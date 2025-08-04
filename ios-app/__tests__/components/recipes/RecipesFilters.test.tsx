@@ -3,27 +3,6 @@ import { render, fireEvent, screen } from '@testing-library/react-native';
 import { Animated } from 'react-native';
 import RecipesFilters from '../../../components/recipes/RecipesFilters';
 
-// Mock Animated to avoid issues in tests
-jest.mock('react-native', () => {
-  const RN = jest.requireActual('react-native');
-  return {
-    ...RN,
-    Animated: {
-      ...RN.Animated,
-      Value: jest.fn(() => ({
-        interpolate: jest.fn(() => 1),
-      })),
-      timing: jest.fn(() => ({
-        start: jest.fn(),
-      })),
-      spring: jest.fn(() => ({
-        start: jest.fn(),
-      })),
-      View: RN.View,
-    },
-  };
-});
-
 describe('RecipesFilters', () => {
   const defaultProps = {
     activeTab: 'pantry' as const,

@@ -17,25 +17,43 @@
 
 ### Core Documentation Files
 
-1. **[Doc_FastApi_Routers.md](./Doc_FastApi_Routers.md)** 
+#### 1. **[Doc_FastApi_Routers.md](./Doc_FastApi_Routers.md)** 
    - All backend API endpoints with examples
    - Request/response formats
    - Authentication requirements
    - Database queries
 
-2. **[Doc_FrontEnd_iOS.md](./Doc_FrontEnd_iOS.md)**
+#### 2. **[Doc_FrontEnd_iOS.md](./Doc_FrontEnd_iOS.md)**
    - iOS app screens and components
    - API service implementations
    - State management
    - Navigation flows
 
-3. **[Doc_GCP.md](./Doc_GCP.md)**
+#### 3. **[Doc_GCP.md](./Doc_GCP.md)**
    - Google Cloud Platform setup
    - Cloud SQL configuration
    - Environment variables
    - Deployment procedures
 
-4. **[USDA_UNIT_MAPPING_PLAN.md](./USDA_UNIT_MAPPING_PLAN.md)**
+#### 4. **[Doc_Backup_Recipe_System.md](./Doc_Backup_Recipe_System.md)** 
+   - Comprehensive backup recipe system (13k+ recipes)
+   - Local database with intelligent fallback logic
+   - Image serving infrastructure and optimization
+   - CSV import pipeline and data processing
+   - Enhanced search with ingredient matching
+   - Performance optimization and monitoring
+
+#### 5. **[Doc_Research.md](./Doc_Research.md)** 🆕
+   - Research documentation index and standards
+   - API & external service analysis
+   - Performance & optimization studies
+   - Technology stack research
+   - **5.1** [Spoonacular API Analysis](./5.1_Spoonacular_API_ANALYSIS.md) - Comprehensive API usage analysis with caching strategies and cost optimization
+   - **5.2** [Local Storage and Caching Strategy](./5.2_Local_Storage_and_Caching_Strategy.md) - Complete analysis of all storage mechanisms and caching layers
+
+### Additional Documentation
+
+#### 4.1 **[USDA Unit Mapping Plan](./4.1_USDA_UNIT_MAPPING_PLAN.md)**
    - USDA data integration for unit validation
    - Import scripts and API endpoints
    - Category-to-unit mapping strategy
@@ -68,19 +86,29 @@ When creating a new Doc_*.md file:
 
 ### Documentation Standards
 
+#### File Naming Protocol
+- **Main documentation**: `Doc_{Category}.md` (e.g., `Doc_FastApi_Routers.md`)
+- **Subsection documents**: `{Section}.{Subsection}_{Topic_Name}.md` (e.g., `5.1_Spoonacular_API_ANALYSIS.md`)
+- **All non-Doc_ prefixed files** must include section numbers in both filename and document title
+
+#### Content Standards
 - Use clear headings and subheadings
 - Include code examples for all endpoints/components
 - Document current state, not ideal state
 - Mark TODOs and deprecated items clearly
 - Include timestamps for major updates
+- **Section numbers must match** between filename and document title
 
 ---
 
 ## Recent Documentation Updates
 
+- **2025-08-02**: Added research documentation structure (Doc_Research.md) with section numbering system
+- **2025-08-02**: Added comprehensive Spoonacular API analysis (5.1_Spoonacular_API_ANALYSIS.md)
+- **2025-08-02**: Implemented file naming protocol - all subsection files now use `{Section}.{Subsection}_{Topic}.md` format
+- **2025-01-30**: Added comprehensive backup recipe system documentation (Doc_Backup_Recipe_System.md)
 - **2025-07-27**: Initial documentation system created
-- **2025-07-27**: Added USDA unit mapping implementation (USDA_UNIT_MAPPING_PLAN.md)
-- Add new updates here with date and summary
+- **2025-07-27**: Added USDA unit mapping implementation (4.1_USDA_UNIT_MAPPING_PLAN.md)
 
 ## Quick Reference Links
 

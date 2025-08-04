@@ -1,5 +1,4 @@
 module.exports = {
-  preset: 'jest-expo',
   setupFiles: [
     '<rootDir>/jest.setup.js'
   ],
@@ -19,5 +18,16 @@ module.exports = {
   ],
   globals: {
     __DEV__: true
+  },
+  // Manually set up React Native mocks without jest-expo
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', {
+      presets: [
+        '@babel/preset-env',
+        ['@babel/preset-react', { runtime: 'automatic' }],
+        '@babel/preset-typescript'
+      ]
+    }]
   }
 };

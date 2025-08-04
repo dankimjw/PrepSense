@@ -1,0 +1,120 @@
+{
+  "tools": [
+    {
+      "name": "api.testEndpoint",
+      "description": "Send test HTTP requests to API endpoints with automatic curl generation and response analysis",
+      "handler": {
+        "type": "python",
+        "module": "backend_gateway.tools.claude_code_handlers",
+        "function": "handle_api_test"
+      },
+      "parameters": {
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+          "description": "HTTP method to use"
+        },
+        "url": {
+          "type": "string",
+          "description": "Full URL or relative path (e.g., '/api/v1/users' or 'https://api.example.com/users')"
+        },
+        "headers": {
+          "type": "object",
+          "description": "Optional HTTP headers",
+          "properties": {
+            "Authorization": {"type": "string"},
+            "Content-Type": {"type": "string"}
+          }
+        },
+        "data": {
+          "type": "object",
+          "description": "Request body for POST/PUT/PATCH or query params for GET"
+        },
+        "timeout": {
+          "type": "number",
+          "description": "Request timeout in seconds (default: 10)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Test GET endpoint",
+          "params": {
+            "method": "GET",
+            "url": "/api/v1/pantry/items"
+          }
+        },
+        {
+          "description": "Test POST with auth",
+          "params": {
+            "method": "POST",
+            "url": "/api/v1/pantry/items",
+            "headers": {"Authorization": "Bearer token123"},
+            "data": {"name": "Apples", "quantity": 5}
+          }
+        }
+      ]
+    },
+    {
+      "name": "ios.sim.runFlow",
+      "description": "Execute UI automation flows on iOS Simulator with screenshots and video recording",
+      "handler": {
+        "type": "python",
+        "module": "backend_gateway.tools.claude_code_handlers",
+        "function": "handle_ios_simulator"
+      },
+      "parameters": {
+        "flow": {
+          "type": ["string", "array"],
+          "description": "Predefined flow name ('loginFlow', 'addPantryItemFlow', 'navigationFlow') or custom flow steps array"
+        },
+        "script": {
+          "type": "string",
+          "description": "Path to flow script file (.json or .js)"
+        },
+        "simulator": {
+          "type": "string",
+          "description": "Simulator name (e.g., 'iPhone 14 Pro'). Uses booted simulator if not specified"
+        },
+        "record": {
+          "type": "boolean",
+          "description": "Record video of the flow execution (default: false)"
+        },
+        "screenshots": {
+          "type": "boolean",
+          "description": "Take screenshots during flow (default: true)"
+        }
+      },
+      "examples": [
+        {
+          "description": "Run login flow",
+          "params": {
+            "flow": "loginFlow",
+            "record": true
+          }
+        },
+        {
+          "description": "Custom flow with screenshots",
+          "params": {
+            "flow": [
+              {"action": "launch", "bundleId": "com.prepsense.ios"},
+              {"action": "tap", "element": "Add Button", "coordinates": {"x": 350, "y": 700}},
+              {"action": "type", "text": "Bananas"},
+              {"action": "screenshot", "name": "item_entry"}
+            ],
+            "screenshots": true
+          }
+        }
+      ],
+      "requirements": [
+        "Xcode must be installed",
+        "iOS Simulator must be available",
+        "For actual UI automation, Appium or XCUITest setup required"
+      ]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "description": "Claude Code tools for PrepSense development workflow",
+    "updated": "2025-01-29"
+  }
+}
