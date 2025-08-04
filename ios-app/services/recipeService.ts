@@ -7,8 +7,10 @@ import { Config } from '../config';
 export interface Recipe {
   id: number;
   title: string;
+  name?: string; // Alternative title field for chat-generated recipes
   image?: string;
   readyInMinutes?: number;
+  time?: number; // Alternative time field for chat-generated recipes
   servings?: number;
   sourceUrl?: string;
   summary?: string;
@@ -16,7 +18,8 @@ export interface Recipe {
   dishTypes?: string[];
   diets?: string[];
   occasions?: string[];
-  instructions?: string;
+  instructions?: string | string[]; // Can be string or array for chat-generated recipes
+  ingredients?: string[] | Array<{ name?: string; ingredient_name?: string; original?: string; amount?: number; quantity?: number; unit?: string; id?: number }>; // Chat-generated ingredients
   extendedIngredients?: ExtendedIngredient[];
   analyzedInstructions?: AnalyzedInstruction[];
   nutrition?: Nutrition;
@@ -96,6 +99,7 @@ export interface Nutrition {
   calories?: number;
   protein?: number;
   carbs?: number;
+  carbohydrates?: number; // Alternative field name
   fat?: number;
   fiber?: number;
   sugar?: number;

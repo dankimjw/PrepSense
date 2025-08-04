@@ -12,10 +12,11 @@ import Animated, {
 import { useRouter, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { SHOW_LOTTIE_DEMO_BUTTON, SHOW_RECIPE_COMPLETION_DEBUG_BUTTON } from '@/constants/featureFlags';
 import { CustomHeader } from '../components/CustomHeader';
 import { SearchBar } from '../../components/SearchBar';
 import { FilterModal } from '../../components/FilterModal';
-import { QuickActions } from '../../components/home/QuickActions';
+import { QuickActionsFixed } from '@/components/home/QuickActionsFixed';
 import { PantryItemsList } from '../../components/home/PantryItemsList';
 import { SortFilterBar } from '../../components/home/SortFilterBar';
 import { TipCard } from '../../components/home/TipCard';
@@ -396,7 +397,7 @@ const IndexScreen: React.FC = () => {
         }
       >
         {/* Quick Actions */}
-        <QuickActions />
+        <QuickActionsFixed />
 
         {/* Supply Chain Impact Alert */}
         {todayImpact && todayImpact.items_at_risk > 0 && (
@@ -568,6 +569,28 @@ const IndexScreen: React.FC = () => {
           }, 300);
         }}
         />
+
+      {SHOW_RECIPE_COMPLETION_DEBUG_BUTTON && (
+        <TouchableOpacity
+          style={[styles.demoButton, { bottom: 150 }]}
+          onPress={() => router.push('/test-recipe-completion')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="restaurant" size={20} color="white" />
+          <Text style={styles.demoButtonText}>Recipe Test</Text>
+        </TouchableOpacity>
+      )}
+
+      {SHOW_LOTTIE_DEMO_BUTTON && (
+        <TouchableOpacity
+          style={styles.demoButton}
+          onPress={() => router.push('/lottie-demo')}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="play" size={20} color="white" />
+          <Text style={styles.demoButtonText}>Lottie Demo</Text>
+        </TouchableOpacity>
+      )}
 
       </View>
     </TabScreenTransition>

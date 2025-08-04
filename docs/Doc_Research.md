@@ -27,6 +27,15 @@
 - **Local image storage** with CDN fallback for reliability
 - **Robust error handling** with exponential backoff and retry logic
 
+#### 5.2 [Local Storage and Caching Strategy](./5.2_Local_Storage_and_Caching_Strategy.md)
+**Section**: 5.2 | **Last Updated**: 2025-08-02  
+**Summary**: Comprehensive analysis of all local storage and caching mechanisms across frontend and backend
+- **Multi-layer architecture**: AsyncStorage + SecureStore + PostgreSQL + In-memory caches
+- **Storage volume**: ~2-5MB per user with 300-500ms performance improvement
+- **Frontend**: React Native AsyncStorage for preferences, Expo SecureStore for auth, in-memory image cache
+- **Backend**: PostgreSQL database + Smart TTL cache + AI Recipe cache service
+- **Invalidation strategies**: Time-based, user-specific, and pantry-aware cache invalidation
+- **Performance metrics**: 70-85% cache hit rates with proactive memory management
 ---
 
 ## Research Standards
@@ -81,11 +90,9 @@ Research on UI/UX patterns, accessibility, and user behavior analysis
 | Section | Topic | Status | Priority | Last Updated |
 |---------|-------|--------|----------|--------------|
 | 5.1 | Spoonacular API Analysis | 🟢 Complete | High | 2025-08-02 |
+| 5.2 | Local Storage and Caching Strategy | 🟢 Complete | High | 2025-08-02 |
 
 ---
-
-
-
 **Research Documentation Guidelines**: All research must be actionable, well-documented, and linked to implementation decisions.
 
 <!-- AUTO‑DOC‑MAINTAINER: Doc_Research -->

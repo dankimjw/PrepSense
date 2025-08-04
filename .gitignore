@@ -210,3 +210,5 @@ logs/stop.json
 logs/subagent_stop.json
 
 logs/user_prompt_submit.json
+
+logs/

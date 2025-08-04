@@ -361,3 +361,6 @@ const [isLoading, setIsLoading] = useState(false);
 
 **Last Updated**: 2025-07-27
 **Next Review**: When adding new screens or major components
+
+<!-- AUTO‑DOC‑MAINTAINER: FrontEnd_iOS -->
+<!-- END -->

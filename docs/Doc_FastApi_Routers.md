@@ -485,3 +485,6 @@ curl -X POST "http://localhost:8001/api/v1/endpoint" \
 
 **Last Updated**: 2025-07-27 (Added AI Recipes router with CrewAI integration)
 **Next Review**: When adding new routers or modifying endpoints
+
+<!-- AUTO‑DOC‑MAINTAINER: routers -->
+<!-- END -->

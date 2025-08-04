@@ -93,13 +93,24 @@ const AnimatedQuickActionCard = ({
   }));
 
   const handlePressIn = () => {
+    'worklet';
     iconScale.value = withSpring(0.9, { damping: 6 });
     scale.value = withSpring(0.95, { damping: 6 });
   };
 
   const handlePressOut = () => {
+    'worklet';
     iconScale.value = withSpring(1, { damping: 6 });
     scale.value = withSpring(1, { damping: 6 });
+  };
+  
+  const handlePress = () => {
+    // Ensure animations complete before navigating
+    handlePressOut();
+    // Small delay to let animation complete
+    setTimeout(() => {
+      onPress();
+    }, 100);
   };
 
   return (
@@ -109,7 +120,7 @@ const AnimatedQuickActionCard = ({
         { backgroundColor: action.color + '15' },
         animatedStyle
       ]}
-      onPress={onPress}
+      onPress={handlePress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
       activeOpacity={0.8}

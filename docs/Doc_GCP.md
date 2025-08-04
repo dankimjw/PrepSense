@@ -278,3 +278,6 @@ ORDER BY pg_total_relation_size(relid) DESC;
 
 **Last Updated**: 2025-07-27
 **Next Review**: When modifying database schema or GCP resources
+
+<!-- AUTO‑DOC‑MAINTAINER: GCP -->
+<!-- END -->
