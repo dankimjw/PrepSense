@@ -66,13 +66,13 @@ function AnimatedFAB({ onPress }: { onPress: () => void }) {
   );
 }
 
-// Simple animated tab item component
-function TabItem({ route, iconName, labelText, isFocused, onPress }: {
+// Tab item component with restored text labels
+function TabItem({ route, iconName, isFocused, onPress, label }: {
   route: any;
   iconName: any;
-  labelText: string;
   isFocused: boolean;
   onPress: () => void;
+  label: string;
 }) {
   const scale = useSharedValue(1);
   
@@ -109,7 +109,12 @@ function TabItem({ route, iconName, labelText, isFocused, onPress }: {
         size={24} 
         color={isFocused ? '#297A56' : '#888'} 
       />
-      <Text style={[styles.label, isFocused && { color: '#297A56' }]}>{labelText}</Text>
+      <Text style={[
+        styles.tabLabel,
+        { color: isFocused ? '#297A56' : '#888' }
+      ]}>
+        {label}
+      </Text>
     </AnimatedTouchable>
   );
 }
@@ -138,6 +143,18 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   console.log('Tab Routes:', filteredRoutes.map(r => r.name));
   console.log('Current route:', state.routes[state.index].name);
 
+  // Tab labels mapping
+  const getTabLabel = (routeName: string): string => {
+    switch (routeName) {
+      case 'index': return 'Home';
+      case 'stats': return 'Stats';
+      case 'recipes': return 'Recipes';
+      case 'shopping-list': return 'Shopping List';
+      case 'chat': return 'Chat';
+      default: return routeName;
+    }
+  };
+
   return (
     <>
       <View style={styles.tabBar}>
@@ -156,12 +173,6 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
             );
           }
           const { options } = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-              ? options.title
-              : route.name;
           // Fix the highlighting by checking if the current route matches this tab
           const isFocused = state.routes[state.index].name === route.name;
           let iconName: keyof typeof Ionicons.glyphMap = 'ellipse';
@@ -169,17 +180,14 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           if (route.name === 'stats') iconName = isFocused ? 'bar-chart' : 'bar-chart-outline';
           if (route.name === 'recipes') iconName = isFocused ? 'restaurant' : 'restaurant-outline';
           if (route.name === 'shopping-list') iconName = isFocused ? 'cart' : 'cart-outline';
-          let labelText = '';
-          if (typeof label === 'string') labelText = label;
-          else if (typeof label === 'function') labelText = '';
-          else labelText = String(label);
+          
           return (
             <TabItem
               key={route.key}
               route={route}
               iconName={iconName}
-              labelText={labelText}
               isFocused={isFocused}
+              label={getTabLabel(route.name)}
               onPress={() => {
                 Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                 navigation.navigate(route.name);
@@ -288,7 +296,7 @@ export default function TabsLayout() {
         <Tabs.Screen 
           name="chat" 
           options={{ 
-            tabBarLabel: '',
+            tabBarLabel: 'Chat',
             tabBarButton: () => null, // This ensures the tab button is handled by CustomTabBar
             header: () => (
               <CustomHeader 
@@ -316,7 +324,7 @@ export default function TabsLayout() {
         <Tabs.Screen 
           name="shopping-list" 
           options={{ 
-            tabBarLabel: 'List',
+            tabBarLabel: 'Shopping List',
             header: () => (
               <CustomHeader 
                 title="Shopping List"
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopWidth: 1,
     borderTopColor: '#eee',
-    height: 72,
+    height: 90, // Increased height to accommodate labels
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 10,
@@ -376,20 +384,21 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: -2 },
     elevation: 8,
-    paddingVertical: 12,
+    paddingVertical: 8, // Reduced padding since we need space for labels
   },
   tab: {
     flex: 1,
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    paddingBottom: 8,
+    justifyContent: 'center',
+    paddingVertical: 8,
     maxWidth: 80,
     overflow: 'hidden',
   },
-  label: {
-    fontSize: 12,
-    color: '#888',
-    marginTop: 2,
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    marginTop: 4,
+    textAlign: 'center',
   },
   fabContainer: {
     position: 'relative',

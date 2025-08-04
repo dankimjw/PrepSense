@@ -3,6 +3,7 @@ import '../global.css';
 import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
 import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
 import { useColorScheme, View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { CustomHeader } from './components/CustomHeader';
 import { useEffect, useState } from 'react';
 import { ItemsProvider } from '../context/ItemsContext';
@@ -352,9 +353,11 @@ function AppContent() {
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <AuthProvider>
-        <AppContent />
-      </AuthProvider>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <AppContent />
+        </AuthProvider>
+      </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }

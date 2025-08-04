@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Slider from '@react-native-community/slider';
 import { RecipeIngredient, PantryItem } from '../../services/api';
@@ -26,6 +27,7 @@ interface IngredientUsage {
     availableQuantity: number;
     unit: string;
     maxUsable: number;
+    expirationDate?: string;
   }[];
   selectedAmount: number;
   maxPossible: number;
@@ -161,6 +163,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
   const [ingredientUsages, setIngredientUsages] = useState<IngredientUsage[]>([]);
   const [isCalculating, setIsCalculating] = useState(false);
   const [activeUnitPicker, setActiveUnitPicker] = useState<{ index: number; units: string[] } | null>(null);
+  const [expandedIngredients, setExpandedIngredients] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (visible && recipe?.ingredients) {
@@ -397,6 +400,18 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
     );
   };
 
+  const toggleIngredientDropdown = (index: number) => {
+    setExpandedIngredients(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
   const handleConfirm = () => {
     // Check if any ingredients are available at all
     const hasAvailableIngredients = ingredientUsages.some(usage => usage.maxPossible > 0);
@@ -459,6 +474,65 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
   const getAvailableIngredients = () => ingredientUsages.filter(usage => usage.maxPossible > 0).length;
   const getMissingIngredients = () => ingredientUsages.filter(usage => usage.maxPossible === 0).length;
 
+  const renderPantryItemDropdown = (usage: IngredientUsage, index: number) => {
+    const isExpanded = expandedIngredients.has(index);
+    const itemCount = usage.pantryItems.length;
+    
+    if (itemCount === 0) return null;
+
+    return (
+      <View style={styles.pantryDropdown}>
+        <TouchableOpacity 
+          style={styles.dropdownHeader}
+          onPress={() => toggleIngredientDropdown(index)}
+          testID={`pantry-dropdown-${index}`}
+        >
+          <Text style={styles.dropdownHeaderText}>
+            Available from {itemCount} item{itemCount > 1 ? 's' : ''}
+          </Text>
+          <Ionicons 
+            name={isExpanded ? "chevron-up" : "chevron-down"} 
+            size={16} 
+            color="#6B7280" 
+          />
+        </TouchableOpacity>
+        
+        {isExpanded && (
+          <View style={styles.dropdownContent}>
+            {usage.pantryItems.map((item, itemIndex) => {
+              const expirationInfo = item.expirationDate 
+                ? ` (exp: ${new Date(item.expirationDate).toLocaleDateString()})` 
+                : '';
+              const isClosestExpiring = itemIndex === 0; // First item is closest expiring due to sorting
+              
+              return (
+                <View 
+                  key={itemIndex} 
+                  style={[
+                    styles.pantryItemRow,
+                    isClosestExpiring && styles.pantryItemRowSelected
+                  ]}
+                >
+                  <Text style={[
+                    styles.pantryItemText,
+                    isClosestExpiring && styles.pantryItemTextSelected
+                  ]}>
+                    • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}{expirationInfo}
+                  </Text>
+                  {isClosestExpiring && (
+                    <View style={styles.selectedIndicator}>
+                      <Ionicons name="checkmark-circle" size={14} color="#10B981" />
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const renderIngredientUsage = (usage: IngredientUsage, index: number) => {
     const isAvailable = usage.maxPossible > 0;
     const isFullyUsed = usage.selectedAmount === usage.requestedQuantity;
@@ -493,21 +567,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
 
         {isAvailable ? (
           <>
-            <View style={styles.availabilityInfo}>
-              <Text style={styles.availabilityText}>
-                Available from {usage.pantryItems.length} item{usage.pantryItems.length > 1 ? 's' : ''}:
-              </Text>
-              {usage.pantryItems.map((item, itemIndex) => {
-                const expirationInfo = item.expirationDate 
-                  ? ` (exp: ${new Date(item.expirationDate).toLocaleDateString()})` 
-                  : '';
-                return (
-                  <Text key={itemIndex} style={styles.pantryItemText}>
-                    • {item.name}: {formatQuantity(item.availableQuantity)} {item.unit}{expirationInfo}
-                  </Text>
-                );
-              })}
-            </View>
+            {renderPantryItemDropdown(usage, index)}
 
             <View style={styles.amountSelector}>
               <View style={styles.amountHeader}>
@@ -687,7 +747,7 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
       onRequestClose={onClose}
       testID="recipe-completion-modal"
     >
-      <View style={styles.container}>
+      <SafeAreaView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeButton} testID="close-button">
@@ -768,49 +828,51 @@ export const RecipeCompletionModal: React.FC<RecipeCompletionModalProps> = ({
             onRequestClose={() => setActiveUnitPicker(null)}
           >
             <View style={styles.unitPickerOverlay}>
-              <View style={styles.unitPickerModal}>
-                <View style={styles.unitPickerHeader}>
-                  <Text style={styles.unitPickerTitle}>Select Unit</Text>
-                  <TouchableOpacity onPress={() => setActiveUnitPicker(null)}>
-                    <Ionicons name="close" size={24} color="#374151" />
-                  </TouchableOpacity>
-                </View>
-                
-                <ScrollView style={styles.unitPickerList}>
-                  {activeUnitPicker.units.map(unit => (
-                    <TouchableOpacity
-                      key={unit}
-                      style={[
-                        styles.unitPickerItem,
-                        (ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
-                         ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && 
-                        styles.unitPickerItemSelected
-                      ]}
-                      onPress={() => {
-                        updateIngredientUnit(activeUnitPicker.index, unit);
-                        setActiveUnitPicker(null);
-                      }}
-                    >
-                      <Text style={[
-                        styles.unitPickerItemText,
-                        (ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
-                         ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && 
-                        styles.unitPickerItemTextSelected
-                      ]}>
-                        {unit}
-                      </Text>
-                      {(ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
-                        ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && (
-                        <Ionicons name="checkmark" size={20} color="#6366F1" />
-                      )}
+              <SafeAreaView>
+                <View style={styles.unitPickerModal}>
+                  <View style={styles.unitPickerHeader}>
+                    <Text style={styles.unitPickerTitle}>Select Unit</Text>
+                    <TouchableOpacity onPress={() => setActiveUnitPicker(null)}>
+                      <Ionicons name="close" size={24} color="#374151" />
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+                  </View>
+                  
+                  <ScrollView style={styles.unitPickerList}>
+                    {activeUnitPicker.units.map(unit => (
+                      <TouchableOpacity
+                        key={unit}
+                        style={[
+                          styles.unitPickerItem,
+                          (ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
+                           ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && 
+                          styles.unitPickerItemSelected
+                        ]}
+                        onPress={() => {
+                          updateIngredientUnit(activeUnitPicker.index, unit);
+                          setActiveUnitPicker(null);
+                        }}
+                      >
+                        <Text style={[
+                          styles.unitPickerItemText,
+                          (ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
+                           ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && 
+                          styles.unitPickerItemTextSelected
+                        ]}>
+                          {unit}
+                        </Text>
+                        {(ingredientUsages[activeUnitPicker.index]?.selectedUnit || 
+                          ingredientUsages[activeUnitPicker.index]?.requestedUnit) === unit && (
+                          <Ionicons name="checkmark" size={20} color="#6366F1" />
+                        )}
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </SafeAreaView>
             </View>
           </Modal>
         )}
-      </View>
+      </SafeAreaView>
     </Modal>
   );
 };
@@ -825,8 +887,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
@@ -895,17 +956,17 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   ingredientsList: {
-    paddingVertical: 16,
+    paddingVertical: 12, // Reduced from 16
   },
   ingredientCard: {
     backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
+    borderRadius: 16, // Reduced from 20
+    padding: 16, // Reduced from 20
+    marginBottom: 12, // Reduced from 16
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 }, // Reduced shadow
+    shadowOpacity: 0.06, // Reduced from 0.08
+    shadowRadius: 3, // Reduced from 4
     elevation: 2,
   },
   unavailableCard: {
@@ -916,16 +977,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 12,
+    marginBottom: 8, // Reduced from 12
   },
   ingredientInfo: {
     flex: 1,
   },
   ingredientName: {
-    fontSize: 18,
+    fontSize: 17, // Reduced from 18
     fontWeight: '600',
     color: '#111827',
-    marginBottom: 4,
+    marginBottom: 3, // Reduced from 4
   },
   requestedAmount: {
     fontSize: 14,
@@ -940,29 +1001,63 @@ const styles = StyleSheet.create({
   statusIndicator: {
     marginLeft: 12,
   },
-  availabilityInfo: {
-    marginBottom: 16,
+  // New dropdown styles
+  pantryDropdown: {
+    marginBottom: 12, // Reduced from 16
   },
-  availabilityText: {
+  dropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  dropdownHeaderText: {
     fontSize: 14,
     fontWeight: '500',
     color: '#374151',
-    marginBottom: 8,
+  },
+  dropdownContent: {
+    marginTop: 8,
+    paddingLeft: 8,
+  },
+  pantryItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  pantryItemRowSelected: {
+    backgroundColor: '#F0F9FF',
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
   },
   pantryItemText: {
     fontSize: 13,
     color: '#6B7280',
-    marginLeft: 8,
-    marginBottom: 2,
+    flex: 1,
   },
+  pantryItemTextSelected: {
+    color: '#374151',
+    fontWeight: '500',
+  },
+  selectedIndicator: {
+    marginLeft: 8,
+  },
+  // Updated styles (reduced spacing)
   amountSelector: {
-    marginBottom: 16,
+    marginBottom: 12, // Reduced from 16
   },
   amountHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 12, // Reduced from 16
   },
   amountLabel: {
     fontSize: 16,
@@ -988,12 +1083,12 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   sliderContainer: {
-    marginBottom: 20,
-    paddingVertical: 10,
+    marginBottom: 16, // Reduced from 20
+    paddingVertical: 8, // Reduced from 10
   },
   slider: {
     width: '100%',
-    height: 50,
+    height: 40, // Reduced from 50
   },
   sliderLabels: {
     flexDirection: 'row',
@@ -1019,14 +1114,14 @@ const styles = StyleSheet.create({
   quickAmounts: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
-    gap: 8,
+    marginBottom: 8, // Reduced from 12
+    gap: 6, // Reduced from 8
   },
   amountButton: {
     flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    paddingVertical: 8, // Reduced from 10
+    paddingHorizontal: 6, // Reduced from 8
+    borderRadius: 8, // Reduced from 12
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FAFAFA',
@@ -1037,7 +1132,7 @@ const styles = StyleSheet.create({
     borderColor: '#6366F1',
   },
   amountButtonText: {
-    fontSize: 13,
+    fontSize: 12, // Reduced from 13
     fontWeight: '600',
     color: '#374151',
   },

@@ -191,11 +191,11 @@ export default function ChatScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       
       {/* Modal Header */}
-      <View style={styles.modalHeader}>
+      <View style={[styles.modalHeader, { paddingTop: insets.top }]}>
         <View style={styles.modalHeaderContent}>
           <TouchableOpacity
             style={styles.backButton}
@@ -213,7 +213,7 @@ export default function ChatScreen() {
         </View>
       </View>
       
-      <View style={[styles.content, { paddingBottom: insets.bottom }]}>
+      <View style={styles.content}>
         <ScrollView 
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
@@ -365,7 +365,7 @@ export default function ChatScreen() {
         
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputContainer}
+          style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
         >
           <TextInput
             style={styles.input}
@@ -403,7 +403,7 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -416,7 +416,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
-    paddingTop: Platform.OS === 'ios' ? 60 : 20,
     paddingBottom: 16,
   },
   modalHeaderContent: {
@@ -498,7 +497,6 @@ const styles = StyleSheet.create({
   inputContainer: {
     flexDirection: 'row',
     padding: 12,
-    paddingBottom: 20, // Add extra padding to avoid + button overlap
     borderTopWidth: 1,
     borderTopColor: '#eee',
     backgroundColor: '#fff',
