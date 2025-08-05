@@ -6,6 +6,7 @@ import { Config } from '../../config';
 import { useItems } from '../../context/ItemsContext';
 import { useAuth } from '../../context/AuthContext';
 import { useTabData } from '../../context/TabDataProvider';
+import { useUserPreferences } from '../../context/UserPreferencesContext';
 import { calculateIngredientAvailability, validateIngredientCounts } from '../../utils/ingredientMatcher';
 import { isValidRecipe } from '../../utils/contentValidation';
 import RecipesTabs from './RecipesTabs';
@@ -161,6 +162,7 @@ export default function RecipesContainer() {
   const { items } = useItems();
   const { user, token, isAuthenticated } = useAuth();
   const { recipesData } = useTabData();
+  const { preferences } = useUserPreferences();
 
   // Recalculate ingredient counts based on actual pantry items using standardized matching
   const recalculateIngredientCounts = useCallback((recipe: Recipe, pantryItems: string[]) => {
@@ -190,6 +192,72 @@ export default function RecipesContainer() {
       missedCount: result.missingCount 
     };
   }, []);
+
+  // Filter recipes based on user preferences (allergens, dietary preferences, cuisines)
+  const filterRecipesByPreferences = useCallback((recipes: SavedRecipe[]) => {
+    if (!preferences || (!preferences.allergens.length && !preferences.dietaryPreferences.length && !preferences.cuisines.length)) {
+      return recipes; // No preferences set, show all recipes
+    }
+
+    return recipes.filter(recipe => {
+      const recipeData = recipe.recipe_data || {};
+      const title = (recipe.recipe_title || '').toLowerCase();
+      const ingredients = (recipeData.extendedIngredients || []).map((ing: any) => (ing.name || '').toLowerCase());
+      const dishTypes = (recipeData.dishTypes || []).map((type: string) => type.toLowerCase());
+      const cuisines = (recipeData.cuisines || []).map((cuisine: string) => cuisine.toLowerCase());
+      
+      // Check allergens - if recipe contains allergens, exclude it
+      if (preferences.allergens.length > 0) {
+        const hasAllergen = preferences.allergens.some(allergen => {
+          const allergenLower = allergen.toLowerCase();
+          return (
+            title.includes(allergenLower) ||
+            ingredients.some(ing => ing.includes(allergenLower)) ||
+            dishTypes.some(type => type.includes(allergenLower))
+          );
+        });
+        if (hasAllergen) {
+          console.log(`Filtering out recipe "${recipe.recipe_title}" due to allergen`);
+          return false;
+        }
+      }
+
+      // Check dietary preferences - if preferences set, recipe must match at least one
+      if (preferences.dietaryPreferences.length > 0) {
+        const matchesDietaryPref = preferences.dietaryPreferences.some(pref => {
+          const prefLower = pref.toLowerCase();
+          const tags = (recipeData.diets || []).map((diet: string) => diet.toLowerCase());
+          return (
+            tags.includes(prefLower) ||
+            title.includes(prefLower) ||
+            dishTypes.some(type => type.includes(prefLower))
+          );
+        });
+        if (!matchesDietaryPref) {
+          console.log(`Filtering out recipe "${recipe.recipe_title}" - doesn't match dietary preferences`);
+          return false;
+        }
+      }
+
+      // Check cuisine preferences - if preferences set, recipe must match at least one
+      if (preferences.cuisines.length > 0) {
+        const matchesCuisine = preferences.cuisines.some(cuisine => {
+          const cuisineLower = cuisine.toLowerCase();
+          return (
+            cuisines.includes(cuisineLower) ||
+            title.includes(cuisineLower) ||
+            dishTypes.some(type => type.includes(cuisineLower))
+          );
+        });
+        if (!matchesCuisine) {
+          console.log(`Filtering out recipe "${recipe.recipe_title}" - doesn't match cuisine preferences`);
+          return false;
+        }
+      }
+
+      return true; // Recipe passes all preference filters
+    });
+  }, [preferences]);
 
   const fetchRecipesFromPantry = useCallback(async () => {
     console.log('fetchRecipesFromPantry called');
@@ -377,7 +445,13 @@ export default function RecipesContainer() {
         'thumbs_down': recipesData.myRecipes.filter(r => r.rating === 'thumbs_down'),
         'favorites': recipesData.myRecipes.filter(r => r.is_favorite)
       };
-      dispatch({ type: 'SET_SAVED_RECIPES', payload: filterMap[state.myRecipesFilter] || recipesData.myRecipes });
+      const filteredRecipes = filterMap[state.myRecipesFilter] || recipesData.myRecipes;
+      
+      // Apply user preference filtering to show only recipes matching Lily's preferences
+      const preferencesFilteredRecipes = filterRecipesByPreferences(filteredRecipes);
+      console.log(`Filtered ${filteredRecipes.length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
+      
+      dispatch({ type: 'SET_SAVED_RECIPES', payload: preferencesFilteredRecipes });
       return;
     }
     
@@ -412,14 +486,18 @@ export default function RecipesContainer() {
       const data = await response.json();
       console.log('Fetched saved recipes with filter:', state.myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
       
-      dispatch({ type: 'SET_SAVED_RECIPES', payload: data || [] });
+      // Apply user preference filtering to show only recipes matching Lily's preferences
+      const preferencesFilteredRecipes = filterRecipesByPreferences(data || []);
+      console.log(`Filtered ${(data || []).length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
+      
+      dispatch({ type: 'SET_SAVED_RECIPES', payload: preferencesFilteredRecipes });
     } catch (error) {
       console.error('Error fetching saved recipes:', error);
       Alert.alert('Error', 'Failed to load saved recipes. Please try again.');
     } finally {
       dispatch({ type: 'SET_LOADING', payload: false });
     }
-  }, [recipesData, state.refreshing, state.myRecipesFilter, state.myRecipesTab]);
+  }, [recipesData, state.refreshing, state.myRecipesFilter, state.myRecipesTab, filterRecipesByPreferences]);
 
   const onRefresh = useCallback(async () => {
     dispatch({ type: 'SET_REFRESHING', payload: true });
