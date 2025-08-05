@@ -40,6 +40,7 @@ const addMenuItems = [
   { id: 'image', icon: 'image', label: 'Add Image', color: '#10B981' },
   { id: 'food', icon: 'fast-food', label: 'Add Food Item', color: '#3B82F6' },
   { id: 'receipt', icon: 'receipt', label: 'Scan Receipt', color: '#8B5CF6' },
+  { id: 'rc', icon: 'restaurant', label: 'Complete Recipe', color: '#F97316', route: '/test-recipe-completion' },
 ];
 
 function EnhancedAddButton() {
@@ -183,6 +184,9 @@ function EnhancedAddButton() {
         case 'receipt':
           router.push('/receipt-scanner');
           break;
+        case 'rc':
+          router.push('/test-recipe-completion');
+          break;
       }
     }, 300);
   };
@@ -316,7 +320,7 @@ function EnhancedAddButton() {
                 const scale = itemScales[index].value;
                 
                 // Calculate circular positions
-                const angle = (index * 30) - 30; // -30°, 0°, 30°
+                const angle = (index * 30) - 45; // Adjusted angles for 4 items: -45°, -15°, 15°, 45°
                 const distance = 70;
                 const translateX = interpolate(
                   menuItemsAnimation.value,
@@ -436,6 +440,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#F59E0B',
     fontWeight: '500',
+    flexWrap: 'wrap',
+    textAlign: 'center',
   },
   addMenuContainer: {
     position: 'absolute',
@@ -458,11 +464,17 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     elevation: 4,
+    minWidth: 120,
+    maxWidth: 140,
   },
   menuItemLabel: {
     color: '#fff',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
+    flexWrap: 'wrap',
+    flexShrink: 1,
+    textAlign: 'left',
+    numberOfLines: 2,
   },
   dismissOverlay: {
     position: 'absolute',
