@@ -195,7 +195,15 @@ export default function RecipesContainer() {
 
   // Filter recipes based on user preferences (allergens, dietary preferences, cuisines)
   const filterRecipesByPreferences = useCallback((recipes: SavedRecipe[]) => {
+    console.log('🔍 User preferences loaded:', preferences);
+    console.log('🔍 Filtering', recipes.length, 'recipes with preferences:', {
+      allergens: preferences?.allergens || [],
+      dietaryPreferences: preferences?.dietaryPreferences || [],
+      cuisines: preferences?.cuisines || []
+    });
+    
     if (!preferences || (!preferences.allergens.length && !preferences.dietaryPreferences.length && !preferences.cuisines.length)) {
+      console.log('🔍 No preferences set, showing all recipes');
       return recipes; // No preferences set, show all recipes
     }
 
@@ -205,6 +213,14 @@ export default function RecipesContainer() {
       const ingredients = (recipeData.extendedIngredients || []).map((ing: any) => (ing.name || '').toLowerCase());
       const dishTypes = (recipeData.dishTypes || []).map((type: string) => type.toLowerCase());
       const cuisines = (recipeData.cuisines || []).map((cuisine: string) => cuisine.toLowerCase());
+      
+      console.log(`🔍 Checking recipe "${recipe.recipe_title}":`, {
+        title,
+        ingredients: ingredients.slice(0, 3), // First 3 ingredients for brevity
+        dishTypes,
+        cuisines,
+        diets: recipeData.diets || []
+      });
       
       // Check allergens - if recipe contains allergens, exclude it
       if (preferences.allergens.length > 0) {
