@@ -54,7 +54,7 @@ export default function LoadingFactsScreen() {
           }
           
           try {
-            const response = await fetch(`${Config.API_BASE_URL}/api/v1/ocr/scan-items`, {
+            const response = await fetch(`${Config.API_BASE_URL}/ocr/scan-items`, {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
