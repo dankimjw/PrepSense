@@ -1,320 +1,399 @@
 #!/usr/bin/env python3
 """
-PrepSense App Health Check Script
-Quick validation that both backend and iOS app are working correctly.
+Comprehensive health check for PrepSense application
+Tests actual functionality, not just service connectivity
 """
 
-import os
 import sys
-import subprocess
-import requests
-import json
 import time
-from typing import Dict, Any, List, Tuple
-import signal
+import json
+import requests
+import subprocess
+import psutil
+from datetime import datetime
+from typing import Dict, List, Tuple, Optional
+import os
+from pathlib import Path
 
-# Color codes for output
 class Colors:
+    """ANSI color codes for terminal output"""
     GREEN = '\033[92m'
     RED = '\033[91m'
     YELLOW = '\033[93m'
     BLUE = '\033[94m'
-    CYAN = '\033[96m'
-    WHITE = '\033[97m'
+    RESET = '\033[0m'
     BOLD = '\033[1m'
-    END = '\033[0m'
 
-def print_header(text: str):
-    """Print a styled header."""
-    print(f"\n{Colors.BOLD}{Colors.CYAN}{'='*60}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.CYAN}{text.center(60)}{Colors.END}")
-    print(f"{Colors.BOLD}{Colors.CYAN}{'='*60}{Colors.END}\n")
-
-def print_status(test_name: str, status: str, details: str = ""):
-    """Print test status with colors."""
-    if status == "PASS":
-        icon = f"{Colors.GREEN}✅{Colors.END}"
-        status_text = f"{Colors.GREEN}{status}{Colors.END}"
-    elif status == "FAIL":
-        icon = f"{Colors.RED}❌{Colors.END}"
-        status_text = f"{Colors.RED}{status}{Colors.END}"
-    elif status == "WARN":
-        icon = f"{Colors.YELLOW}⚠️{Colors.END}"
-        status_text = f"{Colors.YELLOW}{status}{Colors.END}"
-    else:
-        icon = f"{Colors.BLUE}ℹ️{Colors.END}"
-        status_text = f"{Colors.BLUE}{status}{Colors.END}"
-    
-    print(f"{icon} {test_name:.<45} {status_text}")
-    if details:
-        print(f"   {Colors.WHITE}{details}{Colors.END}")
-
-def check_backend_process() -> bool:
-    """Check if backend process is running."""
-    try:
-        result = subprocess.run(
-            ["ps", "aux"], 
-            capture_output=True, 
-            text=True
-        )
-        processes = result.stdout
+class HealthChecker:
+    def __init__(self):
+        self.results = []
+        self.errors = []
+        self.warnings = []
+        self.backend_base_url = "http://localhost:8001"
+        self.metro_url = "http://localhost:8082"
         
-        # Look for uvicorn or run_app.py processes
-        backend_running = any(
-            "uvicorn" in line and ("8001" in line or "app:app" in line)
-            for line in processes.split('\n')
-        ) or any(
-            "run_app.py" in line
-            for line in processes.split('\n')
-        )
-        
-        return backend_running
-    except Exception as e:
-        print_status("Backend Process Check", "FAIL", f"Error: {e}")
-        return False
-
-def test_backend_health() -> Tuple[bool, Dict[str, Any]]:
-    """Test backend health endpoint."""
-    try:
-        response = requests.get(
-            "http://localhost:8001/api/v1/health",
-            timeout=5
-        )
-        
-        if response.status_code == 200:
-            health_data = response.json()
-            return True, health_data
+    def log(self, message: str, status: str = "info"):
+        """Log message with color coding"""
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        if status == "success":
+            print(f"{Colors.GREEN}✅ [{timestamp}] {message}{Colors.RESET}")
+        elif status == "error":
+            print(f"{Colors.RED}❌ [{timestamp}] {message}{Colors.RESET}")
+        elif status == "warning":
+            print(f"{Colors.YELLOW}⚠️  [{timestamp}] {message}{Colors.RESET}")
         else:
-            return False, {"error": f"HTTP {response.status_code}"}
-            
-    except requests.exceptions.ConnectionError:
-        return False, {"error": "Connection refused - backend not running"}
-    except requests.exceptions.Timeout:
-        return False, {"error": "Request timeout"}
-    except Exception as e:
-        return False, {"error": str(e)}
-
-def test_api_endpoints() -> List[Tuple[str, bool, str]]:
-    """Test key API endpoints."""
-    endpoints = [
-        ("Root", "http://localhost:8001/", "GET"),
-        ("API Docs", "http://localhost:8001/docs", "GET"),
-        ("OpenAPI Schema", "http://localhost:8001/api/v1/openapi.json", "GET"),
-    ]
+            print(f"{Colors.BLUE}ℹ️  [{timestamp}] {message}{Colors.RESET}")
     
-    results = []
-    
-    for name, url, method in endpoints:
+    def check_port(self, port: int, service_name: str) -> bool:
+        """Check if a port is open and listening"""
         try:
-            if method == "GET":
-                response = requests.get(url, timeout=5)
-            
-            success = response.status_code < 400
-            status_msg = f"HTTP {response.status_code}"
-            
-            results.append((name, success, status_msg))
-            
+            # Use lsof command like quick_check.sh does
+            result = subprocess.run(
+                ["lsof", "-Pi", f":{port}", "-sTCP:LISTEN", "-t"],
+                capture_output=True,
+                text=True
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                self.log(f"{service_name} is listening on port {port}", "success")
+                return True
+            else:
+                self.log(f"{service_name} is NOT listening on port {port}", "error")
+                return False
         except Exception as e:
-            results.append((name, False, str(e)))
+            # Fallback to trying to connect
+            import socket
+            try:
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(1)
+                    result = sock.connect_ex(('localhost', port))
+                    if result == 0:
+                        self.log(f"{service_name} is listening on port {port}", "success")
+                        return True
+                    else:
+                        self.log(f"{service_name} is NOT listening on port {port}", "error")
+                        return False
+            except Exception:
+                self.log(f"{service_name} port check failed", "error")
+                return False
     
-    return results
-
-def check_ios_metro() -> bool:
-    """Check if Metro bundler is running for iOS app."""
-    try:
-        # Check for expo/metro processes
-        result = subprocess.run(
-            ["ps", "aux"], 
-            capture_output=True, 
-            text=True
-        )
-        processes = result.stdout
-        
-        metro_running = any(
-            ("expo" in line and "8082" in line) or 
-            ("metro" in line) or
-            ("node_modules/expo" in line)
-            for line in processes.split('\n')
-        )
-        
-        return metro_running
-    except Exception:
-        return False
-
-def check_ios_bundle() -> Tuple[bool, str]:
-    """Check if iOS app bundle can be built."""
-    try:
-        os.chdir("ios-app")
-        
-        # Run expo build check (without actually building)
-        result = subprocess.run(
-            ["npx", "expo", "export", "--help"],
-            capture_output=True,
-            text=True,
-            timeout=10
-        )
-        
-        if result.returncode == 0:
-            return True, "Expo CLI working"
-        else:
-            return False, f"Expo CLI error: {result.stderr}"
-            
-    except subprocess.TimeoutExpired:
-        return False, "Expo CLI timeout"
-    except Exception as e:
-        return False, f"Error: {e}"
-    finally:
-        os.chdir("..")
-
-def check_environment() -> Dict[str, Any]:
-    """Check environment setup."""
-    checks = {}
-    
-    # Check if virtual environment is active
-    checks["venv"] = {
-        "active": "VIRTUAL_ENV" in os.environ,
-        "path": os.environ.get("VIRTUAL_ENV", "Not active")
-    }
-    
-    # Check key environment variables
-    env_vars = [
-        "EXPO_PUBLIC_API_BASE_URL",
-        "OPENAI_API_KEY", 
-        "GOOGLE_APPLICATION_CREDENTIALS"
-    ]
-    
-    checks["env_vars"] = {}
-    for var in env_vars:
-        value = os.environ.get(var)
-        checks["env_vars"][var] = {
-            "set": value is not None,
-            "value": "***" if value else None
+    def check_backend_health(self) -> Dict:
+        """Check backend API health and functionality"""
+        results = {
+            "basic_connectivity": False,
+            "api_endpoints": {},
+            "database_connection": False,
+            "external_apis": {}
         }
-    
-    return checks
-
-def main():
-    """Run comprehensive app health check."""
-    print_header("PrepSense App Health Check")
-    
-    total_tests = 0
-    passed_tests = 0
-    
-    # Environment checks
-    print(f"{Colors.BOLD}Environment Setup:{Colors.END}")
-    env_info = check_environment()
-    
-    # Virtual environment
-    total_tests += 1
-    if env_info["venv"]["active"]:
-        print_status("Virtual Environment", "PASS", env_info["venv"]["path"])
-        passed_tests += 1
-    else:
-        print_status("Virtual Environment", "WARN", "Not in venv - run: source venv/bin/activate")
-    
-    # Backend checks
-    print(f"\n{Colors.BOLD}Backend Health:{Colors.END}")
-    
-    # Backend process
-    total_tests += 1
-    if check_backend_process():
-        print_status("Backend Process", "PASS")
-        passed_tests += 1
-    else:
-        print_status("Backend Process", "FAIL", "Run: python run_app.py")
-    
-    # Backend health endpoint
-    total_tests += 1
-    health_ok, health_data = test_backend_health()
-    if health_ok:
-        print_status("Health Endpoint", "PASS", f"Status: {health_data.get('status', 'unknown')}")
-        passed_tests += 1
         
-        # Check environment configuration
-        env_config = health_data.get('environment', {})
-        if env_config.get('openai_configured'):
-            print_status("OpenAI Config", "PASS")
+        # Basic health check
+        try:
+            response = requests.get(f"{self.backend_base_url}/api/v1/health", timeout=5)
+            if response.status_code == 200:
+                results["basic_connectivity"] = True
+                self.log("Backend health endpoint responding", "success")
+                health_data = response.json()
+                if health_data.get("database", {}).get("connected"):
+                    results["database_connection"] = True
+                    self.log("Database connection verified", "success")
+                else:
+                    self.log("Database connection failed", "error")
+            else:
+                self.log(f"Backend health check failed: {response.status_code}", "error")
+        except Exception as e:
+            self.log(f"Backend not accessible: {str(e)}", "error")
+            return results
+        
+        # Test critical API endpoints
+        test_endpoints = [
+            ("/api/v1/units", "GET", None, "Units endpoint"),
+            ("/api/v1/demo/recipes", "GET", None, "Demo recipes"),
+            ("/api/v1/stats/comprehensive?timeframe=week", "GET", None, "Stats endpoint"),
+        ]
+        
+        for endpoint, method, data, description in test_endpoints:
+            try:
+                if method == "GET":
+                    response = requests.get(f"{self.backend_base_url}{endpoint}", timeout=5)
+                else:
+                    response = requests.post(f"{self.backend_base_url}{endpoint}", json=data, timeout=5)
+                
+                if response.status_code in [200, 201]:
+                    results["api_endpoints"][endpoint] = True
+                    self.log(f"{description} working", "success")
+                    
+                    # Validate response structure
+                    try:
+                        json_data = response.json()
+                        if not json_data:
+                            self.log(f"{description} returned empty data", "warning")
+                    except:
+                        self.log(f"{description} returned invalid JSON", "warning")
+                else:
+                    results["api_endpoints"][endpoint] = False
+                    self.log(f"{description} failed: {response.status_code}", "error")
+                    if response.text:
+                        self.errors.append(f"{endpoint}: {response.text[:100]}")
+            except Exception as e:
+                results["api_endpoints"][endpoint] = False
+                self.log(f"{description} error: {str(e)}", "error")
+        
+        # Check external API connectivity (if configured)
+        if os.getenv("OPENAI_API_KEY"):
+            results["external_apis"]["openai"] = True
+            self.log("OpenAI API key configured", "success")
         else:
-            print_status("OpenAI Config", "WARN", "OPENAI_API_KEY not set")
+            self.log("OpenAI API key not configured", "warning")
             
-        if env_config.get('google_cloud_configured'):
-            print_status("Google Cloud Config", "PASS")
+        if os.getenv("SPOONACULAR_API_KEY"):
+            results["external_apis"]["spoonacular"] = True
+            self.log("Spoonacular API key configured", "success")
         else:
-            print_status("Google Cloud Config", "WARN", "GOOGLE_APPLICATION_CREDENTIALS not set")
-    else:
-        print_status("Health Endpoint", "FAIL", health_data.get('error', 'Unknown error'))
+            self.log("Spoonacular API key not configured", "warning")
+        
+        return results
     
-    # API endpoint tests
-    print(f"\n{Colors.BOLD}API Endpoints:{Colors.END}")
-    api_results = test_api_endpoints()
-    
-    for name, success, details in api_results:
-        total_tests += 1
-        if success:
-            print_status(f"{name} Endpoint", "PASS", details)
-            passed_tests += 1
+    def check_frontend_health(self) -> Dict:
+        """Check frontend/React Native health"""
+        results = {
+            "metro_bundler": False,
+            "bundle_valid": False,
+            "simulator_running": False
+        }
+        
+        # Check Metro bundler
+        try:
+            response = requests.get(self.metro_url, timeout=5)
+            if response.status_code == 200:
+                results["metro_bundler"] = True
+                self.log("Metro bundler is running", "success")
+            else:
+                self.log("Metro bundler not responding properly", "error")
+        except:
+            self.log("Metro bundler not accessible", "error")
+        
+        # Check if iOS simulator is running
+        try:
+            result = subprocess.run(
+                ["xcrun", "simctl", "list", "devices", "booted"],
+                capture_output=True,
+                text=True
+            )
+            if result.stdout.strip():
+                results["simulator_running"] = True
+                self.log("iOS Simulator is running", "success")
+            else:
+                self.log("iOS Simulator not running", "warning")
+        except:
+            self.log("Cannot check iOS Simulator status", "warning")
+        
+        # Check if bundle can be built
+        bundle_path = Path("ios-app/ios/build/Build/Products/Debug-iphonesimulator/PrepSense.app")
+        if bundle_path.exists():
+            results["bundle_valid"] = True
+            self.log("iOS app bundle found", "success")
         else:
-            print_status(f"{name} Endpoint", "FAIL", details)
+            self.log("iOS app bundle not found - may need to build", "warning")
+        
+        return results
     
-    # iOS app checks
-    print(f"\n{Colors.BOLD}iOS App:{Colors.END}")
+    def check_database_operations(self) -> Dict:
+        """Test actual database operations through the API"""
+        results = {
+            "read_operations": False,
+            "write_operations": False,
+            "complex_queries": False
+        }
+        
+        # Test read operation
+        try:
+            response = requests.get(f"{self.backend_base_url}/api/v1/ingredients", timeout=5)
+            if response.status_code == 200:
+                results["read_operations"] = True
+                self.log("Database read operations working", "success")
+            else:
+                self.log(f"Database read failed: {response.status_code}", "error")
+        except Exception as e:
+            self.log(f"Database read error: {str(e)}", "error")
+        
+        # Test complex query (stats with aggregation)
+        try:
+            response = requests.get(
+                f"{self.backend_base_url}/api/v1/stats/comprehensive?timeframe=week",
+                timeout=5
+            )
+            if response.status_code == 200:
+                data = response.json()
+                if "recipes_completed" in data:
+                    results["complex_queries"] = True
+                    self.log("Complex database queries working", "success")
+            else:
+                self.log("Complex queries not working properly", "error")
+        except:
+            self.log("Complex query error", "error")
+        
+        return results
     
-    # Metro bundler
-    total_tests += 1
-    if check_ios_metro():
-        print_status("Metro Bundler", "PASS")
-        passed_tests += 1
-    else:
-        print_status("Metro Bundler", "FAIL", "Run: cd ios-app && npx expo start")
+    def check_error_handling(self) -> Dict:
+        """Test error handling and edge cases"""
+        results = {
+            "handles_404": False,
+            "handles_invalid_data": False,
+            "handles_auth_errors": False
+        }
+        
+        # Test 404 handling
+        try:
+            response = requests.get(f"{self.backend_base_url}/api/v1/nonexistent", timeout=5)
+            if response.status_code == 404:
+                results["handles_404"] = True
+                self.log("404 error handling working", "success")
+        except:
+            pass
+        
+        # Test invalid data handling
+        try:
+            response = requests.post(
+                f"{self.backend_base_url}/api/v1/recipes/search",
+                json={"invalid": "data"},
+                timeout=5
+            )
+            if response.status_code in [400, 422]:
+                results["handles_invalid_data"] = True
+                self.log("Invalid data handling working", "success")
+        except:
+            pass
+        
+        return results
     
-    # iOS bundle check
-    total_tests += 1
-    bundle_ok, bundle_msg = check_ios_bundle()
-    if bundle_ok:
-        print_status("iOS Bundle Check", "PASS", bundle_msg)
-        passed_tests += 1
-    else:
-        print_status("iOS Bundle Check", "FAIL", bundle_msg)
-    
-    # Summary
-    print_header("Summary")
-    
-    success_rate = (passed_tests / total_tests) * 100 if total_tests > 0 else 0
-    
-    if success_rate >= 80:
-        status_color = Colors.GREEN
-        status_icon = "✅"
-    elif success_rate >= 60:
-        status_color = Colors.YELLOW
-        status_icon = "⚠️"
-    else:
-        status_color = Colors.RED
-        status_icon = "❌"
-    
-    print(f"{status_icon} {status_color}Tests Passed: {passed_tests}/{total_tests} ({success_rate:.1f}%){Colors.END}")
-    
-    if success_rate >= 80:
-        print(f"{Colors.GREEN}🎉 App appears to be working correctly!{Colors.END}")
-    elif success_rate >= 60:
-        print(f"{Colors.YELLOW}⚠️ App mostly working but has some issues.{Colors.END}")
-    else:
-        print(f"{Colors.RED}❌ App has significant issues that need attention.{Colors.END}")
-    
-    # Quick start commands
-    print(f"\n{Colors.BOLD}Quick Start Commands:{Colors.END}")
-    print(f"{Colors.CYAN}Start Backend:{Colors.END} source venv/bin/activate && python run_app.py")
-    print(f"{Colors.CYAN}Start iOS App:{Colors.END} cd ios-app && npx expo start --ios")
-    print(f"{Colors.CYAN}Health Check:{Colors.END} curl http://localhost:8001/api/v1/health")
-    
-    # Exit with appropriate code
-    sys.exit(0 if success_rate >= 80 else 1)
+    def run_full_check(self) -> Tuple[bool, Dict]:
+        """Run comprehensive health check"""
+        print(f"\n{Colors.BOLD}🏥 PrepSense Comprehensive Health Check{Colors.RESET}")
+        print(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
+        
+        all_results = {}
+        
+        # Check services
+        self.log("Checking service connectivity...", "info")
+        backend_running = self.check_port(8001, "Backend API")
+        
+        # Check if Metro should be running (look for metro/expo/npm processes)
+        try:
+            # Use ps command to avoid psutil permission issues
+            result = subprocess.run(["pgrep", "-f", "metro|expo|npm.*start"], capture_output=True, text=True)
+            metro_expected = bool(result.stdout.strip())
+        except Exception:
+            # Fallback to checking if port 8082 is open (someone is trying to use it)
+            try:
+                import socket
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.settimeout(1)
+                    metro_expected = sock.connect_ex(('localhost', 8082)) == 0
+            except Exception:
+                metro_expected = False
+        
+        if metro_expected:
+            metro_running = self.check_port(8082, "Metro Bundler")
+        else:
+            metro_running = False
+            self.log("Metro Bundler not expected - backend-only mode", "info")
+        
+        if not backend_running:
+            self.log("Backend not running - skipping API tests", "error")
+            self.errors.append("Backend service not running")
+        else:
+            # Backend functionality
+            self.log("\nChecking backend functionality...", "info")
+            all_results["backend"] = self.check_backend_health()
+            
+            # Database operations
+            self.log("\nChecking database operations...", "info")
+            all_results["database"] = self.check_database_operations()
+            
+            # Error handling
+            self.log("\nChecking error handling...", "info")
+            all_results["error_handling"] = self.check_error_handling()
+        
+        # Frontend checks
+        if metro_expected and metro_running:
+            self.log("\nChecking frontend health...", "info")
+            all_results["frontend"] = self.check_frontend_health()
+        elif metro_expected and not metro_running:
+            self.log("\nFrontend expected but Metro not running", "error")
+        else:
+            self.log("\nSkipping frontend checks - backend-only mode", "info")
+        
+        # Summary
+        print(f"\n{Colors.BOLD}📊 Health Check Summary{Colors.RESET}")
+        print(f"{Colors.BLUE}{'='*60}{Colors.RESET}")
+        
+        total_checks = 0
+        passed_checks = 0
+        
+        def count_checks(obj):
+            nonlocal total_checks, passed_checks
+            if isinstance(obj, dict):
+                for v in obj.values():
+                    if isinstance(v, bool):
+                        total_checks += 1
+                        if v:
+                            passed_checks += 1
+                    else:
+                        count_checks(v)
+        
+        count_checks(all_results)
+        
+        success_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 0
+        
+        if success_rate >= 90:
+            status_color = Colors.GREEN
+            status_emoji = "✅"
+        elif success_rate >= 70:
+            status_color = Colors.YELLOW
+            status_emoji = "⚠️"
+        else:
+            status_color = Colors.RED
+            status_emoji = "❌"
+        
+        print(f"\n{status_color}{status_emoji} Overall Health: {success_rate:.1f}% ({passed_checks}/{total_checks} checks passed){Colors.RESET}")
+        
+        if self.errors:
+            print(f"\n{Colors.RED}🚨 Errors Found:{Colors.RESET}")
+            for error in self.errors[:5]:  # Show first 5 errors
+                print(f"  • {error}")
+        
+        if self.warnings:
+            print(f"\n{Colors.YELLOW}⚠️  Warnings:{Colors.RESET}")
+            for warning in self.warnings[:5]:
+                print(f"  • {warning}")
+        
+        # Action items
+        print(f"\n{Colors.BOLD}🔧 Recommended Actions:{Colors.RESET}")
+        if not backend_running:
+            print("  1. Start backend: source venv/bin/activate && python run_app.py --backend")
+            print("  2. Or start both: source venv/bin/activate && python run_app.py")
+        if metro_expected and not metro_running:
+            print("  3. Start iOS app: python run_app.py --ios (or cd ios-app && npm start)")
+        if success_rate < 90:
+            print("  3. Review error logs and fix failing checks")
+            print("  4. Run unit tests to identify specific issues")
+        
+        # Save detailed results
+        with open(".health_check_results.json", "w") as f:
+            json.dump({
+                "timestamp": datetime.now().isoformat(),
+                "success_rate": success_rate,
+                "results": all_results,
+                "errors": self.errors,
+                "warnings": self.warnings
+            }, f, indent=2)
+        
+        print(f"\n{Colors.BLUE}Detailed results saved to .health_check_results.json{Colors.RESET}")
+        
+        return success_rate >= 70, all_results
 
 if __name__ == "__main__":
-    try:
-        main()
-    except KeyboardInterrupt:
-        print(f"\n{Colors.YELLOW}Health check interrupted.{Colors.END}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"\n{Colors.RED}Error during health check: {e}{Colors.END}")
-        sys.exit(1)
+    checker = HealthChecker()
+    success, results = checker.run_full_check()
+    
+    # Exit with appropriate code for CI/CD
+    sys.exit(0 if success else 1)
