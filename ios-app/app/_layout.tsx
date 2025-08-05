@@ -14,18 +14,11 @@ import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
 import ConfigurationError from './components/ConfigurationError';
 import { ToastProvider } from '../hooks/useToast';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { PreloadDebugOverlay } from '../components/PreloadDebugOverlay';
-import { initPreloadDebug } from '../utils/debugPreload';
 import AnimatedIntroScreen from '../components/AnimatedIntroScreen';
 import EnhancedAnimatedIntroScreenV2 from '../components/EnhancedAnimatedIntroScreenV2';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HybridProvider, StyleDebugger } from '../config/hybridProvider';
-import { DebugPanel } from '../components/debug/DebugPanel';
-
-// Initialize debug commands in development
-if (__DEV__) {
-  initPreloadDebug();
-}
+import { imageCacheService } from '../services/imageCacheService';
 
 // Configure warning/error suppression
 if (process.env.EXPO_PUBLIC_SUPPRESS_WARNINGS === 'true') {
@@ -71,9 +64,28 @@ function AppContent() {
   const [isValidatingEnv, setIsValidatingEnv] = useState(true);
   const [showIntro, setShowIntro] = useState(false);
   const [isCheckingIntro, setIsCheckingIntro] = useState(true);
+  const [isInitializingCache, setIsInitializingCache] = useState(true);
 
   // Check if the current route is in the auth group
   const isAuthRoute = segments[0] === '(auth)';
+
+  // Initialize image cache service on app startup
+  useEffect(() => {
+    const initializeImageCache = async () => {
+      try {
+        console.log('Initializing image cache service...');
+        await imageCacheService.initialize();
+        console.log('Image cache service initialized successfully');
+      } catch (error) {
+        console.error('Failed to initialize image cache service:', error);
+        // Don't block app startup if cache initialization fails
+      } finally {
+        setIsInitializingCache(false);
+      }
+    };
+
+    initializeImageCache();
+  }, []);
 
   // Check if intro has been shown before
   useEffect(() => {
@@ -172,8 +184,8 @@ function AppContent() {
     return <EnhancedAnimatedIntroScreenV2 onFinished={handleIntroFinished} />;
   }
 
-  // Show a loading indicator while checking environment or auth state
-  if (isValidatingEnv || isLoading || isCheckingIntro) {
+  // Show a loading indicator while checking environment, auth state, or initializing cache
+  if (isValidatingEnv || isLoading || isCheckingIntro || isInitializingCache) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#297A56" />
@@ -291,8 +303,7 @@ function AppContent() {
                     showBackButton={true}
                     onBackPress={() => navigation.goBack()}
                   />
-                ),
-                presentation: 'modal',
+                )
               }} 
             />
             <Stack.Screen 
@@ -339,8 +350,6 @@ function AppContent() {
             />
                 </Stack>
               </View>
-              {/* {__DEV__ && <PreloadDebugOverlay />} */}
-              {__DEV__ && <DebugPanel />}
             </TabDataProvider>
           </ItemsProvider>
         </UserPreferencesProvider>
