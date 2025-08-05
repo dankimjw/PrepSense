@@ -41,12 +41,10 @@ function AddButton() {
     console.warn('Error getting pathname:', error);
   }
   
-  const [modalVisible, setModalVisible] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const modalFadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnims = useRef(
     suggestedMessages.map(() => new Animated.Value(-50))
   ).current;
@@ -65,26 +63,10 @@ function AddButton() {
     return null;
   }
 
-  const handleAddImage = () => {
-    toggleModal();
-    setTimeout(() => router.push('/upload-photo'), 200);
-  };
-
-  const handleAddFoodItem = () => {
-    toggleModal();
-    setTimeout(() => router.push('/add-item'), 200);
-  };
-
-  const handleScanReceipt = () => {
-    toggleModal();
-    setTimeout(() => router.push('/receipt-scanner'), 200);
-  };
-  
-  const toggleModal = () => {
-    const newState = !modalVisible;
-    
+  // Direct navigation to add item modal - no popup menu
+  const handleAddPress = () => {
     // Close lightbulb suggestions if open
-    if (newState && showSuggestions) {
+    if (showSuggestions) {
       setShowSuggestions(false);
       fadeAnim.setValue(0);
       slideAnims.forEach(anim => {
@@ -92,23 +74,8 @@ function AddButton() {
       });
     }
     
-    if (newState) {
-      setModalVisible(true);
-      Animated.timing(modalFadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-    } else {
-      Animated.timing(modalFadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => {
-        setModalVisible(false);
-        modalFadeAnim.setValue(0);
-      });
-    }
+    // Navigate directly to add item screen
+    router.push('/add-item');
   };
   
   const toggleSuggestions = () => {
@@ -116,12 +83,6 @@ function AddButton() {
     setShowSuggestions(newState);
     
     if (!fadeAnim || !slideAnims) return;
-    
-    // Close add modal if open
-    if (newState && modalVisible) {
-      setModalVisible(false);
-      modalFadeAnim.setValue(0);
-    }
     
     if (newState) {
       // Reset slide animations to starting position
@@ -235,77 +196,11 @@ function AddButton() {
         </>
       )}
       
-      {/* Add Button */}
+      {/* Add Button - Now directly opens add item modal */}
       <AnimatedAddButton
         scale={addButtonScale}
-        onPress={toggleModal}
+        onPress={handleAddPress}
       />
-
-      {/* Add Button Modal */}
-      {modalVisible && (
-        <>
-          {/* Invisible overlay to detect outside clicks */}
-          <Pressable 
-            style={styles.dismissOverlay} 
-            onPress={() => setModalVisible(false)} 
-          />
-          
-          <Animated.View 
-            style={[
-              styles.addOptionsContainer,
-              { 
-                opacity: modalFadeAnim,
-                transform: [{ scale: modalFadeAnim }]
-              }
-            ]}
-          >
-            {/* Add Image Option */}
-            <View style={styles.addOptionWrapper}>
-              <View style={styles.suggestionSwatch} />
-              <TouchableOpacity
-                style={styles.suggestionBubble}
-                onPress={handleAddImage}
-                activeOpacity={0.8}
-              >
-                <View style={styles.addOptionContent}>
-                  <Ionicons name="image" size={18} color="#297A56" />
-                  <Text style={styles.suggestionText}>Add Image</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Add Food Item Option */}
-            <View style={styles.addOptionWrapper}>
-              <View style={styles.suggestionSwatch} />
-              <TouchableOpacity
-                style={styles.suggestionBubble}
-                onPress={handleAddFoodItem}
-                activeOpacity={0.8}
-              >
-                <View style={styles.addOptionContent}>
-                  <Ionicons name="fast-food" size={18} color="#297A56" />
-                  <Text style={styles.suggestionText}>Add Food Item</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-            
-            {/* Scan Receipt Option */}
-            <View style={styles.addOptionWrapper}>
-              <View style={styles.suggestionSwatch} />
-              <TouchableOpacity
-                style={styles.suggestionBubble}
-                onPress={handleScanReceipt}
-                activeOpacity={0.8}
-              >
-                <View style={styles.addOptionContent}>
-                  <Ionicons name="receipt" size={18} color="#297A56" />
-                  <Text style={styles.suggestionText}>Scan Receipt</Text>
-                </View>
-              </TouchableOpacity>
-            </View>
-          </Animated.View>
-        </>
-      )}
     </>
   );
 }
@@ -386,22 +281,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     zIndex: 10,
-  },
-  addOptionsContainer: {
-    position: 'absolute',
-    bottom: TAB_BAR_HEIGHT + FAB_MARGIN,
-    right: FAB_SIZE + FAB_MARGIN + 8,
-    zIndex: 9,
-    alignItems: 'flex-end',
-  },
-  addOptionWrapper: {
-    marginBottom: 8,
-    position: 'relative',
-  },
-  addOptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   lightbulbFab: {
     position: 'absolute',
