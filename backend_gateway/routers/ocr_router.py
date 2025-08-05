@@ -161,6 +161,11 @@ class MockDataConfig(BaseModel):
     
     use_mock_data: bool
 
+class Base64ImageRequest(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    image_base64: str
+
 # Store recent detections for debugging
 _recent_detections = []
 

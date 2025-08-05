@@ -45,7 +45,16 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
       const stored = await AsyncStorage.getItem(STORAGE_KEY);
       if (stored) {
         const parsedPreferences = JSON.parse(stored) as UserPreferences;
-        setPreferences(parsedPreferences);
+        // Ensure all arrays are properly initialized
+        const safePreferences = {
+          allergens: parsedPreferences.allergens || [],
+          dietaryPreferences: parsedPreferences.dietaryPreferences || [],
+          cuisines: parsedPreferences.cuisines || []
+        };
+        setPreferences(safePreferences);
+      } else {
+        // No stored preferences, use defaults
+        setPreferences(defaultPreferences);
       }
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -71,49 +80,55 @@ export function UserPreferencesProvider({ children }: { children: ReactNode }) {
   };
 
   const addAllergen = async (allergen: string) => {
+    const currentAllergens = preferences.allergens || [];
     const newPreferences = {
       ...preferences,
-      allergens: [...preferences.allergens.filter(a => a !== allergen), allergen]
+      allergens: [...currentAllergens.filter(a => a !== allergen), allergen]
     };
     await savePreferences(newPreferences);
   };
 
   const removeAllergen = async (allergen: string) => {
+    const currentAllergens = preferences.allergens || [];
     const newPreferences = {
       ...preferences,
-      allergens: preferences.allergens.filter(a => a !== allergen)
+      allergens: currentAllergens.filter(a => a !== allergen)
     };
     await savePreferences(newPreferences);
   };
 
   const addDietaryPreference = async (preference: string) => {
+    const currentPreferences = preferences.dietaryPreferences || [];
     const newPreferences = {
       ...preferences,
-      dietaryPreferences: [...preferences.dietaryPreferences.filter(p => p !== preference), preference]
+      dietaryPreferences: [...currentPreferences.filter(p => p !== preference), preference]
     };
     await savePreferences(newPreferences);
   };
 
   const removeDietaryPreference = async (preference: string) => {
+    const currentPreferences = preferences.dietaryPreferences || [];
     const newPreferences = {
       ...preferences,
-      dietaryPreferences: preferences.dietaryPreferences.filter(p => p !== preference)
+      dietaryPreferences: currentPreferences.filter(p => p !== preference)
     };
     await savePreferences(newPreferences);
   };
 
   const addCuisine = async (cuisine: string) => {
+    const currentCuisines = preferences.cuisines || [];
     const newPreferences = {
       ...preferences,
-      cuisines: [...preferences.cuisines.filter(c => c !== cuisine), cuisine]
+      cuisines: [...currentCuisines.filter(c => c !== cuisine), cuisine]
     };
     await savePreferences(newPreferences);
   };
 
   const removeCuisine = async (cuisine: string) => {
+    const currentCuisines = preferences.cuisines || [];
     const newPreferences = {
       ...preferences,
-      cuisines: preferences.cuisines.filter(c => c !== cuisine)
+      cuisines: currentCuisines.filter(c => c !== cuisine)
     };
     await savePreferences(newPreferences);
   };

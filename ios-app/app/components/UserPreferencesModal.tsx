@@ -15,10 +15,11 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Config } from '../../config';
 import { useAuth } from '../../context/AuthContext';
+import { useUserPreferences } from '../../context/UserPreferencesContext';
 
 const ALLERGENS = [
   'Dairy', 'Nuts', 'Peanuts', 'Eggs', 'Soy', 'Gluten', 
-  'Shellfish', 'Fish', 'Sesame', 'Sulfites'
+  'Shellfish', 'Fish'
 ];
 
 const DIETARY_PREFERENCES = [
@@ -33,11 +34,7 @@ const CUISINES = [
   'Korean', 'Greek', 'Spanish', 'Middle Eastern', 'Brazilian'
 ];
 
-interface UserPreferences {
-  allergens: string[];
-  dietary_restrictions: string[];
-  cuisine_preferences: string[];
-}
+// Remove local interface - use the one from UserPreferencesContext
 
 interface UserPreferencesModalProps {
   visible: boolean;
@@ -49,122 +46,66 @@ const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
   onClose,
 }) => {
   const { token: authToken } = useAuth();
-  const [preferences, setPreferences] = useState<UserPreferences>({
-    allergens: [],
-    dietary_restrictions: [],
-    cuisine_preferences: [],
-  });
-  const [loading, setLoading] = useState(false);
+  const { 
+    preferences, 
+    updatePreferences, 
+    addAllergen, 
+    removeAllergen,
+    addDietaryPreference,
+    removeDietaryPreference,
+    addCuisine,
+    removeCuisine,
+    isLoading 
+  } = useUserPreferences();
 
-  useEffect(() => {
-    if (visible) {
-      loadPreferences();
-    }
-  }, [visible]);
-
-  const loadPreferences = async () => {
-    setLoading(true);
-    try {
-      // First try to load from backend
-      if (authToken) {
-        console.log('Loading preferences from backend with token:', authToken);
-        const response = await fetch(`${Config.API_BASE_URL}/preferences/`, {
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setPreferences(data.preferences);
-          // Also save to AsyncStorage as backup
-          await AsyncStorage.setItem('prepsense_user_preferences', JSON.stringify(data.preferences));
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Fallback to AsyncStorage if backend fails or no auth
-      const saved = await AsyncStorage.getItem('prepsense_user_preferences');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setPreferences(parsed);
-      }
-    } catch (error) {
-      console.error('Error loading preferences:', error);
-      // Try AsyncStorage as fallback
-      try {
-        const saved = await AsyncStorage.getItem('prepsense_user_preferences');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setPreferences(parsed);
-        }
-      } catch (storageError) {
-        console.error('Error loading from AsyncStorage:', storageError);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // No need for custom loading - context handles it
 
   const savePreferences = async () => {
-    setLoading(true);
     try {
-      console.log('Saving preferences, authToken exists:', !!authToken);
-      // First try to save to backend
-      if (authToken) {
-        const response = await fetch(`${Config.API_BASE_URL}/preferences/`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${authToken}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(preferences),
-        });
-        
-        if (response.ok) {
-          // Also save to AsyncStorage as backup
-          await AsyncStorage.setItem('prepsense_user_preferences', JSON.stringify(preferences));
-          Alert.alert('Success', 'Your preferences have been saved!');
-          onClose();
-          setLoading(false);
-          return;
-        } else {
-          const errorText = await response.text();
-          console.error('Failed to save preferences to backend:', response.status, errorText);
-          console.warn('Failed to save to backend, falling back to AsyncStorage');
-        }
-      }
-      
-      // Fallback to AsyncStorage only
-      await AsyncStorage.setItem('prepsense_user_preferences', JSON.stringify(preferences));
-      Alert.alert('Success', 'Your preferences have been saved locally!');
+      // Context already handles saving to AsyncStorage automatically
+      Alert.alert('Success', 'Your preferences have been saved!');
       onClose();
     } catch (error) {
       console.error('Error saving preferences:', error);
       Alert.alert('Error', 'Failed to save preferences. Please try again.');
-    } finally {
-      setLoading(false);
     }
   };
 
-  const toggleSelection = (
-    category: keyof UserPreferences,
+  const toggleSelection = async (
+    category: 'allergens' | 'dietaryPreferences' | 'cuisines',
     item: string
   ) => {
-    setPreferences(prev => ({
-      ...prev,
-      [category]: prev[category].includes(item)
-        ? prev[category].filter(i => i !== item)
-        : [...prev[category], item]
-    }));
+    try {
+      const isSelected = preferences[category]?.includes(item) || false;
+      
+      if (category === 'allergens') {
+        if (isSelected) {
+          await removeAllergen(item);
+        } else {
+          await addAllergen(item);
+        }
+      } else if (category === 'dietaryPreferences') {
+        if (isSelected) {
+          await removeDietaryPreference(item);
+        } else {
+          await addDietaryPreference(item);
+        }
+      } else if (category === 'cuisines') {
+        if (isSelected) {
+          await removeCuisine(item);
+        } else {
+          await addCuisine(item);
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling preference:', error);
+    }
   };
 
   const renderMultiSelect = (
     title: string,
     items: string[],
-    category: keyof UserPreferences,
+    category: 'allergens' | 'dietaryPreferences' | 'cuisines',
     icon: string
   ) => (
     <View style={styles.section}>
@@ -174,7 +115,7 @@ const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
       </View>
       <View style={styles.optionsGrid}>
         {items.map((item) => {
-          const isSelected = preferences[category].includes(item);
+          const isSelected = preferences[category]?.includes(item) || false;
           return (
             <TouchableOpacity
               key={item}
@@ -214,7 +155,7 @@ const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
           </TouchableOpacity>
         </View>
 
-        {loading ? (
+        {isLoading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color="#1b6b45" />
             <Text style={styles.loadingText}>Loading preferences...</Text>
@@ -231,27 +172,27 @@ const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
             {renderMultiSelect(
               'Dietary Restrictions',
               DIETARY_PREFERENCES,
-              'dietary_restrictions',
+              'dietaryPreferences',
               'nutrition-outline'
             )}
 
             {renderMultiSelect(
               'Favorite Cuisines',
               CUISINES,
-              'cuisine_preferences',
+              'cuisines',
               'restaurant-outline'
             )}
 
           <View style={styles.summary}>
             <Text style={styles.summaryTitle}>Summary</Text>
             <Text style={styles.summaryText}>
-              Allergens: {preferences.allergens.length > 0 ? preferences.allergens.join(', ') : 'None'}
+              Allergens: {preferences.allergens?.length > 0 ? preferences.allergens.join(', ') : 'None'}
             </Text>
             <Text style={styles.summaryText}>
-              Dietary: {preferences.dietary_restrictions.length > 0 ? preferences.dietary_restrictions.join(', ') : 'None'}
+              Dietary: {preferences.dietaryPreferences?.length > 0 ? preferences.dietaryPreferences.join(', ') : 'None'}
             </Text>
             <Text style={styles.summaryText}>
-              Cuisines: {preferences.cuisine_preferences.length > 0 ? preferences.cuisine_preferences.join(', ') : 'Any'}
+              Cuisines: {preferences.cuisines?.length > 0 ? preferences.cuisines.join(', ') : 'Any'}
             </Text>
           </View>
         </ScrollView>
@@ -259,11 +200,11 @@ const UserPreferencesModal: React.FC<UserPreferencesModalProps> = ({
 
         <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.saveButton, loading && styles.saveButtonDisabled]}
+            style={[styles.saveButton, isLoading && styles.saveButtonDisabled]}
             onPress={savePreferences}
-            disabled={loading}
+            disabled={isLoading}
           >
-            {loading ? (
+            {isLoading ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text style={styles.saveButtonText}>Save Preferences</Text>

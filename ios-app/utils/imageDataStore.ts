@@ -19,12 +19,11 @@ class ImageDataStore {
   }
 
   getImageData(key: string): string | undefined {
-    const data = this.imageData.get(key);
-    // Clean up after retrieval to avoid memory leaks
-    if (data) {
-      this.imageData.delete(key);
-    }
-    return data;
+    return this.imageData.get(key);
+  }
+
+  deleteImageData(key: string): void {
+    this.imageData.delete(key);
   }
 
   clear(): void {

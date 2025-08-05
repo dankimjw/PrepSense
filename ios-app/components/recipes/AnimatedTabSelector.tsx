@@ -1,11 +1,9 @@
-import React, { useEffect } from 'react';
-import { TouchableOpacity, Text, View, StyleSheet } from 'react-native';
+import React, { useEffect, useMemo } from 'react';
+import { TouchableOpacity, View, StyleSheet } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withTiming,
-  interpolate,
   runOnJS,
 } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
@@ -22,6 +20,41 @@ interface AnimatedTabSelectorProps {
   testID?: string;
 }
 
+interface AnimatedTabProps {
+  tab: Tab;
+  index: number;
+  isActive: boolean;
+  tabScale: Animated.SharedValue<number>;
+  onPress: () => void;
+}
+
+// Separate component for individual tabs to avoid calling hooks inside map callbacks
+const AnimatedTab: React.FC<AnimatedTabProps> = ({ tab, index, isActive, tabScale, onPress }) => {
+  const animatedTabStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: tabScale.value }],
+  }));
+
+  const animatedTextStyle = useAnimatedStyle(() => ({
+    color: isActive ? '#297A56' : '#666',
+    fontWeight: isActive ? '600' : '500',
+  }));
+
+  return (
+    <TouchableOpacity
+      testID={`tab-${tab.key}`}
+      style={styles.tab}
+      onPress={onPress}
+      activeOpacity={1}
+    >
+      <Animated.View style={[styles.tabContent, animatedTabStyle]}>
+        <Animated.Text style={[styles.tabText, animatedTextStyle]}>
+          {tab.label}
+        </Animated.Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 const AnimatedTabSelector: React.FC<AnimatedTabSelectorProps> = ({
   tabs,
   activeTab,
@@ -30,7 +63,19 @@ const AnimatedTabSelector: React.FC<AnimatedTabSelectorProps> = ({
 }) => {
   const activeIndex = tabs.findIndex(tab => tab.key === activeTab);
   const indicatorPosition = useSharedValue(activeIndex);
-  const tabScales = tabs.map(() => useSharedValue(1));
+  
+  // Create individual shared values for each tab - can't use hooks inside callbacks
+  const tabScale0 = useSharedValue(1);
+  const tabScale1 = useSharedValue(1);
+  const tabScale2 = useSharedValue(1);
+  const tabScale3 = useSharedValue(1);
+  const tabScale4 = useSharedValue(1);
+  
+  // Create array of scales based on number of tabs (fallback to individual scales)
+  const tabScales = useMemo(() => {
+    const scales = [tabScale0, tabScale1, tabScale2, tabScale3, tabScale4];
+    return scales.slice(0, tabs.length);
+  }, [tabs.length, tabScale0, tabScale1, tabScale2, tabScale3, tabScale4]);
 
   useEffect(() => {
     const newIndex = tabs.findIndex(tab => tab.key === activeTab);
@@ -38,7 +83,7 @@ const AnimatedTabSelector: React.FC<AnimatedTabSelectorProps> = ({
       damping: 15,
       stiffness: 300,
     });
-  }, [activeTab, tabs]);
+  }, [activeTab, tabs, indicatorPosition]);
 
   const indicatorStyle = useAnimatedStyle(() => {
     const tabWidth = 100 / tabs.length;
@@ -82,34 +127,16 @@ const AnimatedTabSelector: React.FC<AnimatedTabSelectorProps> = ({
       />
       
       {/* Tab Buttons */}
-      {tabs.map((tab, index) => {
-        const isActive = tab.key === activeTab;
-        
-        const animatedTabStyle = useAnimatedStyle(() => ({
-          transform: [{ scale: tabScales[index].value }],
-        }));
-
-        const animatedTextStyle = useAnimatedStyle(() => ({
-          color: isActive ? '#297A56' : '#666',
-          fontWeight: isActive ? '600' : '500',
-        }));
-
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            testID={`tab-${tab.key}`}
-            style={styles.tab}
-            onPress={() => handleTabPress(tab.key, index)}
-            activeOpacity={1}
-          >
-            <Animated.View style={[styles.tabContent, animatedTabStyle]}>
-              <Animated.Text style={[styles.tabText, animatedTextStyle]}>
-                {tab.label}
-              </Animated.Text>
-            </Animated.View>
-          </TouchableOpacity>
-        );
-      })}
+      {tabs.map((tab, index) => (
+        <AnimatedTab
+          key={tab.key}
+          tab={tab}
+          index={index}
+          isActive={tab.key === activeTab}
+          tabScale={tabScales[index]}
+          onPress={() => handleTabPress(tab.key, index)}
+        />
+      ))}
     </View>
   );
 };
