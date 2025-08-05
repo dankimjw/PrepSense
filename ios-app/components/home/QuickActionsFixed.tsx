@@ -54,6 +54,36 @@ const defaultActions: QuickAction[] = [
   },
 ];
 
+// Helper function to render multi-line text for specific buttons
+const renderButtonText = (action: QuickAction) => {
+  if (action.id === 'scan') {
+    // "Scan Receipt" -> "Scan" on first line, "Receipt" on second line
+    return (
+      <View style={styles.textContainer}>
+        <Text style={styles.actionText}>Scan</Text>
+        <Text style={styles.actionText}>Receipt</Text>
+      </View>
+    );
+  } else if (action.id === 'shopping') {
+    // "Shopping List" -> "Shopping" on first line, "List" on second line
+    return (
+      <View style={styles.textContainer}>
+        <Text style={styles.actionText}>Shopping</Text>
+        <Text style={styles.actionText}>List</Text>
+      </View>
+    );
+  } else {
+    // Default single line text for other buttons - use same container for consistency
+    return (
+      <View style={styles.textContainer}>
+        <Text style={styles.actionText} numberOfLines={1} ellipsizeMode="tail">
+          {action.title}
+        </Text>
+      </View>
+    );
+  }
+};
+
 // Fixed Quick Action Card Component using Pressable
 const QuickActionCard = ({ 
   action, 
@@ -111,7 +141,7 @@ const QuickActionCard = ({
         <Animated.View style={[styles.actionIcon, { backgroundColor: action.color }, iconAnimatedStyle]}>
           <Ionicons name={action.icon} size={24} color="white" />
         </Animated.View>
-        <Text style={styles.actionText} numberOfLines={1} ellipsizeMode="tail">{action.title}</Text>
+        {renderButtonText(action)}
       </Pressable>
     </Animated.View>
   );
@@ -177,7 +207,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   actionCard: {
-    minHeight: 110,
+    height: 110, // Fixed height instead of minHeight
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -194,12 +224,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
+  textContainer: {
+    height: 28, // Fixed height for text area
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '100%',
+  },
   actionText: {
     fontSize: 12,
     fontWeight: '500',
     color: '#111827',
     textAlign: 'center',
     lineHeight: 14,
+  },
+  smallActionText: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: '#111827',
+    textAlign: 'center',
+    lineHeight: 12,
+  },
+  multiLineTextContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
