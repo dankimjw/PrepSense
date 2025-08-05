@@ -42,26 +42,24 @@ export default function LoadingFactsScreen() {
         if (scanMode === 'items') {
           // Handle OCR scanning flow
           console.log('Processing OCR scan...');
-          
-          // Get image data from store or params
-          let base64Data = imageData;
-          if (imageKey && !base64Data) {
-            base64Data = imageDataStore.getImageData(imageKey);
-          }
-          
-          if (!base64Data) {
-            throw new Error('No image data available');
-          }
+          console.log('Photo URI:', photoUri);
           
           try {
+            // Create FormData for file upload using the photo URI directly
+            const formData = new FormData();
+            formData.append('file', {
+              uri: photoUri,
+              type: 'image/jpeg',
+              name: 'image.jpg',
+            } as any);
+            
+            console.log('Making request to:', `${Config.API_BASE_URL}/ocr/scan-items`);
             const response = await fetch(`${Config.API_BASE_URL}/ocr/scan-items`, {
               method: 'POST',
+              body: formData,
               headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'multipart/form-data',
               },
-              body: JSON.stringify({
-                image_base64: base64Data
-              }),
             });
 
             if (!response.ok) {
@@ -69,6 +67,7 @@ export default function LoadingFactsScreen() {
             }
 
             const data = await response.json();
+            console.log('OCR Response:', data);
             
             if (data.success && data.items.length > 0) {
               // Transform scanned items to match the expected format
