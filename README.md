@@ -7,13 +7,15 @@
 
 ## 🧭 Executive Summary
 
-In today’s data-rich but time-poor society, managing food wisely is both a personal health goal and an environmental necessity. The U.S. alone wastes over 60 million tons of food annually—much of it due to expired or forgotten items in home kitchens. Consumers like our user persona “Lily” often shop with good intentions, but without tools to manage their pantry, they fall into wasteful cycles: buying items they already have, letting food expire, and struggling to decide what to cook.
+In today’s fast-paced world, consumers are increasingly making conscious choices about health, sustainability, and waste reduction. However, they often lack the tools to effectively manage their kitchen inventory and meal planning in a way that aligns with these values. PrepSense was created to solve this gap.
 
-**PrepSense** addresses this by transforming ordinary kitchens into smart, data-driven environments. This mobile-first AI platform enables users to scan their pantry, automatically track item expiry, receive health-conscious recipe suggestions based on what’s on hand, and reduce food waste in the process.
+PrepSense is a mobile-first, AI-powered pantry and recipe assistant that empowers users to manage their food intelligently—from inventory tracking to personalized meal recommendations. Built as a capstone project for the University of Chicago’s MS in Applied Data Science program, PrepSense combines computer vision, CrewAI-powered agent orchestration, and personalized large language models (LLMs) to transform everyday household decisions into impactful actions.
 
-What began as a class project evolved into a comprehensive AI system powered by CrewAI, multimodal LLMs, and a seamless mobile interface. From image ingestion to personalized nutritional analysis, every aspect of PrepSense is modular, intelligent, and purpose-driven.
+The system works by allowing users to scan their pantry or receipts, automatically detecting items, quantities, and expiry dates. From there, it generates customized recipes based on what’s on hand, dietary restrictions, and personal preferences—minimizing waste while maximizing nutrition. Users are also given insight into nutritional content, missing items for recipes, and the ability to build a dynamic shopping list. This seamless end-to-end experience is enabled by a team of modular AI agents working in coordination through the CrewAI framework.
 
-PrepSense is more than a technical project—it’s a blueprint for smarter living.
+With food waste costing the U.S. over $218 billion annually, PrepSense represents not just a technological innovation—but a real opportunity to drive meaningful change at scale. At just 10,000 users, PrepSense could help rescue over 30,000 meals per month, reduce more than 100 tons of food waste, and deliver collective savings of over $1M annually.
+
+PrepSense isn’t just a pantry tool—it’s a sustainability ally, a nutrition guide, and a smart kitchen companion.
 
 ---
 
@@ -63,11 +65,15 @@ Users take a photo of their pantry or receipt. Our system:
 - Automatically stores this structured data in a pantry database
 - Displays items in a color-coded, user-editable inventory screen
 
+[Insert Screenshot]
+
 ### 2. Recipe Recommendation
 Once pantry items are captured, users can:
 - Receive personalized recipe suggestions that use up ingredients before they expire
 - Filter by dietary goals (e.g., vegan, high-protein, low-sodium)
 - Chat with an intelligent assistant to find ideas like “Quick lunch with tofu, no dairy”
+
+[Insert Screenshot]
 
 ### 3. Nutrition & Planning
 PrepSense enhances the user’s decision-making by:
@@ -75,10 +81,14 @@ PrepSense enhances the user’s decision-making by:
 - Highlighting macronutrient breakdowns
 - Suggesting substitutions or add-ons for balance
 
+[Insert Screenshot]
+
 ### 4. Smart Shopping & Feedback
 If an item is missing for a desired recipe:
 - PrepSense recommends adding it to a shopping list
 - Users can plan next grocery trips more intentionally
+
+[Insert Screenshot]
 
 ---
 ## 🏆 Competitive Advantage: How PrepSense Stands Out
@@ -142,7 +152,7 @@ Each of these agents is orchestrated via CrewAI using memory tools, custom promp
 | LLM Integration   | GPT-4o, chain-of-thought prompting      |
 | Vision Processing | OpenAI Vision API, OCR & preprocessing |
 | Agent Orchestration | CrewAI                               |
-| Infrastructure    | GitHub Actions, Docker (planned)       |
+| Infrastructure    | GitHub Actions, Docker (planned), Cloud Run      |
 
 ---
 
@@ -230,10 +240,10 @@ We used agile sprints with weekly check-ins, peer reviews, and live demos.
 
 ## 🧑‍💻 Team & Contributions
 
-- **Akash Sannidhanam** — CrewAI orchestration, agent logic, nutrition analytics  
-- **Daniel Kim** — Backend development, database architecture, API integration  
-- **Bonny Mathew** — Mobile UX/UI, recipe rendering, app state management  
-- **Prahalad Ravi** — Image preprocessing, vision-to-text logic, LLM prompt tuning
+- **Akash Sannidhanam** 
+- **Daniel Kim**
+- **Bonny Mathew** 
+- **Prahalad Ravi** 
 
 We worked collaboratively using GitHub Projects and CI workflows.
 
