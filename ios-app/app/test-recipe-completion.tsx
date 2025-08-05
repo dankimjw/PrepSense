@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { RecipeCompletionModal } from '../components/modals/RecipeCompletionModal';
 import { PantryItem } from '../services/api';
@@ -69,6 +69,15 @@ const mockPantryItems: PantryItem[] = [
 
 export default function TestRecipeCompletionScreen() {
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Automatically open modal when screen loads (for quick action)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setModalVisible(true);
+    }, 200); // Small delay to ensure screen is ready
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleConfirm = (ingredientUsages: any[]) => {
     console.log('Confirmed ingredient usages:', ingredientUsages);

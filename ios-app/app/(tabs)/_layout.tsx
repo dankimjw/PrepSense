@@ -8,12 +8,14 @@ import Animated, {
   useAnimatedStyle,
   withSpring,
   withTiming,
+  runOnJS,
 } from 'react-native-reanimated';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { useFocusEffect } from '@react-navigation/native';
 import { CustomHeader } from '../components/CustomHeader';
-import AddButton from '../components/AddButton';
+import AddButton from '../../app/components/AddButton';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -66,7 +68,7 @@ function AnimatedFAB({ onPress }: { onPress: () => void }) {
   );
 }
 
-// Tab item component with restored text labels
+// Tab item component with restored text labels and long press support for recipes
 function TabItem({ route, iconName, isFocused, onPress, label }: {
   route: any;
   iconName: any;
@@ -74,10 +76,22 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
   onPress: () => void;
   label: string;
 }) {
+  const router = useRouter();
   const scale = useSharedValue(1);
+  
+  // Long press state for recipes tab only
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressProgress = useSharedValue(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
+  }));
+
+  const longPressRingStyle = useAnimatedStyle(() => ({
+    opacity: isLongPressing ? 1 : 0,
+    borderWidth: longPressProgress.value * 3,
+    borderColor: `rgba(245, 158, 11, ${longPressProgress.value})`,
   }));
 
   const handlePressIn = () => {
@@ -85,6 +99,22 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
       damping: 15,
       stiffness: 300,
     });
+
+    // Start long press only for recipes tab
+    if (route.name === 'recipes') {
+      setIsLongPressing(true);
+      
+      // Animate progress ring
+      longPressProgress.value = withTiming(1, { duration: 600 });
+      
+      // Initial haptic feedback
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      
+      // Set up completion timer
+      longPressTimer.current = setTimeout(() => {
+        completeLongPress();
+      }, 600);
+    }
   };
 
   const handlePressOut = () => {
@@ -92,30 +122,83 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
       damping: 15,
       stiffness: 300,
     });
+
+    // Cancel long press if in progress
+    if (route.name === 'recipes' && isLongPressing) {
+      cancelLongPress();
+    }
+  };
+
+  const cancelLongPress = () => {
+    setIsLongPressing(false);
+    
+    // Clear timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Reset animation
+    longPressProgress.value = withTiming(0, { duration: 200 });
+  };
+
+  const completeLongPress = () => {
+    setIsLongPressing(false);
+    
+    // Clear timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Success haptic
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Reset animation
+    longPressProgress.value = withTiming(0, { duration: 200 });
+    
+    // Navigate to recipe completion modal directly
+    setTimeout(() => {
+      router.push('/test-recipe-completion');
+    }, 100);
   };
 
   return (
-    <AnimatedTouchable
-      accessibilityRole="button"
-      accessibilityState={isFocused ? { selected: true } : {}}
-      style={[styles.tab, animatedStyle]}
-      onPress={onPress}
-      onPressIn={handlePressIn}
-      onPressOut={handlePressOut}
-      activeOpacity={1}
-    >
-      <Ionicons 
-        name={iconName} 
-        size={24} 
-        color={isFocused ? '#297A56' : '#888'} 
-      />
-      <Text style={[
-        styles.tabLabel,
-        { color: isFocused ? '#297A56' : '#888' }
-      ]}>
-        {label}
-      </Text>
-    </AnimatedTouchable>
+    <View style={styles.tabItemContainer}>
+      {/* Progress ring for long press (recipes tab only) */}
+      {route.name === 'recipes' && (
+        <Animated.View style={[styles.longPressRing, longPressRingStyle]} />
+      )}
+      
+      <AnimatedTouchable
+        accessibilityRole="button"
+        accessibilityState={isFocused ? { selected: true } : {}}
+        style={[styles.tab, animatedStyle]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <Ionicons 
+          name={iconName} 
+          size={24} 
+          color={isFocused ? '#297A56' : '#888'} 
+        />
+        <Text style={[
+          styles.tabLabel,
+          { color: isFocused ? '#297A56' : '#888' }
+        ]}>
+          {label}
+        </Text>
+      </AnimatedTouchable>
+      
+      {/* Long press hint for recipes tab */}
+      {route.name === 'recipes' && isLongPressing && (
+        <View style={styles.longPressHint}>
+          <Text style={styles.longPressHintText}>Quick Recipe Test</Text>
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -196,6 +279,9 @@ function CustomTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
           );
         })}
       </View>
+      
+      {/* Simple Add Button - provides basic + button functionality */}
+      <AddButton />
     </>
   );
 }
@@ -239,133 +325,130 @@ function AnimatedScreen({ children, routeName }: { children: React.ReactNode; ro
 
 export default function TabsLayout() {
   return (
-    <>
-      <Tabs
-        tabBar={props => <CustomTabBar {...props} />}
-        screenOptions={{
-          header: ({ navigation, route, options }) => {
-            // Don't show header for the chat screen as it has its own
-            if (route.name === 'chat') return null;
-            
-            return (
-              <CustomHeader 
-                title="PrepSense"
-                showBackButton={false}
-                showAdminButton={true}
-              />
-            );
-          },
-          headerShown: true,
-          tabBarStyle: { display: 'none' },
+    <Tabs
+      tabBar={props => <CustomTabBar {...props} />}
+      screenOptions={{
+        header: ({ navigation, route, options }) => {
+          // Don't show header for the chat screen as it has its own
+          if (route.name === 'chat') return null;
+          
+          return (
+            <CustomHeader 
+              title="PrepSense"
+              showBackButton={false}
+              showAdminButton={true}
+            />
+          );
+        },
+        headerShown: true,
+        tabBarStyle: { display: 'none' },
+      }}
+    >
+      <Tabs.Screen 
+        name="index" 
+        options={{ 
+          tabBarLabel: 'Home',
+          title: 'PrepSense',
+          header: () => (
+            <CustomHeader 
+              title="PrepSense"
+              showBackButton={false}
+              showAdminButton={true}
+            />
+          )
+        }} 
+      />
+      <Tabs.Screen 
+        name="stats" 
+        options={{ 
+          tabBarLabel: 'Stats',
+          header: () => (
+            <CustomHeader 
+              title="Statistics"
+              showBackButton={false}
+              showAdminButton={true}
+            />
+          )
+        }} 
+      />
+      <Tabs.Screen 
+        name="add" 
+        options={{ 
+          tabBarButton: () => null, // Hide from tab bar
+          headerShown: false
+        }} 
+      />
+      <Tabs.Screen 
+        name="chat" 
+        options={{ 
+          tabBarLabel: 'Chat',
+          tabBarButton: () => null, // This ensures the tab button is handled by CustomTabBar
+          header: () => (
+            <CustomHeader 
+              title="Chat with Chef"
+              showBackButton={true}
+              showChatButton={false}
+              showAdminButton={false}
+            />
+          )
+        }} 
+      />
+      <Tabs.Screen 
+        name="recipes" 
+        options={{ 
+          tabBarLabel: 'Recipes',
+          header: () => (
+            <CustomHeader 
+              title="Recipes"
+              showBackButton={false}
+              showAdminButton={true}
+            />
+          )
+        }} 
+      />
+      <Tabs.Screen 
+        name="shopping-list" 
+        options={{ 
+          tabBarLabel: 'Shopping List',
+          header: () => (
+            <CustomHeader 
+              title="Shopping List"
+              showBackButton={false}
+              showAdminButton={true}
+            />
+          )
+        }} 
+      />
+      <Tabs.Screen 
+        name="profile" 
+        options={{ 
+          tabBarButton: () => null, // This hides the tab from the bottom bar
+          header: () => (
+            <CustomHeader 
+              title="My Profile"
+              showBackButton={true}
+              showChatButton={false}
+              showAdminButton={false}
+            />
+          )
+        }} 
+      />
+      {/* Admin screen is not included in the tab bar */}
+      <Tabs.Screen 
+        name="admin" 
+        options={{
+          tabBarButton: () => null, // This hides the tab bar button
+          header: () => (
+            <CustomHeader 
+              title="Admin Dashboard"
+              showBackButton={true}
+              showChatButton={false}
+              showAdminButton={false}
+            />
+          )
         }}
-      >
-        <Tabs.Screen 
-          name="index" 
-          options={{ 
-            tabBarLabel: 'Home',
-            title: 'PrepSense',
-            header: () => (
-              <CustomHeader 
-                title="PrepSense"
-                showBackButton={false}
-                showAdminButton={true}
-              />
-            )
-          }} 
-        />
-        <Tabs.Screen 
-          name="stats" 
-          options={{ 
-            tabBarLabel: 'Stats',
-            header: () => (
-              <CustomHeader 
-                title="Statistics"
-                showBackButton={false}
-                showAdminButton={true}
-              />
-            )
-          }} 
-        />
-        <Tabs.Screen 
-          name="add" 
-          options={{ 
-            tabBarButton: () => null, // Hide from tab bar
-            headerShown: false
-          }} 
-        />
-        <Tabs.Screen 
-          name="chat" 
-          options={{ 
-            tabBarLabel: 'Chat',
-            tabBarButton: () => null, // This ensures the tab button is handled by CustomTabBar
-            header: () => (
-              <CustomHeader 
-                title="Chat with Chef"
-                showBackButton={true}
-                showChatButton={false}
-                showAdminButton={false}
-              />
-            )
-          }} 
-        />
-        <Tabs.Screen 
-          name="recipes" 
-          options={{ 
-            tabBarLabel: 'Recipes',
-            header: () => (
-              <CustomHeader 
-                title="Recipes"
-                showBackButton={false}
-                showAdminButton={true}
-              />
-            )
-          }} 
-        />
-        <Tabs.Screen 
-          name="shopping-list" 
-          options={{ 
-            tabBarLabel: 'Shopping List',
-            header: () => (
-              <CustomHeader 
-                title="Shopping List"
-                showBackButton={false}
-                showAdminButton={true}
-              />
-            )
-          }} 
-        />
-        <Tabs.Screen 
-          name="profile" 
-          options={{ 
-            tabBarButton: () => null, // This hides the tab from the bottom bar
-            header: () => (
-              <CustomHeader 
-                title="My Profile"
-                showBackButton={true}
-                showChatButton={false}
-                showAdminButton={false}
-              />
-            )
-          }} 
-        />
-        {/* Admin screen is not included in the tab bar */}
-        <Tabs.Screen 
-          name="admin" 
-          options={{
-            tabBarButton: () => null, // This hides the tab bar button
-            header: () => (
-              <CustomHeader 
-                title="Admin Dashboard"
-                showBackButton={true}
-                showChatButton={false}
-                showAdminButton={false}
-              />
-            )
-          }}
-        />
-      </Tabs>
-      <AddButton />
-    </>
+      />
+    </Tabs>
   );
 }
 
@@ -386,6 +469,13 @@ const styles = StyleSheet.create({
     elevation: 8,
     paddingVertical: 8, // Reduced padding since we need space for labels
   },
+  tabItemContainer: {
+    position: 'relative',
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    maxWidth: 80,
+  },
   tab: {
     flex: 1,
     alignItems: 'center',
@@ -398,6 +488,29 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     marginTop: 4,
+    textAlign: 'center',
+  },
+  longPressRing: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderColor: '#F59E0B',
+    zIndex: 1,
+  },
+  longPressHint: {
+    position: 'absolute',
+    top: -30,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+  },
+  longPressHintText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '500',
     textAlign: 'center',
   },
   fabContainer: {
