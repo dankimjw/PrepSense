@@ -2,6 +2,9 @@
 .env
 .env.local
 .env.*.local
+.env.template
+**/TEMPLATE ENV
+**/.env.template
 
 # Python
 __pycache__/
@@ -45,6 +48,12 @@ coverage.xml
 .claude-config
 set_git_author.sh
 .claude_collaboration_reminder
+
+# Claude-related files and folders
+**/CLAUDE_*.md
+**/CLAUDE_*.txt
+Scratchpads/
+Archive/
 *.swp
 *.swo
 *~
@@ -128,3 +137,81 @@ check_collaboration_status.sh
 setup_claude_md_symlinks.sh
 setup_worktree_collaboration.sh
 **/WORKTREE_NOTES_*.md
+
+# Generic Claude ignore patterns
+[Cc]laude*
+**/[Cc]laude*
+
+# Backend Gateway documentation files (ignore)
+backend_gateway/CLAUDE.md
+backend_gateway/CLEANUP_SUMMARY.md
+backend_gateway/CREWAI_IMPLEMENTATION_ROADMAP.md
+backend_gateway/CREWAI_TEST_RESULTS.md
+backend_gateway/CREWAI_TEST_SUMMARY.md
+backend_gateway/CREWAI_TESTS_COMPLETE_SUMMARY.md
+backend_gateway/DATABASE_MIGRATION_GUIDE.md
+backend_gateway/FEATURE_MY_RECIPES_SUMMARY.md
+backend_gateway/IAM_SETUP_GUIDE.md
+backend_gateway/INGREDIENT_MATCHING_TEST_PLAN.md
+backend_gateway/MAIN_UPDATES_SUMMARY.md
+backend_gateway/MULTI_AGENT_IMPLEMENTATION_GUIDE.md
+backend_gateway/MULTI_AGENT_README.md
+backend_gateway/PREPSENSE_EXPERT_AGENTS_DESIGN.md
+backend_gateway/SECURITY_NOTICE.md
+backend_gateway/TEST_IMPLEMENTATION_GUIDE.md
+backend_gateway/test_results_summary.md
+backend_gateway/TEST_SUMMARY.md
+
+# External Revision directory (ignore)
+External Revision/
+
+# Root-level documentation files (ignore)
+START_HERE_CLAUDE.md
+SUBAGENT_STRATEGY_GUIDE.md
+SUNDAY_MEETING_APP_SETUP.md
+TEST_COVERAGE_SUMMARY.md
+VERIFICATION_PROTOCOL.md
+VERIFICATION_STANDARDS.md
+WORKTREE_NOTES_BUGFIX.md
+WORKTREE_NOTES_MAIN.md
+WORKTREE_NOTES_TESTZONE.md
+MY_PANTRY_RECIPE_FLOW.md
+DEVELOPER_GUIDE.md
+COMPREHENSIVE_TEST_PLAN.md
+CLAUDE_INSTANCE_ROLES.md
+Food Data/FoodData_Central_AllData/*.zip
+
+# Large data files
+*.db
+*.csv
+*.zip
+Food Data/**/*.db
+Food Data/**/*.csv
+Food Data/**/*.zip
+
+# Image directories
+Food Data/**/Food Images/
+Recipe Images/
+
+# Data directories
+Food Data/
+data/
+passwords.txt
+
+logs/chat.json
+
+logs/notification.json
+
+logs/post_tool_use.json
+
+logs/pre_tool_use.json
+
+logs/session_start.json
+
+logs/stop.json
+
+logs/subagent_stop.json
+
+logs/user_prompt_submit.json
+
+logs/
