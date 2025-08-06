@@ -15,7 +15,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { CustomHeader } from '../components/CustomHeader';
 import AddButton from '../../app/components/AddButton';
 import * as Haptics from 'expo-haptics';
-import { useRouter } from 'expo-router';
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
@@ -68,7 +67,7 @@ function AnimatedFAB({ onPress }: { onPress: () => void }) {
   );
 }
 
-// Tab item component with restored text labels and long press support for recipes
+// Tab item component with restored text labels
 function TabItem({ route, iconName, isFocused, onPress, label }: {
   route: any;
   iconName: any;
@@ -76,22 +75,10 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
   onPress: () => void;
   label: string;
 }) {
-  const router = useRouter();
   const scale = useSharedValue(1);
-  
-  // Long press state for recipes tab only
-  const [isLongPressing, setIsLongPressing] = useState(false);
-  const longPressProgress = useSharedValue(0);
-  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
-  }));
-
-  const longPressRingStyle = useAnimatedStyle(() => ({
-    opacity: isLongPressing ? 1 : 0,
-    borderWidth: longPressProgress.value * 3,
-    borderColor: `rgba(245, 158, 11, ${longPressProgress.value})`,
   }));
 
   const handlePressIn = () => {
@@ -99,22 +86,6 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
       damping: 15,
       stiffness: 300,
     });
-
-    // Start long press only for recipes tab
-    if (route.name === 'recipes') {
-      setIsLongPressing(true);
-      
-      // Animate progress ring
-      longPressProgress.value = withTiming(1, { duration: 600 });
-      
-      // Initial haptic feedback
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      
-      // Set up completion timer
-      longPressTimer.current = setTimeout(() => {
-        completeLongPress();
-      }, 600);
-    }
   };
 
   const handlePressOut = () => {
@@ -122,54 +93,10 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
       damping: 15,
       stiffness: 300,
     });
-
-    // Cancel long press if in progress
-    if (route.name === 'recipes' && isLongPressing) {
-      cancelLongPress();
-    }
-  };
-
-  const cancelLongPress = () => {
-    setIsLongPressing(false);
-    
-    // Clear timer
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    
-    // Reset animation
-    longPressProgress.value = withTiming(0, { duration: 200 });
-  };
-
-  const completeLongPress = () => {
-    setIsLongPressing(false);
-    
-    // Clear timer
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-      longPressTimer.current = null;
-    }
-    
-    // Success haptic
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
-    // Reset animation
-    longPressProgress.value = withTiming(0, { duration: 200 });
-    
-    // Navigate to recipe completion modal directly
-    setTimeout(() => {
-      router.push('/test-recipe-completion');
-    }, 100);
   };
 
   return (
     <View style={styles.tabItemContainer}>
-      {/* Progress ring for long press (recipes tab only) */}
-      {route.name === 'recipes' && (
-        <Animated.View style={[styles.longPressRing, longPressRingStyle]} />
-      )}
-      
       <AnimatedTouchable
         accessibilityRole="button"
         accessibilityState={isFocused ? { selected: true } : {}}
@@ -191,13 +118,6 @@ function TabItem({ route, iconName, isFocused, onPress, label }: {
           {label}
         </Text>
       </AnimatedTouchable>
-      
-      {/* Long press hint for recipes tab */}
-      {route.name === 'recipes' && isLongPressing && (
-        <View style={styles.longPressHint}>
-          <Text style={styles.longPressHintText}>Quick Recipe Test</Text>
-        </View>
-      )}
     </View>
   );
 }
@@ -488,29 +408,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     marginTop: 4,
-    textAlign: 'center',
-  },
-  longPressRing: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    borderColor: '#F59E0B',
-    zIndex: 1,
-  },
-  longPressHint: {
-    position: 'absolute',
-    top: -30,
-    backgroundColor: 'rgba(0, 0, 0, 0.8)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    zIndex: 10,
-  },
-  longPressHintText: {
-    color: '#fff',
-    fontSize: 10,
-    fontWeight: '500',
     textAlign: 'center',
   },
   fabContainer: {

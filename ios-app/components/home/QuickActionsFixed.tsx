@@ -1,14 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
   withDelay,
+  withTiming,
   runOnJS,
 } from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
 
 export interface QuickAction {
   id: string;
@@ -94,10 +96,16 @@ const QuickActionCard = ({
   index: number; 
   onPress: () => void;
 }) => {
+  const router = useRouter();
   const translateY = useSharedValue(50);
   const opacity = useSharedValue(0);
   const scale = useSharedValue(0.8);
   const iconScale = useSharedValue(1);
+  
+  // Long press state for recipes button only
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressProgress = useSharedValue(0);
+  const longPressTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     const delay = index * 150; // Stagger animations
@@ -120,8 +128,53 @@ const QuickActionCard = ({
     transform: [{ scale: iconScale.value }],
   }));
 
+  const longPressRingStyle = useAnimatedStyle(() => ({
+    opacity: isLongPressing ? 1 : 0,
+    borderWidth: longPressProgress.value * 3,
+    borderColor: `rgba(245, 158, 11, ${longPressProgress.value})`,
+  }));
+
+  const cancelLongPress = () => {
+    setIsLongPressing(false);
+    
+    // Clear timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Reset animation
+    longPressProgress.value = withTiming(0, { duration: 200 });
+  };
+
+  const completeLongPress = () => {
+    setIsLongPressing(false);
+    
+    // Clear timer
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    // Success haptic
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    
+    // Reset animation
+    longPressProgress.value = withTiming(0, { duration: 200 });
+    
+    // Navigate to recipe completion modal directly
+    setTimeout(() => {
+      router.push('/test-recipe-completion');
+    }, 100);
+  };
+
   return (
     <Animated.View style={[styles.actionCardContainer, animatedContainerStyle]}>
+      {/* Progress ring for long press (recipes button only) */}
+      {action.id === 'recipe' && (
+        <Animated.View style={[styles.longPressRing, longPressRingStyle]} />
+      )}
+      
       <Pressable
         style={({ pressed }) => [
           styles.actionCard, 
@@ -132,10 +185,31 @@ const QuickActionCard = ({
         onPressIn={() => {
           iconScale.value = withSpring(0.9, { damping: 6 });
           scale.value = withSpring(0.95, { damping: 6 });
+
+          // Start long press only for recipes button
+          if (action.id === 'recipe') {
+            setIsLongPressing(true);
+            
+            // Animate progress ring
+            longPressProgress.value = withTiming(1, { duration: 5000 });
+            
+            // Initial haptic feedback
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            
+            // Set up completion timer (5 seconds)
+            longPressTimer.current = setTimeout(() => {
+              completeLongPress();
+            }, 5000);
+          }
         }}
         onPressOut={() => {
           iconScale.value = withSpring(1, { damping: 6 });
           scale.value = withSpring(1, { damping: 6 });
+
+          // Cancel long press if in progress
+          if (action.id === 'recipe' && isLongPressing) {
+            cancelLongPress();
+          }
         }}
       >
         <Animated.View style={[styles.actionIcon, { backgroundColor: action.color }, iconAnimatedStyle]}>
@@ -143,6 +217,13 @@ const QuickActionCard = ({
         </Animated.View>
         {renderButtonText(action)}
       </Pressable>
+      
+      {/* Long press hint for recipes button */}
+      {action.id === 'recipe' && isLongPressing && (
+        <View style={styles.longPressHint}>
+          <Text style={styles.longPressHintText}>Quick Recipe Test</Text>
+        </View>
+      )}
     </Animated.View>
   );
 };
@@ -247,6 +328,36 @@ const styles = StyleSheet.create({
   multiLineTextContainer: {
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  longPressRing: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderColor: '#F59E0B',
+    zIndex: 1,
+    top: '50%',
+    left: '50%',
+    marginTop: -40,
+    marginLeft: -40,
+  },
+  longPressHint: {
+    position: 'absolute',
+    top: -30,
+    left: '50%',
+    marginLeft: -50,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    zIndex: 10,
+    width: 100,
+  },
+  longPressHintText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 
