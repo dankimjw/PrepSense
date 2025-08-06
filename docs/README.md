@@ -1,51 +1,82 @@
-# 📚 PrepSense Getting Started Guide
+# 📚 PrepSense Documentation Hub
 
-Welcome to the PrepSense documentation! This guide will help you set up and run the PrepSense application step by step.
+Welcome to the PrepSense documentation! This directory has been reorganized to separate public documentation from internal development files.
 
-## 🏠 Navigation
+## 📁 Documentation Structure
 
-- **[Prerequisites & Tools](./getting-started/01-prerequisites.md)** - What you need before starting
-- **[Repository Setup](./getting-started/02-repository-setup.md)** - Cloning and initial setup
-- **[Backend Setup](./getting-started/03-backend-setup.md)** - Python & FastAPI setup
-- **[Frontend Setup](./getting-started/04-frontend-setup.md)** - Node.js & Expo setup
-- **[Running the App](./getting-started/05-running-app.md)** - Launch everything together
-- **[Troubleshooting](./getting-started/06-troubleshooting.md)** - Common issues and solutions
-- **[Helpful Resources](./getting-started/07-resources.md)** - Links and learning materials
-- **[Gitignore Guide](./getting-started/08-gitignore-guide.md)** - What files to ignore and why
+### 🌐 [public/](./public/) - Public Documentation
+**Safe for GitHub public repositories**
 
-## 🎯 Quick Start Path
+Documentation intended for users, contributors, and the general public:
 
-If you're completely new to development, follow these guides in order:
+- **[Getting Started Guide](./public/getting-started/)** - Setup instructions for new users and developers
+- **[API Documentation](./public/api/)** - Backend API endpoints, database schemas, and integration guides  
+- **[Architecture Documentation](./public/architecture/)** - System architecture, data flows, and feature specifications
+- **[Contributing Guidelines](./public/contributing/)** - Development workflow, code quality, and testing standards
+- **[Feature Documentation](./public/FEATURE_DOCUMENTATION.md)** - Complete feature overview
+- **[User Guide](./public/Guide_v1.0.md)** - Comprehensive user manual
+- **[Changelog](./public/CHANGELOG.md)** - Technical changes and updates
 
-1. **Start with [Prerequisites & Tools](./getting-started/01-prerequisites.md)**
-2. **Then [Repository Setup](./getting-started/02-repository-setup.md)**
-3. **Next [Backend Setup](./getting-started/03-backend-setup.md)**
-4. **Then [Frontend Setup](./getting-started/04-frontend-setup.md)**
-5. **Finally [Running the App](./getting-started/05-running-app.md)**
+### 🔒 [internal/](./internal/) - Internal Development Documentation  
+**For Daniel and Claude development use only**
 
-## 📱 What is PrepSense?
+Internal documentation not meant for public GitHub:
 
-PrepSense is a smart pantry management application that helps you:
-- Track your pantry items
-- Get recipe suggestions based on what you have
-- Reduce food waste
-- Plan your meals better
+- **[claude/](./internal/claude/)** - Claude-specific instructions, validation rules, and configuration
+- **[sessions/](./internal/sessions/)** - Development session summaries and progress logs
+- **[testing/](./internal/testing/)** - Test results, performance analysis, and edge case documentation
+- **[database/](./internal/database/)** - Database schemas, migrations, and internal configuration details
+- **[workflows/](./internal/workflows/)** - Development workflows, worktree management, and process documentation
 
-## 🏗️ Architecture Overview
+### 📊 [flows/](./flows/) - Flow Documentation
+**Shared flow documentation**
 
-The app consists of:
-- **Backend**: Python FastAPI server (`backend_gateway/`)
-- **Frontend**: React Native Expo app (`ios-app/`)
-- **Database**: PostgreSQL for data storage
-- **AI Services**: Vision API for image recognition, CrewAI for recipe suggestions
+System and user flow documentation used by both public and internal docs.
 
-## 💡 Tips for Beginners
+## 🎯 Quick Start
 
-- Take your time with each step
-- Don't skip the prerequisites
-- If something doesn't work, check the troubleshooting guide
-- Ask for help when stuck - we're here to support you!
+### For New Users
+Start with the [Public Documentation](./public/) → [Getting Started Guide](./public/getting-started/)
+
+### For Contributors  
+1. Read [Contributing Guidelines](./public/contributing/)
+2. Review [API Documentation](./public/api/)
+3. Explore [Architecture Documentation](./public/architecture/)
+
+### For Claude Instances
+1. **CRITICAL**: Read [internal/claude/CLAUDE_VALIDATION_RULES.md](./internal/claude/CLAUDE_VALIDATION_RULES.md) immediately
+2. Follow [internal/claude/START_HERE_CLAUDE.md](./internal/claude/START_HERE_CLAUDE.md) for onboarding
+3. Review [public/api/Doc_Start_Here.md](./public/api/Doc_Start_Here.md) for live documentation standards
+
+## 🚨 Important Notes
+
+### For Claude Instances
+**BEFORE making any changes to the codebase:**
+1. **READ** the relevant documentation in both public and internal sections
+2. **ANALYZE** the current implementation state thoroughly  
+3. **UPDATE** documentation immediately after making changes
+4. **NEVER** claim unimplemented features work - see validation rules
+
+### For GitHub/Public Sharing
+- **Share**: Anything in `docs/public/` and `docs/flows/`
+- **Keep Private**: Everything in `docs/internal/`
+- Consider adding `docs/internal/` to `.gitignore` for public forks
+
+### Documentation Maintenance
+- **Public docs**: Keep professional, clean, and user-focused
+- **Internal docs**: Detailed technical analysis, debugging info, and development processes
+- **Both**: Must stay synchronized with actual codebase implementation
+
+## 🔄 Recent Reorganization (2025-08-05)
+
+This documentation was reorganized to separate:
+- **Public-facing documentation** suitable for GitHub and external contributors
+- **Internal development documentation** with sensitive technical details and Claude-specific instructions
+
+All content has been preserved and reorganized by purpose and audience.
 
 ---
 
-[Next: Prerequisites & Tools →](./getting-started/01-prerequisites.md)
+**Remember**: Documentation is only as good as it is current. Keep it updated! 
+
+For the most up-to-date technical documentation, see [public/api/Doc_Start_Here.md](./public/api/Doc_Start_Here.md)

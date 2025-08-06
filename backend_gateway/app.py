@@ -49,33 +49,35 @@ async def lifespan(app: FastAPI):
     logger.info("Starting up PrepSense backend...")
     # Create default user if it doesn't exist
     try:
-        from backend_gateway.services.user_service import UserService
         user_service = UserService()
-        await user_service.create_default_user()
+        await user_service.create_default_user_if_not_exists()
     except Exception as e:
         logger.error(f"Failed to create default user: {e}")
-        # Continue startup even if default user creation fails
     
     yield
     
     # Shutdown
     logger.info("Shutting down PrepSense backend...")
 
+# Initialize the FastAPI app
 app = FastAPI(
     title="PrepSense Gateway API",
-    version="1.0.0",
-    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    description="Your Smart Pantry Assistant - AI-powered recipe recommendations and pantry management",
+    version="1.4.0",
     lifespan=lifespan
 )
 
-# Configure CORS
+# Configure CORS for React Native
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_origins=["*"],  # In production, replace with specific origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
 
 # Mount static files for recipe images
 from pathlib import Path
@@ -189,17 +191,21 @@ app.include_router(semantic_search_router, tags=["Semantic Search"])
 from backend_gateway.routers.supply_chain_impact_router import router as supply_chain_impact_router
 app.include_router(supply_chain_impact_router, tags=["Supply Chain Impact"])
 
-# USDA Food Database router
+# Import USDA router for nutritional data
 from backend_gateway.routers.usda_router import router as usda_router
 app.include_router(usda_router, tags=["USDA Food Database"])
 
-# USDA Unit Validation router
+# USDA unit validation router
 from backend_gateway.routers.usda_unit_router import router as usda_unit_router
 app.include_router(usda_unit_router, tags=["USDA Unit Validation"])
 
 # Unit validation for smart unit checking
 from backend_gateway.routers.unit_validation_router import router as unit_validation_router
 app.include_router(unit_validation_router, tags=["Unit Validation"])
+
+# CrewAI intelligent recipe recommendation system
+from backend_gateway.routers.crewai_router import router as crewai_router
+app.include_router(crewai_router, prefix=f"{settings.API_V1_STR}", tags=["CrewAI Intelligence"])
 
 # AI-powered recipe generation using CrewAI
 # from backend_gateway.routers.ai_recipes_router import router as ai_recipes_router
@@ -227,63 +233,48 @@ async def health_check():
             "openai_valid": False,
             "spoonacular_configured": False,
             "database_configured": False,
-            "database_connected": False,
-            "google_cloud_configured": bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS")),
+            "crewai_enabled": False
         },
-        "errors": []
+        "version": "1.4.0"
     }
 
-    # Check OpenAI API key
+    # Check OpenAI configuration
     try:
-        api_key = get_openai_api_key()
-        health_status["environment"]["openai_configured"] = True
-        health_status["environment"]["openai_valid"] = api_key.startswith("sk-")
+        openai_key = get_openai_api_key()
+        if openai_key:
+            health_status["environment"]["openai_configured"] = True
+            # Test OpenAI API (basic validation)
+            try:
+                import openai
+                client = openai.OpenAI(api_key=openai_key)
+                # Quick test call (doesn't count against quota much)
+                response = client.models.list()
+                health_status["environment"]["openai_valid"] = True
+            except Exception as e:
+                logger.warning(f"OpenAI API test failed: {e}")
     except Exception as e:
-        health_status["status"] = "unhealthy"
-        health_status["errors"].append(f"OpenAI: {str(e)}")
+        logger.warning(f"OpenAI configuration check failed: {e}")
 
-    # Check Spoonacular API key
-    try:
-        if settings.SPOONACULAR_API_KEY:
-            health_status["environment"]["spoonacular_configured"] = True
-    except Exception as e:
-        health_status["status"] = "unhealthy"
-        health_status["errors"].append(f"Spoonacular: {str(e)}")
+    # Check Spoonacular configuration
+    spoonacular_key = os.getenv("SPOONACULAR_KEY")
+    if spoonacular_key:
+        health_status["environment"]["spoonacular_configured"] = True
 
     # Check database configuration
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        health_status["environment"]["database_configured"] = True
+
+    # Check CrewAI system
     try:
-        if all([settings.POSTGRES_HOST, settings.POSTGRES_DATABASE, 
-                settings.POSTGRES_USER, settings.POSTGRES_PASSWORD]):
-            health_status["environment"]["database_configured"] = True
-
-            # Try to connect to database
-            try:
-                from backend_gateway.services.postgres_service import PostgresService
-                connection_params = {
-                    'host': settings.POSTGRES_HOST,
-                    'port': settings.POSTGRES_PORT,
-                    'database': settings.POSTGRES_DATABASE,
-                    'user': settings.POSTGRES_USER,
-                    'password': settings.POSTGRES_PASSWORD
-                }
-                postgres_service = PostgresService(connection_params)
-                # Simple connectivity test
-                postgres_service.execute_query("SELECT 1")
-                health_status["environment"]["database_connected"] = True
-            except Exception as db_error:
-                health_status["environment"]["database_connected"] = False
-                health_status["errors"].append(f"Database connection: {str(db_error)}")
-    except Exception as e:
-        health_status["status"] = "unhealthy"
-        health_status["errors"].append(f"Database config: {str(e)}")
-
-    # Check if Google Cloud credentials file exists
-    gcp_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
-    if gcp_path:
-        health_status["environment"]["google_cloud_file_exists"] = os.path.exists(gcp_path)
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
+        from src.crews.prepsense_main import PrepSenseMainCrew
+        health_status["environment"]["crewai_enabled"] = True
+    except ImportError:
+        logger.info("CrewAI system not available")
 
     return health_status
 
-# To run (from the directory containing the PrepSense folder, or if PrepSense is the root):
-# If PrepSense is the root directory: uvicorn app:app --reload
-# If PrepSense is a package within a larger project: uvicorn PrepSense.app:app --reload
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

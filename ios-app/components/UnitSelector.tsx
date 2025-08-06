@@ -9,13 +9,21 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { UNITS, UNIT_CATEGORIES, getUnitsByCategory, getUnitByValue, normalizeUnit } from '../constants/units';
+import {
+  UNITS,
+  UNIT_CATEGORIES,
+  getUnitByValue,
+  normalizeUnit,
+} from '../constants/units';
+import { getFallbackUnit, isInvalidUnit, getAlternativeUnits } from '../constants/fallbackUnits';
 
 interface UnitSelectorProps {
   value: string;
   onValueChange: (value: string) => void;
   placeholder?: string;
   style?: any;
+  itemName?: string; // For fallback unit determination
+  category?: string; // For fallback unit determination
 }
 
 export const UnitSelector: React.FC<UnitSelectorProps> = ({
@@ -23,39 +31,67 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({
   onValueChange,
   placeholder = 'Select unit',
   style,
+  itemName,
+  category,
 }) => {
   const [modalVisible, setModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Handle unknown units by creating a temporary unit option
+  // Handle unknown units using fallback system
   let selectedUnit = getUnitByValue(value);
   const availableUnits = [...UNITS];
   
-  // If the unit doesn't exist in our predefined list, add it as a custom unit
+  // If the unit doesn't exist in our predefined list, use fallback logic
   if (!selectedUnit && value) {
     const normalizedValue = normalizeUnit(value);
     selectedUnit = getUnitByValue(normalizedValue);
     
     if (!selectedUnit) {
-      // Create a temporary unit for the unknown unit
-      const customUnit = {
-        value: value,
-        label: value.charAt(0).toUpperCase() + value.slice(1),
-        category: 'count' as const,
-        abbreviation: value,
-        plural: value + 's'
-      };
-      availableUnits.unshift(customUnit); // Add to beginning so it appears first
-      selectedUnit = customUnit;
+      // Check if the unit is invalid (like 'B' from receipt prices)
+      if (isInvalidUnit(value)) {
+        // Use fallback unit instead of invalid unit
+        const fallbackUnit = getFallbackUnit(itemName || '', category);
+        selectedUnit = getUnitByValue(fallbackUnit);
+        
+        // If we have a valid fallback, suggest using it
+        if (selectedUnit && value !== fallbackUnit) {
+          // Optionally notify parent component about the fallback suggestion
+          // This could trigger a UI hint or automatic correction
+        }
+      } else {
+        // Create a temporary unit for valid unknown units
+        const customUnit = {
+          value: value,
+          label: value.charAt(0).toUpperCase() + value.slice(1),
+          category: 'count' as const,
+          abbreviation: value,
+          plural: value + 's'
+        };
+        availableUnits.unshift(customUnit);
+        selectedUnit = customUnit;
+      }
     }
   }
 
-  const filteredUnits = availableUnits.filter(unit => {
-    const matchesSearch = unit.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         unit.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         unit.abbreviation.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !selectedCategory || unit.category === selectedCategory;
+  // Add category-specific alternative units if we have category info
+  if (category && !selectedCategory) {
+    const alternativeUnits = getAlternativeUnits(category);
+    alternativeUnits.forEach(unitValue => {
+      const existingUnit = getUnitByValue(unitValue);
+      if (existingUnit && !availableUnits.find(u => u.value === unitValue)) {
+        availableUnits.push(existingUnit);
+      }
+    });
+  }
+
+  const filteredUnits = availableUnits.filter((unit) => {
+    const matchesSearch =
+      unit.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      unit.value.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      unit.abbreviation.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      !selectedCategory || unit.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -88,7 +124,10 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({
           activeOpacity={1}
           onPress={() => setModalVisible(false)}
         >
-          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+          <View
+            style={styles.modalContent}
+            onStartShouldSetResponder={() => true}
+          >
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Select Unit</Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
@@ -109,48 +148,97 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({
 
             <View style={styles.categoryTabs}>
               <TouchableOpacity
-                style={[styles.categoryTab, !selectedCategory && styles.categoryTabActive]}
+                style={[
+                  styles.categoryTab,
+                  !selectedCategory && styles.categoryTabActive,
+                ]}
                 onPress={() => setSelectedCategory(null)}
               >
-                <Text style={[styles.categoryTabText, !selectedCategory && styles.categoryTabTextActive]}>
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    !selectedCategory && styles.categoryTabTextActive,
+                  ]}
+                >
                   All
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.categoryTab, selectedCategory === UNIT_CATEGORIES.WEIGHT && styles.categoryTabActive]}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === UNIT_CATEGORIES.WEIGHT &&
+                    styles.categoryTabActive,
+                ]}
                 onPress={() => setSelectedCategory(UNIT_CATEGORIES.WEIGHT)}
               >
-                <Text style={[styles.categoryTabText, selectedCategory === UNIT_CATEGORIES.WEIGHT && styles.categoryTabTextActive]}>
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    selectedCategory === UNIT_CATEGORIES.WEIGHT &&
+                      styles.categoryTabTextActive,
+                  ]}
+                >
                   Weight
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.categoryTab, selectedCategory === UNIT_CATEGORIES.VOLUME && styles.categoryTabActive]}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === UNIT_CATEGORIES.VOLUME &&
+                    styles.categoryTabActive,
+                ]}
                 onPress={() => setSelectedCategory(UNIT_CATEGORIES.VOLUME)}
               >
-                <Text style={[styles.categoryTabText, selectedCategory === UNIT_CATEGORIES.VOLUME && styles.categoryTabTextActive]}>
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    selectedCategory === UNIT_CATEGORIES.VOLUME &&
+                      styles.categoryTabTextActive,
+                  ]}
+                >
                   Volume
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.categoryTab, selectedCategory === UNIT_CATEGORIES.COUNT && styles.categoryTabActive]}
+                style={[
+                  styles.categoryTab,
+                  selectedCategory === UNIT_CATEGORIES.COUNT &&
+                    styles.categoryTabActive,
+                ]}
                 onPress={() => setSelectedCategory(UNIT_CATEGORIES.COUNT)}
               >
-                <Text style={[styles.categoryTabText, selectedCategory === UNIT_CATEGORIES.COUNT && styles.categoryTabTextActive]}>
+                <Text
+                  style={[
+                    styles.categoryTabText,
+                    selectedCategory === UNIT_CATEGORIES.COUNT &&
+                      styles.categoryTabTextActive,
+                  ]}
+                >
                   Count
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={styles.unitsList} showsVerticalScrollIndicator={false}>
+            <ScrollView
+              style={styles.unitsList}
+              showsVerticalScrollIndicator={false}
+            >
               {filteredUnits.map((unit) => (
                 <TouchableOpacity
                   key={unit.value}
-                  style={[styles.unitItem, value === unit.value && styles.unitItemSelected]}
+                  style={[
+                    styles.unitItem,
+                    value === unit.value && styles.unitItemSelected,
+                  ]}
                   onPress={() => handleSelectUnit(unit.value)}
                 >
                   <View>
-                    <Text style={[styles.unitLabel, value === unit.value && styles.unitLabelSelected]}>
+                    <Text
+                      style={[
+                        styles.unitLabel,
+                        value === unit.value && styles.unitLabelSelected,
+                      ]}
+                    >
                       {unit.label}
                     </Text>
                     <Text style={styles.unitAbbreviation}>
@@ -158,7 +246,11 @@ export const UnitSelector: React.FC<UnitSelectorProps> = ({
                     </Text>
                   </View>
                   {value === unit.value && (
-                    <Ionicons name="checkmark-circle" size={24} color="#297A56" />
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={24}
+                      color="#297A56"
+                    />
                   )}
                 </TouchableOpacity>
               ))}

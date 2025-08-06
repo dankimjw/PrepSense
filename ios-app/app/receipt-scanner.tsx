@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { imageDataStore } from '../utils/imageDataStore';
 
-
 export default function ReceiptScannerScreen() {
   const router = useRouter();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const lastPressRef = useRef(0);
 
   useEffect(() => {
     requestPermissions();
@@ -33,6 +34,22 @@ export default function ReceiptScannerScreen() {
   };
 
   const pickImage = async () => {
+    // Reduced debounce: prevent multiple calls within 300ms (more responsive)
+    const now = Date.now();
+    if (now - lastPressRef.current < 300) {
+      console.log('Button press ignored - too soon after last press');
+      return;
+    }
+    lastPressRef.current = now;
+
+    if (isProcessing) {
+      console.log('Already processing image selection');
+      return;
+    }
+
+    console.log('Starting receipt image selection process...');
+    setIsProcessing(true);
+
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ['images'],
@@ -44,39 +61,48 @@ export default function ReceiptScannerScreen() {
       if (!result.canceled && result.assets && result.assets[0]) {
         const imageUri = result.assets[0].uri;
         const base64Image = result.assets[0].base64;
-        
+
         if (!base64Image) {
           Alert.alert('Error', 'Failed to process image');
+          setIsProcessing(false);
           return;
         }
-        
+
         // Store image data in memory store
         const imageKey = `receipt_${Date.now()}`;
         imageDataStore.storeImageData(imageKey, base64Image);
-        
+
         // Navigate immediately with just the key reference
-        console.log('Receipt image selected, navigating to loading-facts immediately...');
+        console.log(
+          'Receipt image selected, navigating to loading-facts immediately...'
+        );
         console.log('Base64 length:', base64Image.length);
-        
+
         router.replace({
           pathname: '/loading-facts',
-          params: { 
+          params: {
             photoUri: imageUri,
             scanMode: 'receipt',
             imageKey: imageKey, // Pass key instead of data
           },
         });
+      } else {
+        console.log('Receipt image selection cancelled by user');
+        setIsProcessing(false);
       }
     } catch (error) {
       console.error('Error picking image:', error);
       Alert.alert('Error', 'Failed to select image');
+      setIsProcessing(false);
+    } finally {
+      // Ensure processing state is always reset after a delay
+      setTimeout(() => {
+        setIsProcessing(false);
+      }, 100);
     }
   };
 
   // Removed scanReceipt - navigation happens immediately in pickImage
-
-
-
 
   return (
     <View style={styles.container}>
@@ -101,39 +127,61 @@ export default function ReceiptScannerScreen() {
           >
             <MaterialIcons name="receipt-long" size={80} color="#fff" />
           </LinearGradient>
-          
+
           <Text style={styles.title}>Scan Your Receipt</Text>
           <Text style={styles.subtitle}>
-            Take a photo or select from gallery to automatically add items to your pantry
+            Take a photo or select from gallery to automatically add items to
+            your pantry
           </Text>
 
           <View style={styles.buttonContainer}>
             <TouchableOpacity
-              style={styles.primaryButton}
+              style={[
+                styles.primaryButton,
+                isProcessing && styles.buttonDisabled,
+              ]}
               onPress={pickImage}
+              disabled={isProcessing}
+              activeOpacity={0.8}
+              delayPressIn={0}
+              delayPressOut={0}
             >
               <Ionicons name="camera" size={24} color="#fff" />
-              <Text style={styles.primaryButtonText}>Take Photo</Text>
+              <Text style={styles.primaryButtonText}>
+                {isProcessing ? 'Processing...' : 'Take Photo'}
+              </Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.secondaryButton}
+              style={[
+                styles.secondaryButton,
+                isProcessing && styles.buttonDisabled,
+              ]}
               onPress={pickImage}
+              disabled={isProcessing}
+              activeOpacity={0.8}
+              delayPressIn={0}
+              delayPressOut={0}
             >
               <Ionicons name="images" size={24} color="#297A56" />
-              <Text style={styles.secondaryButtonText}>Choose from Gallery</Text>
+              <Text style={styles.secondaryButtonText}>
+                {isProcessing ? 'Processing...' : 'Choose from Gallery'}
+              </Text>
             </TouchableOpacity>
           </View>
 
           <View style={styles.tipsContainer}>
             <Text style={styles.tipsTitle}>Tips for best results:</Text>
-            <Text style={styles.tipText}>• Ensure good lighting and minimal shadows</Text>
-            <Text style={styles.tipText}>• Keep receipt flat and fully visible</Text>
+            <Text style={styles.tipText}>
+              • Ensure good lighting and minimal shadows
+            </Text>
+            <Text style={styles.tipText}>
+              • Keep receipt flat and fully visible
+            </Text>
             <Text style={styles.tipText}>• Avoid blurry or angled photos</Text>
           </View>
         </View>
       </ScrollView>
-
     </View>
   );
 }
@@ -249,5 +297,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginBottom: 6,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
 });
