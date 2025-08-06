@@ -18,6 +18,9 @@ import * as api from '../../services/api';
 
 const { width } = Dimensions.get('window');
 
+// Fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
+
 interface Recipe {
   id: number;
   title: string;
@@ -142,35 +145,85 @@ const RecipesList: React.FC<RecipesListProps> = ({
   const getRecipeTitle = (recipe: Recipe | SavedRecipe): string => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      return recipe.recipe_data?.title || recipe.recipe_data?.name || 'Untitled Recipe';
+      const title = recipe.recipe_data?.title || recipe.recipe_data?.name || 'Untitled Recipe';
+      console.log('📝 Saved recipe title extraction:', {
+        recipe_id: recipe.id,
+        recipe_data_title: recipe.recipe_data?.title,
+        recipe_data_name: recipe.recipe_data?.name,
+        final_title: title,
+        raw_recipe_data: JSON.stringify(recipe.recipe_data, null, 2).slice(0, 200) + '...'
+      });
+      return title;
     }
-    // This is a regular recipe
-    return recipe.title || 'Untitled Recipe';
+    // This is a regular recipe from Spoonacular API - handle both direct and nested structures
+    const title = recipe.title || recipe.name || 'Untitled Recipe';
+    console.log('📝 Spoonacular recipe title extraction:', {
+      recipe_id: recipe.id,
+      title: recipe.title,
+      name: recipe.name,
+      final_title: title
+    });
+    return title;
   };
 
   const getRecipeImage = (recipe: Recipe | SavedRecipe): string => {
+    let imageUrl = '';
+    
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      return recipe.recipe_data?.image || recipe.recipe_data?.image_url || '';
+      imageUrl = recipe.recipe_data?.image || recipe.recipe_data?.image_url || '';
+      console.log('🖼️ Saved recipe image URL:', {
+        recipe_id: recipe.id,
+        recipe_data_image: recipe.recipe_data?.image,
+        recipe_data_image_url: recipe.recipe_data?.image_url,
+        final_url: imageUrl
+      });
+    } else {
+      // This is a regular recipe from Spoonacular API - images are at the top level
+      imageUrl = recipe.image || '';
+      console.log('🖼️ Spoonacular recipe image URL:', {
+        recipe_id: recipe.id,
+        image: recipe.image,
+        final_url: imageUrl
+      });
     }
-    // This is a regular recipe
-    return recipe.image || '';
+    
+    // Return fallback image if the URL is empty or invalid
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.log('🖼️ Using fallback image for recipe:', getRecipeTitle(recipe));
+      return FALLBACK_RECIPE_IMAGE;
+    }
+    
+    return imageUrl;
   };
 
   const getIngredientCounts = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe - try to get ingredient count from recipe_data
       const ingredients = recipe.recipe_data?.ingredients || recipe.recipe_data?.extendedIngredients || [];
-      return {
+      const counts = {
         have: ingredients.length,
         missing: 0
       };
+      console.log('🥕 Saved recipe ingredient counts:', {
+        recipe_id: recipe.id,
+        ingredients_length: ingredients.length,
+        counts
+      });
+      return counts;
     }
     // This is a regular recipe from Spoonacular
-    return {
+    const counts = {
       have: recipe.usedIngredientCount || 0,
       missing: recipe.missedIngredientCount || 0
     };
+    console.log('🥕 Spoonacular recipe ingredient counts:', {
+      recipe_id: recipe.id,
+      usedIngredientCount: recipe.usedIngredientCount,
+      missedIngredientCount: recipe.missedIngredientCount,
+      counts
+    });
+    return counts;
   };
 
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
@@ -259,7 +312,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   // Original Spoonacular Recipe Card Component
   const renderRecipeCard = (recipe: Recipe, index: number) => (
-    <View key={recipe.id} style={styles.recipeCardWrapper}>
+    <View style={styles.recipeCardWrapper}>
       <TouchableOpacity
         style={styles.recipeCard}
         onPress={() => navigateToRecipeDetail(recipe)}
@@ -268,6 +321,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
         <Image 
           source={{ uri: getRecipeImage(recipe) }} 
           style={styles.recipeImage}
+          onError={() => console.log('🚨 Failed to load image:', getRecipeImage(recipe))}
         />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.8)']}
@@ -311,7 +365,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
     const isDeleting = deletingRecipeId === savedRecipe.id;
     
     return (
-      <View key={savedRecipe.id} style={styles.recipeCardWrapper}>
+      <View style={styles.recipeCardWrapper}>
         <TouchableOpacity
           style={styles.recipeCard}
           onPress={() => navigateToRecipeDetail(savedRecipe)}
@@ -320,6 +374,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
           <Image 
             source={{ uri: getRecipeImage(savedRecipe) }} 
             style={styles.recipeImage}
+            onError={() => console.log('🚨 Failed to load saved recipe image:', getRecipeImage(savedRecipe))}
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
@@ -440,10 +495,16 @@ const RecipesList: React.FC<RecipesListProps> = ({
     >
       <View style={styles.recipesGrid}>
         {recipes.map((recipe, index) => {
+          // Create truly unique keys by combining type prefix, recipe ID, and index
+          // This prevents collisions even if recipes have duplicate IDs or appear multiple times
+          const recipeType = ('recipe_data' in recipe) ? 'saved' : 'recipe';
+          const recipeId = recipe.id || 'unknown';
+          const uniqueKey = `${recipeType}-${recipeId}-${index}`;
+          
           if ('recipe_data' in recipe) {
-            return renderSavedRecipeCard(recipe as SavedRecipe, index);
+            return <React.Fragment key={uniqueKey}>{renderSavedRecipeCard(recipe as SavedRecipe, index)}</React.Fragment>;
           } else {
-            return renderRecipeCard(recipe as Recipe, index);
+            return <React.Fragment key={uniqueKey}>{renderRecipeCard(recipe as Recipe, index)}</React.Fragment>;
           }
         })}
       </View>
