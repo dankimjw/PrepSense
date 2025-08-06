@@ -7,53 +7,38 @@
 
 ## 🧭 Executive Summary
 
-In today’s fast-paced world, consumers are increasingly making conscious choices about health, sustainability, and waste reduction. However, they often lack the tools to effectively manage their kitchen inventory and meal planning in a way that aligns with these values. PrepSense was created to solve this gap.
+Food waste is a global challenge with both environmental and personal costs. In the United States alone, nearly 60 million tons of food are wasted annually — valued at $218 billion — enough to feed 120 million people for a full year. Beyond the waste of resources, this contributes significantly to greenhouse gas emissions and climate change.
 
-PrepSense is a mobile-first, AI-powered pantry and recipe assistant that empowers users to manage their food intelligently—from inventory tracking to personalized meal recommendations. Built as a capstone project for the University of Chicago’s MS in Applied Data Science program, PrepSense combines computer vision, CrewAI-powered agent orchestration, and personalized large language models (LLMs) to transform everyday household decisions into impactful actions.
+At the same time, many individuals — like Lily, our user persona — want to eat healthier, cook more at home, and reduce waste, but face daily challenges: manual pantry tracking, forgotten expiry dates, and difficulty planning balanced meals. These challenges often lead to last-minute takeout, skipped meals, or nutritionally imbalanced choices.
 
-The system works by allowing users to scan their pantry or receipts, automatically detecting items, quantities, and expiry dates. From there, it generates customized recipes based on what’s on hand, dietary restrictions, and personal preferences—minimizing waste while maximizing nutrition. Users are also given insight into nutritional content, missing items for recipes, and the ability to build a dynamic shopping list. This seamless end-to-end experience is enabled by a team of modular AI agents working in coordination through the CrewAI framework.
+PrepSense was created to solve these problems on both fronts. By combining AI-powered pantry scanning, expiry tracking, and personalized recipe recommendations, it not only helps reduce waste but also supports healthier eating habits. The app considers nutritional balance, dietary preferences, and portion control — making it easier for users to prepare wholesome, home-cooked meals using what they already have.
 
-With food waste costing the U.S. over $218 billion annually, PrepSense represents not just a technological innovation—but a real opportunity to drive meaningful change at scale. At just 10,000 users, PrepSense could help rescue over 30,000 meals per month, reduce more than 100 tons of food waste, and deliver collective savings of over $1M annually.
+Our goal is to help people waste less, eat better, and live healthier, turning everyday meal preparation into a sustainable and health-conscious habit.
 
-PrepSense isn’t just a pantry tool—it’s a sustainability ally, a nutrition guide, and a smart kitchen companion.
-
----
-
-## 💡 Problem
-
-Despite advances in food delivery and meal planning apps, none provide an intelligent link between pantry inventory and personalized, health-driven recipe generation. Meanwhile, consumers continue to:
-- Waste money on food they forget to use
-- Buy groceries without knowing what they already have
-- Make unbalanced meals without nutrition insight
-- Lack motivation to cook at home
-
-The environmental and financial impact is staggering: $218 billion lost annually, and 30–40% of household food thrown away.
-
----
-
-## 🎯 Business Objective
-
-PrepSense sets out to create a tangible reduction in household food waste while supporting nutritional literacy and meal convenience. Its core business goals are to:
-
-- Help users become more mindful of what’s in their kitchen
-- Increase usage of perishables before expiry
-- Reduce reliance on takeout by offering relevant recipes
-- Encourage healthier eating through personalized insights
-- Provide a scalable model that can integrate with retailers, nutrition services, or healthcare ecosystems
+Built as a capstone project for the University of Chicago’s MS in Applied Data Science program, PrepSense combines computer vision, CrewAI-powered agent orchestration, and the use of Multimodal large language models (LLMs) to transform everyday household decisions into impactful actions.
 
 ---
 
 ## 👩‍🍳 User Persona: Lily
 
-Lily is a 30-year-old professional based in Dallas, TX. She prefers home-cooked meals and cares deeply about sustainability, but struggles with:
+Lily is a tech professional residing in San Diego. She is passionate about maintaining a healthy lifestyle, enjoys preparing nutritious home-cooked meals, and makes a weekly trip to the grocery store to stock her pantry. Lily is also deeply committed to sustainability and is mindful of how her daily choices impact the environment.
 
-- Remembering what’s in her fridge
-- Making meals that align with her health goals
-- Preventing food waste
+<img width="1920" height="1080" alt="PrepSense" src="https://github.com/user-attachments/assets/9f66e3ea-50a3-408a-b0e9-8dd4314e625c" />
 
-Her ideal solution is one that is mobile-first, fast, and “just works” without needing manual entry.
+Her challenges:
+
+Relies on manual pantry tracking — time-consuming and prone to error
+Forgets items in pantry or fridge until they expire → food waste
+Struggles to plan balanced meals with what she has on hand
+Occasionally resorts to less nutritious options when pressed for time
+Feels her food waste conflicts with her sustainability values
+
+Her ideal solution is one that is mobile-first, smart, and “just works” without needing manual entry.
 
 **PrepSense was built for Lily.**
+
+[app screenshot]
+
 
 ---
 ## 🧪 How It Works
