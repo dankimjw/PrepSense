@@ -14,11 +14,20 @@ const ENV_API_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 // `run_app.py` automatically detects your computer's IP and sets
 // EXPO_PUBLIC_API_BASE_URL when starting the app.
 // IMPORTANT: Never hardcode IP addresses as they change with network changes!
-// If ENV_API_URL is not set, we'll use localhost as a fallback and show a warning.
+// If ENV_API_URL is not set, we'll use localhost:8002 as a fallback (test backend port)
 const DEV_API_CONFIG = {
   baseURL: ENV_API_URL || 'http://127.0.0.1:8002/api/v1', // Fallback to localhost:8002 (test backend)
   timeout: 10000, // API request timeout in milliseconds (e.g., 10 seconds)
 };
+
+// Log the API configuration for debugging
+if (IS_DEVELOPMENT) {
+  console.log('🔧 API Configuration:', {
+    ENV_API_URL,
+    fallbackUsed: !ENV_API_URL,
+    finalURL: DEV_API_CONFIG.baseURL
+  });
+}
 
 // Production API (your deployed backend)
 // IMPORTANT: Replace with your actual deployed backend URL.

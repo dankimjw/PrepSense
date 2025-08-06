@@ -9,7 +9,6 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
-    model_config = ConfigDict(extra='ignore')
     
     # Allow direct OpenAI key if present (run_app may persist it)
     OPENAI_API_KEY: Optional[str] = None
@@ -137,7 +136,8 @@ class Settings(BaseSettings):
     
     model_config = ConfigDict(
         env_file="../.env",
-        case_sensitive=True
+        case_sensitive=True,
+        extra='allow'
     )
 
 

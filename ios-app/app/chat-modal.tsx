@@ -213,10 +213,14 @@ export default function ChatScreen() {
         </View>
       </View>
       
-      <View style={styles.content}>
+      <KeyboardAvoidingView 
+        style={styles.content}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <ScrollView 
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
+          keyboardShouldPersistTaps="handled"
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
@@ -363,10 +367,7 @@ export default function ChatScreen() {
           )}
         </ScrollView>
         
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}
-        >
+        <View style={[styles.inputContainer, { paddingBottom: Math.max(insets.bottom, 20) }]}>
           <TextInput
             style={styles.input}
             value={inputText}
@@ -401,8 +402,8 @@ export default function ChatScreen() {
               />
             )}
           </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </View>
+        </View>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
