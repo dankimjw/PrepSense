@@ -88,7 +88,12 @@ jobs:
             AFFECTED+=("dependencies")
           fi
           
-          AFFECTED_JSON=$(printf '%s\n' "${AFFECTED[@]}" | jq -R . | jq -s .)
+          # Convert array to JSON properly
+          if [ ${#AFFECTED[@]} -eq 0 ]; then
+            AFFECTED_JSON="[]"
+          else
+            AFFECTED_JSON=$(printf '%s\n' "${AFFECTED[@]}" | jq -R . | jq -s -c .)
+          fi
           echo "affected=$AFFECTED_JSON" >> $GITHUB_OUTPUT
           
           echo "🔄 Detected changes in: ${AFFECTED[*]}"
