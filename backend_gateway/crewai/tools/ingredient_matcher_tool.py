@@ -1,0 +1,31 @@
+"""Ingredient Matcher Tool for CrewAI
+
+Wraps the existing IngredientMatcherService to match recipe ingredients with pantry items.
+"""
+
+from crewai.tools import BaseTool
+from backend_gateway.services.ingredient_matcher_service import IngredientMatcherService
+import logging
+from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
+
+
+class IngredientMatcherTool(BaseTool):
+    name: str = "ingredient_matcher"
+    description: str = "Match recipe ingredients with pantry items using existing service"
+    
+    def _run(self, recipe_ingredients: List[Dict[str, Any]], pantry_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Use existing ingredient matching service"""
+        try:
+            matcher = IngredientMatcherService()
+            return matcher.match_ingredients(recipe_ingredients, pantry_items)
+        except Exception as e:
+            logger.error(f"Ingredient matching failed: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "matched_ingredients": [],
+                "missing_ingredients": recipe_ingredients,
+                "confidence_score": 0.0
+            }
