@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, Text, Image, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, Image, View, StyleSheet, Alert } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,6 +13,10 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
+
+// Fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
 
 interface Recipe {
   id: number;
@@ -67,6 +71,47 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
       );
     }
   }, [imageLoaded]);
+
+  // Enhanced recipe ID resolution
+  const getRecipeId = (): number | null => {
+    const id = recipe.id;
+    if (id && (typeof id === 'number' || typeof id === 'string')) {
+      const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+      if (!isNaN(numericId) && numericId > 0) {
+        console.log('🔍 AnimatedRecipeCard - Found recipe ID:', {
+          recipe_id: numericId,
+          original_type: typeof id
+        });
+        return numericId;
+      }
+    }
+    
+    console.error('❌ AnimatedRecipeCard - No valid recipe ID found:', {
+      id: recipe.id,
+      id_type: typeof recipe.id,
+      recipe_keys: Object.keys(recipe)
+    });
+    return null;
+  };
+
+  // Enhanced image URL handling with proper fallback
+  const getImageUrl = (): string => {
+    let imageUrl = recipe.image || '';
+    
+    console.log('🖼️ AnimatedRecipeCard - Processing image URL:', {
+      recipe_id: recipe.id,
+      image: recipe.image,
+      initial_url: imageUrl
+    });
+    
+    // Return fallback image if the URL is empty or invalid
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.log('🖼️ AnimatedRecipeCard - Using fallback image for recipe:', recipe.title);
+      return FALLBACK_RECIPE_IMAGE;
+    }
+    
+    return imageUrl;
+  };
 
   // Image load animation
   const handleImageLoad = () => {
@@ -135,7 +180,24 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
 
   const handleCardPress = () => {
     runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
+    
+    // Enhanced navigation logic with proper ID resolution
+    const recipeId = getRecipeId();
+    if (recipeId) {
+      router.push({
+        pathname: '/recipe-spoonacular-detail',
+        params: { recipeId: recipeId.toString() },
+      });
+    } else {
+      console.error('❌ AnimatedRecipeCard - Unable to navigate, no valid recipe ID found');
+      Alert.alert(
+        'Error', 
+        'Unable to open recipe details. This recipe may be corrupted or have missing information.',
+        [
+          { text: 'OK', style: 'default' }
+        ]
+      );
+    }
   };
 
   const availabilityPercentage = recipe.usedIngredientCount && recipe.missedIngredientCount 
@@ -159,9 +221,17 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
         {/* Recipe Image */}
         <Animated.View style={animatedImageStyle}>
           <Image 
-            source={{ uri: recipe.image }} 
+            source={{ uri: getImageUrl() }} 
             style={styles.recipeImage}
+            defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
             onLoad={handleImageLoad}
+            onError={(error) => {
+              console.log('🚨 AnimatedRecipeCard - Failed to load image:', {
+                recipe_id: recipe.id,
+                attempted_url: getImageUrl(),
+                error: error.nativeEvent?.error
+              });
+            }}
           />
         </Animated.View>
 
