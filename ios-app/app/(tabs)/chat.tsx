@@ -1,11 +1,10 @@
 // app/chat.tsx - Part of the PrepSense mobile app
-import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Image } from 'react-native';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { CustomHeader } from '../components/CustomHeader';
-import { sendChatMessage, Recipe, generateRecipeImage } from '../../services/api';
+import { LinearGradient } from 'expo-linear-gradient';
+import { sendChatMessage, Recipe } from '../../services/api';
 import Markdown from 'react-native-markdown-display';
 import { useTabData } from '../../context/TabDataProvider';
 
@@ -30,77 +29,60 @@ interface RecipeWithImage extends Recipe {
   imageUrl?: string;
 }
 
-// Recipe Card Component
+// Recipe Card Component - Spoonacular Style
 function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () => void }) {
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
+  const getRecipeImage = (): string => {
+    // Use fallback image for chat recipes since they don't have Spoonacular images
+    return 'https://img.spoonacular.com/recipes/default-312x231.jpg';
+  };
 
-  useEffect(() => {
-    // Fetch image for the recipe
-    const fetchImage = async () => {
-      try {
-        const response = await generateRecipeImage(
-          recipe.name,
-          "professional food photography",
-          false // Use Unsplash for speed
-        );
-        setImageUrl(response.image_url);
-      } catch (error) {
-        console.error('Error fetching recipe image:', error);
-      } finally {
-        setImageLoading(false);
-      }
+  const getIngredientCounts = () => {
+    return {
+      have: recipe.available_ingredients?.length || 0,
+      missing: recipe.missing_ingredients?.length || 0
     };
-
-    fetchImage();
-  }, [recipe.name]);
+  };
 
   return (
-    <TouchableOpacity style={styles.recipeCard} onPress={onPress}>
-      {/* Recipe Image */}
-      <View style={styles.recipeImageContainer}>
-        {imageLoading ? (
-          <View style={styles.imagePlaceholder}>
-            <ActivityIndicator size="small" color="#297A56" />
-          </View>
-        ) : imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.recipeImage} />
-        ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={30} color="#ccc" />
-          </View>
-        )}
-      </View>
-
-      {/* Recipe Content */}
-      <View style={styles.recipeContent}>
-        <Text style={styles.recipeTitle}>{recipe.name}</Text>
-        <View style={styles.recipeMetrics}>
-          <Text style={styles.recipeTime}>⏱️ {recipe.time} min</Text>
-          <Text style={styles.recipeMatch}>
-            📊 {Math.round(recipe.match_score * 100)}% match
+    <View style={styles.recipeCardWrapper}>
+      <TouchableOpacity
+        style={styles.recipeCard}
+        onPress={onPress}
+        activeOpacity={0.9}
+      >
+        <Image 
+          source={{ uri: getRecipeImage() }} 
+          style={styles.recipeImage}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.gradient}
+        />
+        <View style={styles.recipeInfo}>
+          <Text style={styles.recipeTitle} numberOfLines={2}>
+            {recipe.name}
           </Text>
+          <View style={styles.recipeStats}>
+            <View style={styles.stat}>
+              <MaterialCommunityIcons 
+                name="check-circle" 
+                size={16} 
+                color="#4CAF50"
+              />
+              <Text style={styles.statText}>{getIngredientCounts().have} have</Text>
+            </View>
+            <View style={styles.stat}>
+              <MaterialCommunityIcons 
+                name="close-circle" 
+                size={16} 
+                color="#F44336"
+              />
+              <Text style={styles.statText}>{getIngredientCounts().missing} missing</Text>
+            </View>
+          </View>
         </View>
-        
-        {recipe.available_ingredients.length > 0 && (
-          <View style={styles.ingredientSection}>
-            <Text style={styles.ingredientTitle}>✅ Available:</Text>
-            <Text style={styles.availableIngredients} numberOfLines={2}>
-              {recipe.available_ingredients.join(', ')}
-            </Text>
-          </View>
-        )}
-        
-        {recipe.missing_ingredients.length > 0 && (
-          <View style={styles.ingredientSection}>
-            <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
-            <Text style={styles.missingIngredients} numberOfLines={2}>
-              {recipe.missing_ingredients.join(', ')}
-            </Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -113,21 +95,13 @@ export default function ChatScreen() {
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const [usePreferences, setUsePreferences] = useState(true);
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
   const { chatData } = useTabData();
   
   // Use preloaded suggestions if available, otherwise use defaults
   const suggestedMessages = chatData?.suggestedQuestions || defaultSuggestedMessages;
   
-  // Check for suggestion from navigation
-  useEffect(() => {
-    if (params.suggestion) {
-      sendMessage(params.suggestion as string);
-    }
-  }, [params.suggestion]);
-
-  const sendMessage = async (messageText: string, withPreferences: boolean = usePreferences) => {
+  const sendMessage = useCallback(async (messageText: string, withPreferences: boolean = usePreferences) => {
     if (isLoading) return;
     
     setIsLoading(true);
@@ -139,636 +113,489 @@ export default function ChatScreen() {
       text: messageText,
       sender: 'user',
     };
-    
     setMessages(prev => [...prev, userMessage]);
     
     try {
-      // Call the actual API
-      const response = await sendChatMessage(messageText, 111, withPreferences);
-      
-      // Check if we should show preference choice
-      if (response.show_preference_choice && response.user_preferences && messages.length === 1) {
-        setUserPreferences(response.user_preferences);
-        setShowPreferenceChoice(true);
-      }
+      const response = await sendChatMessage(messageText, withPreferences ? userPreferences : null);
       
       // Add AI response
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response.response,
         sender: 'ai',
-        recipes: response.recipes,
+        recipes: response.recipes || [],
       };
-      
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
-      console.error('Error sending message:', error);
-      
-      // Add error message
+      console.error('Chat error:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: "Sorry, I'm having trouble connecting to the server. Please make sure the backend is running and try again.",
+        text: 'Sorry, I encountered an error. Please try again.',
         sender: 'ai',
       };
-      
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [isLoading, usePreferences, userPreferences]);
+  
+  // Check for suggestion from navigation
+  useEffect(() => {
+    if (params.suggestion) {
+      sendMessage(params.suggestion as string);
+    }
+  }, [params.suggestion, sendMessage]);
 
-  const handleSend = async () => {
-    if (inputText.trim() === '') return;
+  const handleSendMessage = async () => {
+    if (!inputText.trim()) return;
     
     const messageText = inputText.trim();
     setInputText('');
     await sendMessage(messageText);
   };
 
-  const handleSuggestedMessage = async (suggestion: string) => {
+  const handleSuggestionPress = async (suggestion: string) => {
     await sendMessage(suggestion);
   };
 
+  const handleRecipePress = (recipe: Recipe) => {
+    // Use RecipeDetailCardV3 for chat recipes
+    router.push({
+      pathname: '/recipe-details',
+      params: { recipeData: JSON.stringify(recipe) }
+    });
+  };
+
+  const renderMessage = (message: Message) => {
+    if (message.sender === 'user') {
+      return (
+        <View key={message.id} style={styles.userMessageContainer}>
+          <View style={styles.userMessage}>
+            <Text style={styles.userMessageText}>{message.text}</Text>
+          </View>
+        </View>
+      );
+    } else {
+      return (
+        <View key={message.id} style={styles.aiMessageContainer}>
+          <View style={styles.aiMessage}>
+            <Markdown style={markdownStyles}>
+              {message.text}
+            </Markdown>
+            
+            {message.recipes && message.recipes.length > 0 && (
+              <View style={styles.recipesContainer}>
+                <Text style={styles.recipesTitle}>Recommended Recipes:</Text>
+                <View style={styles.recipesGrid}>
+                  {message.recipes.map((recipe, index) => (
+                    <RecipeCard
+                      key={`${recipe.name}-${index}`}
+                      recipe={recipe}
+                      onPress={() => handleRecipePress(recipe)}
+                    />
+                  ))}
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+      );
+    }
+  };
+
+  const renderSuggestedMessages = () => {
+    if (!showSuggestions || messages.length > 0) return null;
+    
+    return (
+      <View style={styles.suggestionsContainer}>
+        <Text style={styles.suggestionsTitle}>Try asking:</Text>
+        {suggestedMessages.map((suggestion, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.suggestionButton}
+            onPress={() => handleSuggestionPress(suggestion)}
+          >
+            <Text style={styles.suggestionText}>{suggestion}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+
+  const renderPreferenceChoice = () => {
+    if (!showPreferenceChoice) return null;
+    
+    const lastUserMessage = messages[messages.length - 2];
+    if (!lastUserMessage || lastUserMessage.sender !== 'user') return null;
+    
+    return (
+      <View style={styles.preferenceChoiceContainer}>
+        <Text style={styles.preferenceChoiceTitle}>
+          Would you like me to consider your dietary preferences?
+        </Text>
+        <View style={styles.preferenceButtons}>
+          <TouchableOpacity
+            style={[styles.preferenceButton, styles.yesButton]}
+            onPress={() => {
+              setShowPreferenceChoice(false);
+              sendMessage(lastUserMessage.text, true);
+            }}
+          >
+            <Text style={styles.preferenceButtonText}>Yes, use my preferences</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.preferenceButton, styles.noButton]}
+            onPress={() => {
+              setShowPreferenceChoice(false);
+              sendMessage(lastUserMessage.text, false);
+            }}
+          >
+            <Text style={styles.preferenceButtonText}>No, show all options</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
-    <>
-      <View style={styles.container}>
-        <StatusBar barStyle="dark-content" />
-        <View style={[styles.content, { paddingBottom: insets.bottom }]}>
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+      
+      <KeyboardAvoidingView 
+        style={styles.keyboardView}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 0}
+      >
         <ScrollView 
           style={styles.messagesContainer}
           contentContainerStyle={styles.messagesContent}
-          contentInset={{ top: 60 }} // Add padding to account for the header
+          showsVerticalScrollIndicator={false}
         >
-          {messages.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="chatbubble-ellipses" size={48} color="#ccc" />
-              <Text style={styles.emptyStateText}>Ask me anything about your pantry!</Text>
-              
-              {showSuggestions && (
-                <View style={styles.suggestionsContainer}>
-                  <Text style={styles.suggestionsTitle}>Try asking:</Text>
-                  <View style={styles.suggestionBubbles}>
-                    {suggestedMessages.map((suggestion, index) => (
-                      <TouchableOpacity
-                        key={index}
-                        style={styles.suggestionBubble}
-                        onPress={() => handleSuggestedMessage(suggestion)}
-                        disabled={isLoading}
-                      >
-                        <Text style={styles.suggestionText}>{suggestion}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              )}
-            </View>
-          ) : (
-            messages.map((message) => (
-              <View key={message.id}>
-                <View 
-                  style={[
-                    styles.messageBubble,
-                    message.sender === 'user' ? styles.userBubble : styles.aiBubble,
-                  ]}
-                >
-                  {message.sender === 'user' ? (
-                    <Text style={styles.userText}>
-                      {message.text}
-                    </Text>
-                  ) : (
-                    <Markdown 
-                      style={markdownStyles}
-                    >
-                      {message.text}
-                    </Markdown>
-                  )}
-                </View>
-                
-                {/* Show preference choice after first AI response */}
-                {showPreferenceChoice && message.sender === 'ai' && messages.indexOf(message) === 1 && (
-                  <View style={styles.preferenceCard}>
-                    <Text style={styles.preferenceTitle}>Your Saved Preferences:</Text>
-                    {userPreferences && (
-                      <>
-                        {userPreferences.dietary_preference && userPreferences.dietary_preference.length > 0 && (
-                          <Text style={styles.preferenceItem}>
-                            🥗 Dietary: {userPreferences.dietary_preference.join(', ')}
-                          </Text>
-                        )}
-                        {userPreferences.allergens && userPreferences.allergens.length > 0 && (
-                          <Text style={styles.preferenceItem}>
-                            ⚠️ Allergens: {userPreferences.allergens.join(', ')}
-                          </Text>
-                        )}
-                        {userPreferences.cuisine_preference && userPreferences.cuisine_preference.length > 0 && (
-                          <Text style={styles.preferenceItem}>
-                            🌍 Cuisines: {userPreferences.cuisine_preference.join(', ')}
-                          </Text>
-                        )}
-                      </>
-                    )}
-                    <Text style={styles.preferenceQuestion}>
-                      Would you like me to use these preferences for recipe recommendations?
-                    </Text>
-                    <View style={styles.preferenceButtons}>
-                      <TouchableOpacity
-                        style={[styles.preferenceButton, styles.yesButton]}
-                        onPress={() => {
-                          setShowPreferenceChoice(false);
-                          setUsePreferences(true);
-                        }}
-                      >
-                        <Text style={styles.preferenceButtonText}>Yes, use my preferences</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.preferenceButton, styles.noButton]}
-                        onPress={() => {
-                          setShowPreferenceChoice(false);
-                          setUsePreferences(false);
-                          // Resend the last message without preferences
-                          const lastUserMessage = messages.find(m => m.sender === 'user');
-                          if (lastUserMessage) {
-                            sendMessage(lastUserMessage.text, false);
-                          }
-                        }}
-                      >
-                        <Text style={styles.preferenceButtonText}>No, show all recipes</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-                
-                {/* Show recipe cards for AI messages with recipes */}
-                {message.sender === 'ai' && message.recipes && message.recipes.length > 0 && (
-                  <View style={styles.recipesContainer}>
-                    {message.recipes.map((recipe, index) => (
-                      <RecipeCard
-                        key={index}
-                        recipe={recipe}
-                        onPress={() => {
-                          router.push({
-                            pathname: '/recipe-details',
-                            params: { recipe: JSON.stringify(recipe) }
-                          });
-                        }}
-                      />
-                    ))}
-                  </View>
-                )}
-              </View>
-            ))
-          )}
-          
-          {/* Show suggestions even after messages if user wants them */}
-          {messages.length > 0 && showSuggestions && (
-            <View style={styles.inlineSuggestionsContainer}>
-              <Text style={styles.inlineSuggestionsTitle}>Quick suggestions:</Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.inlineSuggestionBubbles}
-              >
-                {suggestedMessages.slice(0, 3).map((suggestion, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={styles.inlineSuggestionBubble}
-                    onPress={() => handleSuggestedMessage(suggestion)}
-                    disabled={isLoading}
-                  >
-                    <Text style={styles.inlineSuggestionText}>{suggestion}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          {renderSuggestedMessages()}
+          {messages.map(renderMessage)}
+          {renderPreferenceChoice()}
+          {isLoading && (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="#0066CC" />
+              <Text style={styles.loadingText}>Thinking...</Text>
             </View>
           )}
         </ScrollView>
         
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={styles.inputContainer}
-        >
+        <View style={styles.inputContainer}>
           <TextInput
-            style={styles.input}
+            style={styles.textInput}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Type a message..."
-            placeholderTextColor="#999"
+            placeholder="Ask about recipes, cooking tips..."
+            multiline
+            maxLength={500}
+            onSubmitEditing={handleSendMessage}
+            returnKeyType="send"
           />
-          {messages.length > 0 && (
-            <TouchableOpacity 
-              style={styles.suggestionsToggle} 
-              onPress={() => setShowSuggestions(!showSuggestions)}
-            >
-              <Ionicons 
-                name={showSuggestions ? "bulb" : "bulb-outline"} 
-                size={20} 
-                color="#297A56" 
-              />
-            </TouchableOpacity>
-          )}
           <TouchableOpacity 
-            style={styles.sendButton} 
-            onPress={handleSend}
-            disabled={inputText.trim() === '' || isLoading}
+            style={[styles.sendButton, !inputText.trim() && styles.sendButtonDisabled]}
+            onPress={handleSendMessage}
+            disabled={!inputText.trim() || isLoading}
           >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#297A56" />
-            ) : (
-              <Ionicons 
-                name="send" 
-                size={24} 
-                color={inputText.trim() === '' ? '#ccc' : '#297A56'} 
-              />
-            )}
+            <Ionicons 
+              name="send" 
+              size={20} 
+              color={inputText.trim() ? '#0066CC' : '#ccc'} 
+            />
           </TouchableOpacity>
-        </KeyboardAvoidingView>
-      </View>
-      </View>
-    </>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#f8f9fa',
   },
-  content: {
+  keyboardView: {
     flex: 1,
-  },
-  header: {
-    // Header styles are now in CustomHeader component
   },
   messagesContainer: {
     flex: 1,
-    padding: 16,
+    paddingHorizontal: 16,
   },
   messagesContent: {
-    paddingBottom: 16,
+    paddingBottom: 20,
   },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 100,
+  userMessageContainer: {
+    alignItems: 'flex-end',
+    marginVertical: 4,
   },
-  emptyStateText: {
-    marginTop: 16,
-    color: '#999',
-    fontSize: 16,
-  },
-  messageBubble: {
+  userMessage: {
+    backgroundColor: '#0066CC',
+    padding: 12,
+    borderRadius: 18,
     maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
   },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#297A56',
-    borderBottomRightRadius: 4,
-  },
-  aiBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#f0f0f0',
-    borderBottomLeftRadius: 4,
-  },
-  userText: {
+  userMessageText: {
     color: '#fff',
-  },
-  aiText: {
-    color: '#333',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    paddingBottom: 20, // Add extra padding to avoid + button overlap
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-    backgroundColor: '#fff',
-  },
-  input: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 24,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginRight: 8,
     fontSize: 16,
   },
-  sendButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
+  aiMessageContainer: {
+    alignItems: 'flex-start',
+    marginVertical: 4,
+  },
+  aiMessage: {
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 18,
+    maxWidth: '85%',
+    borderWidth: 1,
+    borderColor: '#e9ecef',
   },
   recipesContainer: {
-    marginTop: 8,
-    marginLeft: 16,
+    marginTop: 12,
+  },
+  recipesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  recipesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 8,
+  },
+  // Spoonacular-style recipe card styles
+  recipeCardWrapper: {
+    width: '50%',
+    paddingHorizontal: 8,
+    marginBottom: 16,
   },
   recipeCard: {
-    backgroundColor: '#fff',
+    width: '100%',
+    height: 220,
     borderRadius: 12,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-    flexDirection: 'row',
     overflow: 'hidden',
-  },
-  recipeImageContainer: {
-    width: 120,
-    height: 120,
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   recipeImage: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
   },
-  imagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f5f5f5',
-    justifyContent: 'center',
-    alignItems: 'center',
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
   },
-  recipeContent: {
-    flex: 1,
+  recipeInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 12,
   },
   recipeTitle: {
     fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+    marginBottom: 4,
+  },
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#fff',
+  },
+  recipeImageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    backgroundColor: '#e9ecef',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+    backgroundColor: '#e9ecef',
+  },
+  imageLoader: {
+    width: '100%',
+    height: '100%',
+  },
+  recipeContent: {
+    flex: 1,
+  },
+  recipeName: {
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#333',
+    marginBottom: 4,
+  },
+  recipeStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 6,
   },
-  recipeMetrics: {
-    flexDirection: 'row',
-    justifyContent: 'flex-start',
-    marginBottom: 8,
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  recipeTime: {
+  cookingTime: {
     fontSize: 12,
     color: '#666',
+    marginRight: 12,
   },
   recipeMatch: {
     fontSize: 12,
-    color: '#297A56',
-    fontWeight: '600',
+    color: '#28a745',
+    fontWeight: 'bold',
   },
   ingredientSection: {
-    marginBottom: 6,
+    marginBottom: 4,
   },
   ingredientTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#333',
+    fontSize: 11,
+    fontWeight: 'bold',
+    color: '#666',
     marginBottom: 2,
   },
   availableIngredients: {
-    fontSize: 12,
-    color: '#297A56',
-    lineHeight: 16,
+    fontSize: 11,
+    color: '#28a745',
   },
   missingIngredients: {
-    fontSize: 12,
-    color: '#DC2626',
-    lineHeight: 16,
-  },
-  nutritionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  nutritionText: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 11,
+    color: '#dc3545',
   },
   suggestionsContainer: {
-    marginTop: 24,
-    width: '100%',
-    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   suggestionsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#333',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  suggestionButton: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+  },
+  suggestionText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  preferenceChoiceContainer: {
+    backgroundColor: '#fff3cd',
+    padding: 16,
+    borderRadius: 12,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#ffeaa7',
+  },
+  preferenceChoiceTitle: {
+    fontSize: 16,
+    color: '#856404',
     marginBottom: 12,
     textAlign: 'center',
   },
-  suggestionBubbles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  suggestionBubble: {
-    backgroundColor: '#F0F7F4',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#297A56',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  suggestionText: {
-    fontSize: 14,
-    color: '#297A56',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  inlineSuggestionsContainer: {
-    marginTop: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 8,
-  },
-  inlineSuggestionsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 8,
-  },
-  inlineSuggestionBubbles: {
-    paddingRight: 16,
-  },
-  inlineSuggestionBubble: {
-    backgroundColor: '#F8F9FA',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#E9ECEF',
-  },
-  inlineSuggestionText: {
-    fontSize: 12,
-    color: '#6C757D',
-    fontWeight: '500',
-  },
-  suggestionsToggle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  tapHintContainer: {
-    alignItems: 'center',
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
-  },
-  tapHint: {
-    fontSize: 12,
-    color: '#999',
-    fontStyle: 'italic',
-  },
-  warningSection: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 8,
-  },
-  warningText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '600',
-  },
-  preferencesSection: {
-    backgroundColor: '#D1FAE5',
-    borderRadius: 8,
-    padding: 8,
-    marginTop: 8,
-  },
-  preferencesText: {
-    fontSize: 12,
-    color: '#065F46',
-    fontWeight: '600',
-  },
-  preferenceCard: {
-    backgroundColor: '#F0F7F4',
-    borderRadius: 12,
-    padding: 16,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    borderWidth: 1,
-    borderColor: '#297A56',
-  },
-  preferenceTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  preferenceItem: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 4,
-  },
-  preferenceQuestion: {
-    fontSize: 15,
-    color: '#333',
-    marginTop: 12,
-    marginBottom: 16,
-  },
   preferenceButtons: {
     flexDirection: 'row',
-    gap: 12,
+    justifyContent: 'space-around',
   },
   preferenceButton: {
-    flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    minWidth: 120,
     alignItems: 'center',
   },
   yesButton: {
-    backgroundColor: '#297A56',
+    backgroundColor: '#28a745',
   },
   noButton: {
-    backgroundColor: '#666',
+    backgroundColor: '#6c757d',
   },
   preferenceButtonText: {
     color: '#fff',
-    fontWeight: '600',
     fontSize: 14,
+    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+  },
+  loadingText: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#666',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    padding: 16,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#e9ecef',
+  },
+  textInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#e9ecef',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    maxHeight: 100,
+    backgroundColor: '#f8f9fa',
+  },
+  sendButton: {
+    marginLeft: 8,
+    padding: 12,
+    borderRadius: 20,
+    backgroundColor: '#f8f9fa',
+  },
+  sendButtonDisabled: {
+    opacity: 0.5,
   },
 });
 
 const markdownStyles = {
   body: {
-    color: '#333',
     fontSize: 16,
-    lineHeight: 22,
+    color: '#333',
   },
   paragraph: {
-    marginBottom: 8,
     fontSize: 16,
-    lineHeight: 22,
     color: '#333',
-  },
-  heading1: {
-    fontSize: 24,
-    fontWeight: 'bold',
     marginBottom: 8,
-    color: '#333',
-  },
-  heading2: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 6,
-    color: '#333',
-  },
-  heading3: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#333',
   },
   strong: {
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: '600' as const,
   },
-  listItem: {
-    marginBottom: 4,
+  em: {
+    fontStyle: 'italic' as const,
+  },
+  list_item: {
     fontSize: 16,
     color: '#333',
-  },
-  listItemBullet: {
-    color: '#297A56',
-    marginRight: 4,
-  },
-  listItemNumber: {
-    color: '#297A56',
-    marginRight: 4,
-  },
-  bullet_list: {
-    marginBottom: 8,
-  },
-  ordered_list: {
-    marginBottom: 8,
-  },
-  link: {
-    color: '#297A56',
-    textDecorationLine: 'underline',
   },
 };

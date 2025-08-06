@@ -15,6 +15,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as api from '../../services/api';
+import { Config } from '../../config';
 
 const { width } = Dimensions.get('window');
 
@@ -32,20 +33,20 @@ interface Recipe {
   usedIngredientCount?: number;
   missedIngredientCount?: number;
   spoonacularSourceUrl?: string;
-  usedIngredients?: Array<{
+  usedIngredients?: {
     id: number;
     amount: number;
     unit: string;
     name: string;
     image: string;
-  }>;
-  missedIngredients?: Array<{
+  }[];
+  missedIngredients?: {
     id: number;
     amount: number;
     unit: string;
     name: string;
     image: string;
-  }>;
+  }[];
 }
 
 interface SavedRecipe {
@@ -111,7 +112,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   const saveRecipe = async (recipe: Recipe) => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes`, {
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -229,30 +230,24 @@ const RecipesList: React.FC<RecipesListProps> = ({
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      if (recipe.source === 'chat') {
-        // Chat-generated recipes should go to recipe-details
+      const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
+      if (recipeId) {
         router.push({
           pathname: '/recipe-details',
-          params: { recipe: JSON.stringify(recipe.recipe_data) },
+          params: { recipeId: recipeId.toString() },
         });
       } else {
-        // Spoonacular recipes go to recipe-spoonacular-detail
-        const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
-        if (recipeId) {
-          router.push({
-            pathname: '/recipe-spoonacular-detail',
-            params: { recipeId: recipeId.toString() },
-          });
-        } else {
-          console.error('No recipe ID found for saved recipe:', recipe);
-          Alert.alert('Error', 'Unable to open recipe details');
-        }
+        // Fallback for saved recipes without ID - pass the recipe data directly
+        router.push({
+          pathname: '/recipe-details',
+          params: { recipeData: JSON.stringify(recipe.recipe_data) },
+        });
       }
     } else {
       // This is a regular recipe from search/discovery
       if (recipe.id) {
         router.push({
-          pathname: '/recipe-spoonacular-detail',
+          pathname: '/recipe-details',
           params: { recipeId: recipe.id.toString() },
         });
       } else {
@@ -264,7 +259,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   const toggleFavorite = async (recipeId: number, isFavorite: boolean) => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/favorite`, {
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -290,7 +285,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   const updateRecipeRating = async (recipeId: number, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/rating`, {
+      const response = await fetch(`${Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
