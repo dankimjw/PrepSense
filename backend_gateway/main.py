@@ -351,7 +351,7 @@ def main():
         print(f"   Location: /path/to/PrepSense/.env\n")
         print(f"2. Add the required configuration:")
         print(f"   # Database Configuration (Google Cloud SQL)")
-        print(f"   POSTGRES_HOST=***REMOVED***")
+        print(f"   POSTGRES_HOST=35.184.61.42")
         print(f"   POSTGRES_PORT=5432")
         print(f"   POSTGRES_DATABASE=prepsense")
         print(f"   POSTGRES_USER=postgres")

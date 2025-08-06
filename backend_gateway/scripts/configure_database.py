@@ -44,7 +44,7 @@ def update_env_file(use_postgres: bool):
         has_pg_config = any('POSTGRES_HOST' in line for line in new_lines)
         if not has_pg_config:
             new_lines.append('\n# PostgreSQL Configuration\n')
-            new_lines.append('POSTGRES_HOST=***REMOVED***  # Update with your Cloud SQL IP\n')
+            new_lines.append('POSTGRES_HOST=35.184.61.42  # Update with your Cloud SQL IP\n')
             new_lines.append('POSTGRES_PORT=5432\n')
             new_lines.append('POSTGRES_DATABASE=prepsense\n')
             new_lines.append('POSTGRES_USER=postgres\n')

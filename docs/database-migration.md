@@ -46,7 +46,7 @@ PrepSense has migrated from using Google BigQuery as the primary database to a h
 DB_TYPE=postgres  # or 'bigquery' for analytics
 
 # PostgreSQL Configuration
-POSTGRES_HOST=***REMOVED***
+POSTGRES_HOST=35.184.61.42
 POSTGRES_PORT=5432
 POSTGRES_DATABASE=prepsense
 POSTGRES_USER=postgres
@@ -59,7 +59,7 @@ BIGQUERY_DATASET=Inventory
 ```
 
 ### Connection Details
-- **Host**: ***REMOVED*** (Cloud SQL public IP)
+- **Host**: 35.184.61.42 (Cloud SQL public IP)
 - **Port**: 5432
 - **Database**: prepsense
 - **SSL**: Required for production
