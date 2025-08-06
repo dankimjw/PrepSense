@@ -56,7 +56,31 @@ Her ideal solution is one that is mobile-first, fast, and “just works” witho
 **PrepSense was built for Lily.**
 
 ---
+## 🧪 How It Works
 
+### 1. 📸 Scan Pantry or Receipt
+
+Users begin by capturing a photo of their pantry or grocery haul.
+
+<img width="589" height="1280" alt="image" src="https://github.com/user-attachments/assets/ec3cd5e6-3757-4d8d-8b6c-77b7224bcf73" />
+
+### 2. 🤖 Item Detection
+
+The system uses GPT-4o and vision models to identify and extract item names, quantities, categories, and expiry dates.
+
+<img width="589" height="1280" alt="image" src="https://github.com/user-attachments/assets/bc98d2c5-46fa-4e0c-b4ee-e914b60ccfd2" />
+
+Once processed, users can confirm and edit the recognized data.
+
+### 3. 🧾 Pantry Dashboard
+
+Items are automatically sorted by expiry date, and users can filter by category, freshness, or recent additions.
+
+<img width="589" height="1280" alt="image" src="https://github.com/user-attachments/assets/9b7f36e0-7f75-490e-973b-70fad70d661d" />
+
+From here, users can explore personalized recipe suggestions, generate a smart shopping list, and track impact metrics like food waste and money saved.
+
+---
 ## 📲 Product Experience
 
 ### 1. Pantry Tracking
@@ -71,7 +95,7 @@ Users take a photo of their pantry or receipt. Our system:
 Once pantry items are captured, users can:
 - Receive personalized recipe suggestions that use up ingredients before they expire
 - Filter by dietary goals (e.g., vegan, high-protein, low-sodium)
-- Chat with an intelligent assistant to find ideas like “Quick lunch with tofu, no dairy”
+- Chat with an intelligent assistant to find ideas 
 
 [Insert Screenshot]
 
@@ -148,10 +172,10 @@ Each of these agents is orchestrated via CrewAI using memory tools, custom promp
 |------------------|-----------------------------------------|
 | Mobile Frontend   | React Native, Expo                     |
 | Backend API       | FastAPI, Python                        |
-| Database          | SQLite (dev), PostgreSQL (prod-ready)  |
-| LLM Integration   | GPT-4o, chain-of-thought prompting      |
+| Database          | PostgreSQL (prod-ready)  |
+| LLM Integration   | GPT-4o, chain-of-thought prompting, Claude     |
 | Vision Processing | OpenAI Vision API, OCR & preprocessing |
-| Agent Orchestration | CrewAI                               |
+| Agent Orchestration | CrewAI                              |
 | Infrastructure    | GitHub Actions, Docker (planned), Cloud Run      |
 
 ---
