@@ -1,11 +1,13 @@
 // app/chat-modal.tsx - Part of the PrepSense mobile app
-import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image } from 'react-native';
+import { View, Text, SafeAreaView, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, StatusBar, ActivityIndicator, Alert, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect } from 'react';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { sendChatMessage, Recipe, generateRecipeImage } from '../services/api';
+import { sendChatMessage, generateRecipeImage } from '../services/api';
+import { Recipe } from '../services/recipeService';
 import Markdown from 'react-native-markdown-display';
+import RecipeDetailCardV3 from '../components/recipes/RecipeDetailCardV3';
 
 type Message = {
   id: string;
@@ -23,28 +25,48 @@ const suggestedMessages = [
   "What should I cook tonight?",
 ];
 
-// Extended Recipe type with image URL
-interface RecipeWithImage extends Recipe {
-  imageUrl?: string;
-  image?: string; // Spoonacular image URL
+// Modal state for recipe detail
+function RecipeDetailModal({ recipe, visible, onClose }: { 
+  recipe: Recipe | null; 
+  visible: boolean; 
+  onClose: () => void;
+}) {
+  if (!recipe) return null;
+
+  return (
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={onClose}
+    >
+      <RecipeDetailCardV3
+        recipe={recipe}
+        onBack={onClose}
+        onRatingSubmitted={(rating) => {
+          console.log('Recipe rated:', rating);
+        }}
+      />
+    </Modal>
+  );
 }
 
-// Recipe Card Component
-function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () => void }) {
+// Simplified Recipe Card Component for chat list
+function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
 
   useEffect(() => {
-    // Check if recipe has a Spoonacular image first
+    // Check if recipe has image first, otherwise fetch one
     if (recipe.image) {
       setImageUrl(recipe.image);
       setImageLoading(false);
     } else {
-      // Fallback to generating image if no Spoonacular image
+      // Fetch image for the recipe
       const fetchImage = async () => {
         try {
           const response = await generateRecipeImage(
-            recipe.name,
+            recipe.name || recipe.title || 'Recipe',
             "professional food photography",
             false // Use Unsplash for speed
           );
@@ -58,7 +80,15 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
 
       fetchImage();
     }
-  }, [recipe.name, recipe.image]);
+  }, [recipe.name, recipe.title, recipe.image]);
+
+  // Normalize recipe data for display
+  const recipeName = recipe.name || recipe.title || 'Untitled Recipe';
+  const recipeTime = recipe.time || recipe.readyInMinutes || 30;
+  const matchScore = recipe.match_score || 
+    (recipe.available_ingredients?.length && recipe.missing_ingredients?.length ? 
+      Math.round((recipe.available_ingredients.length / 
+        (recipe.available_ingredients.length + recipe.missing_ingredients.length)) * 100) : 85);
 
   return (
     <TouchableOpacity style={styles.recipeCard} onPress={onPress}>
@@ -79,11 +109,11 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
 
       {/* Recipe Content */}
       <View style={styles.recipeContent}>
-        <Text style={styles.recipeTitle}>{recipe.name}</Text>
+        <Text style={styles.recipeTitle}>{recipeName}</Text>
         <View style={styles.recipeMetrics}>
-          <Text style={styles.recipeTime}>⏱️ {recipe.time} min</Text>
+          <Text style={styles.recipeTime}>⏱️ {recipeTime} min</Text>
           <Text style={styles.recipeMatch}>
-            📊 {Math.round(recipe.match_score * 100)}% match
+            📊 {matchScore}% match
           </Text>
         </View>
         
@@ -117,6 +147,8 @@ export default function ChatScreen() {
   const [showPreferenceChoice, setShowPreferenceChoice] = useState(false);
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const [usePreferences, setUsePreferences] = useState(true);
+  const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
+  const [showRecipeDetail, setShowRecipeDetail] = useState(false);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const params = useLocalSearchParams();
@@ -330,10 +362,8 @@ export default function ChatScreen() {
                         key={index}
                         recipe={recipe}
                         onPress={() => {
-                          router.push({
-                            pathname: '/recipe-details',
-                            params: { recipe: JSON.stringify(recipe) }
-                          });
+                          setSelectedRecipe(recipe);
+                          setShowRecipeDetail(true);
                         }}
                       />
                     ))}
@@ -404,6 +434,16 @@ export default function ChatScreen() {
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Recipe Detail Modal */}
+      <RecipeDetailModal
+        recipe={selectedRecipe}
+        visible={showRecipeDetail}
+        onClose={() => {
+          setShowRecipeDetail(false);
+          setSelectedRecipe(null);
+        }}
+      />
     </SafeAreaView>
   );
 }
