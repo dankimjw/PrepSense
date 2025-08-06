@@ -114,6 +114,14 @@ const QuickActionCard = ({
     translateY.value = withDelay(delay, withSpring(0, { damping: 8, stiffness: 100 }));
     opacity.value = withDelay(delay, withSpring(1, { damping: 8 }));
     scale.value = withDelay(delay, withSpring(1, { damping: 8, stiffness: 100 }));
+
+    // Cleanup function
+    return () => {
+      if (longPressTimer.current) {
+        clearTimeout(longPressTimer.current);
+        longPressTimer.current = null;
+      }
+    };
   }, [index]);
 
   const animatedContainerStyle = useAnimatedStyle(() => ({
@@ -135,6 +143,7 @@ const QuickActionCard = ({
   }));
 
   const cancelLongPress = () => {
+    console.log('Long press cancelled for recipe button');
     setIsLongPressing(false);
     
     // Clear timer
@@ -148,6 +157,7 @@ const QuickActionCard = ({
   };
 
   const completeLongPress = () => {
+    console.log('Long press completed for recipe button - navigating to recipe completion');
     setIsLongPressing(false);
     
     // Clear timer
@@ -175,19 +185,27 @@ const QuickActionCard = ({
         <Animated.View style={[styles.longPressRing, longPressRingStyle]} />
       )}
       
-      <Pressable
-        style={({ pressed }) => [
+      <TouchableOpacity
+        style={[
           styles.actionCard, 
-          { backgroundColor: action.color + '15' },
-          pressed && styles.actionCardPressed
+          { backgroundColor: action.color + '15' }
         ]}
-        onPress={onPress}
+        onPress={() => {
+          // Only call onPress if it's not a long press for recipes
+          if (action.id === 'recipe' && isLongPressing) {
+            console.log('Blocking normal press because long press is in progress');
+            return;
+          }
+          onPress();
+        }}
         onPressIn={() => {
+          console.log('Press in on action:', action.id);
           iconScale.value = withSpring(0.9, { damping: 6 });
           scale.value = withSpring(0.95, { damping: 6 });
 
           // Start long press only for recipes button
           if (action.id === 'recipe') {
+            console.log('Starting long press for recipe button');
             setIsLongPressing(true);
             
             // Animate progress ring
@@ -203,6 +221,7 @@ const QuickActionCard = ({
           }
         }}
         onPressOut={() => {
+          console.log('Press out on action:', action.id, 'isLongPressing:', isLongPressing);
           iconScale.value = withSpring(1, { damping: 6 });
           scale.value = withSpring(1, { damping: 6 });
 
@@ -211,12 +230,20 @@ const QuickActionCard = ({
             cancelLongPress();
           }
         }}
+        delayLongPress={5000}
+        onLongPress={() => {
+          console.log('Native long press triggered for action:', action.id);
+          if (action.id === 'recipe') {
+            completeLongPress();
+          }
+        }}
+        activeOpacity={0.8}
       >
         <Animated.View style={[styles.actionIcon, { backgroundColor: action.color }, iconAnimatedStyle]}>
           <Ionicons name={action.icon} size={24} color="white" />
         </Animated.View>
         {renderButtonText(action)}
-      </Pressable>
+      </TouchableOpacity>
       
       {/* Long press hint for recipes button */}
       {action.id === 'recipe' && isLongPressing && (
@@ -293,9 +320,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  actionCardPressed: {
-    opacity: 0.8,
   },
   actionIcon: {
     width: 48,
