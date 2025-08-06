@@ -407,3 +407,37 @@ export const applyAIBulkCorrections = async (request: AIBulkEditRequest): Promis
     throw error;
   }
 };
+
+// User Recipe Management APIs
+export const deleteRecipe = async (recipeId: number): Promise<void> => {
+  try {
+    const userId = 111; // Default user ID - should be passed from context in production
+    const response = await fetch(`${API_BASE_URL}/user-recipes/${recipeId}?user_id=${userId}`, {
+      method: 'DELETE',
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error deleting recipe: ${response.statusText}`);
+    }
+  } catch (error) {
+    console.error('Error deleting recipe:', error);
+    throw error;
+  }
+};
+
+export const getUserRecipes = async (userId: number = 111): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/user-recipes?user_id=${userId}`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || `Error fetching user recipes: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching user recipes:', error);
+    throw error;
+  }
+};

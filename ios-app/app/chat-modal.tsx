@@ -87,7 +87,7 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
           </Text>
         </View>
         
-        {recipe.available_ingredients.length > 0 && (
+        {recipe.available_ingredients && recipe.available_ingredients.length > 0 && (
           <View style={styles.ingredientSection}>
             <Text style={styles.ingredientTitle}>✅ Available:</Text>
             <Text style={styles.availableIngredients} numberOfLines={2}>
@@ -96,7 +96,7 @@ function RecipeCard({ recipe, onPress }: { recipe: RecipeWithImage; onPress: () 
           </View>
         )}
         
-        {recipe.missing_ingredients.length > 0 && (
+        {recipe.missing_ingredients && recipe.missing_ingredients.length > 0 && (
           <View style={styles.ingredientSection}>
             <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
             <Text style={styles.missingIngredients} numberOfLines={2}>

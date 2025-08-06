@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,18 @@ import {
   Alert,
   Dimensions,
   StyleSheet,
+  TouchableOpacity,
+  Image,
 } from 'react-native';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { Image } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as api from '../../services/api';
+
+const { width } = Dimensions.get('window');
+
+// Fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
 
 interface Recipe {
   id: number;
@@ -26,6 +32,20 @@ interface Recipe {
   usedIngredientCount?: number;
   missedIngredientCount?: number;
   spoonacularSourceUrl?: string;
+  usedIngredients?: Array<{
+    id: number;
+    amount: number;
+    unit: string;
+    name: string;
+    image: string;
+  }>;
+  missedIngredients?: Array<{
+    id: number;
+    amount: number;
+    unit: string;
+    name: string;
+    image: string;
+  }>;
 }
 
 interface SavedRecipe {
@@ -36,6 +56,8 @@ interface SavedRecipe {
   recipe_data: any;
   created_at: string;
   updated_at: string;
+  rating?: 'thumbs_up' | 'thumbs_down' | 'neutral';
+  is_favorite?: boolean;
 }
 
 interface RecipesListProps {
@@ -45,8 +67,6 @@ interface RecipesListProps {
   refreshing: boolean;
   listType: 'fromPantry' | 'myRecipes';
 }
-
-const { width: screenWidth } = Dimensions.get('window');
 
 const RecipesList: React.FC<RecipesListProps> = ({
   recipes,
@@ -89,78 +109,121 @@ const RecipesList: React.FC<RecipesListProps> = ({
     );
   };
 
+  const saveRecipe = async (recipe: Recipe) => {
+    try {
+      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          recipe_id: recipe.id,
+          recipe_title: recipe.title,
+          recipe_image: recipe.image,
+          recipe_data: recipe,
+          source: 'spoonacular',
+          rating: 'neutral',
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        if (error.detail?.includes('already saved')) {
+          Alert.alert('Info', 'Recipe is already in your collection.');
+          return;
+        }
+        throw new Error('Failed to save recipe');
+      }
+      
+      Alert.alert('Success', 'Recipe saved to My Recipes!');
+    } catch (error) {
+      console.error('Error saving recipe:', error);
+      Alert.alert('Error', 'Failed to save recipe. Please try again.');
+    }
+  };
+
   const getRecipeTitle = (recipe: Recipe | SavedRecipe): string => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      return recipe.recipe_data?.title || recipe.recipe_data?.name || 'Untitled Recipe';
+      const title = recipe.recipe_data?.title || recipe.recipe_data?.name || 'Untitled Recipe';
+      console.log('📝 Saved recipe title extraction:', {
+        recipe_id: recipe.id,
+        recipe_data_title: recipe.recipe_data?.title,
+        recipe_data_name: recipe.recipe_data?.name,
+        final_title: title,
+        raw_recipe_data: JSON.stringify(recipe.recipe_data, null, 2).slice(0, 200) + '...'
+      });
+      return title;
     }
-    // This is a regular recipe
-    return recipe.title || 'Untitled Recipe';
+    // This is a regular recipe from Spoonacular API - handle both direct and nested structures
+    const title = recipe.title || recipe.name || 'Untitled Recipe';
+    console.log('📝 Spoonacular recipe title extraction:', {
+      recipe_id: recipe.id,
+      title: recipe.title,
+      name: recipe.name,
+      final_title: title
+    });
+    return title;
   };
 
-  const getRecipeImage = (recipe: Recipe | SavedRecipe): string | undefined => {
+  const getRecipeImage = (recipe: Recipe | SavedRecipe): string => {
+    let imageUrl = '';
+    
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      return recipe.recipe_data?.image || recipe.recipe_data?.image_url;
+      imageUrl = recipe.recipe_data?.image || recipe.recipe_data?.image_url || '';
+      console.log('🖼️ Saved recipe image URL:', {
+        recipe_id: recipe.id,
+        recipe_data_image: recipe.recipe_data?.image,
+        recipe_data_image_url: recipe.recipe_data?.image_url,
+        final_url: imageUrl
+      });
+    } else {
+      // This is a regular recipe from Spoonacular API - images are at the top level
+      imageUrl = recipe.image || '';
+      console.log('🖼️ Spoonacular recipe image URL:', {
+        recipe_id: recipe.id,
+        image: recipe.image,
+        final_url: imageUrl
+      });
     }
-    // This is a regular recipe
-    return recipe.image;
+    
+    // Return fallback image if the URL is empty or invalid
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.log('🖼️ Using fallback image for recipe:', getRecipeTitle(recipe));
+      return FALLBACK_RECIPE_IMAGE;
+    }
+    
+    return imageUrl;
   };
 
-  const getIngredientCount = (recipe: Recipe | SavedRecipe): string => {
+  const getIngredientCounts = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe - try to get ingredient count from recipe_data
       const ingredients = recipe.recipe_data?.ingredients || recipe.recipe_data?.extendedIngredients || [];
-      return `${ingredients.length} ingredients`;
+      const counts = {
+        have: ingredients.length,
+        missing: 0
+      };
+      console.log('🥕 Saved recipe ingredient counts:', {
+        recipe_id: recipe.id,
+        ingredients_length: ingredients.length,
+        counts
+      });
+      return counts;
     }
     // This is a regular recipe from Spoonacular
-    const used = recipe.usedIngredientCount || 0;
-    const missed = recipe.missedIngredientCount || 0;
-    const total = used + missed;
-    
-    if (total > 0) {
-      return `${used}/${total} ingredients from pantry`;
-    }
-    
-    return 'View ingredients';
-  };
-
-  const getCookingInfo = (recipe: Recipe | SavedRecipe): string => {
-    if ('recipe_data' in recipe) {
-      // This is a saved recipe
-      const time = recipe.recipe_data?.readyInMinutes || recipe.recipe_data?.cooking_time;
-      const servings = recipe.recipe_data?.servings || recipe.recipe_data?.yield;
-      
-      const parts = [];
-      if (time) parts.push(`${time} min`);
-      if (servings) parts.push(`${servings} servings`);
-      
-      return parts.length > 0 ? parts.join(' • ') : '';
-    }
-    // This is a regular recipe
-    const parts = [];
-    if (recipe.readyInMinutes) parts.push(`${recipe.readyInMinutes} min`);
-    if (recipe.servings) parts.push(`${recipe.servings} servings`);
-    
-    return parts.length > 0 ? parts.join(' • ') : '';
-  };
-
-  const getRecipeSource = (recipe: Recipe | SavedRecipe): string => {
-    if ('recipe_data' in recipe) {
-      // This is a saved recipe
-      switch (recipe.source) {
-        case 'chat':
-          return 'AI Generated';
-        case 'openai':
-          return 'OpenAI Recipe';
-        case 'spoonacular':
-          return 'Spoonacular';
-        default:
-          return 'Saved Recipe';
-      }
-    }
-    // This is a regular recipe from API
-    return 'Spoonacular';
+    const counts = {
+      have: recipe.usedIngredientCount || 0,
+      missing: recipe.missedIngredientCount || 0
+    };
+    console.log('🥕 Spoonacular recipe ingredient counts:', {
+      recipe_id: recipe.id,
+      usedIngredientCount: recipe.usedIngredientCount,
+      missedIngredientCount: recipe.missedIngredientCount,
+      counts
+    });
+    return counts;
   };
 
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
@@ -174,7 +237,6 @@ const RecipesList: React.FC<RecipesListProps> = ({
         });
       } else {
         // Spoonacular recipes go to recipe-spoonacular-detail
-        // Check if recipe_id exists (might be null for external recipes)
         const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
         if (recipeId) {
           router.push({
@@ -188,7 +250,6 @@ const RecipesList: React.FC<RecipesListProps> = ({
       }
     } else {
       // This is a regular recipe from search/discovery
-      // Add safety check for recipe.id
       if (recipe.id) {
         router.push({
           pathname: '/recipe-spoonacular-detail',
@@ -201,9 +262,192 @@ const RecipesList: React.FC<RecipesListProps> = ({
     }
   };
 
-  const handleScroll = (event: any) => {
-    const currentOffset = event.nativeEvent.contentOffset.y;
-    // Could implement infinite scroll here
+  const toggleFavorite = async (recipeId: number, isFavorite: boolean) => {
+    try {
+      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/favorite`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_favorite: isFavorite }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update favorite status');
+      }
+      
+      if (isFavorite) {
+        Alert.alert('Added to Favorites', 'This recipe will be used to improve your recommendations.');
+      }
+      
+      // Refresh the list
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating favorite:', error);
+      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+    }
+  };
+
+  const updateRecipeRating = async (recipeId: number, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
+    try {
+      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/rating`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rating }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating');
+      }
+      
+      // Refresh the list
+      onRefresh();
+    } catch (error) {
+      console.error('Error updating rating:', error);
+      Alert.alert('Error', 'Failed to update rating. Please try again.');
+    }
+  };
+
+  // Original Spoonacular Recipe Card Component
+  const renderRecipeCard = (recipe: Recipe, index: number) => (
+    <View style={styles.recipeCardWrapper}>
+      <TouchableOpacity
+        style={styles.recipeCard}
+        onPress={() => navigateToRecipeDetail(recipe)}
+        activeOpacity={0.9}
+      >
+        <Image 
+          source={{ uri: getRecipeImage(recipe) }} 
+          style={styles.recipeImage}
+          onError={() => console.log('🚨 Failed to load image:', getRecipeImage(recipe))}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.8)']}
+          style={styles.gradient}
+        />
+        <View style={styles.recipeInfo}>
+          <Text style={styles.recipeTitle} numberOfLines={2}>
+            {getRecipeTitle(recipe)}
+          </Text>
+          <View style={styles.recipeStats}>
+            <View style={styles.stat}>
+              <MaterialCommunityIcons 
+                name="check-circle" 
+                size={16} 
+                color="#4CAF50"
+              />
+              <Text style={styles.statText}>{getIngredientCounts(recipe).have} have</Text>
+            </View>
+            <View style={styles.stat}>
+              <MaterialCommunityIcons 
+                name="close-circle" 
+                size={16} 
+                color="#F44336"
+              />
+              <Text style={styles.statText}>{getIngredientCounts(recipe).missing} missing</Text>
+            </View>
+          </View>
+        </View>
+        <TouchableOpacity 
+          style={styles.saveButton}
+          onPress={() => saveRecipe(recipe)}
+        >
+          <Ionicons name="bookmark-outline" size={20} color="#fff" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </View>
+  );
+
+  // Original Spoonacular Saved Recipe Card Component
+  const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => {
+    const isDeleting = deletingRecipeId === savedRecipe.id;
+    
+    return (
+      <View style={styles.recipeCardWrapper}>
+        <TouchableOpacity
+          style={styles.recipeCard}
+          onPress={() => navigateToRecipeDetail(savedRecipe)}
+          activeOpacity={0.9}
+        >
+          <Image 
+            source={{ uri: getRecipeImage(savedRecipe) }} 
+            style={styles.recipeImage}
+            onError={() => console.log('🚨 Failed to load saved recipe image:', getRecipeImage(savedRecipe))}
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            style={styles.gradient}
+          />
+          <View style={styles.recipeInfo}>
+            <Text style={styles.recipeTitle} numberOfLines={2}>
+              {getRecipeTitle(savedRecipe)}
+            </Text>
+            {/* Rating buttons for saved recipes */}
+            {listType === 'myRecipes' && (
+              <View style={styles.ratingButtons}>
+                <TouchableOpacity 
+                  style={[
+                    styles.ratingButton,
+                    savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
+                  ]}
+                  onPress={() => updateRecipeRating(
+                    savedRecipe.id, 
+                    savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
+                  )}
+                >
+                  <Ionicons 
+                    name="thumbs-up" 
+                    size={16} 
+                    color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.ratingButton,
+                    savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
+                  ]}
+                  onPress={() => updateRecipeRating(
+                    savedRecipe.id, 
+                    savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
+                  )}
+                >
+                  <Ionicons 
+                    name="thumbs-down" 
+                    size={16} 
+                    color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                  />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+          <View style={styles.cardActions}>
+            <TouchableOpacity 
+              style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
+              onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
+            >
+              <Ionicons 
+                name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
+                size={16} 
+                color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={() => confirmDelete(savedRecipe.id, getRecipeTitle(savedRecipe))}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Ionicons name="trash-outline" size={14} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
   };
 
   if (isLoading) {
@@ -244,98 +488,41 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   return (
     <ScrollView
-      style={styles.container}
+      style={styles.scrollView}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
-      onScroll={handleScroll}
-      scrollEventThrottle={400}
     >
-      {recipes.map((recipe, index) => {
-        const title = getRecipeTitle(recipe);
-        const imageUrl = getRecipeImage(recipe);
-        const ingredientInfo = getIngredientCount(recipe);
-        const cookingInfo = getCookingInfo(recipe);
-        const source = getRecipeSource(recipe);
-        const isDeleting = 'id' in recipe && deletingRecipeId === recipe.id;
-
-        return (
-          <View key={index} style={styles.recipeCard}>
-            <TouchableOpacity
-              style={styles.cardContent}
-              onPress={() => navigateToRecipeDetail(recipe)}
-              activeOpacity={0.7}
-            >
-              {/* Recipe Image */}
-              <View style={styles.imageContainer}>
-                {imageUrl ? (
-                  <Image
-                    source={{ uri: imageUrl }}
-                    style={styles.recipeImage}
-                    contentFit="cover"
-                    placeholder={{ uri: 'https://via.placeholder.com/150x150?text=No+Image' }}
-                  />
-                ) : (
-                  <View style={styles.placeholderImage}>
-                    <Ionicons name="image-outline" size={40} color="#ccc" />
-                  </View>
-                )}
-                
-                {/* Recipe Source Badge */}
-                <View style={styles.sourceBadge}>
-                  <Text style={styles.sourceBadgeText}>{source}</Text>
-                </View>
-              </View>
-
-              {/* Recipe Details */}
-              <View style={styles.recipeDetails}>
-                <Text style={styles.recipeTitle} numberOfLines={2}>
-                  {title}
-                </Text>
-                
-                <Text style={styles.ingredientInfo}>
-                  {ingredientInfo}
-                </Text>
-                
-                {cookingInfo && (
-                  <Text style={styles.cookingInfo}>
-                    {cookingInfo}
-                  </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-
-            {/* Delete Button for Saved Recipes */}
-            {listType === 'myRecipes' && 'id' in recipe && (
-              <TouchableOpacity
-                style={[styles.deleteButton, isDeleting && styles.deleteButtonDisabled]}
-                onPress={() => confirmDelete(recipe.id, title)}
-                disabled={isDeleting}
-              >
-                {isDeleting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Ionicons name="trash-outline" size={20} color="#fff" />
-                )}
-              </TouchableOpacity>
-            )}
-          </View>
-        );
-      })}
+      <View style={styles.recipesGrid}>
+        {recipes.map((recipe, index) => {
+          // Create truly unique keys by combining type prefix, recipe ID, and index
+          // This prevents collisions even if recipes have duplicate IDs or appear multiple times
+          const recipeType = ('recipe_data' in recipe) ? 'saved' : 'recipe';
+          const recipeId = recipe.id || 'unknown';
+          const uniqueKey = `${recipeType}-${recipeId}-${index}`;
+          
+          if ('recipe_data' in recipe) {
+            return <React.Fragment key={uniqueKey}>{renderSavedRecipeCard(recipe as SavedRecipe, index)}</React.Fragment>;
+          } else {
+            return <React.Fragment key={uniqueKey}>{renderRecipeCard(recipe as Recipe, index)}</React.Fragment>;
+          }
+        })}
+      </View>
     </ScrollView>
   );
 };
 
+// Original Spoonacular Recipe Card Styles
 const styles = StyleSheet.create({
-  container: {
+  scrollView: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#F9FAFB',
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: 50,
+    backgroundColor: '#F9FAFB',
   },
   loadingText: {
     marginTop: 12,
@@ -363,91 +550,110 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  recipeCard: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    marginHorizontal: 16,
-    marginVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-    overflow: 'hidden',
-  },
-  cardContent: {
+  recipesGrid: {
     flexDirection: 'row',
-    padding: 0,
+    flexWrap: 'wrap',
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 20,
   },
-  imageContainer: {
-    width: 120,
-    height: 120,
-    position: 'relative',
+  recipeCardWrapper: {
+    width: '50%',
+    paddingHorizontal: 8,
+    marginBottom: 16,
+  },
+  recipeCard: {
+    width: '100%',
+    height: 220,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   recipeImage: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
-  placeholderImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sourceBadge: {
+  gradient: {
     position: 'absolute',
-    top: 8,
-    left: 8,
-    backgroundColor: 'rgba(76, 175, 80, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 100,
   },
-  sourceBadgeText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '600',
-  },
-  recipeDetails: {
-    flex: 1,
+  recipeInfo: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
     padding: 12,
-    justifyContent: 'flex-start',
   },
   recipeTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
-    lineHeight: 20,
-  },
-  ingredientInfo: {
-    fontSize: 13,
-    color: '#4CAF50',
+    color: '#fff',
     marginBottom: 4,
-    fontWeight: '500',
   },
-  cookingInfo: {
+  recipeStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  stat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: '#fff',
   },
-  deleteButton: {
+  saveButton: {
     position: 'absolute',
     top: 8,
     right: 8,
-    backgroundColor: 'rgba(244, 67, 54, 0.9)',
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
   },
-  deleteButtonDisabled: {
-    opacity: 0.5,
+  ratingButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 4,
+  },
+  ratingButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  ratingButtonActive: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+  },
+  cardActions: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    flexDirection: 'column',
+    gap: 4,
+  },
+  favoriteButton: {
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+    padding: 6,
+  },
+  favoriteButtonActive: {
+    backgroundColor: 'rgba(255,68,68,0.8)',
+  },
+  deleteButton: {
+    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+    borderRadius: 16,
+    padding: 6,
   },
 });
 
