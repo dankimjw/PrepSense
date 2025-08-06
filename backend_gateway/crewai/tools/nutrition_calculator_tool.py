@@ -1,0 +1,63 @@
+"""Nutrition Calculator Tool for CrewAI
+
+Wraps the existing OpenAIRecipeService to calculate nutrition information for ingredients and recipes.
+"""
+
+from crewai.tools import BaseTool
+from backend_gateway.services.openai_recipe_service import OpenAIRecipeService
+import logging
+from typing import List, Dict, Any
+
+logger = logging.getLogger(__name__)
+
+
+class NutritionCalculatorTool(BaseTool):
+    name: str = "nutrition_calculator"
+    description: str = "Calculate nutrition using existing nutrition service"
+    
+    def _run(self, ingredients: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Use existing nutrition calculation service"""
+        try:
+            nutrition_service = OpenAIRecipeService()
+            
+            # Extract ingredient names and quantities for nutrition calculation
+            ingredient_list = []
+            for ingredient in ingredients:
+                if isinstance(ingredient, dict):
+                    name = ingredient.get('name') or ingredient.get('ingredient') or str(ingredient)
+                    quantity = ingredient.get('quantity', 1)
+                    unit = ingredient.get('unit', '')
+                    ingredient_list.append(f"{quantity} {unit} {name}".strip())
+                else:
+                    ingredient_list.append(str(ingredient))
+            
+            # Use the service to calculate nutrition
+            result = nutrition_service.calculate_nutrition(ingredient_list)
+            
+            if isinstance(result, dict):
+                return {
+                    "status": "success",
+                    "nutrition": result,
+                    "ingredients_analyzed": len(ingredient_list)
+                }
+            else:
+                return {
+                    "status": "success", 
+                    "nutrition": result,
+                    "ingredients_analyzed": len(ingredient_list)
+                }
+                
+        except Exception as e:
+            logger.error(f"Nutrition calculation failed: {e}")
+            return {
+                "status": "error",
+                "message": str(e),
+                "nutrition": {
+                    "calories": 0,
+                    "protein": 0,
+                    "carbs": 0,
+                    "fat": 0,
+                    "fiber": 0
+                },
+                "ingredients_analyzed": 0
+            }
