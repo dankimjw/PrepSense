@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { TouchableOpacity, Text, Image, View, StyleSheet } from 'react-native';
+import { TouchableOpacity, Text, Image, View, StyleSheet, Alert } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -13,6 +13,10 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { Config } from '../../config';
+import { router } from 'expo-router';
+
+// Fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
 
 interface SavedRecipe {
   id: string;
@@ -74,12 +78,71 @@ const AnimatedSavedRecipeCard: React.FC<AnimatedSavedRecipeCardProps> = ({
     imageOpacity.value = withSpring(1, { damping: 15 });
   };
 
-  // Fix image URL if it's a relative path
-  let imageUrl = recipe.recipe_image;
-  if (imageUrl && !imageUrl.startsWith('http')) {
-    const baseUrl = Config.API_BASE_URL.replace('/api/v1', '');
-    imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-  }
+  // Enhanced recipe ID resolution with comprehensive fallback logic
+  const getRecipeId = (): number | null => {
+    const possibleIds = [
+      recipe.recipe_id,
+      recipe.recipe_data?.external_recipe_id,
+      recipe.recipe_data?.id,
+      recipe.recipe_data?.spoonacular_id,
+      parseInt(recipe.id, 10) // Convert string ID to number as last resort
+    ];
+    
+    for (const id of possibleIds) {
+      if (id && (typeof id === 'number' || typeof id === 'string')) {
+        const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+        if (!isNaN(numericId) && numericId > 0) {
+          console.log('🔍 AnimatedSavedRecipeCard - Found recipe ID:', {
+            recipe_id: recipe.id,
+            source_field: possibleIds.indexOf(id) === 0 ? 'recipe_id' : 
+                         possibleIds.indexOf(id) === 1 ? 'external_recipe_id' :
+                         possibleIds.indexOf(id) === 2 ? 'recipe_data.id' :
+                         possibleIds.indexOf(id) === 3 ? 'spoonacular_id' : 'fallback_id',
+            found_id: numericId
+          });
+          return numericId;
+        }
+      }
+    }
+    
+    console.error('❌ AnimatedSavedRecipeCard - No valid recipe ID found:', {
+      recipe_id: recipe.id,
+      recipe_id_field: recipe.recipe_id,
+      recipe_data_keys: recipe.recipe_data ? Object.keys(recipe.recipe_data) : 'no recipe_data'
+    });
+    return null;
+  };
+
+  // Enhanced image URL handling with proper fallback
+  const getImageUrl = (): string => {
+    let imageUrl = recipe.recipe_image || recipe.recipe_data?.image || recipe.recipe_data?.image_url || '';
+    
+    console.log('🖼️ AnimatedSavedRecipeCard - Processing image URL:', {
+      recipe_id: recipe.id,
+      recipe_image: recipe.recipe_image,
+      recipe_data_image: recipe.recipe_data?.image,
+      recipe_data_image_url: recipe.recipe_data?.image_url,
+      initial_url: imageUrl
+    });
+    
+    // Fix relative URLs for backend-served images
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      const baseUrl = Config.API_BASE_URL.replace('/api/v1', '');
+      imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+      console.log('🔧 AnimatedSavedRecipeCard - Fixed relative image URL:', {
+        original: recipe.recipe_image,
+        fixed: imageUrl
+      });
+    }
+    
+    // Return fallback image if the URL is empty or invalid
+    if (!imageUrl || imageUrl.trim() === '') {
+      console.log('🖼️ AnimatedSavedRecipeCard - Using fallback image for recipe:', recipe.recipe_title);
+      return FALLBACK_RECIPE_IMAGE;
+    }
+    
+    return imageUrl;
+  };
 
   const animatedCardStyle = useAnimatedStyle(() => ({
     transform: [
@@ -146,7 +209,33 @@ const AnimatedSavedRecipeCard: React.FC<AnimatedSavedRecipeCardProps> = ({
 
   const handleCardPress = () => {
     runOnJS(Haptics.impactAsync)(Haptics.ImpactFeedbackStyle.Light);
-    onPress();
+    
+    // Enhanced navigation logic with proper ID resolution
+    if (recipe.source === 'chat' || recipe.source === 'openai') {
+      // Chat/AI-generated recipes should go to recipe-details
+      router.push({
+        pathname: '/recipe-details',
+        params: { recipe: JSON.stringify(recipe.recipe_data) },
+      });
+    } else {
+      // Spoonacular saved recipes go to recipe-spoonacular-detail
+      const recipeId = getRecipeId();
+      if (recipeId) {
+        router.push({
+          pathname: '/recipe-spoonacular-detail',
+          params: { recipeId: recipeId.toString() },
+        });
+      } else {
+        console.error('❌ AnimatedSavedRecipeCard - Unable to navigate, no valid recipe ID found');
+        Alert.alert(
+          'Error', 
+          'Unable to open recipe details. This recipe may be corrupted or have missing information.',
+          [
+            { text: 'OK', style: 'default' }
+          ]
+        );
+      }
+    }
   };
 
   return (
@@ -161,9 +250,17 @@ const AnimatedSavedRecipeCard: React.FC<AnimatedSavedRecipeCardProps> = ({
         {/* Recipe Image */}
         <Animated.View style={animatedImageStyle}>
           <Image 
-            source={{ uri: imageUrl }} 
+            source={{ uri: getImageUrl() }} 
             style={styles.recipeImage}
+            defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
             onLoad={handleImageLoad}
+            onError={(error) => {
+              console.log('🚨 AnimatedSavedRecipeCard - Failed to load image:', {
+                recipe_id: recipe.id,
+                attempted_url: getImageUrl(),
+                error: error.nativeEvent?.error
+              });
+            }}
           />
         </Animated.View>
 

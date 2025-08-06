@@ -15,6 +15,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import * as api from '../../services/api';
+import { Config } from '../../config';
 
 const { width } = Dimensions.get('window');
 
@@ -111,7 +112,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   const saveRecipe = async (recipe: Recipe) => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes`, {
+      const response = await fetch(`${api.Config?.API_BASE_URL || Config.API_BASE_URL}/user-recipes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -188,6 +189,16 @@ const RecipesList: React.FC<RecipesListProps> = ({
       });
     }
     
+    // Fix relative URLs for backend-served images
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      const baseUrl = Config.API_BASE_URL.replace('/api/v1', '');
+      imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
+      console.log('🔧 Fixed relative image URL:', {
+        original: imageUrl.includes(baseUrl) ? imageUrl.replace(baseUrl, '').replace('/', '') : imageUrl,
+        fixed: imageUrl
+      });
+    }
+    
     // Return fallback image if the URL is empty or invalid
     if (!imageUrl || imageUrl.trim() === '') {
       console.log('🖼️ Using fallback image for recipe:', getRecipeTitle(recipe));
@@ -226,45 +237,111 @@ const RecipesList: React.FC<RecipesListProps> = ({
     return counts;
   };
 
+  // Enhanced recipe ID resolution with comprehensive fallback logic
+  const getRecipeId = (recipe: Recipe | SavedRecipe): number | null => {
+    if ('recipe_data' in recipe) {
+      // This is a saved recipe - try multiple ID sources
+      const possibleIds = [
+        recipe.recipe_id,
+        recipe.recipe_data?.external_recipe_id,
+        recipe.recipe_data?.id,
+        recipe.recipe_data?.spoonacular_id,
+        recipe.id // Use the saved recipe's own ID as last resort
+      ];
+      
+      for (const id of possibleIds) {
+        if (id && (typeof id === 'number' || typeof id === 'string')) {
+          const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+          if (!isNaN(numericId) && numericId > 0) {
+            console.log('🔍 Found recipe ID for saved recipe:', {
+              recipe_id: recipe.id,
+              source_field: possibleIds.indexOf(id) === 0 ? 'recipe_id' : 
+                           possibleIds.indexOf(id) === 1 ? 'external_recipe_id' :
+                           possibleIds.indexOf(id) === 2 ? 'recipe_data.id' :
+                           possibleIds.indexOf(id) === 3 ? 'spoonacular_id' : 'fallback_id',
+              found_id: numericId
+            });
+            return numericId;
+          }
+        }
+      }
+      
+      console.error('❌ No valid recipe ID found for saved recipe:', {
+        recipe_id: recipe.id,
+        recipe_id_field: recipe.recipe_id,
+        recipe_data_keys: recipe.recipe_data ? Object.keys(recipe.recipe_data) : 'no recipe_data'
+      });
+      return null;
+    } else {
+      // This is a regular recipe from Spoonacular
+      const id = recipe.id;
+      if (id && (typeof id === 'number' || typeof id === 'string')) {
+        const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+        if (!isNaN(numericId) && numericId > 0) {
+          console.log('🔍 Found recipe ID for regular recipe:', {
+            recipe_id: numericId,
+            original_type: typeof id
+          });
+          return numericId;
+        }
+      }
+      
+      console.error('❌ No valid recipe ID found for regular recipe:', {
+        id: recipe.id,
+        id_type: typeof recipe.id,
+        recipe_keys: Object.keys(recipe)
+      });
+      return null;
+    }
+  };
+
   const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
     if ('recipe_data' in recipe) {
       // This is a saved recipe
-      if (recipe.source === 'chat') {
-        // Chat-generated recipes should go to recipe-details
+      if (recipe.source === 'chat' || recipe.source === 'openai') {
+        // Chat/AI-generated recipes should go to recipe-details
         router.push({
           pathname: '/recipe-details',
           params: { recipe: JSON.stringify(recipe.recipe_data) },
         });
+        return;
       } else {
-        // Spoonacular recipes go to recipe-spoonacular-detail
-        const recipeId = recipe.recipe_id || recipe.recipe_data?.external_recipe_id || recipe.recipe_data?.id;
+        // Spoonacular saved recipes go to recipe-spoonacular-detail
+        const recipeId = getRecipeId(recipe);
         if (recipeId) {
           router.push({
             pathname: '/recipe-spoonacular-detail',
             params: { recipeId: recipeId.toString() },
           });
-        } else {
-          console.error('No recipe ID found for saved recipe:', recipe);
-          Alert.alert('Error', 'Unable to open recipe details');
+          return;
         }
       }
     } else {
       // This is a regular recipe from search/discovery
-      if (recipe.id) {
+      const recipeId = getRecipeId(recipe);
+      if (recipeId) {
         router.push({
           pathname: '/recipe-spoonacular-detail',
-          params: { recipeId: recipe.id.toString() },
+          params: { recipeId: recipeId.toString() },
         });
-      } else {
-        console.error('No recipe ID found for regular recipe:', recipe);
-        Alert.alert('Error', 'Unable to open recipe details - missing recipe ID');
+        return;
       }
     }
+    
+    // If we get here, we couldn't find a valid ID
+    console.error('❌ Unable to navigate - no valid recipe ID found:', recipe);
+    Alert.alert(
+      'Error', 
+      'Unable to open recipe details. This recipe may be corrupted or have missing information.',
+      [
+        { text: 'OK', style: 'default' }
+      ]
+    );
   };
 
   const toggleFavorite = async (recipeId: number, isFavorite: boolean) => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/favorite`, {
+      const response = await fetch(`${api.Config?.API_BASE_URL || Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -290,7 +367,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
 
   const updateRecipeRating = async (recipeId: number, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
     try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || 'http://127.0.0.1:8002/api/v1'}/user-recipes/${recipeId}/rating`, {
+      const response = await fetch(`${api.Config?.API_BASE_URL || Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -310,7 +387,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
     }
   };
 
-  // Original Spoonacular Recipe Card Component
+  // Enhanced recipe card with better image error handling
   const renderRecipeCard = (recipe: Recipe, index: number) => (
     <View style={styles.recipeCardWrapper}>
       <TouchableOpacity
@@ -321,7 +398,14 @@ const RecipesList: React.FC<RecipesListProps> = ({
         <Image 
           source={{ uri: getRecipeImage(recipe) }} 
           style={styles.recipeImage}
-          onError={() => console.log('🚨 Failed to load image:', getRecipeImage(recipe))}
+          defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
+          onError={(error) => {
+            console.log('🚨 Failed to load recipe image:', {
+              recipe_id: recipe.id,
+              attempted_url: getRecipeImage(recipe),
+              error: error.nativeEvent?.error
+            });
+          }}
         />
         <LinearGradient
           colors={['transparent', 'rgba(0,0,0,0.8)']}
@@ -360,7 +444,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
     </View>
   );
 
-  // Original Spoonacular Saved Recipe Card Component
+  // Enhanced saved recipe card with better image error handling
   const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => {
     const isDeleting = deletingRecipeId === savedRecipe.id;
     
@@ -374,7 +458,14 @@ const RecipesList: React.FC<RecipesListProps> = ({
           <Image 
             source={{ uri: getRecipeImage(savedRecipe) }} 
             style={styles.recipeImage}
-            onError={() => console.log('🚨 Failed to load saved recipe image:', getRecipeImage(savedRecipe))}
+            defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
+            onError={(error) => {
+              console.log('🚨 Failed to load saved recipe image:', {
+                recipe_id: savedRecipe.id,
+                attempted_url: getRecipeImage(savedRecipe),
+                error: error.nativeEvent?.error
+              });
+            }}
           />
           <LinearGradient
             colors={['transparent', 'rgba(0,0,0,0.8)']}
