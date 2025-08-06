@@ -42,7 +42,7 @@ export const useItemsWithFilters = () => {
       
       switch (filters.sortBy) {
         case 'name':
-          comparison = a.item_name.localeCompare(b.item_name);
+          comparison = (a.item_name || '').localeCompare(b.item_name || '');
           break;
         case 'category':
           comparison = (a.category || '').localeCompare(b.category || '');

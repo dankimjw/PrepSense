@@ -1,11 +1,14 @@
 """Logic for generating recipes using OpenAI based on pantry items."""
 
 import os
+
+import openai
 import pandas as pd
 from fastapi import HTTPException
 from pydantic import BaseModel
-import openai
+
 from ..core.openai_client import get_openai_client
+
 
 class RecipeService:
     """
@@ -39,13 +42,15 @@ class RecipeService:
             )
 
             # Call OpenAI API to generate the recipe
-            response = self.client.chat.completions.create(model="gpt-4",  # Updated model
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=500,
-            temperature=0.7)
+            response = self.client.chat.completions.create(
+                model="gpt-4",  # Updated model
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=500,
+                temperature=0.7,
+            )
 
             recipe_text = response.choices[0].message.content.strip()
             return recipe_text
@@ -90,7 +95,7 @@ class RecipeService:
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": "Test message to OpenAI"}
+                    {"role": "user", "content": "Test message to OpenAI"},
                 ],
                 max_tokens=100,
                 temperature=0.7,

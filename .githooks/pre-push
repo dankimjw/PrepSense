@@ -1,0 +1,213 @@
+#!/usr/bin/env bash
+# PrepSense Pre-Push Hook
+# Runs additional tests and validations before pushing code
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}🚀 PrepSense Pre-Push Hook Starting...${NC}"
+
+# Get the remote repository URL and branch being pushed
+remote="$1"
+url="$2"
+
+echo -e "${YELLOW}📡 Pushing to: ${remote} (${url})${NC}"
+
+# Read stdin to get the range of commits being pushed
+while read local_ref local_sha remote_ref remote_sha
+do
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]
+    then
+        # Handle branch deletion
+        echo -e "${YELLOW}🗑️ Branch deletion detected, skipping pre-push checks${NC}"
+        exit 0
+    fi
+
+    if [ "$remote_sha" = "0000000000000000000000000000000000000000" ]
+    then
+        # New branch, check all commits
+        range="$local_sha"
+    else
+        # Update branch, check commits between remote and local
+        range="$remote_sha..$local_sha"
+    fi
+
+    echo -e "${YELLOW}📝 Checking commits in range: ${range}${NC}"
+    
+    # 1. Run comprehensive test suite
+    echo -e "${YELLOW}🧪 Running comprehensive test suite...${NC}"
+    
+    # Backend tests
+    if [ -d "backend_gateway" ]; then
+        cd backend_gateway
+        echo -e "${YELLOW}🐍 Running Python tests...${NC}"
+        
+        # Unit tests
+        if [ -d "tests" ]; then
+            python -m pytest tests/ -v --tb=short --maxfail=5 || {
+                echo -e "${RED}❌ Backend tests failed${NC}"
+                exit 1
+            }
+        fi
+        
+        # Contract tests
+        if [ -d "tests/contracts" ]; then
+            echo -e "${YELLOW}📄 Running contract tests...${NC}"
+            python -m pytest tests/contracts/ -v --tb=short || {
+                echo -e "${RED}❌ Contract tests failed${NC}"
+                exit 1
+            }
+        fi
+        
+        cd ..
+    fi
+    
+    # Frontend tests
+    if [ -d "ios-app" ]; then
+        cd ios-app
+        echo -e "${YELLOW}📱 Running React Native tests...${NC}"
+        
+        # Type checking
+        npm run typecheck || {
+            echo -e "${RED}❌ TypeScript type checking failed${NC}"
+            exit 1
+        }
+        
+        # Unit tests
+        npm run test:ci || {
+            echo -e "${RED}❌ React Native tests failed${NC}"
+            exit 1
+        }
+        
+        cd ..
+    fi
+    
+    # 2. Security and vulnerability checks
+    echo -e "${YELLOW}🔒 Running security checks...${NC}"
+    
+    # Python security scan
+    if [ -f "requirements.txt" ]; then
+        pip-audit --desc || {
+            echo -e "${YELLOW}⚠️ Security vulnerabilities found in Python dependencies${NC}"
+            # Don't fail on vulnerabilities, just warn
+        }
+    fi
+    
+    # Node.js security scan
+    if [ -d "ios-app" ]; then
+        cd ios-app
+        npm audit --audit-level=moderate || {
+            echo -e "${YELLOW}⚠️ Security vulnerabilities found in Node.js dependencies${NC}"
+            # Don't fail on vulnerabilities, just warn
+        }
+        cd ..
+    fi
+    
+    # 3. Performance regression detection
+    echo -e "${YELLOW}⚡ Running performance checks...${NC}"
+    
+    # Backend performance test
+    if [ -f "backend_gateway/locustfile.py" ]; then
+        echo -e "${YELLOW}🐝 Running backend performance tests...${NC}"
+        cd backend_gateway
+        
+        # Start backend in background for testing
+        export DATABASE_URL="sqlite:///./test.db"
+        export OPENAI_API_KEY="test-key-123"
+        export TESTING="true"
+        
+        python -m uvicorn app:app --port 8999 &
+        SERVER_PID=$!
+        sleep 5
+        
+        # Run performance tests
+        locust -f locustfile.py -H http://localhost:8999 -u 5 -r 2 --run-time 30s --headless --only-summary || {
+            kill $SERVER_PID 2>/dev/null || true
+            echo -e "${YELLOW}⚠️ Performance tests completed with warnings${NC}"
+        }
+        
+        kill $SERVER_PID 2>/dev/null || true
+        cd ..
+    fi
+    
+    # 4. API contract validation
+    echo -e "${YELLOW}📋 Validating API contracts...${NC}"
+    
+    if [ -f "backend_gateway/openapi.json" ] && command -v spectral &> /dev/null; then
+        npx @stoplight/spectral-cli lint backend_gateway/openapi.json || {
+            echo -e "${YELLOW}⚠️ API contract validation completed with warnings${NC}"
+        }
+    fi
+    
+    # 5. Database migration check
+    echo -e "${YELLOW}💾 Checking database migrations...${NC}"
+    
+    if [ -d "backend_gateway" ] && [ -f "backend_gateway/alembic.ini" ]; then
+        cd backend_gateway
+        # Check if migrations are up to date
+        alembic check || {
+            echo -e "${YELLOW}⚠️ Database migrations may need attention${NC}"
+        }
+        cd ..
+    fi
+    
+    # 6. Build verification
+    echo -e "${YELLOW}🏗️ Verifying builds...${NC}"
+    
+    # React Native build check
+    if [ -d "ios-app" ]; then
+        cd ios-app
+        echo -e "${YELLOW}📦 Checking React Native bundle...${NC}"
+        
+        # Verify bundle can be created
+        npx expo export:embed --dev false --platform ios || {
+            echo -e "${RED}❌ React Native build verification failed${NC}"
+            exit 1
+        }
+        
+        cd ..
+    fi
+    
+    # 7. Code quality metrics
+    echo -e "${YELLOW}📊 Checking code quality metrics...${NC}"
+    
+    # Python code quality
+    if [ -d "backend_gateway" ]; then
+        echo -e "${YELLOW}🐍 Python code quality...${NC}"
+        cd backend_gateway
+        
+        # Complexity check with radon (if available)
+        if command -v radon &> /dev/null; then
+            radon cc . --average || true
+        fi
+        
+        cd ..
+    fi
+    
+    # 8. Environment compatibility check
+    echo -e "${YELLOW}🌍 Checking environment compatibility...${NC}"
+    
+    # Check Python version compatibility
+    python -c "import sys; exit(0 if sys.version_info >= (3, 9) else 1)" || {
+        echo -e "${RED}❌ Python version must be 3.9 or higher${NC}"
+        exit 1
+    }
+    
+    # Check Node.js version compatibility
+    if [ -d "ios-app" ]; then
+        node --version | grep -E "v(18|20|21)" || {
+            echo -e "${YELLOW}⚠️ Node.js version may not be optimal (recommended: 18.x, 20.x, or 21.x)${NC}"
+        }
+    fi
+    
+done
+
+echo -e "${GREEN}✅ Pre-push checks completed successfully!${NC}"
+echo -e "${GREEN}🚀 Ready to push to ${remote}${NC}"
+
+exit 0

@@ -12,13 +12,14 @@ sys.path.append(str(Path(__file__).parent.parent.parent))
 
 from backend_gateway.config.database import get_database_service
 
+
 def check_recipes_constraint():
     """Check recipes table and constraints"""
     print("Checking recipes table and constraints...")
-    
+
     # Get database service
     db_service = get_database_service()
-    
+
     try:
         # Check foreign key constraints
         constraint_query = """
@@ -39,14 +40,16 @@ def check_recipes_constraint():
             WHERE tc.constraint_type = 'FOREIGN KEY' 
             AND tc.table_name='user_recipes';
         """
-        
+
         constraints = db_service.execute_query(constraint_query)
         if constraints:
             print("\nForeign key constraints on user_recipes:")
             for c in constraints:
-                print(f"  - {c['column_name']} -> {c['foreign_table_name']}.{c['foreign_column_name']}")
+                print(
+                    f"  - {c['column_name']} -> {c['foreign_table_name']}.{c['foreign_column_name']}"
+                )
                 print(f"    Constraint name: {c['constraint_name']}")
-                
+
         # Check recipes table structure
         recipes_query = """
             SELECT column_name, data_type, is_nullable
@@ -55,7 +58,7 @@ def check_recipes_constraint():
             AND table_schema = 'public'
             ORDER BY ordinal_position;
         """
-        
+
         columns = db_service.execute_query(recipes_query)
         if columns:
             print("\n\nColumns in 'recipes' table:")
@@ -63,24 +66,27 @@ def check_recipes_constraint():
                 print(f"  - {col['column_name']} ({col['data_type']})")
         else:
             print("\n❌ 'recipes' table does not exist!")
-            
+
         # Check sample data in recipes table
         sample_query = """
             SELECT recipe_id, recipe_name, cuisine_type
             FROM recipes
             LIMIT 5;
         """
-        
+
         samples = db_service.execute_query(sample_query)
         if samples:
             print("\n\nSample recipes:")
             for s in samples:
-                print(f"  - ID: {s['recipe_id']}, Name: {s.get('recipe_name', 'N/A')}, Cuisine: {s.get('cuisine_type', 'N/A')}")
+                print(
+                    f"  - ID: {s['recipe_id']}, Name: {s.get('recipe_name', 'N/A')}, Cuisine: {s.get('cuisine_type', 'N/A')}"
+                )
         else:
             print("\nNo recipes found in recipes table")
-            
+
     except Exception as e:
         print(f"❌ Error checking constraints: {e}")
+
 
 if __name__ == "__main__":
     check_recipes_constraint()

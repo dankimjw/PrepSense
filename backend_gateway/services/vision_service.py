@@ -2,13 +2,15 @@
 
 # File: PrepSense/backend_gateway/services/vision_service.py
 import base64
-import openai
-import os
-from dotenv import load_dotenv
-from datetime import datetime, timedelta
-import re
 import json
-from typing import Optional, Tuple, List, Dict, Any
+import os
+import re
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional, Tuple
+
+import openai
+from dotenv import load_dotenv
+
 from ..core.openai_client import get_openai_client
 
 # Load environment variables.
@@ -22,6 +24,7 @@ load_dotenv()
 # For newer library versions (v1.0.0+):
 # client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Make sure this matches how you instantiate/use it in classify_food_items
+
 
 class VisionService:
     def __init__(self):
@@ -103,18 +106,18 @@ class VisionService:
             "- Do not assign a date earlier than today's date.\n\n"
             "Format your answer as a STRICT JSON array ONLY like this:\n"
             "[\n"
-            "  {\"item_name\": <string>, \"quantity\": <string>, \"count\": <integer>, \"category\": <string>, \"expiration_date\": <YYYY-MM-DD>},\n"
+            '  {"item_name": <string>, "quantity": <string>, "count": <integer>, "category": <string>, "expiration_date": <YYYY-MM-DD>},\n'
             "  ...\n"
             "]\n"
             "DO NOT include any explanation before or after the JSON."
         )
 
         if not content_type:
-            content_type = "image/jpeg" # Default if not provided
+            content_type = "image/jpeg"  # Default if not provided
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o", # Or your preferred current vision model
+                model="gpt-4o",  # Or your preferred current vision model
                 messages=[
                     {
                         "role": "user",
@@ -130,22 +133,22 @@ class VisionService:
                 max_tokens=1500,
                 temperature=0.5,
             )
-            
+
             # Log the full OpenAI vision response for debugging
             print(f"\n👁️ OpenAI Vision API Response:")
             print(f"   Model: gpt-4o (vision)")
             print(f"   Usage: {response.usage}")
             print(f"   Response ID: {response.id}")
-            
+
             vision_result = response.choices[0].message.content.strip()
             print(f"   Vision Result Preview:")
             print(f"   {vision_result[:300]}...")
             print(f"   Full Result Length: {len(vision_result)} characters\n")
-            
+
             return vision_result
 
         except Exception as e:
-            print(f"Error communicating with OpenAI API: {e}") # Log the actual error
+            print(f"Error communicating with OpenAI API: {e}")  # Log the actual error
             raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}")
 
     def parse_openai_response(self, response_text: str) -> List[Dict[str, Any]]:
@@ -161,21 +164,25 @@ class VisionService:
         cleaned_text = response_text.strip()
         # Enhanced cleaning for potential markdown code blocks
         if cleaned_text.startswith("```json"):
-            cleaned_text = cleaned_text[len("```json"):].strip()
-        if cleaned_text.startswith("```"): # Catch if only ``` is used
-            cleaned_text = cleaned_text[len("```"):].strip()
+            cleaned_text = cleaned_text[len("```json") :].strip()
+        if cleaned_text.startswith("```"):  # Catch if only ``` is used
+            cleaned_text = cleaned_text[len("```") :].strip()
         if cleaned_text.endswith("```"):
-            cleaned_text = cleaned_text[:-len("```")].strip()
+            cleaned_text = cleaned_text[: -len("```")].strip()
 
         try:
             items = json.loads(cleaned_text)
             if not isinstance(items, list):
-                 # Handle cases where the response might be a single dict instead of a list of dicts
-                 if isinstance(items, dict):
-                     items = [items] # Convert to list if it's a single item
-                 else:
-                    print(f"OpenAI response is not a JSON array or dictionary as expected. Raw: {cleaned_text}")
-                    raise ValueError("OpenAI response is not a JSON array or dictionary as expected.")
+                # Handle cases where the response might be a single dict instead of a list of dicts
+                if isinstance(items, dict):
+                    items = [items]  # Convert to list if it's a single item
+                else:
+                    print(
+                        f"OpenAI response is not a JSON array or dictionary as expected. Raw: {cleaned_text}"
+                    )
+                    raise ValueError(
+                        "OpenAI response is not a JSON array or dictionary as expected."
+                    )
         except json.JSONDecodeError as e:
             print(f"Failed to decode JSON. Raw text: '{cleaned_text}'. Error: {e}")
             raise ValueError(f"Failed to decode JSON from OpenAI response. Content: {cleaned_text}")
@@ -186,13 +193,15 @@ class VisionService:
                 continue
 
             item_name = item.get("item_name", "Unknown Item")
-            quantity_str = item.get("quantity", "1 unit") # Default if not provided
-            count = item.get("count", 1) # Get count, default to 1 if not provided
-            category = item.get("category", "Other") # Get category, default to "Other" if not provided
+            quantity_str = item.get("quantity", "1 unit")  # Default if not provided
+            count = item.get("count", 1)  # Get count, default to 1 if not provided
+            category = item.get(
+                "category", "Other"
+            )  # Get category, default to "Other" if not provided
             expiration_date_str = item.get("expiration_date")
 
             quantity_amount = 1.0
-            quantity_unit = "unit" # Default unit
+            quantity_unit = "unit"  # Default unit
 
             if quantity_str:
                 # Updated regex to capture number and the rest as unit/description
@@ -206,20 +215,26 @@ class VisionService:
                         else:
                             quantity_unit = "unit"
                     except ValueError:
-                        print(f"Could not parse quantity amount from: '{match.group(1)}' for item '{item_name}'")
+                        print(
+                            f"Could not parse quantity amount from: '{match.group(1)}' for item '{item_name}'"
+                        )
                         quantity_amount = 1.0
                         quantity_unit = str(quantity_str).strip()
                 else:
-                     print(f"Could not parse quantity string: '{quantity_str}' for item '{item_name}' using regex. Using original as unit.")
-                     quantity_amount = 1.0
-                     quantity_unit = str(quantity_str).strip()
+                    print(
+                        f"Could not parse quantity string: '{quantity_str}' for item '{item_name}' using regex. Using original as unit."
+                    )
+                    quantity_amount = 1.0
+                    quantity_unit = str(quantity_str).strip()
 
-            expected_expiry_date = today + timedelta(days=7) # Default if no date
+            expected_expiry_date = today + timedelta(days=7)  # Default if no date
             if expiration_date_str:
                 try:
                     expected_expiry_date = datetime.strptime(expiration_date_str, "%Y-%m-%d").date()
                 except ValueError:
-                    print(f"Could not parse expiration date '{expiration_date_str}' for item '{item_name}'. Using default.")
+                    print(
+                        f"Could not parse expiration date '{expiration_date_str}' for item '{item_name}'. Using default."
+                    )
 
             # Create a unique key for the item based on name and unit
             item_key = f"{item_name}|{quantity_unit}"
@@ -229,7 +244,12 @@ class VisionService:
                 item_dict[item_key]["quantity_amount"] += quantity_amount
                 item_dict[item_key]["count"] += count
                 # Keep the earlier expiration date
-                if expected_expiry_date < datetime.strptime(item_dict[item_key]["expected_expiration"], "%Y-%m-%d").date():
+                if (
+                    expected_expiry_date
+                    < datetime.strptime(
+                        item_dict[item_key]["expected_expiration"], "%Y-%m-%d"
+                    ).date()
+                ):
                     item_dict[item_key]["expected_expiration"] = expected_expiry_date.isoformat()
             else:
                 # If item doesn't exist, add it to the dictionary
@@ -239,7 +259,7 @@ class VisionService:
                     "quantity_unit": quantity_unit,
                     "category": category,
                     "count": count,
-                    "expected_expiration": expected_expiry_date.isoformat()
+                    "expected_expiration": expected_expiry_date.isoformat(),
                 }
 
         # Convert the dictionary values to a list

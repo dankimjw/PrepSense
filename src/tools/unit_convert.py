@@ -1,10 +1,12 @@
 from decimal import Decimal, getcontext
+
 from pint import UnitRegistry
 
 ureg = UnitRegistry()
 ureg.define("dozen = 12 * count")
 ureg.define("each = 1 * count")
 getcontext().prec = 6
+
 
 def to_canonical(qty: float | str, unit: str, density: float | None = None):
     """

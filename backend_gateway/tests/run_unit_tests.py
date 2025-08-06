@@ -3,8 +3,8 @@
 Run unit tests for service clients without loading the full app configuration.
 This allows testing API client wrappers in isolation.
 """
-import sys
 import os
+import sys
 import unittest
 
 # Set test environment variables before any imports
@@ -31,10 +31,10 @@ if __name__ == "__main__":
     # Create test suite
     loader = unittest.TestLoader()
     suite = loader.loadTestsFromTestCase(TestSpoonacularClient)
-    
+
     # Run tests
     runner = unittest.TextTestRunner(verbosity=2)
     result = runner.run(suite)
-    
+
     # Exit with appropriate code
     sys.exit(0 if result.wasSuccessful() else 1)

@@ -1,8 +1,9 @@
 """Mock recipe router for testing recipe completion and pantry subtraction"""
 
-from fastapi import APIRouter, Depends, HTTPException
-from typing import Dict, Any, List
 import logging
+from typing import Any, Dict, List
+
+from fastapi import APIRouter, Depends, HTTPException
 
 from backend_gateway.config.database import get_database_service
 
@@ -29,7 +30,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "400g pasta (spaghetti)",
                 "amount": 400,
                 "unit": "g",
-                "originalName": "pasta (spaghetti)"
+                "originalName": "pasta (spaghetti)",
             },
             {
                 "id": 2,
@@ -37,7 +38,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "4 large eggs",
                 "amount": 4,
                 "unit": "",
-                "originalName": "large eggs"
+                "originalName": "large eggs",
             },
             {
                 "id": 3,
@@ -45,7 +46,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "2 tablespoons olive oil",
                 "amount": 2,
                 "unit": "tablespoons",
-                "originalName": "olive oil"
+                "originalName": "olive oil",
             },
             {
                 "id": 4,
@@ -53,7 +54,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1 teaspoon salt",
                 "amount": 1,
                 "unit": "teaspoon",
-                "originalName": "salt"
+                "originalName": "salt",
             },
             {
                 "id": 5,
@@ -61,8 +62,8 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1/2 teaspoon black pepper",
                 "amount": 0.5,
                 "unit": "teaspoon",
-                "originalName": "black pepper"
-            }
+                "originalName": "black pepper",
+            },
         ],
         "analyzedInstructions": [
             {
@@ -70,23 +71,20 @@ MOCK_RECIPES_FOR_TESTING = [
                 "steps": [
                     {
                         "number": 1,
-                        "step": "Bring a large pot of salted water to boil and cook pasta according to package directions."
+                        "step": "Bring a large pot of salted water to boil and cook pasta according to package directions.",
                     },
                     {
                         "number": 2,
-                        "step": "While pasta cooks, whisk eggs with salt and pepper in a bowl."
+                        "step": "While pasta cooks, whisk eggs with salt and pepper in a bowl.",
                     },
-                    {
-                        "number": 3,
-                        "step": "Drain pasta, reserving 1 cup pasta water."
-                    },
+                    {"number": 3, "step": "Drain pasta, reserving 1 cup pasta water."},
                     {
                         "number": 4,
-                        "step": "Toss hot pasta with egg mixture and olive oil to create creamy sauce."
-                    }
-                ]
+                        "step": "Toss hot pasta with egg mixture and olive oil to create creamy sauce.",
+                    },
+                ],
             }
-        ]
+        ],
     },
     {
         "id": 635675,
@@ -101,7 +99,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "2 1/4 cups all-purpose flour",
                 "amount": 2.25,
                 "unit": "cups",
-                "originalName": "all-purpose flour"
+                "originalName": "all-purpose flour",
             },
             {
                 "id": 2,
@@ -109,7 +107,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1 cup butter, softened",
                 "amount": 1,
                 "unit": "cup",
-                "originalName": "butter, softened"
+                "originalName": "butter, softened",
             },
             {
                 "id": 3,
@@ -117,7 +115,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "3/4 cup granulated sugar",
                 "amount": 0.75,
                 "unit": "cup",
-                "originalName": "granulated sugar"
+                "originalName": "granulated sugar",
             },
             {
                 "id": 4,
@@ -125,7 +123,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "2 large eggs",
                 "amount": 2,
                 "unit": "",
-                "originalName": "large eggs"
+                "originalName": "large eggs",
             },
             {
                 "id": 5,
@@ -133,7 +131,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1 teaspoon vanilla extract",
                 "amount": 1,
                 "unit": "teaspoon",
-                "originalName": "vanilla extract"
+                "originalName": "vanilla extract",
             },
             {
                 "id": 6,
@@ -141,36 +139,21 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1 teaspoon salt",
                 "amount": 1,
                 "unit": "teaspoon",
-                "originalName": "salt"
-            }
+                "originalName": "salt",
+            },
         ],
         "analyzedInstructions": [
             {
                 "name": "",
                 "steps": [
-                    {
-                        "number": 1,
-                        "step": "Preheat oven to 375°F (190°C)."
-                    },
-                    {
-                        "number": 2,
-                        "step": "Cream butter and sugars until fluffy."
-                    },
-                    {
-                        "number": 3,
-                        "step": "Beat in eggs and vanilla."
-                    },
-                    {
-                        "number": 4,
-                        "step": "Mix in flour and salt."
-                    },
-                    {
-                        "number": 5,
-                        "step": "Drop dough on baking sheets and bake 9-11 minutes."
-                    }
-                ]
+                    {"number": 1, "step": "Preheat oven to 375°F (190°C)."},
+                    {"number": 2, "step": "Cream butter and sugars until fluffy."},
+                    {"number": 3, "step": "Beat in eggs and vanilla."},
+                    {"number": 4, "step": "Mix in flour and salt."},
+                    {"number": 5, "step": "Drop dough on baking sheets and bake 9-11 minutes."},
+                ],
             }
-        ]
+        ],
     },
     {
         "id": 632665,
@@ -185,7 +168,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1.5 pounds chicken breast",
                 "amount": 1.5,
                 "unit": "pounds",
-                "originalName": "chicken breast"
+                "originalName": "chicken breast",
             },
             {
                 "id": 2,
@@ -193,7 +176,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1/4 cup olive oil",
                 "amount": 0.25,
                 "unit": "cup",
-                "originalName": "olive oil"
+                "originalName": "olive oil",
             },
             {
                 "id": 3,
@@ -201,7 +184,7 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "2 teaspoons salt",
                 "amount": 2,
                 "unit": "teaspoons",
-                "originalName": "salt"
+                "originalName": "salt",
             },
             {
                 "id": 4,
@@ -209,33 +192,21 @@ MOCK_RECIPES_FOR_TESTING = [
                 "original": "1 teaspoon black pepper",
                 "amount": 1,
                 "unit": "teaspoon",
-                "originalName": "black pepper"
-            }
+                "originalName": "black pepper",
+            },
         ],
         "analyzedInstructions": [
             {
                 "name": "",
                 "steps": [
-                    {
-                        "number": 1,
-                        "step": "Preheat oven to 425°F (220°C)."
-                    },
-                    {
-                        "number": 2,
-                        "step": "Season chicken with salt and pepper."
-                    },
-                    {
-                        "number": 3,
-                        "step": "Drizzle with olive oil."
-                    },
-                    {
-                        "number": 4,
-                        "step": "Roast for 45-50 minutes until golden."
-                    }
-                ]
+                    {"number": 1, "step": "Preheat oven to 425°F (220°C)."},
+                    {"number": 2, "step": "Season chicken with salt and pepper."},
+                    {"number": 3, "step": "Drizzle with olive oil."},
+                    {"number": 4, "step": "Roast for 45-50 minutes until golden."},
+                ],
             }
-        ]
-    }
+        ],
+    },
 ]
 
 # Import RemoteControl
@@ -243,6 +214,7 @@ from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled, set_mo
 
 # Enable/disable mock mode - DEPRECATED, use RemoteControl instead
 use_mock_recipes = False
+
 
 @router.post("/enable-mock-recipes", summary="Enable mock recipes for testing")
 async def enable_mock_recipes(enable: bool = True):
@@ -252,8 +224,9 @@ async def enable_mock_recipes(enable: bool = True):
     return {
         "success": True,
         "mock_recipes_enabled": enable,
-        "message": f"Mock recipes {'enabled' if enable else 'disabled'}"
+        "message": f"Mock recipes {'enabled' if enable else 'disabled'}",
     }
+
 
 @router.get("/test-recipes", summary="Get mock recipes for testing")
 async def get_mock_recipes():
@@ -261,8 +234,9 @@ async def get_mock_recipes():
     return {
         "recipes": MOCK_RECIPES_FOR_TESTING,
         "enabled": is_chat_recipes_mock_enabled(),
-        "message": "These are the recipes that will be recommended when mock mode is enabled"
+        "message": "These are the recipes that will be recommended when mock mode is enabled",
     }
+
 
 @router.get("/mock-recipe/{recipe_id}", summary="Get a specific mock recipe")
 async def get_mock_recipe(recipe_id: int):
@@ -270,29 +244,33 @@ async def get_mock_recipe(recipe_id: int):
     for recipe in MOCK_RECIPES_FOR_TESTING:
         if recipe["id"] == recipe_id:
             return recipe
-    
+
     raise HTTPException(status_code=404, detail="Mock recipe not found")
+
 
 def get_mock_recipes_for_chat():
     """Helper function to get mock recipes in chat format"""
     if not is_chat_recipes_mock_enabled():
         return None
-        
+
     return [
         {
             "name": recipe["title"],
             "ingredients": [ing["original"] for ing in recipe["extendedIngredients"]],
-            "instructions": [step["step"] for inst in recipe["analyzedInstructions"] for step in inst["steps"]],
+            "instructions": [
+                step["step"] for inst in recipe["analyzedInstructions"] for step in inst["steps"]
+            ],
             "time": recipe["readyInMinutes"],
             "nutrition": {"calories": 420, "protein": 18},
             "available_ingredients": ["pasta", "eggs", "olive oil", "salt", "pepper"],
             "missing_ingredients": [],
             "missing_count": 0,
             "available_count": 5,
-            "match_score": 0.95
+            "match_score": 0.95,
         }
         for recipe in MOCK_RECIPES_FOR_TESTING
     ]
+
 
 # Export for use in other modules
 __all__ = ["router", "get_mock_recipes_for_chat", "use_mock_recipes", "MOCK_RECIPES_FOR_TESTING"]

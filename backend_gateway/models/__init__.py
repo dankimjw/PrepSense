@@ -5,7 +5,7 @@
 from .user import UserCreate, UserInDB, UserResponse
 
 __all__ = [
-    'UserCreate',
-    'UserInDB',
-    'UserResponse',
+    "UserCreate",
+    "UserInDB",
+    "UserResponse",
 ]

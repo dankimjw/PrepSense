@@ -1,0 +1,91 @@
+[flake8]
+max-line-length = 100
+max-complexity = 10
+exclude = 
+    .git,
+    __pycache__,
+    .venv,
+    venv,
+    .eggs,
+    *.egg,
+    build,
+    dist,
+    migrations,
+    node_modules,
+    .mypy_cache,
+    .pytest_cache,
+    alembic
+
+# Error codes to ignore
+ignore = 
+    E203,
+    E501,
+    W503,
+    W504,
+    E226,
+    E701,
+    E702
+
+# Enable specific checks
+select = 
+    E,
+    W,
+    F,
+    C90,
+    N,
+    D
+
+# Docstring configuration for pydocstyle
+docstring-convention = google
+# Ignore these docstring errors
+extend-ignore = 
+    D100,
+    D101,
+    D102,
+    D103,
+    D104,
+    D105,
+    D106,
+    D107,
+    D203,
+    D213,
+    D400,
+    D401,
+    D415
+
+# Per-file ignores
+per-file-ignores = 
+    tests/*:D,E501,F401,F811
+    test_*.py:D,E501,F401,F811
+    *_test.py:D,E501,F401,F811
+    migrations/*:D,E501,F401,F403,F405,E712,E711
+    alembic/*:D,E501,F401,F403,F405,E712,E711
+    scripts/*:D,E501,F401
+    config/*:D,F401
+    __init__.py:F401,F403
+    *router*.py:E501
+    app.py:E501,D
+    main.py:E501,D
+
+# Naming conventions
+extend-naming-ignore = 
+    N802,
+    N803,
+    N806,
+    N812,
+    N813,
+    N815,
+    N816
+
+# Additional FastAPI-specific ignores
+extend-immutable-calls = 
+    fastapi.Depends,
+    fastapi.Query,
+    fastapi.Path,
+    fastapi.Body,
+    fastapi.Header,
+    fastapi.Cookie,
+    fastapi.Form,
+    fastapi.File,
+    fastapi.UploadFile,
+    fastapi.Security

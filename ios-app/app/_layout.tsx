@@ -1,24 +1,29 @@
 // app/_layout.tsx - Part of the PrepSense mobile app
-import '../global.css';
-import { Stack, useRouter, useSegments, usePathname } from 'expo-router';
-import { ThemeProvider, DarkTheme, DefaultTheme } from '@react-navigation/native';
-import { useColorScheme, View, StyleSheet, ActivityIndicator, LogBox } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { CustomHeader } from './components/CustomHeader';
 import { useEffect, useState } from 'react';
-import { ItemsProvider } from '../context/ItemsContext';
-import { AuthProvider, useAuth } from '../context/AuthContext';
-import { UserPreferencesProvider } from '../context/UserPreferencesContext';
-import { TabDataProvider } from '../context/TabDataProvider';
-import { envValidator, EnvironmentStatus } from '../utils/environmentValidator';
-import ConfigurationError from './components/ConfigurationError';
-import { ToastProvider } from '../hooks/useToast';
+import { ActivityIndicator, LogBox,StyleSheet, useColorScheme, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DarkTheme, DefaultTheme,ThemeProvider } from '@react-navigation/native';
+import { Stack, usePathname,useRouter, useSegments } from 'expo-router';
+
 import AnimatedIntroScreen from '../components/AnimatedIntroScreen';
 import EnhancedAnimatedIntroScreenV2 from '../components/EnhancedAnimatedIntroScreenV2';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { HybridProvider, StyleDebugger } from '../config/hybridProvider';
+import { AuthProvider, useAuth } from '../context/AuthContext';
+import { ItemsProvider } from '../context/ItemsContext';
+import { TabDataProvider } from '../context/TabDataProvider';
+import { UserPreferencesProvider } from '../context/UserPreferencesContext';
+import { ToastProvider } from '../hooks/useToast';
 import { imageCacheService } from '../services/imageCacheService';
+import type { EnvironmentStatus} from '../utils/environmentValidator';
+import {envValidator } from '../utils/environmentValidator';
+
+import ConfigurationError from './components/ConfigurationError';
+import { CustomHeader } from './components/CustomHeader';
+
+import '../global.css';
 
 // Configure warning/error suppression
 if (process.env.EXPO_PUBLIC_SUPPRESS_WARNINGS === 'true') {
@@ -219,141 +224,141 @@ function AppContent() {
             <ItemsProvider>
               <TabDataProvider>
                 <View style={styles.container}>
-                <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen 
-              name="(auth)" 
-              options={{ 
-                headerShown: false,
-                animation: 'fade',
-              }} 
-            />
-            <Stack.Screen 
-              name="edit-item" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Edit Item" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                ),
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }} 
-            />
-<Stack.Screen 
-              name="confirm" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Confirm Items" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                )
-              }} 
-            />
-            <Stack.Screen 
-              name="upload-photo" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Upload Photo" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                )
-              }} 
-            />
-            <Stack.Screen 
-              name="settings" 
-              options={{ headerShown: false }} 
-            />
-            <Stack.Screen 
-              name="confirm-photo" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Confirm Photo" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                )
-              }} 
-            />
-            <Stack.Screen 
-              name="items-detected" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Items Detected" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                )
-              }} 
-            />
-            <Stack.Screen 
-              name="select-unit" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Select Unit" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                )
-              }} 
-            />
-            <Stack.Screen 
-              name="add-item" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Add Item" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                ),
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }} 
-            />
-            <Stack.Screen 
-              name="chat-modal" 
-              options={{ 
-                headerShown: false,
-                presentation: 'modal',
-                animation: 'slide_from_bottom',
-              }} 
-            />
-            <Stack.Screen 
-              name="recipe-details" 
-              options={{ 
-                headerShown: false,
-                animation: 'slide_from_right',
-              }} 
-            />
-            <Stack.Screen 
-              name="recipe-spoonacular-detail" 
-              options={{ 
-                header: ({ navigation }) => (
-                  <CustomHeader 
-                    title="Recipe Details" 
-                    showBackButton={true}
-                    onBackPress={() => navigation.goBack()}
-                  />
-                ),
-                animation: 'slide_from_right',
-              }} 
-            />
-                </Stack>
-              </View>
-            </TabDataProvider>
-          </ItemsProvider>
-        </UserPreferencesProvider>
-      </ToastProvider>
+                  <Stack>
+                    <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                    <Stack.Screen 
+                      name="(auth)" 
+                      options={{ 
+                        headerShown: false,
+                        animation: 'fade',
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="edit-item" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Edit Item" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                        presentation: 'modal',
+                        animation: 'slide_from_bottom',
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="confirm" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Confirm Items" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="upload-photo" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Upload Photo" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="settings" 
+                      options={{ headerShown: false }} 
+                    />
+                    <Stack.Screen 
+                      name="confirm-photo" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Confirm Photo" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="items-detected" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Items Detected" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="select-unit" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Select Unit" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="add-item" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Add Item" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                        presentation: 'modal',
+                        animation: 'slide_from_bottom',
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="chat-modal" 
+                      options={{ 
+                        headerShown: false,
+                        presentation: 'modal',
+                        animation: 'slide_from_bottom',
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="recipe-details" 
+                      options={{ 
+                        headerShown: false,
+                        animation: 'slide_from_right',
+                      }} 
+                    />
+                    <Stack.Screen 
+                      name="recipe-spoonacular-detail" 
+                      options={{ 
+                        header: ({ navigation }) => (
+                          <CustomHeader 
+                            title="Recipe Details" 
+                            showBackButton={true}
+                            onBackPress={() => navigation.goBack()}
+                          />
+                        ),
+                        animation: 'slide_from_right',
+                      }} 
+                    />
+                  </Stack>
+                </View>
+              </TabDataProvider>
+            </ItemsProvider>
+          </UserPreferencesProvider>
+        </ToastProvider>
       </HybridProvider>
     </ThemeProvider>
   );

@@ -1,0 +1,248 @@
+# PrepSense Quality Gates Configuration
+# This file defines the quality thresholds and requirements for the project
+
+project:
+  name: "PrepSense"
+  description: "Smart Pantry Management System"
+  version: "1.0.0"
+
+# Code Quality Thresholds
+quality_gates:
+  # Code Coverage Requirements
+  coverage:
+    backend:
+      minimum_line_coverage: 70
+      minimum_branch_coverage: 65
+      minimum_function_coverage: 75
+      fail_under: 70
+      exclude_patterns:
+        - "*/tests/*"
+        - "*/migrations/*"
+        - "*/alembic/*"
+        - "*/__pycache__/*"
+        - "*/scripts/*"
+    
+    frontend:
+      minimum_line_coverage: 70
+      minimum_branch_coverage: 65
+      minimum_function_coverage: 75
+      minimum_statement_coverage: 70
+      fail_under: 70
+      exclude_patterns:
+        - "**/__tests__/**"
+        - "**/__mocks__/**"
+        - "**/node_modules/**"
+        - "**/*.config.{js,ts}"
+        - "**/coverage/**"
+
+  # Code Quality Metrics
+  code_quality:
+    backend:
+      max_cyclomatic_complexity: 10
+      max_cognitive_complexity: 15
+      max_function_length: 50
+      max_file_length: 500
+      max_parameters: 5
+      min_maintainability_index: 20
+      
+    frontend:
+      max_cyclomatic_complexity: 10
+      max_cognitive_complexity: 15
+      max_function_length: 50
+      max_file_length: 300
+      max_parameters: 5
+      
+  # Security Requirements
+  security:
+    max_high_severity_vulnerabilities: 0
+    max_medium_severity_vulnerabilities: 5
+    max_low_severity_vulnerabilities: 20
+    block_secrets_in_code: true
+    require_dependency_audit: true
+    
+  # Performance Thresholds
+  performance:
+    api_response_time:
+      p50_max: 200  # milliseconds
+      p95_max: 500
+      p99_max: 1000
+      
+    load_testing:
+      min_requests_per_second: 50
+      max_error_rate: 5  # percentage
+      max_response_time: 1000  # milliseconds
+      
+    bundle_size:
+      max_bundle_size_mb: 10
+      max_chunk_size_mb: 2
+      
+  # Test Requirements
+  testing:
+    minimum_test_files: 10
+    require_unit_tests: true
+    require_integration_tests: true
+    require_api_tests: true
+    max_test_execution_time: 300  # seconds
+    
+    backend:
+      test_patterns:
+        - "test_*.py"
+        - "*_test.py"
+      required_markers:
+        - "unit"
+        - "integration"
+        - "api"
+        
+    frontend:
+      test_patterns:
+        - "*.test.{js,jsx,ts,tsx}"
+        - "*.spec.{js,jsx,ts,tsx}"
+      required_test_types:
+        - "unit-tests"
+        - "integration-tests"
+
+# Linting and Formatting Rules
+linting:
+  backend:
+    black:
+      line_length: 100
+      target_version: ["py39", "py310", "py311"]
+      
+    ruff:
+      line_length: 100
+      select: ["E", "W", "F", "I", "B", "C4", "UP", "SIM", "TCH"]
+      ignore: ["E501", "B008", "C901"]
+      
+    mypy:
+      strict: true
+      ignore_missing_imports: true
+      check_untyped_defs: true
+      
+    flake8:
+      max_line_length: 100
+      max_complexity: 10
+      
+  frontend:
+    eslint:
+      max_warnings: 0
+      rules:
+        "@typescript-eslint/no-unused-vars": "error"
+        "react-hooks/exhaustive-deps": "error"
+        
+    prettier:
+      enforce_formatting: true
+      
+    typescript:
+      strict: true
+      no_implicit_any: true
+
+# Deployment Gates
+deployment:
+  staging:
+    required_checks:
+      - security_scan
+      - unit_tests
+      - integration_tests
+      - code_quality
+      - coverage_check
+      
+  production:
+    required_checks:
+      - security_scan
+      - unit_tests
+      - integration_tests
+      - api_tests
+      - performance_tests
+      - code_quality
+      - coverage_check
+      - manual_approval
+      
+    additional_requirements:
+      - database_migration_validated
+      - feature_flags_configured
+      - monitoring_alerts_configured
+      - rollback_plan_documented
+
+# Compliance and Standards
+compliance:
+  # Code review requirements
+  code_review:
+    min_reviewers: 1
+    require_owner_review: true
+    dismiss_stale_reviews: true
+    require_up_to_date_branches: true
+    
+  # Documentation requirements
+  documentation:
+    require_readme_updates: true
+    require_api_documentation: true
+    require_changelog_updates: true
+    
+  # Branch protection
+  branch_protection:
+    main:
+      require_status_checks: true
+      require_pull_request: true
+      require_code_owner_reviews: true
+      dismiss_stale_reviews: true
+      
+# Monitoring and Alerting Thresholds
+monitoring:
+  error_rates:
+    warning_threshold: 1  # percentage
+    critical_threshold: 5  # percentage
+    
+  response_times:
+    warning_threshold: 500  # milliseconds
+    critical_threshold: 1000  # milliseconds
+    
+  resource_usage:
+    memory_warning: 70  # percentage
+    memory_critical: 85  # percentage
+    cpu_warning: 70  # percentage
+    cpu_critical: 85  # percentage
+
+# Tool Configuration
+tools:
+  pre_commit:
+    fail_fast: false
+    default_stages: [commit]
+    
+  ci_cd:
+    timeout_minutes: 30
+    retry_attempts: 2
+    parallel_jobs: 4
+    
+  notifications:
+    slack_webhook: null  # Configure in CI/CD environment
+    email_notifications: true
+    github_status_checks: true
+
+# Environment-Specific Overrides
+environments:
+  development:
+    quality_gates:
+      coverage:
+        backend:
+          fail_under: 60
+        frontend:
+          fail_under: 60
+          
+  testing:
+    quality_gates:
+      coverage:
+        backend:
+          fail_under: 75
+        frontend:
+          fail_under: 75
+          
+  production:
+    quality_gates:
+      coverage:
+        backend:
+          fail_under: 80
+        frontend:
+          fail_under: 80
+      security:
+        max_high_severity_vulnerabilities: 0
+        max_medium_severity_vulnerabilities: 0

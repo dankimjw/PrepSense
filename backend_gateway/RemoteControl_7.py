@@ -6,90 +6,88 @@ across different features of the application.
 """
 
 import logging
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
 
 class RemoteControl:
     """Centralized control for mock data toggles"""
-    
+
     def __init__(self):
         # Initialize all mock data flags
         self._mock_states = {
-            "ocr_scan": False,           # Mock OCR scan data (receipt scanning)
-            "recipe_completion": False,   # Mock recipe completion response
-            "chat_recipes": False,        # Mock recipes in chat recommendations
-            "pantry_items": False,        # Mock pantry items (future)
-            "spoonacular_api": False,     # Mock Spoonacular API responses (future)
+            "ocr_scan": False,  # Mock OCR scan data (receipt scanning)
+            "recipe_completion": False,  # Mock recipe completion response
+            "chat_recipes": False,  # Mock recipes in chat recommendations
+            "pantry_items": False,  # Mock pantry items (future)
+            "spoonacular_api": False,  # Mock Spoonacular API responses (future)
         }
-        
+
         # Track when each toggle was last changed
         self._last_changed = {key: None for key in self._mock_states}
-        
+
         # Track who changed each toggle (for audit purposes)
         self._changed_by = {key: None for key in self._mock_states}
-        
+
         logger.info("RemoteControl initialized with all mock data disabled")
-    
+
     def get_state(self, feature: str) -> bool:
         """Get the current state of a mock data toggle"""
         if feature not in self._mock_states:
             logger.warning(f"Unknown feature requested: {feature}")
             return False
         return self._mock_states[feature]
-    
+
     def set_state(self, feature: str, enabled: bool, changed_by: str = "system") -> bool:
         """Set the state of a mock data toggle"""
         if feature not in self._mock_states:
             logger.error(f"Attempted to set unknown feature: {feature}")
             return False
-        
+
         old_state = self._mock_states[feature]
         self._mock_states[feature] = enabled
         self._last_changed[feature] = datetime.now()
         self._changed_by[feature] = changed_by
-        
+
         logger.info(
-            f"Mock data for '{feature}' changed from {old_state} to {enabled} "
-            f"by {changed_by}"
+            f"Mock data for '{feature}' changed from {old_state} to {enabled} " f"by {changed_by}"
         )
         return True
-    
+
     def set_all(self, enabled: bool, changed_by: str = "system") -> Dict[str, bool]:
         """Enable or disable all mock data at once"""
         logger.info(f"Setting all mock data to {enabled} by {changed_by}")
-        
+
         for feature in self._mock_states:
             self.set_state(feature, enabled, changed_by)
-        
+
         return self.get_all_states()
-    
+
     def get_all_states(self) -> Dict[str, Any]:
         """Get the current state of all mock data toggles"""
         return {
             "states": self._mock_states.copy(),
             "last_changed": {
-                k: v.isoformat() if v else None 
-                for k, v in self._last_changed.items()
+                k: v.isoformat() if v else None for k, v in self._last_changed.items()
             },
-            "changed_by": self._changed_by.copy()
+            "changed_by": self._changed_by.copy(),
         }
-    
+
     def get_summary(self) -> Dict[str, Any]:
         """Get a summary of mock data status"""
         enabled_count = sum(1 for v in self._mock_states.values() if v)
-        
+
         return {
             "total_features": len(self._mock_states),
             "enabled_count": enabled_count,
             "disabled_count": len(self._mock_states) - enabled_count,
             "all_enabled": enabled_count == len(self._mock_states),
             "all_disabled": enabled_count == 0,
-            "features": self._mock_states.copy()
+            "features": self._mock_states.copy(),
         }
-    
+
     def reset(self) -> Dict[str, bool]:
         """Reset all mock data toggles to disabled state"""
         logger.info("Resetting all mock data to disabled state")

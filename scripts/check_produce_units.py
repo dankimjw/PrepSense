@@ -1,21 +1,24 @@
 import asyncio
-import asyncpg
 import os
+
+import asyncpg
 from dotenv import load_dotenv
 
 load_dotenv()
 
+
 async def check_produce_units():
     conn = await asyncpg.connect(
-        host=os.getenv('POSTGRES_HOST'),
-        port=int(os.getenv('POSTGRES_PORT', 5432)),
-        database=os.getenv('POSTGRES_DATABASE'),
-        user=os.getenv('POSTGRES_USER'),
-        password=os.getenv('POSTGRES_PASSWORD')
+        host=os.getenv("POSTGRES_HOST"),
+        port=int(os.getenv("POSTGRES_PORT", 5432)),
+        database=os.getenv("POSTGRES_DATABASE"),
+        user=os.getenv("POSTGRES_USER"),
+        password=os.getenv("POSTGRES_PASSWORD"),
     )
-    
+
     # Check for produce items with liquid units
-    result = await conn.fetch("""
+    result = await conn.fetch(
+        """
         SELECT 
             pi.pantry_item_id,
             pi.product_name,
@@ -43,17 +46,21 @@ async def check_produce_units():
             (LOWER(pi.unit_of_measurement) IN ('ml', 'l', 'fl oz', 'cup', 'gallon', 'liter', 'milliliter', 'fluid ounce'))
         )
         ORDER BY pi.product_name
-    """)
-    
+    """
+    )
+
     if result:
         print(f"Found {len(result)} produce items with liquid units that need fixing:")
         for row in result:
-            print(f"  - {row['product_name']}: {row['quantity']} {row['unit_of_measurement']} (Category: {row['category']})")
+            print(
+                f"  - {row['product_name']}: {row['quantity']} {row['unit_of_measurement']} (Category: {row['category']})"
+            )
     else:
         print("No produce items found with liquid units.")
-    
+
     # Also check for any items with 'ml' as unit
-    ml_items = await conn.fetch("""
+    ml_items = await conn.fetch(
+        """
         SELECT 
             pi.product_name,
             pi.quantity,
@@ -65,13 +72,15 @@ async def check_produce_units():
         AND (pi.status IS NULL OR pi.status != 'consumed')
         AND LOWER(pi.unit_of_measurement) = 'ml'
         ORDER BY pi.product_name
-    """)
-    
+    """
+    )
+
     if ml_items:
         print(f"\nAll items using 'ml' as unit:")
         for row in ml_items:
             print(f"  - {row['product_name']}: {row['quantity']} {row['unit_of_measurement']}")
-    
+
     await conn.close()
+
 
 asyncio.run(check_produce_units())

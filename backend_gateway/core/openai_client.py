@@ -2,7 +2,9 @@
 
 import logging
 from typing import Optional
+
 from openai import OpenAI
+
 from .config_utils import get_openai_api_key
 
 logger = logging.getLogger(__name__)
@@ -13,15 +15,15 @@ _client: Optional[OpenAI] = None
 def get_openai_client() -> OpenAI:
     """
     Get or create a singleton OpenAI client instance.
-    
+
     Returns:
         OpenAI: Configured OpenAI client instance
-        
+
     Raises:
         ValueError: If OpenAI API key is not configured
     """
     global _client
-    
+
     if _client is None:
         try:
             api_key = get_openai_api_key()
@@ -33,7 +35,7 @@ def get_openai_client() -> OpenAI:
         except Exception as e:
             logger.error(f"Unexpected error initializing OpenAI client: {e}")
             raise ValueError(f"Failed to initialize OpenAI client: {e}")
-    
+
     return _client
 
 

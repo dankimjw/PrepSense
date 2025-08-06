@@ -19,7 +19,7 @@ class Unit(str, Enum):
     KILOGRAM = "kg"
     OUNCE = "oz"
     POUND = "lb"
-    
+
     # Volume
     MILLILITER = "ml"
     LITER = "l"
@@ -30,7 +30,7 @@ class Unit(str, Enum):
     PINT = "pt"
     QUART = "qt"
     GALLON = "gal"
-    
+
     # Count & Packaging
     EACH = "each"
     PACKAGE = "package"
@@ -47,17 +47,23 @@ UNIT_INFO = {
     Unit.KILOGRAM: {"label": "Kilogram", "category": UnitCategory.WEIGHT, "abbreviation": "kg"},
     Unit.OUNCE: {"label": "Ounce", "category": UnitCategory.WEIGHT, "abbreviation": "oz"},
     Unit.POUND: {"label": "Pound", "category": UnitCategory.WEIGHT, "abbreviation": "lb"},
-    
     Unit.MILLILITER: {"label": "Milliliter", "category": UnitCategory.VOLUME, "abbreviation": "mL"},
     Unit.LITER: {"label": "Liter", "category": UnitCategory.VOLUME, "abbreviation": "L"},
-    Unit.FLUID_OUNCE: {"label": "Fluid Ounce", "category": UnitCategory.VOLUME, "abbreviation": "fl oz"},
+    Unit.FLUID_OUNCE: {
+        "label": "Fluid Ounce",
+        "category": UnitCategory.VOLUME,
+        "abbreviation": "fl oz",
+    },
     Unit.CUP: {"label": "Cup", "category": UnitCategory.VOLUME, "abbreviation": "cup"},
-    Unit.TABLESPOON: {"label": "Tablespoon", "category": UnitCategory.VOLUME, "abbreviation": "Tbsp"},
+    Unit.TABLESPOON: {
+        "label": "Tablespoon",
+        "category": UnitCategory.VOLUME,
+        "abbreviation": "Tbsp",
+    },
     Unit.TEASPOON: {"label": "Teaspoon", "category": UnitCategory.VOLUME, "abbreviation": "tsp"},
     Unit.PINT: {"label": "Pint", "category": UnitCategory.VOLUME, "abbreviation": "pt"},
     Unit.QUART: {"label": "Quart", "category": UnitCategory.VOLUME, "abbreviation": "qt"},
     Unit.GALLON: {"label": "Gallon", "category": UnitCategory.VOLUME, "abbreviation": "gal"},
-    
     Unit.EACH: {"label": "Each", "category": UnitCategory.COUNT, "abbreviation": "each"},
     Unit.PACKAGE: {"label": "Package", "category": UnitCategory.COUNT, "abbreviation": "pkg"},
     Unit.BAG: {"label": "Bag", "category": UnitCategory.COUNT, "abbreviation": "bag"},
@@ -75,7 +81,6 @@ UNIT_CONVERSIONS = {
     Unit.KILOGRAM: 1000.0,
     Unit.OUNCE: 28.3495,
     Unit.POUND: 453.592,
-    
     # Volume conversions to milliliters
     Unit.MILLILITER: 1.0,
     Unit.LITER: 1000.0,
@@ -107,7 +112,6 @@ UNIT_VARIATIONS = {
     "pounds": Unit.POUND,
     "lb": Unit.POUND,
     "lbs": Unit.POUND,
-    
     # Volume
     "milliliter": Unit.MILLILITER,
     "milliliters": Unit.MILLILITER,
@@ -135,7 +139,6 @@ UNIT_VARIATIONS = {
     "gallon": Unit.GALLON,
     "gallons": Unit.GALLON,
     "gal": Unit.GALLON,
-    
     # Count
     "each": Unit.EACH,
     "package": Unit.PACKAGE,
@@ -148,7 +151,6 @@ UNIT_VARIATIONS = {
     "carton": Unit.CARTON,
     "cartons": Unit.CARTON,
     "gross": Unit.GROSS,
-    
     # Legacy units from existing data
     "ea": Unit.EACH,
     "pcs": Unit.EACH,
@@ -166,7 +168,7 @@ def normalize_unit(unit_string: str) -> str:
     """
     if not unit_string:
         return Unit.EACH
-    
+
     normalized = unit_string.lower().strip()
     return UNIT_VARIATIONS.get(normalized, unit_string)
 
@@ -187,25 +189,25 @@ def convert_quantity(quantity: float, from_unit: str, to_unit: str) -> Optional[
     """
     from_unit_norm = normalize_unit(from_unit)
     to_unit_norm = normalize_unit(to_unit)
-    
+
     # Check if units are in the same category
     from_category = get_unit_category(from_unit_norm)
     to_category = get_unit_category(to_unit_norm)
-    
+
     if from_category != to_category or not from_category:
         return None
-    
+
     # Count units don't convert
     if from_category == UnitCategory.COUNT:
         return quantity if from_unit_norm == to_unit_norm else None
-    
+
     # Get conversion factors
     from_factor = UNIT_CONVERSIONS.get(from_unit_norm)
     to_factor = UNIT_CONVERSIONS.get(to_unit_norm)
-    
+
     if from_factor is None or to_factor is None:
         return None
-    
+
     # Convert to base unit then to target unit
     base_quantity = quantity * from_factor
     return base_quantity / to_factor

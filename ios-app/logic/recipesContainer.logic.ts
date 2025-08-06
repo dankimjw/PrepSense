@@ -244,7 +244,7 @@ export function sortRecipes(recipes: Recipe[], sortBy: SortOption): Recipe[] {
   
   switch (sortBy) {
     case 'name':
-      return sortedRecipes.sort((a, b) => a.title.localeCompare(b.title));
+      return sortedRecipes.sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     case 'missing':
       return sortedRecipes.sort((a, b) => a.missedIngredientCount - b.missedIngredientCount);
     case 'rating':
@@ -265,7 +265,7 @@ export function sortSavedRecipes(recipes: SavedRecipe[], sortBy: SortOption): Sa
   
   switch (sortBy) {
     case 'name':
-      return sortedRecipes.sort((a, b) => a.recipe_title.localeCompare(b.recipe_title));
+      return sortedRecipes.sort((a, b) => (a.recipe_title || '').localeCompare(b.recipe_title || ''));
     case 'date':
       return sortedRecipes.sort((a, b) => 
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

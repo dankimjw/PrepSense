@@ -1,6 +1,7 @@
 import os
-import subprocess
 import platform
+import subprocess
+
 
 def kill_processes_on_ports(ports):
     """Kills processes running on a list of ports."""
@@ -9,19 +10,20 @@ def kill_processes_on_ports(ports):
             if platform.system() == "Windows":
                 command = f"netstat -ano | findstr :{port}"
                 output = subprocess.check_output(command, shell=True, text=True)
-                for line in output.strip().split('\n'):
-                    if 'LISTENING' in line:
+                for line in output.strip().split("\n"):
+                    if "LISTENING" in line:
                         pid = line.rstrip().split()[-1]
                         subprocess.run(["taskkill", "/F", "/PID", pid], check=True)
                         print(f"Killed process {pid} on port {port}")
             else:
                 command = f"lsof -t -i:{port}"
                 output = subprocess.check_output(command, shell=True, text=True)
-                for pid in output.strip().split('\n'):
+                for pid in output.strip().split("\n"):
                     subprocess.run(["kill", "-9", pid], check=True)
                     print(f"Killed process {pid} on port {port}")
         except subprocess.CalledProcessError:
             print(f"No process found on port {port}")
+
 
 def kill_processes_by_name(names):
     """Kills processes by their name."""
@@ -34,6 +36,7 @@ def kill_processes_by_name(names):
             print(f"Killed processes matching name: {name}")
         except subprocess.CalledProcessError:
             print(f"No processes found matching name: {name}")
+
 
 if __name__ == "__main__":
     print("--- Starting PrepSense Cleanup ---")

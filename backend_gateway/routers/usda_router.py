@@ -2,18 +2,17 @@
 USDA Food Database Router - API endpoints for USDA food data
 """
 
-from fastapi import APIRouter, HTTPException, Query, Depends
-from typing import List, Optional
 import logging
-from backend_gateway.services.usda_food_service import USDAFoodService
+from typing import List, Optional
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+
 from backend_gateway.core.database import get_db_pool
+from backend_gateway.services.usda_food_service import USDAFoodService
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(
-    prefix="/api/v1/usda",
-    tags=["USDA Food Database"]
-)
+router = APIRouter(prefix="/api/v1/usda", tags=["USDA Food Database"])
 
 
 async def get_usda_service():
@@ -26,15 +25,15 @@ async def get_usda_service():
 async def search_foods(
     query: str = Query(..., description="Search query for food items"),
     limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
-    usda_service: USDAFoodService = Depends(get_usda_service)
+    usda_service: USDAFoodService = Depends(get_usda_service),
 ) -> List[dict]:
     """
     Search USDA food database
-    
+
     Args:
         query: Search term for food items
         limit: Maximum number of results to return
-        
+
     Returns:
         List of matching food items with nutritional data
     """
@@ -48,15 +47,14 @@ async def search_foods(
 
 @router.get("/food/{fdc_id}")
 async def get_food_details(
-    fdc_id: str,
-    usda_service: USDAFoodService = Depends(get_usda_service)
+    fdc_id: str, usda_service: USDAFoodService = Depends(get_usda_service)
 ) -> dict:
     """
     Get detailed nutritional information for a specific food
-    
+
     Args:
         fdc_id: USDA FDC ID for the food item
-        
+
     Returns:
         Detailed nutritional information
     """
@@ -76,15 +74,15 @@ async def get_food_details(
 async def get_nutrients_by_name(
     food_name: str,
     serving_size: Optional[float] = Query(100, description="Serving size in grams"),
-    usda_service: USDAFoodService = Depends(get_usda_service)
+    usda_service: USDAFoodService = Depends(get_usda_service),
 ) -> dict:
     """
     Get nutritional information by food name
-    
+
     Args:
         food_name: Name of the food item
         serving_size: Serving size in grams (default: 100g)
-        
+
     Returns:
         Nutritional information for the specified serving
     """

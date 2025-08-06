@@ -8,17 +8,19 @@ Usage:
 The script connects via environment variables set in the .env file (POSTGRES_* or DATABASE_URL)
 and writes docs/prepsense_schema.png.
 """
+
 from __future__ import annotations
 
 import os
 from pathlib import Path
 
-from sqlalchemy import create_engine, inspect, MetaData
-from dotenv import load_dotenv
 import pydot  # type: ignore
+from dotenv import load_dotenv
+from sqlalchemy import MetaData, create_engine, inspect
 
 OUTPUT_PATH = Path(__file__).resolve().parent.parent / "docs" / "prepsense_schema.png"
 OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
 
 def build_db_url() -> str:
     url = os.getenv("DATABASE_URL")
@@ -30,6 +32,7 @@ def build_db_url() -> str:
     password = os.getenv("POSTGRES_PASSWORD", "")
     db = os.getenv("POSTGRES_DATABASE", "postgres")
     return f"postgresql://{user}:{password}@{host}:{port}/{db}"
+
 
 def main() -> None:
     # Load variables from .env in project root
@@ -69,6 +72,7 @@ def main() -> None:
 
     graph.write_png(str(OUTPUT_PATH))
     print(f"ER diagram written to {OUTPUT_PATH}")
+
 
 if __name__ == "__main__":
     main()

@@ -6,10 +6,12 @@ Usage:
 
 Exit code 0 on success, 1 on auth failure or network error.
 """
+
 import argparse
 import os
 import sys
-from openai import OpenAI, AuthenticationError, APIConnectionError, APIError
+
+from openai import APIConnectionError, APIError, AuthenticationError, OpenAI
 
 
 def main() -> int:  # return status
@@ -24,6 +26,7 @@ def main() -> int:  # return status
         # fall back to project helper to load from env or key file
         try:
             from backend_gateway.core.config_utils import get_openai_api_key
+
             api_key = get_openai_api_key()
         except Exception:
             api_key = os.getenv("OPENAI_API_KEY")

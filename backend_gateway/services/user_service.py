@@ -1,15 +1,22 @@
 import logging
 import os
-from typing import List, Optional, Dict, Any
-from datetime import datetime, timezone
 import uuid
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
 
-from backend_gateway.models.user import UserCreate, UserInDB, UserResponse, UserProfilePreference, UserProfileResponse
-from backend_gateway.core.config import settings
 from backend_gateway.config.database import get_database_service
+from backend_gateway.core.config import settings
 from backend_gateway.core.security import get_password_hash
+from backend_gateway.models.user import (
+    UserCreate,
+    UserInDB,
+    UserProfilePreference,
+    UserProfileResponse,
+    UserResponse,
+)
 
 logger = logging.getLogger(__name__)
+
 
 class UserService:
     def __init__(self, db_service=None):
@@ -17,11 +24,11 @@ class UserService:
             self.db_service = db_service
         else:
             self.db_service = get_database_service()
-        
+
         self.users_table = "users"
         self.profile_table = "user_preferences"  # Note: plural form
         logger.info("UserService initialized with database service")
-    
+
     async def get_user_by_email(self, email: str) -> Optional[UserInDB]:
         """Get a user by email"""
         query = f"""
@@ -32,22 +39,22 @@ class UserService:
         """
         params = {"email": email}
         rows = self.db_service.execute_query(query, params)
-        
+
         if not rows:
             return None
-        
+
         row = rows[0]
         return UserInDB(
-            id=str(row['user_id']),  # Convert integer to string
-            numeric_user_id=row['user_id'],  # Also include the numeric ID
-            email=row['email'],
-            first_name=row['first_name'] or '',
-            last_name=row['last_name'] or '',
-            is_admin=row.get('role') == 'admin',  # Check role for admin status
-            created_at=row['created_at'],
-            updated_at=row['updated_at']
+            id=str(row["user_id"]),  # Convert integer to string
+            numeric_user_id=row["user_id"],  # Also include the numeric ID
+            email=row["email"],
+            first_name=row["first_name"] or "",
+            last_name=row["last_name"] or "",
+            is_admin=row.get("role") == "admin",  # Check role for admin status
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
-    
+
     async def get_user_by_id(self, user_id: str) -> Optional[UserInDB]:
         """Get a user by ID"""
         query = f"""
@@ -58,32 +65,32 @@ class UserService:
         """
         params = {"user_id": int(user_id)}  # Convert string to integer
         rows = self.db_service.execute_query(query, params)
-        
+
         if not rows:
             return None
-        
+
         row = rows[0]
         return UserInDB(
-            id=str(row['user_id']),  # Convert integer to string
-            numeric_user_id=row['user_id'],  # Also include the numeric ID
-            email=row['email'],
-            first_name=row['first_name'] or '',
-            last_name=row['last_name'] or '',
-            is_admin=row.get('role') == 'admin',  # Check role for admin status
-            created_at=row['created_at'],
-            updated_at=row['updated_at']
+            id=str(row["user_id"]),  # Convert integer to string
+            numeric_user_id=row["user_id"],  # Also include the numeric ID
+            email=row["email"],
+            first_name=row["first_name"] or "",
+            last_name=row["last_name"] or "",
+            is_admin=row.get("role") == "admin",  # Check role for admin status
+            created_at=row["created_at"],
+            updated_at=row["updated_at"],
         )
-    
+
     async def create_user(self, user: UserCreate) -> UserInDB:
         """Create a new user"""
         now = datetime.now(timezone.utc)
-        
+
         # Hash the password
         hashed_password = get_password_hash(user.password)
-        
+
         # Generate username from email
-        username = user.email.split('@')[0]
-        
+        username = user.email.split("@")[0]
+
         query = f"""
             INSERT INTO {self.users_table} 
             (username, email, first_name, last_name, password_hash, role, created_at, updated_at)
@@ -98,15 +105,15 @@ class UserService:
             "password_hash": hashed_password,
             "role": "admin" if user.is_admin else "user",
             "created_at": now,
-            "updated_at": now
+            "updated_at": now,
         }
-        
+
         rows = self.db_service.execute_query(query, params)
-        user_id = rows[0]['user_id'] if rows else None
-        
+        user_id = rows[0]["user_id"] if rows else None
+
         if not user_id:
             raise Exception("Failed to create user")
-        
+
         return UserInDB(
             id=str(user_id),
             numeric_user_id=user_id,  # Include numeric ID
@@ -115,9 +122,9 @@ class UserService:
             last_name=user.last_name,
             is_admin=user.is_admin or False,
             created_at=now,
-            updated_at=now
+            updated_at=now,
         )
-    
+
     async def get_user_preferences(self, user_id: str) -> Optional[UserProfilePreference]:
         """Get user preferences"""
         query = f"""
@@ -128,41 +135,45 @@ class UserService:
         """
         params = {"user_id": int(user_id)}
         rows = self.db_service.execute_query(query, params)
-        
+
         if not rows:
             return None
-        
+
         row = rows[0]
-        
+
         # Parse preferences JSON if it exists
-        preferences_json = row.get('preferences', {}) or {}
-        
+        preferences_json = row.get("preferences", {}) or {}
+
         # Get household_size from either the column or the JSON
-        household_size = preferences_json.get('household_size', row.get('household_size'))
-        
+        household_size = preferences_json.get("household_size", row.get("household_size"))
+
         # Get values from JSON or fallback to columns
-        dietary_preference = preferences_json.get('dietary_restrictions', row.get('dietary_preference', []))
-        allergens = preferences_json.get('allergens', row.get('allergens', []))
-        cuisine_preference = preferences_json.get('cuisine_preferences', row.get('cuisine_preference', []))
-        
+        dietary_preference = preferences_json.get(
+            "dietary_restrictions", row.get("dietary_preference", [])
+        )
+        allergens = preferences_json.get("allergens", row.get("allergens", []))
+        cuisine_preference = preferences_json.get(
+            "cuisine_preferences", row.get("cuisine_preference", [])
+        )
+
         return UserProfilePreference(
             household_size=household_size,
             dietary_preference=dietary_preference,
             allergens=allergens,
             cuisine_preference=cuisine_preference,
-            preference_created_at=row.get('created_at')
+            preference_created_at=row.get("created_at"),
         )
-    
+
     async def get_user_profile(self, user_id: str) -> Optional[UserProfileResponse]:
         """Get complete user profile including preferences"""
         # Get user info
         user = await self.get_user_by_id(user_id)
         if not user:
             return None
-        
+
         # Get preferences
         preferences = await self.get_user_preferences(user_id)
-        
+
         return UserProfileResponse(
             id=user.id,
             email=user.email,
@@ -172,21 +183,21 @@ class UserService:
             user_created_at=user.created_at,
             user_updated_at=user.updated_at,
             password_hash=None,  # Don't expose password hash
-            role='admin' if user.is_admin else 'user',
-            api_key_enc='',  # Add proper API key if needed
-            preferences=preferences
+            role="admin" if user.is_admin else "user",
+            api_key_enc="",  # Add proper API key if needed
+            preferences=preferences,
         )
-    
+
     async def create_default_user(self) -> Optional[UserInDB]:
         """Create default test user if it doesn't exist"""
         default_email = "test@example.com"
-        
+
         # Check if user already exists
         existing_user = await self.get_user_by_email(default_email)
         if existing_user:
             logger.info(f"Default user already exists: {default_email}")
             return existing_user
-        
+
         # Create new user
         logger.info(f"Creating default user: {default_email}")
         user_data = UserCreate(
@@ -194,9 +205,9 @@ class UserService:
             first_name="Test",
             last_name="User",
             password="testpassword123",
-            is_admin=False
+            is_admin=False,
         )
-        
+
         try:
             new_user = await self.create_user(user_data)
             logger.info(f"Default user created successfully: {new_user.id}")

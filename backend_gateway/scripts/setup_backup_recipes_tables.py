@@ -7,8 +7,10 @@ Creates tables for storing 13k backup recipes from CSV dataset.
 """
 
 import asyncio
-import asyncpg
 import logging
+
+import asyncpg
+
 from backend_gateway.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -194,28 +196,30 @@ async def run_migration():
     try:
         # Connect to database
         db_url = f"postgresql://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}@{settings.POSTGRES_HOST}:{settings.POSTGRES_PORT}/{settings.POSTGRES_DATABASE}"
-        
+
         conn = await asyncpg.connect(db_url)
-        
+
         logger.info("🔄 Starting backup recipes database migration...")
-        
+
         # Execute schema creation
         await conn.execute(BACKUP_RECIPES_SCHEMA)
-        
+
         logger.info("✅ Backup recipes tables created successfully")
-        
+
         # Verify tables exist
-        tables = await conn.fetch("""
+        tables = await conn.fetch(
+            """
             SELECT table_name 
             FROM information_schema.tables 
             WHERE table_schema = 'public' 
             AND table_name LIKE '%backup%'
-        """)
-        
+        """
+        )
+
         logger.info(f"📊 Created tables: {[row['table_name'] for row in tables]}")
-        
+
         await conn.close()
-        
+
     except Exception as e:
         logger.error(f"❌ Migration failed: {e}")
         raise

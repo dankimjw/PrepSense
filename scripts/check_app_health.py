@@ -4,25 +4,29 @@ Comprehensive health check for PrepSense application
 Tests actual functionality, not just service connectivity
 """
 
+import json
+import os
+import subprocess
 import sys
 import time
-import json
-import requests
-import subprocess
-import psutil
 from datetime import datetime
-from typing import Dict, List, Tuple, Optional
-import os
 from pathlib import Path
+from typing import Dict, List, Optional, Tuple
+
+import psutil
+import requests
+
 
 class Colors:
     """ANSI color codes for terminal output"""
-    GREEN = '\033[92m'
-    RED = '\033[91m'
-    YELLOW = '\033[93m'
-    BLUE = '\033[94m'
-    RESET = '\033[0m'
-    BOLD = '\033[1m'
+
+    GREEN = "\033[92m"
+    RED = "\033[91m"
+    YELLOW = "\033[93m"
+    BLUE = "\033[94m"
+    RESET = "\033[0m"
+    BOLD = "\033[1m"
+
 
 class HealthChecker:
     def __init__(self):
@@ -31,7 +35,7 @@ class HealthChecker:
         self.warnings = []
         self.backend_base_url = "http://localhost:8001"
         self.metro_url = "http://localhost:8082"
-        
+
     def log(self, message: str, status: str = "info"):
         """Log message with color coding"""
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -43,15 +47,13 @@ class HealthChecker:
             print(f"{Colors.YELLOW}⚠️  [{timestamp}] {message}{Colors.RESET}")
         else:
             print(f"{Colors.BLUE}ℹ️  [{timestamp}] {message}{Colors.RESET}")
-    
+
     def check_port(self, port: int, service_name: str) -> bool:
         """Check if a port is open and listening"""
         try:
             # Use lsof command like quick_check.sh does
             result = subprocess.run(
-                ["lsof", "-Pi", f":{port}", "-sTCP:LISTEN", "-t"],
-                capture_output=True,
-                text=True
+                ["lsof", "-Pi", f":{port}", "-sTCP:LISTEN", "-t"], capture_output=True, text=True
             )
             if result.returncode == 0 and result.stdout.strip():
                 self.log(f"{service_name} is listening on port {port}", "success")
@@ -62,10 +64,11 @@ class HealthChecker:
         except Exception as e:
             # Fallback to trying to connect
             import socket
+
             try:
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(1)
-                    result = sock.connect_ex(('localhost', port))
+                    result = sock.connect_ex(("localhost", port))
                     if result == 0:
                         self.log(f"{service_name} is listening on port {port}", "success")
                         return True
@@ -75,16 +78,16 @@ class HealthChecker:
             except Exception:
                 self.log(f"{service_name} port check failed", "error")
                 return False
-    
+
     def check_backend_health(self) -> Dict:
         """Check backend API health and functionality"""
         results = {
             "basic_connectivity": False,
             "api_endpoints": {},
             "database_connection": False,
-            "external_apis": {}
+            "external_apis": {},
         }
-        
+
         # Basic health check
         try:
             response = requests.get(f"{self.backend_base_url}/api/v1/health", timeout=5)
@@ -102,25 +105,27 @@ class HealthChecker:
         except Exception as e:
             self.log(f"Backend not accessible: {str(e)}", "error")
             return results
-        
+
         # Test critical API endpoints
         test_endpoints = [
             ("/api/v1/units", "GET", None, "Units endpoint"),
             ("/api/v1/demo/recipes", "GET", None, "Demo recipes"),
             ("/api/v1/stats/comprehensive?timeframe=week", "GET", None, "Stats endpoint"),
         ]
-        
+
         for endpoint, method, data, description in test_endpoints:
             try:
                 if method == "GET":
                     response = requests.get(f"{self.backend_base_url}{endpoint}", timeout=5)
                 else:
-                    response = requests.post(f"{self.backend_base_url}{endpoint}", json=data, timeout=5)
-                
+                    response = requests.post(
+                        f"{self.backend_base_url}{endpoint}", json=data, timeout=5
+                    )
+
                 if response.status_code in [200, 201]:
                     results["api_endpoints"][endpoint] = True
                     self.log(f"{description} working", "success")
-                    
+
                     # Validate response structure
                     try:
                         json_data = response.json()
@@ -136,30 +141,26 @@ class HealthChecker:
             except Exception as e:
                 results["api_endpoints"][endpoint] = False
                 self.log(f"{description} error: {str(e)}", "error")
-        
+
         # Check external API connectivity (if configured)
         if os.getenv("OPENAI_API_KEY"):
             results["external_apis"]["openai"] = True
             self.log("OpenAI API key configured", "success")
         else:
             self.log("OpenAI API key not configured", "warning")
-            
+
         if os.getenv("SPOONACULAR_API_KEY"):
             results["external_apis"]["spoonacular"] = True
             self.log("Spoonacular API key configured", "success")
         else:
             self.log("Spoonacular API key not configured", "warning")
-        
+
         return results
-    
+
     def check_frontend_health(self) -> Dict:
         """Check frontend/React Native health"""
-        results = {
-            "metro_bundler": False,
-            "bundle_valid": False,
-            "simulator_running": False
-        }
-        
+        results = {"metro_bundler": False, "bundle_valid": False, "simulator_running": False}
+
         # Check Metro bundler
         try:
             response = requests.get(self.metro_url, timeout=5)
@@ -170,13 +171,11 @@ class HealthChecker:
                 self.log("Metro bundler not responding properly", "error")
         except:
             self.log("Metro bundler not accessible", "error")
-        
+
         # Check if iOS simulator is running
         try:
             result = subprocess.run(
-                ["xcrun", "simctl", "list", "devices", "booted"],
-                capture_output=True,
-                text=True
+                ["xcrun", "simctl", "list", "devices", "booted"], capture_output=True, text=True
             )
             if result.stdout.strip():
                 results["simulator_running"] = True
@@ -185,7 +184,7 @@ class HealthChecker:
                 self.log("iOS Simulator not running", "warning")
         except:
             self.log("Cannot check iOS Simulator status", "warning")
-        
+
         # Check if bundle can be built
         bundle_path = Path("ios-app/ios/build/Build/Products/Debug-iphonesimulator/PrepSense.app")
         if bundle_path.exists():
@@ -193,17 +192,13 @@ class HealthChecker:
             self.log("iOS app bundle found", "success")
         else:
             self.log("iOS app bundle not found - may need to build", "warning")
-        
+
         return results
-    
+
     def check_database_operations(self) -> Dict:
         """Test actual database operations through the API"""
-        results = {
-            "read_operations": False,
-            "write_operations": False,
-            "complex_queries": False
-        }
-        
+        results = {"read_operations": False, "write_operations": False, "complex_queries": False}
+
         # Test read operation
         try:
             response = requests.get(f"{self.backend_base_url}/api/v1/ingredients", timeout=5)
@@ -214,12 +209,11 @@ class HealthChecker:
                 self.log(f"Database read failed: {response.status_code}", "error")
         except Exception as e:
             self.log(f"Database read error: {str(e)}", "error")
-        
+
         # Test complex query (stats with aggregation)
         try:
             response = requests.get(
-                f"{self.backend_base_url}/api/v1/stats/comprehensive?timeframe=week",
-                timeout=5
+                f"{self.backend_base_url}/api/v1/stats/comprehensive?timeframe=week", timeout=5
             )
             if response.status_code == 200:
                 data = response.json()
@@ -230,17 +224,17 @@ class HealthChecker:
                 self.log("Complex queries not working properly", "error")
         except:
             self.log("Complex query error", "error")
-        
+
         return results
-    
+
     def check_error_handling(self) -> Dict:
         """Test error handling and edge cases"""
         results = {
             "handles_404": False,
             "handles_invalid_data": False,
-            "handles_auth_errors": False
+            "handles_auth_errors": False,
         }
-        
+
         # Test 404 handling
         try:
             response = requests.get(f"{self.backend_base_url}/api/v1/nonexistent", timeout=5)
@@ -249,54 +243,57 @@ class HealthChecker:
                 self.log("404 error handling working", "success")
         except:
             pass
-        
+
         # Test invalid data handling
         try:
             response = requests.post(
                 f"{self.backend_base_url}/api/v1/recipes/search",
                 json={"invalid": "data"},
-                timeout=5
+                timeout=5,
             )
             if response.status_code in [400, 422]:
                 results["handles_invalid_data"] = True
                 self.log("Invalid data handling working", "success")
         except:
             pass
-        
+
         return results
-    
+
     def run_full_check(self) -> Tuple[bool, Dict]:
         """Run comprehensive health check"""
         print(f"\n{Colors.BOLD}🏥 PrepSense Comprehensive Health Check{Colors.RESET}")
         print(f"{Colors.BLUE}{'='*60}{Colors.RESET}\n")
-        
+
         all_results = {}
-        
+
         # Check services
         self.log("Checking service connectivity...", "info")
         backend_running = self.check_port(8001, "Backend API")
-        
+
         # Check if Metro should be running (look for metro/expo/npm processes)
         try:
             # Use ps command to avoid psutil permission issues
-            result = subprocess.run(["pgrep", "-f", "metro|expo|npm.*start"], capture_output=True, text=True)
+            result = subprocess.run(
+                ["pgrep", "-f", "metro|expo|npm.*start"], capture_output=True, text=True
+            )
             metro_expected = bool(result.stdout.strip())
         except Exception:
             # Fallback to checking if port 8082 is open (someone is trying to use it)
             try:
                 import socket
+
                 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                     sock.settimeout(1)
-                    metro_expected = sock.connect_ex(('localhost', 8082)) == 0
+                    metro_expected = sock.connect_ex(("localhost", 8082)) == 0
             except Exception:
                 metro_expected = False
-        
+
         if metro_expected:
             metro_running = self.check_port(8082, "Metro Bundler")
         else:
             metro_running = False
             self.log("Metro Bundler not expected - backend-only mode", "info")
-        
+
         if not backend_running:
             self.log("Backend not running - skipping API tests", "error")
             self.errors.append("Backend service not running")
@@ -304,15 +301,15 @@ class HealthChecker:
             # Backend functionality
             self.log("\nChecking backend functionality...", "info")
             all_results["backend"] = self.check_backend_health()
-            
+
             # Database operations
             self.log("\nChecking database operations...", "info")
             all_results["database"] = self.check_database_operations()
-            
+
             # Error handling
             self.log("\nChecking error handling...", "info")
             all_results["error_handling"] = self.check_error_handling()
-        
+
         # Frontend checks
         if metro_expected and metro_running:
             self.log("\nChecking frontend health...", "info")
@@ -321,14 +318,14 @@ class HealthChecker:
             self.log("\nFrontend expected but Metro not running", "error")
         else:
             self.log("\nSkipping frontend checks - backend-only mode", "info")
-        
+
         # Summary
         print(f"\n{Colors.BOLD}📊 Health Check Summary{Colors.RESET}")
         print(f"{Colors.BLUE}{'='*60}{Colors.RESET}")
-        
+
         total_checks = 0
         passed_checks = 0
-        
+
         def count_checks(obj):
             nonlocal total_checks, passed_checks
             if isinstance(obj, dict):
@@ -339,11 +336,11 @@ class HealthChecker:
                             passed_checks += 1
                     else:
                         count_checks(v)
-        
+
         count_checks(all_results)
-        
+
         success_rate = (passed_checks / total_checks * 100) if total_checks > 0 else 0
-        
+
         if success_rate >= 90:
             status_color = Colors.GREEN
             status_emoji = "✅"
@@ -353,19 +350,21 @@ class HealthChecker:
         else:
             status_color = Colors.RED
             status_emoji = "❌"
-        
-        print(f"\n{status_color}{status_emoji} Overall Health: {success_rate:.1f}% ({passed_checks}/{total_checks} checks passed){Colors.RESET}")
-        
+
+        print(
+            f"\n{status_color}{status_emoji} Overall Health: {success_rate:.1f}% ({passed_checks}/{total_checks} checks passed){Colors.RESET}"
+        )
+
         if self.errors:
             print(f"\n{Colors.RED}🚨 Errors Found:{Colors.RESET}")
             for error in self.errors[:5]:  # Show first 5 errors
                 print(f"  • {error}")
-        
+
         if self.warnings:
             print(f"\n{Colors.YELLOW}⚠️  Warnings:{Colors.RESET}")
             for warning in self.warnings[:5]:
                 print(f"  • {warning}")
-        
+
         # Action items
         print(f"\n{Colors.BOLD}🔧 Recommended Actions:{Colors.RESET}")
         if not backend_running:
@@ -376,24 +375,29 @@ class HealthChecker:
         if success_rate < 90:
             print("  3. Review error logs and fix failing checks")
             print("  4. Run unit tests to identify specific issues")
-        
+
         # Save detailed results
         with open(".health_check_results.json", "w") as f:
-            json.dump({
-                "timestamp": datetime.now().isoformat(),
-                "success_rate": success_rate,
-                "results": all_results,
-                "errors": self.errors,
-                "warnings": self.warnings
-            }, f, indent=2)
-        
+            json.dump(
+                {
+                    "timestamp": datetime.now().isoformat(),
+                    "success_rate": success_rate,
+                    "results": all_results,
+                    "errors": self.errors,
+                    "warnings": self.warnings,
+                },
+                f,
+                indent=2,
+            )
+
         print(f"\n{Colors.BLUE}Detailed results saved to .health_check_results.json{Colors.RESET}")
-        
+
         return success_rate >= 70, all_results
+
 
 if __name__ == "__main__":
     checker = HealthChecker()
     success, results = checker.run_full_check()
-    
+
     # Exit with appropriate code for CI/CD
     sys.exit(0 if success else 1)

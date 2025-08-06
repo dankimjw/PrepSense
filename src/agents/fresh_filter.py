@@ -1,18 +1,21 @@
-
-import asyncpg
-import os
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import Optional
 
+import asyncpg
+
 logger = logging.getLogger(__name__)
+
 
 class FreshFilter:
     name = "fresh_filter"
 
-    async def run(self, canonicalized_items: list[dict], user_id: str = None, freshness_days: int = 7):
+    async def run(
+        self, canonicalized_items: list[dict], user_id: str = None, freshness_days: int = 7
+    ):
         """
-        Input: [{'canonical_name': 'chicken breast', 'category': 'Poultry', 'fdc_id': 123, 'raw_line': '2 lb chicken breast', 
+        Input: [{'canonical_name': 'chicken breast', 'category': 'Poultry', 'fdc_id': 123, 'raw_line': '2 lb chicken breast',
                 'qty_canon': Decimal('0.907'), 'canon_unit': 'kilogram'}...]
         Output: Same items but filtered for freshness and enriched with expiration info
         """
@@ -39,31 +42,35 @@ class FreshFilter:
         try:
             # Get food loss rates and expiration estimates
             food_loss_data = await self._get_food_loss_data(conn)
-            
+
             out = []
             cutoff_date = datetime.now() + timedelta(days=freshness_days)
-            
+
             for item in canonicalized_items:
                 try:
                     # Estimate expiration date based on category and food loss data
                     category = item.get("category", "").lower()
                     estimated_expiry = self._estimate_expiration_date(category, food_loss_data)
-                    
+
                     # Calculate freshness score (0-1, where 1 is very fresh, 0 is expired)
                     freshness_score = self._calculate_freshness_score(estimated_expiry)
-                    
+
                     # Determine if item is fresh enough
                     is_fresh = estimated_expiry is None or estimated_expiry > cutoff_date
-                    
+
                     # Add freshness metadata
                     enriched_item = {
                         **item,
-                        "estimated_expiry": estimated_expiry.isoformat() if estimated_expiry else None,
+                        "estimated_expiry": (
+                            estimated_expiry.isoformat() if estimated_expiry else None
+                        ),
                         "freshness_score": freshness_score,
                         "is_fresh": is_fresh,
-                        "days_until_expiry": (estimated_expiry - datetime.now()).days if estimated_expiry else None
+                        "days_until_expiry": (
+                            (estimated_expiry - datetime.now()).days if estimated_expiry else None
+                        ),
                     }
-                    
+
                     # Only include if fresh or if we can't determine freshness
                     if is_fresh:
                         out.append(enriched_item)
@@ -84,10 +91,12 @@ class FreshFilter:
     async def _get_food_loss_data(self, conn) -> dict:
         """Get food loss rates from database"""
         try:
-            rows = await conn.fetch("""
+            rows = await conn.fetch(
+                """
                 SELECT category, avg_shelf_life_days, loss_rate_percent 
                 FROM food_loss_rates
-            """)
+            """
+            )
             return {row["category"].lower(): row for row in rows} if rows else {}
         except Exception as e:
             logger.warning(f"Could not fetch food loss data: {e}")
@@ -97,23 +106,23 @@ class FreshFilter:
         """Estimate expiration date based on category"""
         # Default shelf life by category (in days)
         default_shelf_life = {
-            'dairy and egg products': 7,
-            'meat products': 3,
-            'poultry products': 3,
-            'beef products': 3,
-            'pork products': 3,
-            'lamb, veal, and game products': 3,
-            'finfish and shellfish products': 2,
-            'vegetables and vegetable products': 5,
-            'fruits and fruit juices': 7,
-            'bakery products': 3,
-            'beverages': 30,
-            'fats and oils': 365,
-            'nut and seed products': 180,
-            'legumes and legume products': 365,
-            'grains and cereals': 365,
-            'soups, sauces, and gravies': 14,
-            'spices and herbs': 730
+            "dairy and egg products": 7,
+            "meat products": 3,
+            "poultry products": 3,
+            "beef products": 3,
+            "pork products": 3,
+            "lamb, veal, and game products": 3,
+            "finfish and shellfish products": 2,
+            "vegetables and vegetable products": 5,
+            "fruits and fruit juices": 7,
+            "bakery products": 3,
+            "beverages": 30,
+            "fats and oils": 365,
+            "nut and seed products": 180,
+            "legumes and legume products": 365,
+            "grains and cereals": 365,
+            "soups, sauces, and gravies": 14,
+            "spices and herbs": 730,
         }
 
         # Use database data if available, otherwise use defaults
@@ -138,7 +147,7 @@ class FreshFilter:
 
         # Calculate days until expiry
         days_until_expiry = (estimated_expiry - now).days
-        
+
         # Score based on days remaining (assuming 14 days is "very fresh")
         if days_until_expiry >= 14:
             return 1.0
