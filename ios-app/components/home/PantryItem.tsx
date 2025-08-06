@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
   },
   categoryText: {
     fontSize: 12,
-    color: '#4B5563',
+    color: '#000000',
     fontWeight: '500',
   },
   moreButton: {

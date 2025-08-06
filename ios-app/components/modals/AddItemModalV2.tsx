@@ -330,7 +330,7 @@ export const AddItemModalV2: React.FC<AddItemModalV2Props> = ({
         <ScrollView showsVerticalScrollIndicator={false}>
           <View style={[styles.selectedCategoryBadge, { backgroundColor: categoryInfo?.color + '20' }]}>
             <Text style={styles.categoryIcon}>{categoryInfo?.icon}</Text>
-            <Text style={[styles.selectedCategoryText, { color: categoryInfo?.color }]}>
+            <Text style={[styles.selectedCategoryText, { color: '#000000' }]}>
               {categoryInfo?.label}
             </Text>
           </View>

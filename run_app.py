@@ -26,6 +26,9 @@ from pathlib import Path
 from typing import List, Optional
 
 from dotenv import load_dotenv
+
+# Add scripts directory to path for Key_Loader_7
+sys.path.insert(0, str(Path(__file__).parent / "scripts"))
 from Key_Loader_7 import load_openai_key_from_file
 
 

@@ -421,7 +421,7 @@ const styles = StyleSheet.create({
   categoryText: {
     fontSize: 12,
     fontWeight: '500',
-    color: '#FFFFFF',
+    color: '#000000',
   },
   title: {
     fontSize: 24,

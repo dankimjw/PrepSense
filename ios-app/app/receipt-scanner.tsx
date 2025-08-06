@@ -34,9 +34,9 @@ export default function ReceiptScannerScreen() {
   };
 
   const pickImage = async () => {
-    // Reduced debounce: prevent multiple calls within 300ms (more responsive)
+    // Reduced debounce: prevent multiple calls within 100ms (more responsive)
     const now = Date.now();
-    if (now - lastPressRef.current < 300) {
+    if (now - lastPressRef.current < 100) {
       console.log('Button press ignored - too soon after last press');
       return;
     }
@@ -98,7 +98,7 @@ export default function ReceiptScannerScreen() {
       // Ensure processing state is always reset after a delay
       setTimeout(() => {
         setIsProcessing(false);
-      }, 100);
+      }, 50);
     }
   };
 
@@ -142,7 +142,7 @@ export default function ReceiptScannerScreen() {
               ]}
               onPress={pickImage}
               disabled={isProcessing}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
               delayPressIn={0}
               delayPressOut={0}
             >
@@ -159,7 +159,7 @@ export default function ReceiptScannerScreen() {
               ]}
               onPress={pickImage}
               disabled={isProcessing}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
               delayPressIn={0}
               delayPressOut={0}
             >
