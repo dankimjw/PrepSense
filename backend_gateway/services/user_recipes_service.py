@@ -128,7 +128,7 @@ class UserRecipesService:
         limit: int = 100,
         offset: int = 0
     ) -> List[Dict[str, Any]]:
-        """Get user's saved recipes with optional filters"""
+        """Get user's saved recipes with optional filters, prioritizing demo recipes (1001-1010)"""
         try:
             # Build query with filters
             conditions = ["user_id = %(user_id)s"]
@@ -164,10 +164,23 @@ class UserRecipesService:
                 status,
                 cooked_at,
                 created_at,
-                updated_at
+                updated_at,
+                CASE 
+                    WHEN COALESCE(recipe_id, CAST(recipe_data->>'external_recipe_id' AS INTEGER), CAST(recipe_data->>'id' AS INTEGER)) BETWEEN 1001 AND 1010 
+                    THEN 1 
+                    ELSE 0 
+                END as is_demo_recipe
             FROM user_recipes
             WHERE {" AND ".join(conditions)}
-            ORDER BY created_at DESC
+            ORDER BY 
+                is_demo_recipe DESC,
+                is_favorite DESC,
+                CASE rating 
+                    WHEN 'thumbs_up' THEN 1
+                    WHEN 'neutral' THEN 2
+                    WHEN 'thumbs_down' THEN 3
+                END,
+                created_at DESC
             LIMIT {limit} OFFSET {offset}
             """
             
@@ -177,6 +190,9 @@ class UserRecipesService:
             recipes = []
             for row in results:
                 recipe = dict(row)
+                # Remove the helper field
+                recipe.pop('is_demo_recipe', None)
+                
                 # PostgreSQL JSONB columns are automatically converted to Python dicts
                 # Only parse if it's a string (shouldn't happen with JSONB)
                 if recipe.get('recipe_data') and isinstance(recipe['recipe_data'], str):
@@ -465,9 +481,9 @@ class UserRecipesService:
         pantry_items: List[Dict[str, Any]],
         limit: int = 10
     ) -> List[Dict[str, Any]]:
-        """Match user's saved recipes with current pantry items"""
+        """Match user's saved recipes with current pantry items, prioritizing demo recipes"""
         try:
-            # Get user's saved recipes (prioritize favorites and liked)
+            # Get user's saved recipes (prioritize demo recipes, favorites and liked)
             query = """
             SELECT 
                 id,
@@ -477,10 +493,16 @@ class UserRecipesService:
                 rating,
                 is_favorite,
                 source,
-                created_at
+                created_at,
+                CASE 
+                    WHEN COALESCE(recipe_id, CAST(recipe_data->>'external_recipe_id' AS INTEGER), CAST(recipe_data->>'id' AS INTEGER)) BETWEEN 1001 AND 1010 
+                    THEN 1 
+                    ELSE 0 
+                END as is_demo_recipe
             FROM user_recipes
             WHERE user_id = %(user_id)s
             ORDER BY 
+                is_demo_recipe DESC,
                 is_favorite DESC,
                 CASE rating 
                     WHEN 'thumbs_up' THEN 1
@@ -514,6 +536,7 @@ class UserRecipesService:
             
             for recipe in recipes:
                 recipe_data = recipe.get('recipe_data', {})
+                is_demo = recipe.pop('is_demo_recipe', 0)
                 
                 # Extract ingredients from recipe
                 recipe_ingredients = []
@@ -554,6 +577,7 @@ class UserRecipesService:
                         "source": recipe['source'],
                         "rating": recipe['rating'],
                         "is_favorite": recipe['is_favorite'],
+                        "is_demo_recipe": bool(is_demo),
                         "match_score": round(match_score, 2),
                         "matched_ingredients": matched_ingredients,
                         "missing_ingredients": missing_ingredients,
@@ -566,9 +590,10 @@ class UserRecipesService:
                     if match_score > 0.3:  # At least 30% ingredients available
                         matched_recipes.append(matched_recipe)
             
-            # Sort by match score and user preference
+            # Sort by demo recipes first, then match score and user preference
             matched_recipes.sort(key=lambda x: (
-                x['can_make'],  # Recipes you can make first
+                x['is_demo_recipe'],  # Demo recipes first
+                x['can_make'],  # Recipes you can make
                 x['is_favorite'],  # Then favorites
                 x['rating'] == 'thumbs_up',  # Then liked recipes
                 x['match_score']  # Then by match score

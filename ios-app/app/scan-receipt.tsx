@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
   },
   itemCategory: {
     fontSize: 12,
-    color: '#297A56',
+    color: '#000000',
     marginTop: 4,
     backgroundColor: '#297A5615',
     paddingHorizontal: 8,

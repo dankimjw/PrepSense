@@ -51,6 +51,13 @@
    - **5.1** [Spoonacular API Analysis](./5.1_Spoonacular_API_ANALYSIS.md) - Comprehensive API usage analysis with caching strategies and cost optimization
    - **5.2** [Local Storage and Caching Strategy](./5.2_Local_Storage_and_Caching_Strategy.md) - Complete analysis of all storage mechanisms and caching layers
 
+#### 6. **[Doc_Code_Quality_Tools.md](./Doc_Code_Quality_Tools.md)** 🆕
+   - Code cleanup and analysis tools for React Native/Expo and FastAPI
+   - Automated dependency scanning and unused code detection
+   - ESLint integration for React Native style checking
+   - CI/CD integration patterns for maintaining code quality
+   - Lightbulb-recommender agent specific cleanup workflows
+
 ### Additional Documentation
 
 #### 4.1 **[USDA Unit Mapping Plan](./4.1_USDA_UNIT_MAPPING_PLAN.md)**

@@ -93,6 +93,7 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setRecipesError(null);
     
     console.log('🍳 Fetching recipes data...');
+    console.log('🍳 Using API Base URL:', Config.API_BASE_URL);
     
     try {
       // Get pantry items for recipe matching
@@ -106,7 +107,13 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
           headers: {
             'Content-Type': 'application/json',
           },
-        }).then(res => res.ok ? res.json() : Promise.reject('Failed to fetch saved recipes'))
+        }).then(res => {
+          if (!res.ok) {
+            console.error('Failed to fetch saved recipes:', res.status, res.statusText);
+            return Promise.reject(`HTTP ${res.status}: ${res.statusText}`);
+          }
+          return res.json();
+        })
       ]);
       
       const newRecipesData: RecipeData = {
@@ -120,12 +127,17 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       setRecipesData(newRecipesData);
       console.log(`  → Recipes loaded: ${newRecipesData.pantryRecipes.length} pantry, ${newRecipesData.myRecipes.length} saved`);
       
-      // Log any failures
+      // Log any failures with more detail
       if (pantryRecipesResult.status === 'rejected') {
         console.error('Failed to fetch pantry recipes:', pantryRecipesResult.reason);
+        setRecipesError(`Failed to load pantry recipes: ${pantryRecipesResult.reason}`);
       }
       if (myRecipesResult.status === 'rejected') {
         console.error('Failed to fetch my recipes:', myRecipesResult.reason);
+        // Don't set error for my recipes failure if pantry recipes succeeded
+        if (pantryRecipesResult.status === 'rejected') {
+          setRecipesError(`Failed to load recipes: ${myRecipesResult.reason}`);
+        }
       }
       
     } catch (error) {
@@ -146,12 +158,16 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
     setStatsError(null);
     
     console.log('📊 Fetching stats data...');
+    console.log('📊 Using API Base URL:', Config.API_BASE_URL);
     
     try {
+      // Use the standardized API base URL from Config
+      const baseUrl = Config.API_BASE_URL;
+      
       // Fetch all stats data in parallel
       const [comprehensiveStatsResponse, cookingTrendsResponse] = await Promise.allSettled([
-        fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/stats/comprehensive?user_id=111`),
-        fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/v1/cooking-history/trends?user_id=111`)
+        fetch(`${baseUrl}/stats/comprehensive?user_id=111`),
+        fetch(`${baseUrl}/cooking-history/trends?user_id=111`)
       ]);
       
       let comprehensiveStats = null;
@@ -159,10 +175,14 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       
       if (comprehensiveStatsResponse.status === 'fulfilled' && comprehensiveStatsResponse.value.ok) {
         comprehensiveStats = await comprehensiveStatsResponse.value.json();
+      } else if (comprehensiveStatsResponse.status === 'rejected') {
+        console.warn('Failed to fetch comprehensive stats:', comprehensiveStatsResponse.reason);
       }
       
       if (cookingTrendsResponse.status === 'fulfilled' && cookingTrendsResponse.value.ok) {
         cookingTrends = await cookingTrendsResponse.value.json();
+      } else if (cookingTrendsResponse.status === 'rejected') {
+        console.warn('Failed to fetch cooking trends:', cookingTrendsResponse.reason);
       }
       
       const newStatsData: StatsData = {
@@ -306,6 +326,7 @@ export const TabDataProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log('📱 TabDataProvider: Starting preload...');
       console.log(`  - Pantry items available: ${items.length}`);
       console.log(`  - User preferences loaded: ${preferences ? 'Yes' : 'No'}`);
+      console.log(`  - API Base URL: ${Config.API_BASE_URL}`);
       
       const startTime = Date.now();
       

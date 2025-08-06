@@ -61,7 +61,7 @@ export interface ImageGenerationResponse {
   recipe_name: string;
 }
 
-export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'> & { id?: string }): Promise<PantryItem> => {
+export const savePantryItem = async (userId: number, item: Omit<PantryItem, 'id'> & { id?: string }): Promise<any> => {
   try {
     const endpoint = item.id 
       ? `/pantry/items/${item.id}`
@@ -123,7 +123,20 @@ export const fetchPantryItems = async (userId: number): Promise<PantryItem[]> =>
       throw new Error(errorData.detail || `Error fetching pantry items: ${response.statusText}`);
     }
     
-    return await response.json();
+    const rawData = await response.json();
+    
+    // Transform the API response to match the PantryItem interface
+    return rawData.map((item: any) => ({
+      id: item.pantry_item_id?.toString() || '',
+      item_name: item.product_name || '',
+      quantity_amount: item.quantity || 0,
+      quantity_unit: item.unit_of_measurement || '',
+      expected_expiration: item.expiration_date || '',
+      addedDate: item.pantry_item_created_at || '',
+      category: item.food_category || 'Uncategorized',
+      // Include all original fields for compatibility
+      ...item
+    }));
   } catch (error) {
     console.error('Error fetching pantry items:', error);
     throw error;
@@ -213,7 +226,11 @@ export const searchRecipesByIngredients = async (ingredients: string[]): Promise
   }
 };
 
-export const searchRecipesFromPantry = async (userId: number): Promise<any> => {
+export const searchRecipesFromPantry = async (
+  userId: number = 111,
+  maxMissingIngredients: number = 5,
+  useExpiringFirst: boolean = true
+): Promise<{ recipes: Recipe[] }> => {
   try {
     const response = await fetch(`${API_BASE_URL}/recipes/search/from-pantry`, {
       method: 'POST',
@@ -222,17 +239,43 @@ export const searchRecipesFromPantry = async (userId: number): Promise<any> => {
       },
       body: JSON.stringify({
         user_id: userId,
-        max_missing_ingredients: 5,
-        use_expiring_first: true,
+        max_missing_ingredients: maxMissingIngredients,
+        use_expiring_first: useExpiringFirst
       }),
     });
-    
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error searching recipes from pantry: ${response.statusText}`);
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
+
+    const data = await response.json();
     
-    return await response.json();
+    // Transform the response to match the expected Recipe interface
+    const recipes: Recipe[] = data.recipes ? data.recipes.map((recipe: any) => ({
+      name: recipe.title || recipe.name || 'Unknown Recipe',
+      ingredients: recipe.extendedIngredients ? 
+        recipe.extendedIngredients.map((ing: any) => ing.original || ing.name) : 
+        (recipe.ingredients || []),
+      instructions: recipe.analyzedInstructions ? 
+        recipe.analyzedInstructions[0]?.steps?.map((step: any) => step.step) : 
+        (recipe.instructions || []),
+      nutrition: {
+        calories: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0,
+        protein: recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0,
+      },
+      time: recipe.readyInMinutes || recipe.time || 30,
+      available_ingredients: recipe.available_ingredients || [],
+      missing_ingredients: recipe.missing_ingredients || [],
+      missing_count: recipe.missing_count || 0,
+      available_count: recipe.available_count || 0,
+      match_score: recipe.match_score || 0,
+      cuisine_type: recipe.cuisines?.[0] || recipe.cuisine_type || 'international',
+      dietary_tags: recipe.diets || recipe.dietary_tags || [],
+      allergens_present: recipe.allergens_present || [],
+      matched_preferences: recipe.matched_preferences || []
+    })) : [];
+
+    return { recipes };
   } catch (error) {
     console.error('Error searching recipes from pantry:', error);
     throw error;
