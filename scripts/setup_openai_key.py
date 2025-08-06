@@ -5,12 +5,12 @@ import json
 import os
 
 # Read from JSON file
-with open('config/openai.json', 'r') as f:
+with open("config/openai.json", "r") as f:
     config = json.load(f)
-    api_key = config.get('openai_key')
+    api_key = config.get("openai_key")
 
 # Write to expected text file
-with open('config/openai_key.txt', 'w') as f:
+with open("config/openai_key.txt", "w") as f:
     f.write(api_key)
 
 print("OpenAI API key has been set up in config/openai_key.txt")

@@ -3,23 +3,25 @@
 Analyze pantry_history and user_preferences tables
 """
 
+import json
 import os
 import sys
-import json
 from datetime import datetime
-from typing import Dict, Any
+from typing import Any, Dict
+
 from dotenv import load_dotenv
 
 # Load environment variables from the main .env file
-env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
 load_dotenv(env_path)
 
 # Add the backend_gateway to the path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from backend_gateway.services.postgres_service import PostgresService
-from backend_gateway.core.config import settings
 import logging
+
+from backend_gateway.core.config import settings
+from backend_gateway.services.postgres_service import PostgresService
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ def analyze_pantry_history(postgres_service: PostgresService):
     """Analyze the pantry_history table"""
     print("=== PANTRY_HISTORY ANALYSIS ===")
     print()
-    
+
     # 1. Operations being tracked
     query = """
         SELECT operation, COUNT(*) as count 
@@ -42,13 +44,13 @@ def analyze_pantry_history(postgres_service: PostgresService):
     for row in results:
         print(f"  {row['operation']}: {row['count']} records")
     print()
-    
+
     # 2. Unique pantry items
     query = "SELECT COUNT(DISTINCT pantry_item_id) as unique_items FROM pantry_history"
     result = postgres_service.execute_query(query, fetch="one")
     print(f"Unique pantry items tracked: {result['unique_items']}")
     print()
-    
+
     # 3. Date range
     query = """
         SELECT 
@@ -61,7 +63,7 @@ def analyze_pantry_history(postgres_service: PostgresService):
     print(f"Date range: {result['earliest']} to {result['latest']}")
     print(f"Total records: {result['total_records']}")
     print()
-    
+
     # 4. Average records per pantry item
     query = """
         SELECT AVG(record_count) as avg_records_per_item
@@ -72,10 +74,10 @@ def analyze_pantry_history(postgres_service: PostgresService):
         ) as item_counts
     """
     result = postgres_service.execute_query(query, fetch="one")
-    avg_records = float(result['avg_records_per_item'])
+    avg_records = float(result["avg_records_per_item"])
     print(f"Average history records per pantry item: {avg_records:.2f}")
     print()
-    
+
     # 5. Sample recent entries
     query = """
         SELECT 
@@ -92,12 +94,14 @@ def analyze_pantry_history(postgres_service: PostgresService):
     results = postgres_service.execute_query(query)
     print("Recent history entries (last 10):")
     for row in results:
-        details = json.loads(row['details']) if row['details'] else {}
-        print(f"  [{row['timestamp']}] {row['operation']} - {row['item_name'] or 'Unknown'} (ID: {row['pantry_item_id']})")
+        details = json.loads(row["details"]) if row["details"] else {}
+        print(
+            f"  [{row['timestamp']}] {row['operation']} - {row['item_name'] or 'Unknown'} (ID: {row['pantry_item_id']})"
+        )
         if details:
             print(f"    Details: {json.dumps(details, indent=6)}")
     print()
-    
+
     # Additional analysis: Operations by pantry item
     query = """
         SELECT 
@@ -114,7 +118,9 @@ def analyze_pantry_history(postgres_service: PostgresService):
     results = postgres_service.execute_query(query)
     print("Top 10 pantry items by history count:")
     for row in results:
-        print(f"  {row['item_name'] or 'Unknown'} (ID: {row['pantry_item_id']}): {row['history_count']} records")
+        print(
+            f"  {row['item_name'] or 'Unknown'} (ID: {row['pantry_item_id']}): {row['history_count']} records"
+        )
         print(f"    Operations: {row['operations']}")
     print()
 
@@ -123,19 +129,19 @@ def analyze_user_preferences(postgres_service: PostgresService):
     """Analyze the user_preferences table"""
     print("=== USER_PREFERENCES ANALYSIS ===")
     print()
-    
+
     # 1. Check total users vs preferences
     query = "SELECT COUNT(*) as total_users FROM users"
     result = postgres_service.execute_query(query, fetch="one")
-    total_users = result['total_users']
+    total_users = result["total_users"]
     print(f"Total users in system: {total_users}")
-    
+
     query = "SELECT COUNT(*) as total_prefs FROM user_preferences"
     result = postgres_service.execute_query(query, fetch="one")
-    total_prefs = result['total_prefs']
+    total_prefs = result["total_prefs"]
     print(f"Total user preferences records: {total_prefs}")
     print()
-    
+
     # 2. Which users have preferences
     query = """
         SELECT 
@@ -152,12 +158,14 @@ def analyze_user_preferences(postgres_service: PostgresService):
     print("Users with preferences:")
     if results:
         for row in results:
-            print(f"  User {row['user_id']} ({row['username']}): {row['preference_type']} = {row['preference_value']}")
+            print(
+                f"  User {row['user_id']} ({row['username']}): {row['preference_type']} = {row['preference_value']}"
+            )
             print(f"    Created: {row['created_at']}")
     else:
         print("  No user preferences found")
     print()
-    
+
     # 3. Users without preferences
     query = """
         SELECT u.id, u.username, u.created_at
@@ -174,7 +182,7 @@ def analyze_user_preferences(postgres_service: PostgresService):
     else:
         print("  All users have preferences")
     print()
-    
+
     # 4. Check preference table structure
     query = """
         SELECT column_name, data_type, is_nullable, column_default
@@ -185,11 +193,11 @@ def analyze_user_preferences(postgres_service: PostgresService):
     results = postgres_service.execute_query(query)
     print("User preferences table structure:")
     for row in results:
-        nullable = "NULL" if row['is_nullable'] == 'YES' else "NOT NULL"
-        default = f" DEFAULT {row['column_default']}" if row['column_default'] else ""
+        nullable = "NULL" if row["is_nullable"] == "YES" else "NOT NULL"
+        default = f" DEFAULT {row['column_default']}" if row["column_default"] else ""
         print(f"  {row['column_name']}: {row['data_type']} {nullable}{default}")
     print()
-    
+
     # 5. Check if there are any unique constraints
     query = """
         SELECT 
@@ -215,22 +223,24 @@ def main():
     """Main function"""
     try:
         # Initialize PostgreSQL service
-        postgres_service = PostgresService({
-            'host': settings.POSTGRES_HOST,
-            'port': settings.POSTGRES_PORT,
-            'database': settings.POSTGRES_DATABASE,
-            'user': settings.POSTGRES_USER,
-            'password': settings.POSTGRES_PASSWORD
-        })
-        
+        postgres_service = PostgresService(
+            {
+                "host": settings.POSTGRES_HOST,
+                "port": settings.POSTGRES_PORT,
+                "database": settings.POSTGRES_DATABASE,
+                "user": settings.POSTGRES_USER,
+                "password": settings.POSTGRES_PASSWORD,
+            }
+        )
+
         # Analyze pantry_history
         analyze_pantry_history(postgres_service)
-        
-        print("\n" + "="*60 + "\n")
-        
+
+        print("\n" + "=" * 60 + "\n")
+
         # Analyze user_preferences
         analyze_user_preferences(postgres_service)
-        
+
     except Exception as e:
         logger.error(f"Error analyzing database: {e}")
         raise

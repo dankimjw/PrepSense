@@ -4,20 +4,21 @@ Recipes Test Backend - Minimal FastAPI app with only recipes-related endpoints
 for testing the iOS app's recipes tab functionality.
 """
 
-import sys
 import os
+import sys
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
 
 # Add the project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+import logging
+
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from dotenv import load_dotenv
-import logging
 
 # Load environment variables
 load_dotenv()
@@ -38,7 +39,7 @@ if key_path and Path(key_path).exists():
 app = FastAPI(
     title="PrepSense Recipes Test API",
     version="1.0.0",
-    description="Test backend for recipes tab functionality"
+    description="Test backend for recipes tab functionality",
 )
 
 # Configure CORS
@@ -49,6 +50,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Pydantic models for recipes
 class Recipe(BaseModel):
@@ -62,6 +64,7 @@ class Recipe(BaseModel):
     sourceUrl: Optional[str] = None
     summary: Optional[str] = None
 
+
 class RecipeSearchRequest(BaseModel):
     query: Optional[str] = None
     diet: Optional[str] = None
@@ -69,8 +72,10 @@ class RecipeSearchRequest(BaseModel):
     type: Optional[str] = None
     number: int = 10
 
+
 class PantryRecipeRequest(BaseModel):
     user_id: int = 111
+
 
 # Mock data for testing
 MOCK_RECIPES = [
@@ -82,7 +87,7 @@ MOCK_RECIPES = [
         "readyInMinutes": 20,
         "servings": 4,
         "image": "https://example.com/carbonara.jpg",
-        "summary": "Classic Italian pasta dish"
+        "summary": "Classic Italian pasta dish",
     },
     {
         "id": 2,
@@ -92,7 +97,7 @@ MOCK_RECIPES = [
         "readyInMinutes": 15,
         "servings": 2,
         "image": "https://example.com/stirfry.jpg",
-        "summary": "Quick and healthy stir fry"
+        "summary": "Quick and healthy stir fry",
     },
     {
         "id": 3,
@@ -102,18 +107,21 @@ MOCK_RECIPES = [
         "readyInMinutes": 45,
         "servings": 6,
         "image": "https://example.com/soup.jpg",
-        "summary": "Hearty vegetable soup"
-    }
+        "summary": "Hearty vegetable soup",
+    },
 ]
+
 
 # Basic endpoints
 @app.get("/")
 async def root():
     return {"message": "PrepSense Recipes Test Backend is running!"}
 
+
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "PrepSense Recipes Test Backend"}
+
 
 # Recipes tab endpoints
 @app.post("/api/v1/recipes/search/from-pantry")
@@ -123,13 +131,14 @@ async def search_recipes_from_pantry(request: PantryRecipeRequest):
     This endpoint is called by the 'Pantry' tab in the iOS app.
     """
     print(f"Searching recipes from pantry for user {request.user_id}")
-    
+
     # Return mock recipes for testing
     return {
         "results": MOCK_RECIPES,
         "totalResults": len(MOCK_RECIPES),
-        "message": "Recipes based on your pantry items"
+        "message": "Recipes based on your pantry items",
     }
+
 
 @app.post("/api/v1/recipes/search/complex")
 async def search_recipes_complex(request: RecipeSearchRequest):
@@ -137,22 +146,28 @@ async def search_recipes_complex(request: RecipeSearchRequest):
     Search recipes with complex filters.
     This endpoint is called by the 'Discover' tab in the iOS app.
     """
-    print(f"Complex recipe search: query='{request.query}', diet='{request.diet}', cuisine='{request.cuisine}'")
-    
+    print(
+        f"Complex recipe search: query='{request.query}', diet='{request.diet}', cuisine='{request.cuisine}'"
+    )
+
     # Filter mock recipes based on query (simple text matching)
     filtered_recipes = MOCK_RECIPES
     if request.query:
         filtered_recipes = [
-            recipe for recipe in MOCK_RECIPES 
-            if request.query.lower() in recipe["title"].lower() or
-               any(request.query.lower() in ingredient.lower() for ingredient in recipe["ingredients"])
+            recipe
+            for recipe in MOCK_RECIPES
+            if request.query.lower() in recipe["title"].lower()
+            or any(
+                request.query.lower() in ingredient.lower() for ingredient in recipe["ingredients"]
+            )
         ]
-    
+
     return {
-        "results": filtered_recipes[:request.number],
+        "results": filtered_recipes[: request.number],
         "totalResults": len(filtered_recipes),
-        "message": f"Found {len(filtered_recipes)} recipes"
+        "message": f"Found {len(filtered_recipes)} recipes",
     }
+
 
 @app.get("/api/v1/recipes/random")
 async def get_random_recipes(number: int = 10):
@@ -161,11 +176,12 @@ async def get_random_recipes(number: int = 10):
     This endpoint is called by the 'Discover' tab when no search query is provided.
     """
     print(f"Getting {number} random recipes")
-    
+
     return {
         "recipes": MOCK_RECIPES[:number],
-        "message": f"Random selection of {len(MOCK_RECIPES)} recipes"
+        "message": f"Random selection of {len(MOCK_RECIPES)} recipes",
     }
+
 
 @app.get("/api/v1/user-recipes")
 async def get_user_recipes(user_id: int = 111):
@@ -174,23 +190,19 @@ async def get_user_recipes(user_id: int = 111):
     This endpoint is called by the 'My Recipes' tab in the iOS app.
     """
     print(f"Getting saved recipes for user {user_id}")
-    
+
     # Return mock saved recipes
     saved_recipes = [
-        {
-            **recipe,
-            "isFavorite": True,
-            "userRating": 5,
-            "dateAdded": "2024-01-15"
-        }
+        {**recipe, "isFavorite": True, "userRating": 5, "dateAdded": "2024-01-15"}
         for recipe in MOCK_RECIPES[:2]  # First 2 recipes as "saved"
     ]
-    
+
     return {
         "recipes": saved_recipes,
         "totalCount": len(saved_recipes),
-        "message": f"Found {len(saved_recipes)} saved recipes"
+        "message": f"Found {len(saved_recipes)} saved recipes",
     }
+
 
 # Additional test endpoints
 @app.get("/api/v1/test/recipes-endpoints")
@@ -199,15 +211,17 @@ async def test_recipes_endpoints():
     return {
         "endpoints": [
             "POST /api/v1/recipes/search/from-pantry",
-            "POST /api/v1/recipes/search/complex", 
+            "POST /api/v1/recipes/search/complex",
             "GET /api/v1/recipes/random",
-            "GET /api/v1/user-recipes"
+            "GET /api/v1/user-recipes",
         ],
         "status": "All recipes endpoints are available",
-        "mock_data_count": len(MOCK_RECIPES)
+        "mock_data_count": len(MOCK_RECIPES),
     }
+
 
 if __name__ == "__main__":
     import uvicorn
+
     print("Starting PrepSense Recipes Test Backend on port 8002...")
     uvicorn.run(app, host="0.0.0.0", port=8002)

@@ -4,8 +4,8 @@ Setup script for Cloud SQL PostgreSQL instance and database schema for PrepSense
 """
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # Configuration
@@ -16,11 +16,12 @@ TIER = "db-f1-micro"  # Small instance for development
 DATABASE_NAME = "prepsense"
 
 # Get password from environment variable
-ROOT_PASSWORD = os.getenv('POSTGRES_ROOT_PASSWORD')
+ROOT_PASSWORD = os.getenv("POSTGRES_ROOT_PASSWORD")
 if not ROOT_PASSWORD:
     print("Error: POSTGRES_ROOT_PASSWORD environment variable is required")
     print("Please set it using: export POSTGRES_ROOT_PASSWORD='your-password'")
     sys.exit(1)
+
 
 def run_command(cmd, check=True):
     """Run a command and return the result"""
@@ -31,6 +32,7 @@ def run_command(cmd, check=True):
         sys.exit(1)
     return result
 
+
 def enable_required_apis():
     """Enable required APIs for Cloud SQL"""
     print("\n0. Enabling required APIs...")
@@ -38,28 +40,29 @@ def enable_required_apis():
         "sqladmin.googleapis.com",
         "compute.googleapis.com",
         "servicenetworking.googleapis.com",
-        "iam.googleapis.com"  # For IAM authentication
+        "iam.googleapis.com",  # For IAM authentication
     ]
-    
+
     for api in apis:
         cmd = f"gcloud services enable {api} --project={PROJECT_ID}"
         print(f"Enabling {api}...")
         run_command(cmd)
-    
+
     print("All required APIs enabled!")
+
 
 def create_instance():
     """Create Cloud SQL PostgreSQL instance"""
     print(f"\n1. Creating Cloud SQL PostgreSQL instance '{INSTANCE_NAME}'...")
-    
+
     # Check if instance already exists
     check_cmd = f"gcloud sql instances describe {INSTANCE_NAME} --project={PROJECT_ID}"
     result = run_command(check_cmd, check=False)
-    
+
     if result.returncode == 0:
         print(f"Instance '{INSTANCE_NAME}' already exists.")
         return
-    
+
     # Create new PostgreSQL instance with public IP (simpler for initial setup)
     create_cmd = f"""gcloud sql instances create {INSTANCE_NAME} \
         --project={PROJECT_ID} \
@@ -69,39 +72,41 @@ def create_instance():
         --root-password={ROOT_PASSWORD} \
         --database-flags=cloudsql.iam_authentication=on \
         --authorized-networks=0.0.0.0/0"""
-    
+
     run_command(create_cmd)
     print("Cloud SQL PostgreSQL instance created successfully!")
+
 
 def create_database():
     """Create database"""
     print(f"\n2. Creating database '{DATABASE_NAME}'...")
-    
+
     cmd = f"""gcloud sql databases create {DATABASE_NAME} \
         --instance={INSTANCE_NAME} \
         --project={PROJECT_ID}"""
-    
+
     result = run_command(cmd, check=False)
     if result.returncode != 0 and "already exists" not in result.stderr:
         print(f"Error creating database: {result.stderr}")
         sys.exit(1)
-    
+
     print("Database created successfully!")
+
 
 def get_connection_info():
     """Get connection information"""
     print("\n3. Getting connection information...")
-    
+
     # Get instance connection name
     cmd = f"gcloud sql instances describe {INSTANCE_NAME} --project={PROJECT_ID} --format='value(connectionName)'"
     result = run_command(cmd)
     connection_name = result.stdout.strip()
-    
+
     # Get instance IP address
     ip_cmd = f"gcloud sql instances describe {INSTANCE_NAME} --project={PROJECT_ID} --format='value(ipAddresses[0].ipAddress)'"
     ip_result = run_command(ip_cmd)
     ip_address = ip_result.stdout.strip()
-    
+
     print(f"\nConnection Information:")
     print(f"  Instance: {INSTANCE_NAME}")
     print(f"  Database: {DATABASE_NAME}")
@@ -114,13 +119,14 @@ def get_connection_info():
     print(f"  Option 2 - Cloud SQL Proxy (more secure):")
     print(f"    cloud_sql_proxy -instances={connection_name}=tcp:5432")
     print(f"    psql -h 127.0.0.1 -U postgres -d {DATABASE_NAME}")
-    
+
     return connection_name, ip_address
+
 
 def create_sql_schema():
     """Create SQL schema file"""
     print("\n4. Creating SQL schema...")
-    
+
     schema = """-- PrepSense Cloud SQL PostgreSQL Schema
 -- Optimized for transactional operations with PostgreSQL features
 
@@ -323,23 +329,24 @@ JOIN pantries p ON pi.pantry_id = p.pantry_id;
 -- Grant permissions for IAM users (when using IAM authentication)
 -- This will be done after creating IAM database users
 """
-    
+
     schema_file = Path("schema_postgres.sql")
     schema_file.write_text(schema)
     print(f"Schema file created: {schema_file}")
-    
+
     return schema_file
+
 
 def setup_iam_user(email):
     """Set up IAM database user"""
     print(f"\n5. Setting up IAM user for {email}...")
-    
+
     # Create Cloud SQL user for IAM authentication
     cmd = f"""gcloud sql users create {email} \
         --instance={INSTANCE_NAME} \
         --type=CLOUD_IAM_USER \
         --project={PROJECT_ID}"""
-    
+
     result = run_command(cmd, check=False)
     if result.returncode == 0:
         print(f"IAM user {email} created successfully!")
@@ -348,34 +355,35 @@ def setup_iam_user(email):
     else:
         print(f"Note: Could not create IAM user: {result.stderr}")
 
+
 def main():
     print("=== PrepSense Cloud SQL PostgreSQL Setup ===")
-    
+
     # Check prerequisites
     print("Checking prerequisites...")
     result = run_command("which gcloud", check=False)
     if result.returncode != 0:
         print("Error: gcloud CLI not found. Please install Google Cloud SDK.")
         sys.exit(1)
-    
+
     # Set project
     run_command(f"gcloud config set project {PROJECT_ID}")
-    
+
     # Enable APIs
     enable_required_apis()
-    
+
     # Create instance
     create_instance()
-    
+
     # Create database
     create_database()
-    
+
     # Get connection info
     connection_name, ip_address = get_connection_info()
-    
+
     # Create schema
     schema_file = create_sql_schema()
-    
+
     # Try to get current user email for IAM setup
     user_email_cmd = "gcloud config get-value account"
     user_email_result = run_command(user_email_cmd, check=False)
@@ -383,7 +391,7 @@ def main():
         user_email = user_email_result.stdout.strip()
         if user_email:
             setup_iam_user(user_email)
-    
+
     print("\n=== Setup Complete! ===")
     print("\nNext Steps:")
     print("1. Install Cloud SQL Proxy (recommended for production):")
@@ -392,7 +400,9 @@ def main():
     print("\n2. Install psql client if needed:")
     print("   brew install postgresql")
     print("\n3. Import the schema:")
-    print(f"   PGPASSWORD=$POSTGRES_ROOT_PASSWORD psql -h {ip_address} -U postgres -d {DATABASE_NAME} < {schema_file}")
+    print(
+        f"   PGPASSWORD=$POSTGRES_ROOT_PASSWORD psql -h {ip_address} -U postgres -d {DATABASE_NAME} < {schema_file}"
+    )
     print("\n4. Update your .env file with:")
     print(f"   # PostgreSQL connection")
     print(f"   DB_TYPE=postgres")
@@ -405,9 +415,18 @@ def main():
     print(f"\n   # Or for Cloud SQL Proxy (more secure):")
     print(f"   # POSTGRES_HOST=127.0.0.1")
     print("\n5. For IAM authentication (team members):")
-    print("   gcloud sql users create [USER_EMAIL] --instance={} --type=CLOUD_IAM_USER".format(INSTANCE_NAME))
+    print(
+        "   gcloud sql users create [USER_EMAIL] --instance={} --type=CLOUD_IAM_USER".format(
+            INSTANCE_NAME
+        )
+    )
     print("\n6. To connect with IAM auth:")
-    print("   gcloud sql connect {} --user=[USER_EMAIL] --database={}".format(INSTANCE_NAME, DATABASE_NAME))
+    print(
+        "   gcloud sql connect {} --user=[USER_EMAIL] --database={}".format(
+            INSTANCE_NAME, DATABASE_NAME
+        )
+    )
+
 
 if __name__ == "__main__":
     main()

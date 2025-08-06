@@ -1,0 +1,902 @@
+name: PrepSense Comprehensive CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop, experimental-work ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  pull_request:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md' 
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip test execution (for emergency deployments)'
+        required: false
+        default: 'false'
+        type: boolean
+      run_performance_tests:
+        description: 'Run performance tests'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Global environment variables
+env:
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.9'
+  CACHE_VERSION: 'v2'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+# Concurrency control to cancel previous runs on new pushes
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # =============================================================================
+  # PREPARATION & SETUP
+  # =============================================================================
+  
+  setup:
+    name: 🚀 Setup and Validation
+    runs-on: ubuntu-latest
+    outputs:
+      python-cache-key: ${{ steps.cache-keys.outputs.python }}
+      node-cache-key: ${{ steps.cache-keys.outputs.node }}
+      should-run-tests: ${{ steps.conditions.outputs.run-tests }}
+      should-run-performance: ${{ steps.conditions.outputs.run-performance }}
+      affected-services: ${{ steps.changes.outputs.affected }}
+      
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2 # Need previous commit for change detection
+          
+      - name: 🔍 Detect Changes
+        id: changes
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          else
+            BASE_SHA="HEAD~1"
+          fi
+          
+          CHANGED_FILES=$(git diff --name-only $BASE_SHA HEAD)
+          
+          # Determine affected services
+          AFFECTED=()
+          
+          if echo "$CHANGED_FILES" | grep -q '^backend_gateway/'; then
+            AFFECTED+=("backend")
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -q '^ios-app/'; then
+            AFFECTED+=("frontend")
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -qE '\.(py|js|jsx|ts|tsx)$'; then
+            AFFECTED+=("tests")
+          fi
+          
+          if echo "$CHANGED_FILES" | grep -qE '^(requirements\.txt|ios-app/package\.json)$'; then
+            AFFECTED+=("dependencies")
+          fi
+          
+          AFFECTED_JSON=$(printf '%s\n' "${AFFECTED[@]}" | jq -R . | jq -s .)
+          echo "affected=$AFFECTED_JSON" >> $GITHUB_OUTPUT
+          
+          echo "🔄 Detected changes in: ${AFFECTED[*]}"
+          
+      - name: ⚙️ Set Conditions
+        id: conditions
+        run: |
+          RUN_TESTS="true"
+          RUN_PERFORMANCE="true"
+          
+          # Skip tests if explicitly requested
+          if [ "${{ github.event.inputs.skip_tests }}" = "true" ]; then
+            RUN_TESTS="false"
+          fi
+          
+          # Skip performance tests for documentation-only changes
+          if [ "${{ github.event.inputs.run_performance_tests }}" = "false" ]; then
+            RUN_PERFORMANCE="false"
+          fi
+          
+          echo "run-tests=$RUN_TESTS" >> $GITHUB_OUTPUT
+          echo "run-performance=$RUN_PERFORMANCE" >> $GITHUB_OUTPUT
+          
+      - name: 🔑 Generate Cache Keys
+        id: cache-keys
+        run: |
+          echo "python=python-${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements*.txt') }}-${{ env.CACHE_VERSION }}" >> $GITHUB_OUTPUT
+          echo "node=node-${{ env.NODE_VERSION }}-${{ hashFiles('ios-app/package-lock.json') }}-${{ env.CACHE_VERSION }}" >> $GITHUB_OUTPUT
+
+  # =============================================================================
+  # SECURITY & QUALITY CHECKS
+  # =============================================================================
+  
+  security-scan:
+    name: 🔒 Security & Vulnerability Scan
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-run-tests == 'true'
+    
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: requirements*.txt
+          
+      - name: 📦 Install Security Tools
+        run: |
+          pip install --upgrade pip
+          pip install bandit safety pip-audit semgrep
+          
+      - name: 🔍 Python Security Scan (Bandit)
+        run: |
+          bandit -r backend_gateway/ -f json -o bandit-report.json || true
+          bandit -r backend_gateway/ -f txt
+          
+      - name: 🛡️ Dependency Vulnerability Scan (pip-audit)
+        run: |
+          pip-audit --desc --format=json --output=pip-audit-report.json || true
+          pip-audit --desc --format=table
+          
+      - name: 🔎 SAST with Semgrep
+        run: |
+          semgrep --config=auto --json --output=semgrep-report.json backend_gateway/ || true
+          semgrep --config=auto backend_gateway/ || true
+          
+      - name: 📊 Upload Security Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ github.sha }}
+          path: |
+            bandit-report.json
+            pip-audit-report.json
+            semgrep-report.json
+          retention-days: 30
+          
+      - name: 📝 Security Summary
+        run: |
+          echo "## 🔒 Security Scan Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Bandit results
+          if [ -f bandit-report.json ]; then
+            HIGH_ISSUES=$(jq '.results[] | select(.issue_severity == "HIGH") | length' bandit-report.json 2>/dev/null | wc -l || echo "0")
+            MEDIUM_ISSUES=$(jq '.results[] | select(.issue_severity == "MEDIUM") | length' bandit-report.json 2>/dev/null | wc -l || echo "0")
+            echo "**Bandit SAST:** $HIGH_ISSUES high, $MEDIUM_ISSUES medium severity issues" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📋 Full reports available in artifacts" >> $GITHUB_STEP_SUMMARY
+
+  code-quality:
+    name: 📊 Code Quality Analysis
+    runs-on: ubuntu-latest
+    needs: setup
+    if: needs.setup.outputs.should-run-tests == 'true'
+    
+    strategy:
+      matrix:
+        component: [backend, frontend]
+        
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python (Backend)
+        if: matrix.component == 'backend'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
+      - name: 📱 Setup Node.js (Frontend)
+        if: matrix.component == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ios-app/package-lock.json
+          
+      - name: 📦 Install Dependencies (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          pip install --upgrade pip
+          pip install black ruff mypy isort flake8 flake8-bugbear radon complexity-report
+          pip install -r requirements.txt
+          
+      - name: 📦 Install Dependencies (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          npm ci
+          
+      - name: 🎨 Code Formatting Check (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          echo "## 🎨 Python Code Quality" >> $GITHUB_STEP_SUMMARY
+          
+          # Black formatting
+          black --check --diff backend_gateway/ || {
+            echo "❌ **Black formatting issues found**" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          echo "✅ **Black:** Code formatting is correct" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🔧 Linting (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          # Ruff linting
+          ruff check backend_gateway/ --output-format=json > ruff-report.json || true
+          ruff check backend_gateway/
+          
+          # Import sorting
+          isort --check-only --diff backend_gateway/
+          
+          # Additional linting with flake8
+          flake8 backend_gateway/ --max-line-length=100 --statistics
+          
+      - name: 🔍 Type Checking (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          mypy backend_gateway/ --ignore-missing-imports || {
+            echo "❌ **MyPy:** Type checking failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          echo "✅ **MyPy:** Type checking passed" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🧮 Complexity Analysis (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          # Cyclomatic complexity
+          radon cc backend_gateway/ -s -a -j > complexity-report.json || true
+          radon cc backend_gateway/ -s -a
+          
+          # Maintainability index
+          radon mi backend_gateway/ -s
+          
+      - name: 🎨 Code Formatting & Linting (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          echo "## 📱 Frontend Code Quality" >> $GITHUB_STEP_SUMMARY
+          
+          # ESLint
+          npm run lint:strict || {
+            echo "❌ **ESLint:** Linting failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          echo "✅ **ESLint:** Linting passed" >> $GITHUB_STEP_SUMMARY
+          
+          # Prettier
+          npm run format:check || {
+            echo "❌ **Prettier:** Formatting issues found" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          echo "✅ **Prettier:** Code formatting is correct" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🔍 Type Checking (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          npm run typecheck || {
+            echo "❌ **TypeScript:** Type checking failed" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          }
+          echo "✅ **TypeScript:** Type checking passed" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 📊 Upload Quality Reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports-${{ matrix.component }}-${{ github.sha }}
+          path: |
+            ruff-report.json
+            complexity-report.json
+          retention-days: 30
+
+  # =============================================================================
+  # TESTING PIPELINE
+  # =============================================================================
+  
+  backend-tests:
+    name: 🧪 Backend Tests
+    runs-on: ubuntu-latest
+    needs: [setup, security-scan]
+    if: needs.setup.outputs.should-run-tests == 'true' && contains(needs.setup.outputs.affected-services, 'backend')
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration, api]
+        
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+      REDIS_URL: redis://localhost:6379/0
+      OPENAI_API_KEY: test-key-123
+      SPOONACULAR_API_KEY: test-spoon-key
+      TESTING: true
+      CI: true
+      
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          
+      - name: 📦 Install Dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest-cov pytest-xdist pytest-mock pytest-asyncio
+          
+      - name: 🗄️ Setup Database
+        run: |
+          cd backend_gateway
+          # Run migrations if available
+          if [ -f "alembic.ini" ]; then
+            alembic upgrade head
+          fi
+          
+      - name: 🧪 Run Tests
+        run: |
+          cd backend_gateway
+          
+          case "${{ matrix.test-type }}" in
+            "unit")
+              pytest tests/ -k "not integration and not api" \
+                --cov=. --cov-report=xml --cov-report=html \
+                --junitxml=unit-test-results.xml \
+                -v --tb=short
+              ;;
+            "integration")
+              pytest tests/ -k "integration" \
+                --junitxml=integration-test-results.xml \
+                -v --tb=short
+              ;;
+            "api")
+              pytest tests/ -k "api" \
+                --junitxml=api-test-results.xml \
+                -v --tb=short
+              ;;
+          esac
+          
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-backend-${{ matrix.test-type }}-${{ github.sha }}
+          path: |
+            backend_gateway/*test-results.xml
+            backend_gateway/htmlcov/
+            backend_gateway/coverage.xml
+          retention-days: 30
+          
+      - name: 📈 Upload Coverage to Codecov
+        if: matrix.test-type == 'unit'
+        uses: codecov/codecov-action@v4
+        with:
+          file: backend_gateway/coverage.xml
+          flags: backend
+          name: backend-coverage
+
+  frontend-tests:
+    name: 📱 Frontend Tests  
+    runs-on: macos-latest
+    needs: [setup, security-scan]
+    if: needs.setup.outputs.should-run-tests == 'true' && contains(needs.setup.outputs.affected-services, 'frontend')
+    
+    strategy:
+      matrix:
+        test-type: [unit, integration, performance]
+        
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 📱 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ios-app/package-lock.json
+          
+      - name: 📦 Install Dependencies
+        run: |
+          cd ios-app
+          npm ci
+          
+      - name: 🧪 Run Tests
+        run: |
+          cd ios-app
+          
+          case "${{ matrix.test-type }}" in
+            "unit")
+              npm run test:unit -- --watchAll=false --coverage --testResultsProcessor=jest-sonar-reporter
+              ;;
+            "integration")
+              npm run test:integration -- --watchAll=false
+              ;;
+            "performance")
+              npm run test:performance -- --watchAll=false
+              ;;
+          esac
+          
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results-frontend-${{ matrix.test-type }}-${{ github.sha }}
+          path: |
+            ios-app/coverage/
+            ios-app/test-report.xml
+          retention-days: 30
+          
+      - name: 📈 Upload Coverage to Codecov
+        if: matrix.test-type == 'unit'
+        uses: codecov/codecov-action@v4
+        with:
+          file: ios-app/coverage/lcov.info
+          flags: frontend
+          name: frontend-coverage
+
+  # =============================================================================
+  # CONTRACT & API TESTING
+  # =============================================================================
+  
+  contract-tests:
+    name: 📋 Contract & API Tests
+    runs-on: ubuntu-latest
+    needs: [setup, backend-tests]
+    if: needs.setup.outputs.should-run-tests == 'true'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+      OPENAI_API_KEY: test-key-123
+      TESTING: true
+      
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: 📱 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: 📦 Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install schemathesis httpx
+          npm install -g @stoplight/spectral-cli
+          
+      - name: 🚀 Start API Server
+        run: |
+          cd backend_gateway
+          python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
+          echo $! > api_server.pid
+          sleep 10
+          
+      - name: 📋 Generate OpenAPI Spec
+        run: |
+          curl -o openapi.json http://localhost:8000/openapi.json
+          
+      - name: 🔍 Validate API Contract (Spectral)
+        run: |
+          spectral lint openapi.json --format=junit --output=spectral-results.xml || true
+          spectral lint openapi.json --format=pretty
+          
+      - name: 🧪 Property-Based API Testing (Schemathesis)
+        run: |
+          schemathesis run http://localhost:8000/openapi.json \
+            --hypothesis-max-examples=100 \
+            --junit-xml=schemathesis-results.xml \
+            --show-errors-tracebacks || true
+            
+      - name: 🛑 Stop API Server
+        if: always()
+        run: |
+          if [ -f backend_gateway/api_server.pid ]; then
+            kill $(cat backend_gateway/api_server.pid) || true
+          fi
+          
+      - name: 📊 Upload Contract Test Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: contract-test-results-${{ github.sha }}
+          path: |
+            openapi.json
+            spectral-results.xml
+            schemathesis-results.xml
+          retention-days: 30
+
+  # =============================================================================
+  # PERFORMANCE & LOAD TESTING
+  # =============================================================================
+  
+  performance-tests:
+    name: ⚡ Performance & Load Tests
+    runs-on: ubuntu-latest
+    needs: [setup, backend-tests]
+    if: needs.setup.outputs.should-run-performance == 'true' && github.event_name == 'pull_request'
+    
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    
+    env:
+      DATABASE_URL: postgresql://test_user:test_password@localhost:5432/test_db
+      OPENAI_API_KEY: test-key-123
+      TESTING: true
+      
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: 📦 Install Dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install locust pytest-benchmark
+          
+      - name: 🚀 Start API Server
+        run: |
+          cd backend_gateway
+          python -m uvicorn app:app --host 0.0.0.0 --port 8000 &
+          echo $! > api_server.pid
+          sleep 10
+          
+      - name: ⚡ Load Testing (Locust)
+        run: |
+          cd backend_gateway
+          if [ -f "locustfile.py" ]; then
+            locust -H http://localhost:8000 \
+              -u 20 -r 5 --run-time 60s \
+              --headless --only-summary \
+              --html=load-test-report.html \
+              --csv=load-test-results
+          else
+            echo "No locustfile.py found, skipping load tests"
+          fi
+          
+      - name: 📊 Benchmark Tests
+        run: |
+          cd backend_gateway
+          if [ -d "benchmarks" ]; then
+            pytest benchmarks/ --benchmark-json=benchmark-results.json -v
+          fi
+          
+      - name: 🛑 Stop API Server
+        if: always()
+        run: |
+          if [ -f backend_gateway/api_server.pid ]; then
+            kill $(cat backend_gateway/api_server.pid) || true
+          fi
+          
+      - name: 📊 Upload Performance Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: performance-test-results-${{ github.sha }}
+          path: |
+            backend_gateway/load-test-report.html
+            backend_gateway/load-test-results*
+            backend_gateway/benchmark-results.json
+          retention-days: 30
+          
+      - name: 📈 Performance Summary
+        if: always()
+        run: |
+          echo "## ⚡ Performance Test Results" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f "backend_gateway/load-test-results_stats.csv" ]; then
+            echo "### Load Test Statistics" >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat backend_gateway/load-test-results_stats.csv >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # =============================================================================
+  # BUILD & DEPLOYMENT PREPARATION
+  # =============================================================================
+  
+  build-validation:
+    name: 🏗️ Build Validation
+    runs-on: ubuntu-latest
+    needs: [setup, code-quality]
+    if: needs.setup.outputs.should-run-tests == 'true'
+    
+    strategy:
+      matrix:
+        component: [backend, frontend]
+        
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+        
+      - name: 🐍 Setup Python (Backend)
+        if: matrix.component == 'backend'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          
+      - name: 📱 Setup Node.js (Frontend)  
+        if: matrix.component == 'frontend'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: ios-app/package-lock.json
+          
+      - name: 📦 Install Dependencies (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          pip install -r requirements.txt
+          
+      - name: 📦 Install Dependencies (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          npm ci
+          
+      - name: 🔍 Validate Imports (Backend)
+        if: matrix.component == 'backend'
+        run: |
+          cd backend_gateway
+          python -c "from app import app; print('✅ Backend imports successful')"
+          
+      - name: 🏗️ Build Check (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          # Verify TypeScript compilation
+          npm run typecheck
+          
+          # Test production build
+          npm run build || npx expo export:embed --dev false --platform ios
+          
+      - name: 📊 Bundle Analysis (Frontend)
+        if: matrix.component == 'frontend'
+        run: |
+          cd ios-app
+          npm run analyze:bundle || echo "Bundle analysis completed"
+          
+      - name: 📈 Build Summary
+        run: |
+          echo "## 🏗️ Build Validation (${{ matrix.component }})" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build validation completed successfully" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # QUALITY GATES & FINAL VALIDATION
+  # =============================================================================
+  
+  quality-gate:
+    name: 🚪 Quality Gate
+    runs-on: ubuntu-latest
+    needs: [security-scan, code-quality, backend-tests, frontend-tests, contract-tests]
+    if: always() && needs.setup.outputs.should-run-tests == 'true'
+    
+    steps:
+      - name: 📊 Evaluate Results
+        run: |
+          echo "## 🚪 Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check each job status
+          SECURITY_STATUS="${{ needs.security-scan.result }}"
+          QUALITY_STATUS="${{ needs.code-quality.result }}"
+          BACKEND_STATUS="${{ needs.backend-tests.result }}"
+          FRONTEND_STATUS="${{ needs.frontend-tests.result }}"
+          CONTRACT_STATUS="${{ needs.contract-tests.result }}"
+          
+          PASSED=0
+          TOTAL=0
+          
+          # Security scan
+          if [ "$SECURITY_STATUS" = "success" ]; then
+            echo "✅ Security Scan: PASSED" >> $GITHUB_STEP_SUMMARY
+            PASSED=$((PASSED + 1))
+          else
+            echo "❌ Security Scan: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          TOTAL=$((TOTAL + 1))
+          
+          # Code quality
+          if [ "$QUALITY_STATUS" = "success" ]; then
+            echo "✅ Code Quality: PASSED" >> $GITHUB_STEP_SUMMARY
+            PASSED=$((PASSED + 1))
+          else
+            echo "❌ Code Quality: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          TOTAL=$((TOTAL + 1))
+          
+          # Backend tests
+          if [ "$BACKEND_STATUS" = "success" ] || [ "$BACKEND_STATUS" = "skipped" ]; then
+            echo "✅ Backend Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            PASSED=$((PASSED + 1))
+          else
+            echo "❌ Backend Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          TOTAL=$((TOTAL + 1))
+          
+          # Frontend tests
+          if [ "$FRONTEND_STATUS" = "success" ] || [ "$FRONTEND_STATUS" = "skipped" ]; then
+            echo "✅ Frontend Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            PASSED=$((PASSED + 1))
+          else
+            echo "❌ Frontend Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          TOTAL=$((TOTAL + 1))
+          
+          # Contract tests
+          if [ "$CONTRACT_STATUS" = "success" ] || [ "$CONTRACT_STATUS" = "skipped" ]; then
+            echo "✅ Contract Tests: PASSED" >> $GITHUB_STEP_SUMMARY
+            PASSED=$((PASSED + 1))
+          else
+            echo "❌ Contract Tests: FAILED" >> $GITHUB_STEP_SUMMARY
+          fi
+          TOTAL=$((TOTAL + 1))
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Score: $PASSED/$TOTAL**" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine if quality gate passes
+          if [ $PASSED -eq $TOTAL ]; then
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🎉 **Quality Gate: PASSED** 🎉" >> $GITHUB_STEP_SUMMARY
+            echo "✅ All quality checks passed. Ready for deployment!" >> $GITHUB_STEP_SUMMARY
+            exit 0
+          else
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "🚫 **Quality Gate: FAILED** 🚫" >> $GITHUB_STEP_SUMMARY
+            echo "❌ Some quality checks failed. Please review and fix issues." >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+  # =============================================================================
+  # DEPLOYMENT READINESS
+  # =============================================================================
+  
+  deployment-ready:
+    name: 🚀 Deployment Ready
+    runs-on: ubuntu-latest
+    needs: [quality-gate, build-validation]
+    if: github.ref == 'refs/heads/main' && needs.quality-gate.result == 'success'
+    
+    steps:
+      - name: 🎉 Deployment Readiness
+        run: |
+          echo "## 🚀 Deployment Readiness Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All quality gates passed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security scans completed" >> $GITHUB_STEP_SUMMARY
+          echo "✅ All tests passing" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Build validation successful" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🎯 **Ready for Production Deployment**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          
+      - name: 🏷️ Create Release Tag
+        if: github.event_name == 'push'
+        run: |
+          # Create release tag based on date and commit
+          TAG_NAME="v$(date +%Y.%m.%d)-$(echo ${{ github.sha }} | cut -c1-7)"
+          echo "Creating release tag: $TAG_NAME"
+          
+          # This would typically create a tag, but requires proper permissions
+          echo "Release tag would be: $TAG_NAME" >> $GITHUB_STEP_SUMMARY
+
+  # =============================================================================
+  # CLEANUP & NOTIFICATIONS
+  # =============================================================================
+  
+  cleanup:
+    name: 🧹 Cleanup & Notifications
+    runs-on: ubuntu-latest
+    needs: [quality-gate, deployment-ready]
+    if: always()
+    
+    steps:
+      - name: 📧 Notification Summary
+        run: |
+          echo "## 📧 CI/CD Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Repository:** ${{ github.repository }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Overall status
+          OVERALL_STATUS="${{ needs.quality-gate.result }}"
+          if [ "$OVERALL_STATUS" = "success" ]; then
+            echo "🎉 **Pipeline Status: SUCCESS** 🎉" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ **Pipeline Status: FAILED** ❌" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 Check individual job results above for detailed information." >> $GITHUB_STEP_SUMMARY

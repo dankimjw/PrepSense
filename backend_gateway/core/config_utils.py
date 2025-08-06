@@ -10,23 +10,23 @@ from typing import Optional
 def read_api_key_from_file(file_path: str) -> Optional[str]:
     """
     Read an API key from a file.
-    
+
     Args:
         file_path: Path to the file containing the API key
-        
+
     Returns:
         The API key as a string, or None if the file doesn't exist
-        
+
     Raises:
         ValueError: If the file exists but is empty or contains only whitespace
     """
     if not file_path:
         return None
-        
+
     path = Path(file_path)
     if not path.exists():
         return None
-        
+
     try:
         api_key = path.read_text().strip()
         if not api_key:
@@ -39,15 +39,15 @@ def read_api_key_from_file(file_path: str) -> Optional[str]:
 def get_openai_api_key() -> str:
     """
     Get OpenAI API key from environment variable or config file.
-    
+
     Priority:
     1. OPENAI_API_KEY environment variable (direct key)
     2. OPENAI_API_KEY_FILE environment variable (path to file)
     3. Default config file location: config/openai_key.txt
-    
+
     Returns:
         The OpenAI API key
-        
+
     Raises:
         ValueError: If no API key can be found or loaded
     """
@@ -62,14 +62,14 @@ def get_openai_api_key() -> str:
                 f"Got: {api_key[:10]}..."
             )
         return api_key
-    
+
     # Try config file specified in environment
     key_file = os.getenv("OPENAI_API_KEY_FILE")
     if key_file:
         api_key = read_api_key_from_file(key_file)
         if api_key:
             return api_key
-    
+
     # Try default config file locations
     default_locations = [
         "config/openai_key.txt",
@@ -90,18 +90,18 @@ def get_openai_api_key() -> str:
 def get_google_credentials_path() -> str:
     """
     Get Google Cloud credentials file path.
-    
+
     Returns:
         Path to the Google Cloud credentials file
-        
+
     Raises:
         ValueError: If no credentials file can be found
     """
     creds_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     if not creds_path:
         raise ValueError("GOOGLE_APPLICATION_CREDENTIALS environment variable not set")
-    
+
     if not Path(creds_path).exists():
         raise ValueError(f"Google Cloud credentials file not found: {creds_path}")
-    
+
     return creds_path

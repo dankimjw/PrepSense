@@ -1,8 +1,10 @@
 """Shared Pydantic models used throughout the backend API."""
 
-from pydantic import BaseModel
-from typing import List, Optional
 from datetime import date
+from typing import List, Optional
+
+from pydantic import BaseModel
+
 
 class PantryItem(BaseModel):
     pantry_item_id: Optional[int]  # Optional for cases where the ID is auto-generated
@@ -14,6 +16,7 @@ class PantryItem(BaseModel):
     unit_price: Optional[float]
     total_price: Optional[float]
     added_at: Optional[date]
+
 
 class PantryDB(BaseModel):
     items: List[PantryItem]  # A list of PantryItem objects

@@ -5,20 +5,23 @@ and post-processing (unit validation, categorization, expiration).
 """
 
 import base64
-import json
-import re
-import logging
 import hashlib
+import json
+import logging
+import re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
-from openai import OpenAI, AuthenticationError
-from backend_gateway.RemoteControl_7 import is_mock_enabled, set_mock
+from openai import AuthenticationError, OpenAI
+
 from backend_gateway.core.openai_client import get_openai_client
+from backend_gateway.models.ocr_models import OCRResponse, ParsedItem
+from backend_gateway.RemoteControl_7 import is_mock_enabled, set_mock
 from backend_gateway.services.fallback_unit_service import fallback_unit_service
-from backend_gateway.services.practical_food_categorization import PracticalFoodCategorizationService
+from backend_gateway.services.practical_food_categorization import (
+    PracticalFoodCategorizationService,
+)
 from backend_gateway.utils.smart_cache import get_cache, invalidate_pattern_cache
-from backend_gateway.models.ocr_models import ParsedItem, OCRResponse
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +38,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Produce",
         "brand": "Dole",
         "product_name": "Dole Bananas",
-        "expiration_date": "2025-08-12"
+        "expiration_date": "2025-08-12",
     },
     {
         "name": "Whole Milk",
@@ -44,7 +47,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Dairy",
         "brand": "Organic Valley",
         "product_name": "Organic Valley Whole Milk",
-        "expiration_date": "2025-08-15"
+        "expiration_date": "2025-08-15",
     },
     {
         "name": "Ground Beef",
@@ -53,7 +56,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Meat",
         "brand": "Grass Run Farms",
         "product_name": "Grass Run Farms Ground Beef",
-        "expiration_date": "2025-08-08"
+        "expiration_date": "2025-08-08",
     },
     {
         "name": "Orange Juice",
@@ -62,7 +65,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Beverages",
         "brand": "Simply",
         "product_name": "Simply Orange Juice",
-        "expiration_date": "2025-08-20"
+        "expiration_date": "2025-08-20",
     },
     {
         "name": "Canned Tomatoes",
@@ -71,7 +74,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Canned Goods",
         "brand": "Hunt's",
         "product_name": "Hunt's Canned Tomatoes",
-        "expiration_date": "2026-08-05"
+        "expiration_date": "2026-08-05",
     },
     {
         "name": "Salmon Fillet",
@@ -80,7 +83,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Seafood",
         "brand": "Wild Planet",
         "product_name": "Wild Planet Salmon Fillet",
-        "expiration_date": "2025-08-07"
+        "expiration_date": "2025-08-07",
     },
     {
         "name": "Greek Yogurt",
@@ -89,7 +92,7 @@ MOCK_SCANNED_ITEMS = [
         "category": "Dairy",
         "brand": "Fage",
         "product_name": "Fage Greek Yogurt",
-        "expiration_date": "2025-08-18"
+        "expiration_date": "2025-08-18",
     },
     {
         "name": "Sourdough Bread",
@@ -98,8 +101,8 @@ MOCK_SCANNED_ITEMS = [
         "category": "Bakery",
         "brand": "Dave's Killer Bread",
         "product_name": "Dave's Killer Bread Sourdough",
-        "expiration_date": "2025-08-10"
-    }
+        "expiration_date": "2025-08-10",
+    },
 ]
 
 
@@ -110,7 +113,7 @@ class OcrService:
     - OpenAI Vision API invocation
     - Parsing and fallback processing
     """
-    
+
     def __init__(self) -> None:
         """Initialize the OCR service with cache and categorization service."""
         self.cache = get_cache()
@@ -124,16 +127,16 @@ class OcrService:
 
     def _get_mime_type(self, data: bytes) -> str:
         """Infer MIME type by inspecting the magic bytes of image data."""
-        if data.startswith(b'\xff\xd8\xff'):
-            return 'image/jpeg'
-        elif data.startswith(b'\x89PNG\r\n\x1a\n'):
-            return 'image/png'
-        elif data.startswith(b'GIF8'):
-            return 'image/gif'
-        elif data.startswith(b'\x00\x00\x00\x00ftyp'):
-            return 'image/heic'
+        if data.startswith(b"\xff\xd8\xff"):
+            return "image/jpeg"
+        elif data.startswith(b"\x89PNG\r\n\x1a\n"):
+            return "image/png"
+        elif data.startswith(b"GIF8"):
+            return "image/gif"
+        elif data.startswith(b"\x00\x00\x00\x00ftyp"):
+            return "image/heic"
         else:
-            return 'image/jpeg'  # Default fallback
+            return "image/jpeg"  # Default fallback
 
     def _build_system_prompt(self) -> str:
         """Construct the system prompt for the OpenAI Vision API call."""
@@ -193,42 +196,39 @@ class OcrService:
         """
         client = get_openai_client()
         if not client:
-            raise RuntimeError('OpenAI client not configured')
+            raise RuntimeError("OpenAI client not configured")
 
         # Encode image as base64 for inline data URL
         mime_type = self._get_mime_type(image_data)
-        processed_image_base64 = base64.b64encode(image_data).decode('utf-8')
+        processed_image_base64 = base64.b64encode(image_data).decode("utf-8")
 
         # Prepare chat messages for vision input
         messages = [
+            {"role": "system", "content": self._build_system_prompt()},
             {
-                'role': 'system',
-                'content': self._build_system_prompt()
-            },
-            {
-                'role': 'user',
-                'content': [
+                "role": "user",
+                "content": [
                     {
-                        'type': 'image_url',
-                        'image_url': {
-                            'url': f'data:{mime_type};base64,{processed_image_base64}',
-                            'detail': 'high'
-                        }
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{mime_type};base64,{processed_image_base64}",
+                            "detail": "high",
+                        },
                     }
-                ]
-            }
+                ],
+            },
         ]
 
         logger.info("Calling OpenAI API for item scan with model: gpt-4o")
-        
+
         # Call the chat completion endpoint
         response = client.chat.completions.create(
-            model='gpt-4o',
-            messages=messages,
-            max_tokens=1500
+            model="gpt-4o", messages=messages, max_tokens=1500
         )
-        
-        logger.info(f"OpenAI API response received - Model: {response.model}, Usage: {response.usage}")
+
+        logger.info(
+            f"OpenAI API response received - Model: {response.model}, Usage: {response.usage}"
+        )
         return response.choices[0].message.content
 
     def _parse_openai_response(self, content: str) -> List[Dict[str, Any]]:
@@ -238,7 +238,7 @@ class OcrService:
         """
         try:
             # Try to extract JSON from markdown code blocks first
-            json_match = re.search(r'```json\n(.*?)\n```', content, re.DOTALL)
+            json_match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
             else:
@@ -248,7 +248,7 @@ class OcrService:
             items = parsed_json.get("items", [])
             logger.info(f"Parsed JSON successfully. Found {len(items)} items")
             return items
-            
+
         except (json.JSONDecodeError, AttributeError) as e:
             logger.error(f"Failed to parse JSON from OpenAI response: {e}")
             logger.debug(f"Raw response content: {content[:500]}...")
@@ -265,21 +265,23 @@ class OcrService:
             display_name = raw_item.get("name", "Unknown Item")
             brand = raw_item.get("brand")
             product_name = f"{brand} {display_name}" if brand else display_name
-            
+
             # Extract raw quantity and unit from OpenAI response
             raw_quantity = raw_item.get("quantity", 1)
             raw_unit = raw_item.get("unit", "each")
-            
+
             # Validate and fix quantity/unit using fallback service
             quantity, unit = fallback_unit_service.validate_and_fix_quantity_unit(
                 item_name=display_name,
                 quantity=float(raw_quantity) if raw_quantity else 1.0,
                 unit=raw_unit or "each",
-                category=raw_item.get("category")
+                category=raw_item.get("category"),
             )
-            
-            logger.info(f"Quantity/unit validation for '{display_name}': {raw_quantity} {raw_unit} -> {quantity} {unit}")
-            
+
+            logger.info(
+                f"Quantity/unit validation for '{display_name}': {raw_quantity} {raw_unit} -> {quantity} {unit}"
+            )
+
             # Determine category using OpenAI result or fallback to categorization service
             openai_category = raw_item.get("category")
             if openai_category and openai_category != "Other":
@@ -288,37 +290,49 @@ class OcrService:
             else:
                 # Use categorization service as fallback
                 try:
-                    categorization_result = await self.categorizer.categorize_food_item(display_name)
+                    categorization_result = await self.categorizer.categorize_food_item(
+                        display_name
+                    )
                     # Map internal categories to display categories
                     category_mapping = {
-                        'produce_countable': 'Produce',
-                        'produce_measurable': 'Produce', 
-                        'liquids': 'Beverages',
-                        'dry_goods': 'Pantry',
-                        'meat_seafood': 'Meat',
-                        'dairy': 'Dairy',
-                        'snacks_bars': 'Snacks',
-                        'packaged_snacks': 'Snacks',
-                        'frozen_foods': 'Frozen'
+                        "produce_countable": "Produce",
+                        "produce_measurable": "Produce",
+                        "liquids": "Beverages",
+                        "dry_goods": "Pantry",
+                        "meat_seafood": "Meat",
+                        "dairy": "Dairy",
+                        "snacks_bars": "Snacks",
+                        "packaged_snacks": "Snacks",
+                        "frozen_foods": "Frozen",
                     }
-                    category = category_mapping.get(categorization_result.category, 'Other')
-                    logger.info(f"Categorized {product_name} as: {category} (from {categorization_result.category})")
+                    category = category_mapping.get(categorization_result.category, "Other")
+                    logger.info(
+                        f"Categorized {product_name} as: {category} (from {categorization_result.category})"
+                    )
                 except Exception as cat_error:
                     logger.error(f"Error categorizing {product_name}: {str(cat_error)}")
                     category = self._determine_fallback_category(display_name)
                     logger.info(f"Using fallback category for {product_name}: {category}")
-            
+
             # Calculate expiration date based on category
             expiration_date = None
             if category:
                 expiration_days = {
-                    "Dairy": 7, "Meat": 3, "Seafood": 2, "Produce": 5, "Bakery": 5,
-                    "Frozen": 180, "Canned Goods": 730, "Pantry": 365,
-                    "Beverages": 180, "Snacks": 90, "Other": 30
+                    "Dairy": 7,
+                    "Meat": 3,
+                    "Seafood": 2,
+                    "Produce": 5,
+                    "Bakery": 5,
+                    "Frozen": 180,
+                    "Canned Goods": 730,
+                    "Pantry": 365,
+                    "Beverages": 180,
+                    "Snacks": 90,
+                    "Other": 30,
                 }.get(category, 30)
                 exp_date = datetime.now().date() + timedelta(days=expiration_days)
                 expiration_date = exp_date.isoformat()
-            
+
             return ParsedItem(
                 name=display_name,
                 quantity=quantity,
@@ -328,9 +342,9 @@ class OcrService:
                 brand=brand,
                 product_name=product_name,
                 nutrition_info=raw_item.get("nutrition_info"),
-                expiration_date=expiration_date
+                expiration_date=expiration_date,
             )
-            
+
         except Exception as item_error:
             logger.error(f"Error processing item {raw_item}: {str(item_error)}")
             return None
@@ -340,36 +354,67 @@ class OcrService:
         Intelligent fallback category determination based on item name patterns.
         """
         item_lower = item_name.lower()
-        
-        # Check specific patterns (most specific to least specific)
-        if any(word in item_lower for word in ['juice', 'soda', 'water', 'coffee', 'tea', 'beer', 'wine', 'drink']):
-            return 'Beverages'
-        
-        if any(word in item_lower for word in ['canned', 'can', 'jar', 'sauce', 'soup']):
-            return 'Canned Goods'
-        
-        if any(word in item_lower for word in ['frozen', 'ice cream']):
-            return 'Frozen'
-        
-        if any(word in item_lower for word in ['apple', 'banana', 'orange', 'tomato', 'potato', 'onion', 'carrot', 'lettuce', 'spinach', 'broccoli', 'fruit', 'vegetable']):
-            return 'Produce'
-        
-        if any(word in item_lower for word in ['milk', 'cheese', 'yogurt', 'butter', 'cream', 'egg']):
-            return 'Dairy'
-        
-        if any(word in item_lower for word in ['chicken', 'beef', 'pork', 'fish', 'salmon', 'turkey', 'ham', 'bacon']):
-            return 'Meat'
-        
-        if any(word in item_lower for word in ['bread', 'roll', 'bagel', 'muffin', 'cake', 'cookie', 'pastry']):
-            return 'Bakery'
-        
-        if any(word in item_lower for word in ['chips', 'crackers', 'bar', 'nuts', 'popcorn', 'candy']):
-            return 'Snacks'
-        
-        # Default to Pantry for dry goods and unknown items
-        return 'Pantry'
 
-    async def process_image(self, image_data: bytes, source_info: Optional[Dict[str, Any]] = None) -> OCRResponse:
+        # Check specific patterns (most specific to least specific)
+        if any(
+            word in item_lower
+            for word in ["juice", "soda", "water", "coffee", "tea", "beer", "wine", "drink"]
+        ):
+            return "Beverages"
+
+        if any(word in item_lower for word in ["canned", "can", "jar", "sauce", "soup"]):
+            return "Canned Goods"
+
+        if any(word in item_lower for word in ["frozen", "ice cream"]):
+            return "Frozen"
+
+        if any(
+            word in item_lower
+            for word in [
+                "apple",
+                "banana",
+                "orange",
+                "tomato",
+                "potato",
+                "onion",
+                "carrot",
+                "lettuce",
+                "spinach",
+                "broccoli",
+                "fruit",
+                "vegetable",
+            ]
+        ):
+            return "Produce"
+
+        if any(
+            word in item_lower for word in ["milk", "cheese", "yogurt", "butter", "cream", "egg"]
+        ):
+            return "Dairy"
+
+        if any(
+            word in item_lower
+            for word in ["chicken", "beef", "pork", "fish", "salmon", "turkey", "ham", "bacon"]
+        ):
+            return "Meat"
+
+        if any(
+            word in item_lower
+            for word in ["bread", "roll", "bagel", "muffin", "cake", "cookie", "pastry"]
+        ):
+            return "Bakery"
+
+        if any(
+            word in item_lower for word in ["chips", "crackers", "bar", "nuts", "popcorn", "candy"]
+        ):
+            return "Snacks"
+
+        # Default to Pantry for dry goods and unknown items
+        return "Pantry"
+
+    async def process_image(
+        self, image_data: bytes, source_info: Optional[Dict[str, Any]] = None
+    ) -> OCRResponse:
         """
         Main entrypoint for OCR scanning flow:
         1. Validate size
@@ -379,134 +424,148 @@ class OcrService:
         """
         # Reject oversized payloads
         if len(image_data) > MAX_IMAGE_SIZE:
-            raise ValueError(f'Image exceeds maximum size of {MAX_IMAGE_SIZE // (1024*1024)}MB')
+            raise ValueError(f"Image exceeds maximum size of {MAX_IMAGE_SIZE // (1024*1024)}MB")
 
         # Generate image hash for caching
         image_hash = self._generate_image_hash(image_data)
-        cache_key = f'ocr_scan_{image_hash}'
-        
+        cache_key = f"ocr_scan_{image_hash}"
+
         # Collect debug details
         debug_info: Dict[str, Any] = {
-            'image_hash': image_hash,
-            'cache_key': cache_key,
-            'mock_enabled': is_mock_enabled("ocr_scan"),
-            'cache_hit': False,
-            'openai_called': False
+            "image_hash": image_hash,
+            "cache_key": cache_key,
+            "mock_enabled": is_mock_enabled("ocr_scan"),
+            "cache_hit": False,
+            "openai_called": False,
         }
-        
+
         if source_info:
             debug_info.update(source_info)
 
         # -- Mock mode shortcut --
         if is_mock_enabled("ocr_scan"):
             logger.info("🎭 Using mock data for item scan")
-            debug_info['source'] = 'mock'
-            
+            debug_info["source"] = "mock"
+
             processed_items = []
             for item in MOCK_SCANNED_ITEMS:
-                processed_items.append(ParsedItem(
-                    name=item['name'],
-                    quantity=item['quantity'],
-                    unit=item['unit'],
-                    category=item['category'],
-                    barcode=item.get('barcode'),
-                    brand=item['brand'],
-                    product_name=item['product_name'],
-                    nutrition_info=item.get('nutrition_info'),
-                    expiration_date=item['expiration_date']
-                ))
-            
+                processed_items.append(
+                    ParsedItem(
+                        name=item["name"],
+                        quantity=item["quantity"],
+                        unit=item["unit"],
+                        category=item["category"],
+                        barcode=item.get("barcode"),
+                        brand=item["brand"],
+                        product_name=item["product_name"],
+                        nutrition_info=item.get("nutrition_info"),
+                        expiration_date=item["expiration_date"],
+                    )
+                )
+
             return OCRResponse(
                 success=True,
                 items=processed_items,
                 message=f"Successfully identified {len(processed_items)} item(s) (mock data)",
-                debug_info=debug_info
+                debug_info=debug_info,
             )
 
         # -- Cache lookup --
         cached_result = self.cache.get(cache_key, ttl=CACHE_TTL)
         if cached_result:
             logger.info(f"📋 Cache hit for image hash: {image_hash}")
-            debug_info['cache_hit'] = True
-            debug_info['source'] = 'cache'
-            
+            debug_info["cache_hit"] = True
+            debug_info["source"] = "cache"
+
             # Return cached result with updated debug info
-            if hasattr(cached_result, 'debug_info'):
+            if hasattr(cached_result, "debug_info"):
                 return OCRResponse(
                     success=cached_result.success,
                     items=cached_result.items,
                     raw_text=cached_result.raw_text,
                     message=cached_result.message,
-                    debug_info=debug_info
+                    debug_info=debug_info,
                 )
-            
+
             return cached_result
 
         # -- Fresh API call --
         logger.info(f"🚀 Making fresh OpenAI detection call for image hash: {image_hash}")
-        debug_info['openai_called'] = True
-        debug_info['source'] = 'openai_fresh'
-        
+        debug_info["openai_called"] = True
+        debug_info["source"] = "openai_fresh"
+
         try:
             # Call OpenAI API
             raw_content = await self._call_openai_api(image_data)
-            
+
             # Parse response
             try:
                 raw_items = self._parse_openai_response(raw_content)
             except Exception as parse_error:
                 logger.error(f"Failed to parse OpenAI response: {parse_error}")
-                debug_info['parse_error'] = str(parse_error)
-                debug_info['raw_response'] = raw_content[:500] + "..." if len(raw_content) > 500 else raw_content
-                
+                debug_info["parse_error"] = str(parse_error)
+                debug_info["raw_response"] = (
+                    raw_content[:500] + "..." if len(raw_content) > 500 else raw_content
+                )
+
                 return OCRResponse(
                     success=False,
                     items=[],
                     raw_text=raw_content,
                     message="Could not parse items from the image analysis.",
-                    debug_info=debug_info
+                    debug_info=debug_info,
                 )
 
             # Post-process each item
             processed_items = []
             logger.info(f"Processing {len(raw_items)} items from OpenAI response")
-            
+
             for raw_item in raw_items:
                 processed_item = await self._post_process_item(raw_item)
                 if processed_item:
                     processed_items.append(processed_item)
-                    logger.info(f"Successfully processed item: {processed_item.name} with category: {processed_item.category}")
+                    logger.info(
+                        f"Successfully processed item: {processed_item.name} with category: {processed_item.category}"
+                    )
 
-            debug_info['processed_items_count'] = len(processed_items)
-            
+            debug_info["processed_items_count"] = len(processed_items)
+
             # Build response
             response = OCRResponse(
                 success=bool(processed_items),
                 items=processed_items,
                 raw_text=raw_content if not processed_items else None,
-                message=f"Successfully identified {len(processed_items)} item(s)" if processed_items else "No items could be identified in the image",
-                debug_info=debug_info
+                message=(
+                    f"Successfully identified {len(processed_items)} item(s)"
+                    if processed_items
+                    else "No items could be identified in the image"
+                ),
+                debug_info=debug_info,
             )
-            
+
             # Cache successful results
             if processed_items:
                 self.cache.set(cache_key, response, ttl=CACHE_TTL)
                 logger.info(f"💾 Cached result for image hash: {image_hash}")
-            
+
             # Track detection for debugging
             self._track_detection(image_hash, response, source_info)
-            
+
             if processed_items:
-                logger.info(f"✅ FINAL RESULT: Returning {len(processed_items)} processed items to client")
+                logger.info(
+                    f"✅ FINAL RESULT: Returning {len(processed_items)} processed items to client"
+                )
                 for i, item in enumerate(processed_items[:3]):  # Log first 3 items
-                    logger.info(f"  ➤ {item.name}: {item.quantity} {item.unit} (Category: {item.category})")
+                    logger.info(
+                        f"  ➤ {item.name}: {item.quantity} {item.unit} (Category: {item.category})"
+                    )
                 if len(processed_items) > 3:
                     logger.info(f"  ➤ ... and {len(processed_items) - 3} more items")
             else:
                 logger.warning("⚠️  No items identified in the image")
-            
+
             return response
-            
+
         except AuthenticationError:
             logger.error("OpenAI authentication failed")
             raise
@@ -514,21 +573,23 @@ class OcrService:
             logger.error(f"Error in OCR processing: {str(e)}")
             raise
 
-    def _track_detection(self, image_hash: str, response: OCRResponse, source_info: Optional[Dict[str, Any]] = None):
+    def _track_detection(
+        self, image_hash: str, response: OCRResponse, source_info: Optional[Dict[str, Any]] = None
+    ):
         """Track detection results for debugging purposes."""
         detection_record = {
-            'timestamp': datetime.now().isoformat(),
-            'image_hash': image_hash,
-            'success': response.success,
-            'items_count': len(response.items),
-            'mock_used': is_mock_enabled("ocr_scan")
+            "timestamp": datetime.now().isoformat(),
+            "image_hash": image_hash,
+            "success": response.success,
+            "items_count": len(response.items),
+            "mock_used": is_mock_enabled("ocr_scan"),
         }
-        
+
         if source_info:
             detection_record.update(source_info)
-        
+
         self.recent_detections.append(detection_record)
-        
+
         # Keep only last 10 detections
         if len(self.recent_detections) > 10:
             self.recent_detections.pop(0)
@@ -541,22 +602,22 @@ class OcrService:
         """Clear OCR-related cache entries."""
         try:
             # Find and clear OCR-related cache entries
-            ocr_keys = [key for key in self.cache.cache.keys() if 'ocr_scan_' in key]
-            
+            ocr_keys = [key for key in self.cache.cache.keys() if "ocr_scan_" in key]
+
             for key in ocr_keys:
                 self.cache.delete(key)
-            
+
             # Also use the pattern invalidation function
-            invalidate_pattern_cache('ocr_scan_')
-            
+            invalidate_pattern_cache("ocr_scan_")
+
             logger.info(f"🧹 Cleared {len(ocr_keys)} OCR cache entries")
-            
+
             return {
                 "success": True,
                 "cleared_entries": len(ocr_keys),
-                "message": f"Cleared {len(ocr_keys)} OCR cache entries"
+                "message": f"Cleared {len(ocr_keys)} OCR cache entries",
             }
-            
+
         except Exception as e:
             logger.error(f"Error clearing OCR cache: {e}")
             raise RuntimeError(f"Error clearing cache: {str(e)}")

@@ -3,16 +3,21 @@ AI-powered unit conversion and validation service
 """
 
 import logging
-from typing import Dict, Optional, Any, List, Tuple
-from decimal import Decimal
-from backend_gateway.services.spoonacular_service import SpoonacularService
-from backend_gateway.constants.units import (
-    normalize_unit, get_unit_category, convert_quantity,
-    UnitCategory, UNIT_INFO
-)
-from crewai import Agent, Task, Crew
-import openai
 import os
+from decimal import Decimal
+from typing import Any, Dict, List, Optional, Tuple
+
+import openai
+from crewai import Agent, Crew, Task
+
+from backend_gateway.constants.units import (
+    UNIT_INFO,
+    UnitCategory,
+    convert_quantity,
+    get_unit_category,
+    normalize_unit,
+)
+from backend_gateway.services.spoonacular_service import SpoonacularService
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +36,8 @@ class UnitConversionService:
         """Setup OpenAI API key"""
         try:
             from backend_gateway.core.config_utils import get_openai_api_key
-            os.environ['OPENAI_API_KEY'] = openai.api_key
+
+            os.environ["OPENAI_API_KEY"] = openai.api_key
         except Exception as e:
             logger.error(f"Failed to setup OpenAI: {e}")
 
@@ -41,22 +47,24 @@ class UnitConversionService:
         source_amount: Optional[float],
         source_unit: Optional[str],
         target_unit: str,
-        pantry_context: Optional[Dict] = None
+        pantry_context: Optional[Dict] = None,
     ) -> Dict[str, Any]:
         """
         Convert ingredient amounts with multiple fallback strategies
-        
+
         Args:
             ingredient_name: Name of the ingredient
             source_amount: Amount in source unit
             source_unit: Source unit (might be descriptive like "large")
             target_unit: Target unit from pantry
             pantry_context: Optional context about the pantry item
-            
+
         Returns:
             Conversion result with confidence level
         """
-        logger.info(f"Converting {source_amount} {source_unit} of {ingredient_name} to {target_unit}")
+        logger.info(
+            f"Converting {source_amount} {source_unit} of {ingredient_name} to {target_unit}"
+        )
 
         # Handle None or missing amounts/units
         if source_amount is None or source_unit is None:
@@ -69,11 +77,11 @@ class UnitConversionService:
                 "target_unit": target_unit,
                 "confidence": 0.0,
                 "message": f"No amount specified for {ingredient_name} (e.g., 'to taste')",
-                "warning": True
+                "warning": True,
             }
 
         # Convert Decimal to float if needed
-        if hasattr(source_amount, '__float__'):
+        if hasattr(source_amount, "__float__"):
             source_amount = float(source_amount)
 
         # Step 1: Handle descriptive units (large, medium, small, fresh)
@@ -99,7 +107,7 @@ class UnitConversionService:
                     "target_amount": spoon_result["targetAmount"],
                     "target_unit": target_unit,
                     "confidence": 0.95,
-                    "message": spoon_result.get("answer", "")
+                    "message": spoon_result.get("answer", ""),
                 }
         except Exception as e:
             logger.warning(f"Spoonacular conversion failed: {e}")
@@ -134,15 +142,32 @@ class UnitConversionService:
             "target_unit": source_unit,
             "confidence": 0.0,
             "message": f"Could not convert {source_unit} to {target_unit} for {ingredient_name}. Using original amount.",
-            "warning": True
+            "warning": True,
         }
 
     def _is_countable_item(self, ingredient_name: str) -> bool:
         """Check if an ingredient is typically counted as individual items"""
         countable_keywords = [
-            "egg", "apple", "banana", "orange", "tomato", "potato", "onion",
-            "pepper", "carrot", "lemon", "lime", "avocado", "berry", "grape",
-            "peach", "pear", "plum", "clove", "chicken breast", "steak"
+            "egg",
+            "apple",
+            "banana",
+            "orange",
+            "tomato",
+            "potato",
+            "onion",
+            "pepper",
+            "carrot",
+            "lemon",
+            "lime",
+            "avocado",
+            "berry",
+            "grape",
+            "peach",
+            "pear",
+            "plum",
+            "clove",
+            "chicken breast",
+            "steak",
         ]
         ingredient_lower = ingredient_name.lower()
         return any(keyword in ingredient_lower for keyword in countable_keywords)
@@ -152,7 +177,7 @@ class UnitConversionService:
         ingredient_name: str,
         source_amount: Optional[float],
         source_unit: Optional[str],
-        target_unit: str
+        target_unit: str,
     ) -> Optional[Dict[str, Any]]:
         """Try conversion using internal unit system"""
         source_norm = normalize_unit(source_unit)
@@ -173,7 +198,7 @@ class UnitConversionService:
                     "target_amount": converted,
                     "target_unit": target_unit,
                     "confidence": 0.85,
-                    "message": f"Converted using internal {source_cat} conversion"
+                    "message": f"Converted using internal {source_cat} conversion",
                 }
 
         return None
@@ -184,7 +209,7 @@ class UnitConversionService:
         source_amount: float,
         source_unit: str,
         target_unit: str,
-        pantry_context: Optional[Dict] = None
+        pantry_context: Optional[Dict] = None,
     ) -> Optional[Dict[str, Any]]:
         """Use AI agent for complex unit conversions"""
 
@@ -197,7 +222,7 @@ class UnitConversionService:
             You understand that different ingredients have different densities and that 
             some conversions require specific knowledge about the ingredient.""",
             verbose=False,
-            allow_delegation=False
+            allow_delegation=False,
         )
 
         # Build context string
@@ -226,16 +251,12 @@ class UnitConversionService:
             Be precise with the target_amount. If conversion is not possible, set target_amount to null.
             """,
             agent=conversion_agent,
-            expected_output="JSON object with target_amount, explanation, and confidence"
+            expected_output="JSON object with target_amount, explanation, and confidence",
         )
 
         try:
             # Execute conversion
-            crew = Crew(
-                agents=[conversion_agent],
-                tasks=[conversion_task],
-                verbose=False
-            )
+            crew = Crew(agents=[conversion_agent], tasks=[conversion_task], verbose=False)
 
             result = crew.kickoff()
 
@@ -244,7 +265,7 @@ class UnitConversionService:
             import re
 
             # Extract JSON from response
-            json_match = re.search(r'\{[^}]+\}', str(result), re.DOTALL)
+            json_match = re.search(r"\{[^}]+\}", str(result), re.DOTALL)
             if json_match:
                 ai_data = json.loads(json_match.group())
 
@@ -257,7 +278,7 @@ class UnitConversionService:
                         "target_amount": float(ai_data["target_amount"]),
                         "target_unit": target_unit,
                         "confidence": float(ai_data.get("confidence", 0.7)),
-                        "message": ai_data.get("explanation", "AI-powered conversion")
+                        "message": ai_data.get("explanation", "AI-powered conversion"),
                     }
 
         except Exception as e:
@@ -266,19 +287,16 @@ class UnitConversionService:
         return None
 
     def validate_and_suggest_units(
-        self,
-        ingredient_name: str,
-        current_unit: str,
-        quantity: Optional[float] = None
+        self, ingredient_name: str, current_unit: str, quantity: Optional[float] = None
     ) -> Dict[str, Any]:
         """
         Validate if a unit is appropriate and suggest better alternatives
-        
+
         Args:
             ingredient_name: Name of the ingredient
             current_unit: Current unit being used
             quantity: Optional quantity for context
-            
+
         Returns:
             Validation result with suggestions
         """
@@ -290,21 +308,18 @@ class UnitConversionService:
         # Enhance with AI analysis for edge cases
         if not spoon_validation["is_valid"]:
             # Use AI to understand why the unit might be wrong
-            ai_suggestion = self._ai_unit_suggestion(
-                ingredient_name, current_unit, quantity
-            )
+            ai_suggestion = self._ai_unit_suggestion(ingredient_name, current_unit, quantity)
 
             if ai_suggestion:
                 spoon_validation["ai_suggestion"] = ai_suggestion
-                spoon_validation["message"] = ai_suggestion.get("reasoning", spoon_validation["message"])
+                spoon_validation["message"] = ai_suggestion.get(
+                    "reasoning", spoon_validation["message"]
+                )
 
         return spoon_validation
 
     def _ai_unit_suggestion(
-        self,
-        ingredient_name: str,
-        current_unit: str,
-        quantity: Optional[float] = None
+        self, ingredient_name: str, current_unit: str, quantity: Optional[float] = None
     ) -> Optional[Dict[str, Any]]:
         """Get AI suggestions for better units"""
 
@@ -314,7 +329,7 @@ class UnitConversionService:
             backstory="""You are a professional chef who understands the best ways 
             to measure different ingredients for accuracy and convenience in cooking.""",
             verbose=False,
-            allow_delegation=False
+            allow_delegation=False,
         )
 
         quantity_str = f"{quantity} " if quantity else ""
@@ -334,15 +349,11 @@ class UnitConversionService:
             }}
             """,
             agent=suggestion_agent,
-            expected_output="JSON object with unit suggestions"
+            expected_output="JSON object with unit suggestions",
         )
 
         try:
-            crew = Crew(
-                agents=[suggestion_agent],
-                tasks=[suggestion_task],
-                verbose=False
-            )
+            crew = Crew(agents=[suggestion_agent], tasks=[suggestion_task], verbose=False)
 
             result = crew.kickoff()
 
@@ -350,7 +361,7 @@ class UnitConversionService:
             import json
             import re
 
-            json_match = re.search(r'\{[^}]+\}', str(result), re.DOTALL)
+            json_match = re.search(r"\{[^}]+\}", str(result), re.DOTALL)
             if json_match:
                 return json.loads(json_match.group())
 

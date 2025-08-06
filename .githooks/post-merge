@@ -1,0 +1,230 @@
+#!/usr/bin/env bash
+# PrepSense Post-Merge Hook
+# Runs after successful merge to update dependencies and validate setup
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}🔄 PrepSense Post-Merge Hook Starting...${NC}"
+
+# Check if it was a merge (not just a fast-forward)
+MERGE_TYPE=$(git log -1 --pretty=format:"%s")
+if [[ $MERGE_TYPE == Merge* ]]; then
+    echo -e "${YELLOW}🔀 Merge commit detected: ${MERGE_TYPE}${NC}"
+else
+    echo -e "${YELLOW}⏩ Fast-forward merge detected${NC}"
+fi
+
+# 1. Check for dependency changes
+echo -e "${YELLOW}📦 Checking for dependency changes...${NC}"
+
+# Check Python dependencies
+if git diff HEAD~1 HEAD --name-only | grep -q "requirements.txt"; then
+    echo -e "${YELLOW}🐍 Python dependencies changed, updating...${NC}"
+    pip install -r requirements.txt || {
+        echo -e "${RED}❌ Failed to install Python dependencies${NC}"
+        exit 1
+    }
+    echo -e "${GREEN}✅ Python dependencies updated${NC}"
+fi
+
+# Check Node.js dependencies
+if git diff HEAD~1 HEAD --name-only | grep -q "ios-app/package.json\|ios-app/package-lock.json"; then
+    echo -e "${YELLOW}📱 Node.js dependencies changed, updating...${NC}"
+    cd ios-app
+    npm ci || {
+        echo -e "${RED}❌ Failed to install Node.js dependencies${NC}"
+        exit 1
+    }
+    cd ..
+    echo -e "${GREEN}✅ Node.js dependencies updated${NC}"
+fi
+
+# 2. Check for database schema changes
+echo -e "${YELLOW}💾 Checking for database schema changes...${NC}"
+
+if git diff HEAD~1 HEAD --name-only | grep -q "backend_gateway/models\|backend_gateway/alembic"; then
+    echo -e "${YELLOW}🗄️ Database schema changes detected${NC}"
+    
+    if [ -f "backend_gateway/alembic.ini" ]; then
+        cd backend_gateway
+        echo -e "${YELLOW}🔄 Running database migrations...${NC}"
+        
+        # Check if migrations are needed
+        alembic current || {
+            echo -e "${YELLOW}⚠️ No database connection or migrations not initialized${NC}"
+            cd ..
+            exit 0
+        }
+        
+        # Run migrations
+        alembic upgrade head || {
+            echo -e "${RED}❌ Database migration failed${NC}"
+            cd ..
+            exit 1
+        }
+        
+        cd ..
+        echo -e "${GREEN}✅ Database migrations completed${NC}"
+    fi
+fi
+
+# 3. Check for configuration changes
+echo -e "${YELLOW}⚙️ Checking for configuration changes...${NC}"
+
+CONFIG_FILES=(
+    ".env"
+    "backend_gateway/config"
+    "ios-app/app.json"
+    "ios-app/expo.json"
+    ".pre-commit-config.yaml"
+    "pyproject.toml"
+    "ios-app/jest.config.js"
+    "ios-app/eslint.config.js"
+)
+
+for file in "${CONFIG_FILES[@]}"; do
+    if git diff HEAD~1 HEAD --name-only | grep -q "$file"; then
+        echo -e "${YELLOW}📝 Configuration change detected: ${file}${NC}"
+        
+        case "$file" in
+            ".pre-commit-config.yaml")
+                echo -e "${YELLOW}🔧 Pre-commit config changed, updating hooks...${NC}"
+                pre-commit install --install-hooks || {
+                    echo -e "${RED}❌ Failed to update pre-commit hooks${NC}"
+                    exit 1
+                }
+                echo -e "${GREEN}✅ Pre-commit hooks updated${NC}"
+                ;;
+            "ios-app/package.json")
+                echo -e "${YELLOW}📱 React Native config changed${NC}"
+                ;;
+            "backend_gateway/config"*)
+                echo -e "${YELLOW}🐍 Backend config changed${NC}"
+                ;;
+        esac
+    fi
+done
+
+# 4. Validate application health after merge
+echo -e "${YELLOW}🏥 Running post-merge health checks...${NC}"
+
+# Quick Python import test
+if [ -d "backend_gateway" ]; then
+    echo -e "${YELLOW}🐍 Testing Python imports...${NC}"
+    cd backend_gateway
+    python -c "from app import app; print('✅ Backend imports successful')" || {
+        echo -e "${RED}❌ Backend import errors detected${NC}"
+        cd ..
+        exit 1
+    }
+    cd ..
+fi
+
+# Quick React Native build test
+if [ -d "ios-app" ]; then
+    echo -e "${YELLOW}📱 Testing React Native TypeScript...${NC}"
+    cd ios-app
+    npm run typecheck || {
+        echo -e "${RED}❌ React Native TypeScript errors detected${NC}"
+        cd ..
+        exit 1
+    }
+    cd ..
+fi
+
+# 5. Update documentation if needed
+echo -e "${YELLOW}📚 Checking for documentation updates...${NC}"
+
+if git diff HEAD~1 HEAD --name-only | grep -qE "\.(py|js|jsx|ts|tsx)$"; then
+    echo -e "${YELLOW}📝 Code changes detected, checking if docs need updates...${NC}"
+    
+    # Generate API documentation if backend changed
+    if git diff HEAD~1 HEAD --name-only | grep -q "backend_gateway.*\.py$"; then
+        cd backend_gateway
+        python -c "
+from app import app
+import json
+from fastapi.openapi.utils import get_openapi
+schema = get_openapi(title='PrepSense API', version='1.0.0', routes=app.routes)
+with open('openapi.json', 'w') as f:
+    json.dump(schema, f, indent=2)
+print('✅ API documentation updated')
+        " || {
+            echo -e "${YELLOW}⚠️ API documentation update failed${NC}"
+        }
+        cd ..
+    fi
+fi
+
+# 6. Security check for new commits
+echo -e "${YELLOW}🔒 Running security scan on new commits...${NC}"
+
+# Scan for secrets in new commits
+if command -v truffleHog &> /dev/null; then
+    truffleHog --regex --entropy=False --since_commit=HEAD~1 . || {
+        echo -e "${YELLOW}⚠️ Potential secrets detected in commits${NC}"
+    }
+elif command -v git-secrets &> /dev/null; then
+    git secrets --scan-history || {
+        echo -e "${YELLOW}⚠️ Potential secrets detected in commits${NC}"
+    }
+fi
+
+# 7. Performance impact assessment
+echo -e "${YELLOW}⚡ Assessing performance impact...${NC}"
+
+# Check if large files were added
+LARGE_FILES=$(git diff HEAD~1 HEAD --name-only | xargs -I {} find {} -size +1M 2>/dev/null || true)
+if [ -n "$LARGE_FILES" ]; then
+    echo -e "${YELLOW}⚠️ Large files detected:${NC}"
+    echo "$LARGE_FILES"
+    echo -e "${YELLOW}Consider using Git LFS for large files${NC}"
+fi
+
+# 8. Cleanup and optimization
+echo -e "${YELLOW}🧹 Running cleanup tasks...${NC}"
+
+# Clear Python cache
+find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+find . -name "*.pyc" -delete 2>/dev/null || true
+
+# Clear Node.js cache if needed
+if [ -d "ios-app/node_modules/.cache" ]; then
+    echo -e "${YELLOW}🗑️ Clearing Node.js cache...${NC}"
+    rm -rf ios-app/node_modules/.cache
+fi
+
+# 9. Environment validation
+echo -e "${YELLOW}🌍 Validating environment setup...${NC}"
+
+# Check if .env file exists and has required variables
+if [ -f ".env" ]; then
+    REQUIRED_VARS=("DATABASE_URL" "OPENAI_API_KEY")
+    for var in "${REQUIRED_VARS[@]}"; do
+        if ! grep -q "^${var}=" .env; then
+            echo -e "${YELLOW}⚠️ Missing environment variable: ${var}${NC}"
+        fi
+    done
+else
+    echo -e "${YELLOW}⚠️ .env file not found${NC}"
+fi
+
+# 10. Final health check
+echo -e "${YELLOW}🔍 Running final health check...${NC}"
+
+if [ -f "check_app_health.py" ]; then
+    python check_app_health.py --quick || {
+        echo -e "${YELLOW}⚠️ Health check completed with warnings${NC}"
+    }
+fi
+
+echo -e "${GREEN}✅ Post-merge hook completed successfully!${NC}"
+echo -e "${GREEN}🎉 Your merged code is ready for development${NC}"
+
+exit 0

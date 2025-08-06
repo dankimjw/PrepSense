@@ -1,8 +1,9 @@
-
 import logging
-from src.tools.spoonacular_api import search_by_ingredients, get_recipe_information
+
+from src.tools.spoonacular_api import get_recipe_information, search_by_ingredients
 
 logger = logging.getLogger(__name__)
+
 
 class RecipeSearch:
     name = "recipe_search"
@@ -31,9 +32,11 @@ class RecipeSearch:
                 return []
 
             # Search for recipes using Spoonacular API
-            logger.info(f"Searching recipes with ingredients: {ingredient_names[:5]}...")  # Log first 5
+            logger.info(
+                f"Searching recipes with ingredients: {ingredient_names[:5]}..."
+            )  # Log first 5
             search_results = await search_by_ingredients(ingredient_names, number=max_recipes)
-            
+
             if not search_results:
                 logger.warning("No recipes found from search")
                 return []
@@ -48,7 +51,7 @@ class RecipeSearch:
 
                     # Get full recipe information including nutrition
                     recipe_info = await get_recipe_information(recipe_id)
-                    
+
                     # Extract key information
                     detailed_recipe = {
                         "recipe_id": recipe_id,
@@ -67,9 +70,9 @@ class RecipeSearch:
                         "used_ingredients": recipe.get("usedIngredients", []),
                         "missed_ingredients": recipe.get("missedIngredients", []),
                         "unused_ingredients": recipe.get("unusedIngredients", []),
-                        "likes": recipe.get("likes", 0)
+                        "likes": recipe.get("likes", 0),
                     }
-                    
+
                     detailed_recipes.append(detailed_recipe)
 
                 except Exception as e:
@@ -87,18 +90,18 @@ class RecipeSearch:
         """Clean ingredient name for better search results"""
         # Remove common prefixes/suffixes that might confuse search
         name = name.lower().strip()
-        
+
         # Remove descriptors that are too specific
-        remove_words = ['raw', 'fresh', 'organic', 'lean', 'boneless', 'skinless']
+        remove_words = ["raw", "fresh", "organic", "lean", "boneless", "skinless"]
         words = name.split()
         cleaned_words = [w for w in words if w not in remove_words]
-        
-        return ' '.join(cleaned_words) if cleaned_words else name
+
+        return " ".join(cleaned_words) if cleaned_words else name
 
     def _extract_instructions(self, recipe_info: dict) -> list[str]:
         """Extract cooking instructions from recipe"""
         instructions = []
-        
+
         # Try analyzed instructions first (more structured)
         analyzed_instructions = recipe_info.get("analyzedInstructions", [])
         if analyzed_instructions and len(analyzed_instructions) > 0:
@@ -107,21 +110,21 @@ class RecipeSearch:
                 instruction = step.get("step", "").strip()
                 if instruction:
                     instructions.append(instruction)
-        
+
         # Fallback to raw instructions
         if not instructions:
             raw_instructions = recipe_info.get("instructions", "")
             if raw_instructions:
                 # Simple split by sentence/period
-                sentences = raw_instructions.split('. ')
+                sentences = raw_instructions.split(". ")
                 instructions = [s.strip() for s in sentences if s.strip()]
-        
+
         return instructions
 
     def _extract_ingredients(self, recipe_info: dict) -> list[dict]:
         """Extract ingredients from recipe"""
         ingredients = []
-        
+
         extended_ingredients = recipe_info.get("extendedIngredients", [])
         for ing in extended_ingredients:
             ingredient = {
@@ -132,16 +135,16 @@ class RecipeSearch:
                 "unit": ing.get("unit", ""),
                 "aisle": ing.get("aisle", ""),
                 "consistency": ing.get("consistency", ""),
-                "image": ing.get("image", "")
+                "image": ing.get("image", ""),
             }
             ingredients.append(ingredient)
-        
+
         return ingredients
 
     def _extract_nutrition(self, recipe_info: dict) -> dict:
         """Extract nutrition information from recipe"""
         nutrition = {}
-        
+
         nutrition_info = recipe_info.get("nutrition", {})
         if nutrition_info:
             # Get nutrients array
@@ -150,7 +153,7 @@ class RecipeSearch:
                 name = nutrient.get("name", "").lower()
                 amount = nutrient.get("amount", 0)
                 unit = nutrient.get("unit", "")
-                
+
                 # Map common nutrients
                 if "calorie" in name:
                     nutrition["calories"] = amount
@@ -168,5 +171,5 @@ class RecipeSearch:
                     nutrition["sugar_g"] = amount
                 elif "sodium" in name:
                     nutrition["sodium_mg"] = amount
-        
+
         return nutrition

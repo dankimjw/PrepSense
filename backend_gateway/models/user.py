@@ -1,8 +1,10 @@
 """Pydantic models representing application users."""
 
-from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from typing import Optional, List, Union
 from datetime import datetime
+from typing import List, Optional, Union
+
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -10,8 +12,10 @@ class UserBase(BaseModel):
     last_name: str
     is_admin: bool = False
 
+
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
+
 
 class UserInDB(UserBase):
     id: str  # This is the string ID (e.g., 'samantha-smith-001')
@@ -19,6 +23,7 @@ class UserInDB(UserBase):
     created_at: datetime
     updated_at: datetime
     model_config = ConfigDict(from_attributes=True)
+
 
 class UserResponse(UserBase):
     id: str  # This is the string ID
@@ -39,16 +44,18 @@ class UserProfilePreference(BaseModel):
     def model_post_init(self, __context):
         # Convert lists to strings if needed
         if isinstance(self.dietary_preference, list):
-            self.dietary_preference = ", ".join(self.dietary_preference) if self.dietary_preference else None
+            self.dietary_preference = (
+                ", ".join(self.dietary_preference) if self.dietary_preference else None
+            )
         if isinstance(self.cuisine_preference, list):
-            self.cuisine_preference = ", ".join(self.cuisine_preference) if self.cuisine_preference else None
+            self.cuisine_preference = (
+                ", ".join(self.cuisine_preference) if self.cuisine_preference else None
+            )
 
     model_config = ConfigDict(
         from_attributes=True,
         populate_by_name=True,  # Allows using alias
-        json_encoders={
-            datetime: lambda v: v.isoformat() if v else None
-        }
+        json_encoders={datetime: lambda v: v.isoformat() if v else None},
     )
 
 
@@ -62,7 +69,4 @@ class UserProfileResponse(UserBase):
     api_key_enc: str
     preferences: Optional[UserProfilePreference] = None
 
-    model_config = ConfigDict(
-        from_attributes=True,
-        populate_by_name=True
-    )
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)

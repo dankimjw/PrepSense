@@ -7,17 +7,17 @@ Includes background flows, real-time crews, and artifact caching.
 
 __version__ = "1.0.0"
 
+from .cache_manager import ArtifactCacheManager
+
 # Import main components for easier access
 from .models import (
+    CacheKey,
+    CrewInput,
+    CrewOutput,
     PantryArtifact,
     PreferenceArtifact,
     RecipeArtifact,
-    CrewInput,
-    CrewOutput,
-    CacheKey
 )
-
-from .cache_manager import ArtifactCacheManager
 
 __all__ = [
     "PantryArtifact",

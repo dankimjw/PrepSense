@@ -1,13 +1,15 @@
-from rapidfuzz import process, fuzz
-import asyncpg
-import os
 import logging
+import os
+
+import asyncpg
+from rapidfuzz import fuzz, process
 
 logger = logging.getLogger(__name__)
 
+
 class FoodCategorizer:
     """FoodCategorizer agent for matching food items to USDA database"""
-    
+
     def __init__(self):
         self.name = "food_categorizer"
 
@@ -30,12 +32,13 @@ class FoodCategorizer:
         except Exception as e:
             logger.error(f"Database connection failed: {e}")
             return []
-        
+
         try:
             # Quick cache of USDA foods with error handling
             try:
                 rows = await conn.fetch(
-                    "SELECT description, category, fdc_id FROM usda_foods LIMIT 10000")
+                    "SELECT description, category, fdc_id FROM usda_foods LIMIT 10000"
+                )
                 if not rows:
                     logger.warning("No USDA foods found in database")
                     return []
@@ -64,14 +67,16 @@ class FoodCategorizer:
 
                     match, score = match_result
                     row = corpus_dict[match]
-                    
-                    out.append({
-                        "canonical_name": row["description"],
-                        "category": row["category"],
-                        "fdc_id": row["fdc_id"],
-                        "match_score": score,
-                        **itm
-                    })
+
+                    out.append(
+                        {
+                            "canonical_name": row["description"],
+                            "category": row["category"],
+                            "fdc_id": row["fdc_id"],
+                            "match_score": score,
+                            **itm,
+                        }
+                    )
                 except Exception as e:
                     logger.error(f"Error processing item {txt}: {e}")
                     continue

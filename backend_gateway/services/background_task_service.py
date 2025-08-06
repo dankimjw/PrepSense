@@ -5,17 +5,18 @@ Handles event-driven pre-computation and cache warming
 
 import asyncio
 import logging
-from typing import Dict, Any, Optional
-from datetime import datetime, timedelta
-from contextlib import asynccontextmanager
-
-from fastapi import BackgroundTasks
-import schedule
 import time
+from contextlib import asynccontextmanager
+from datetime import datetime, timedelta
 from threading import Thread
+from typing import Any, Dict, Optional
+
+import schedule
+from fastapi import BackgroundTasks
+
+from backend_gateway.config.database import get_database_service
 
 from .background_flows import BackgroundFlowManager, CacheManager
-from backend_gateway.config.database import get_database_service
 
 logger = logging.getLogger(__name__)
 
@@ -130,16 +131,6 @@ class BackgroundTaskService:
             # Previously used lean_crew_ai_service which has been removed
             logger.info("Recipe cache warming temporarily disabled - lean_crew_ai_service removed")
             return
-                        user_id, query, num_recommendations=5
-                    ):
-                        if 'error' not in result:
-                            recommendations.append(result['recommendation'])
-                    
-                    logger.debug(f"Pre-computed {len(recommendations)} recommendations for query: {query}")
-                    
-                except Exception as e:
-                    logger.warning(f"Error pre-computing query '{query}': {str(e)}")
-            
         except Exception as e:
             logger.error(f"Error warming recipe cache: {str(e)}")
     

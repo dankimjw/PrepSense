@@ -73,7 +73,7 @@ export function sortPantryItems(
         return new Date(a.expiry_date).getTime() - new Date(b.expiry_date).getTime();
       });
     case 'name':
-      return sortedItems.sort((a, b) => a.item_name.localeCompare(b.item_name));
+      return sortedItems.sort((a, b) => (a.item_name || '').localeCompare(b.item_name || ''));
     case 'category':
       return sortedItems.sort((a, b) => {
         const categoryA = a.category || 'Other';
@@ -206,7 +206,7 @@ export function groupItemsByCategory(items: PantryItemData[]): CategoryGroup[] {
       items: sortPantryItems(items, 'expiry'),
       count: items.length
     }))
-    .sort((a, b) => a.category.localeCompare(b.category));
+    .sort((a, b) => (a.category || '').localeCompare(b.category || ''));
 }
 
 /**

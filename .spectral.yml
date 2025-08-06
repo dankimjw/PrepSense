@@ -1,0 +1,366 @@
+# Spectral API Design Rules for PrepSense
+# Validates OpenAPI specifications for consistency, best practices, and contract compliance
+
+extends: ["@stoplight/spectral-core"]
+
+documentationUrl: "https://github.com/dankimjw/PrepSense/blob/main/docs/api-standards.md"
+
+functions:
+  - prepsense-naming-convention
+  - prepsense-response-format
+
+rules:
+  # Core OpenAPI validation rules
+  openapi-tags:
+    description: "OpenAPI object must have non-empty tags array"
+    given: "$"
+    severity: error
+    then:
+      field: "tags"
+      function: truthy
+
+  info-contact:
+    description: "Info object must have contact information"
+    given: "$.info"
+    severity: error
+    then:
+      field: "contact"
+      function: truthy
+
+  info-description:
+    description: "Info object must have a description"
+    given: "$.info"
+    severity: error
+    then:
+      field: "description"
+      function: truthy
+
+  info-license:
+    description: "Info object must have license information"
+    given: "$.info"
+    severity: warn
+    then:
+      field: "license"
+      function: truthy
+
+  # PrepSense-specific naming conventions
+  prepsense-path-naming:
+    description: "Paths should follow kebab-case naming convention"
+    given: "$.paths.*~"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/api\/v[0-9]+\/[a-z0-9-\/]*[a-z0-9]$"
+
+  prepsense-operation-ids:
+    description: "All operations must have unique operationId"
+    given: "$.paths.*[get,post,put,patch,delete]"
+    severity: error
+    then:
+      field: "operationId"
+      function: truthy
+
+  prepsense-operation-summary:
+    description: "All operations must have a summary"
+    given: "$.paths.*[get,post,put,patch,delete]"
+    severity: error
+    then:
+      field: "summary"
+      function: truthy
+
+  prepsense-operation-description:
+    description: "All operations should have a description"
+    given: "$.paths.*[get,post,put,patch,delete]"
+    severity: warn
+    then:
+      field: "description"
+      function: truthy
+
+  prepsense-operation-tags:
+    description: "All operations must be tagged"
+    given: "$.paths.*[get,post,put,patch,delete]"
+    severity: error
+    then:
+      field: "tags"
+      function: truthy
+
+  # Response format standardization
+  prepsense-success-response:
+    description: "Success responses (2xx) must have content"
+    given: "$.paths.*[get,post,put,patch].responses[2??]"
+    severity: error
+    then:
+      field: "content"
+      function: truthy
+
+  prepsense-error-response:
+    description: "Error responses must follow standard format"
+    given: "$.paths.*[get,post,put,patch,delete].responses[4??,5??]"
+    severity: warn
+    then:
+      field: "content.application/json.schema.properties"
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["detail"]
+          properties:
+            detail:
+              type: string
+            error_code:
+              type: string
+            timestamp:
+              type: string
+
+  # Security requirements
+  prepsense-security-defined:
+    description: "API must define security schemes"
+    given: "$.components"
+    severity: error
+    then:
+      field: "securitySchemes"
+      function: truthy
+
+  prepsense-protected-endpoints:
+    description: "Non-public endpoints should have security requirements"
+    given: "$.paths[*][post,put,patch,delete]"
+    severity: warn
+    then:
+      field: "security"
+      function: truthy
+
+  # Schema validation
+  prepsense-schema-properties:
+    description: "Schemas should have descriptions for properties"
+    given: "$.components.schemas..properties.*"
+    severity: info
+    then:
+      field: "description"
+      function: truthy
+
+  prepsense-schema-examples:
+    description: "Schemas should include examples"
+    given: "$.components.schemas.*"
+    severity: info
+    then:
+      field: "example"
+      function: truthy
+
+  # Parameter validation
+  prepsense-parameter-description:
+    description: "Parameters must have descriptions"
+    given: "$.paths..parameters.*"
+    severity: error
+    then:
+      field: "description"
+      function: truthy
+
+  prepsense-query-parameter-style:
+    description: "Query parameters should use form style"
+    given: "$.paths..parameters[?(@.in == 'query')]"
+    severity: warn
+    then:
+      field: "style"
+      function: enumeration
+      functionOptions:
+        values: ["form"]
+
+  # Request/Response body validation
+  prepsense-request-body-description:
+    description: "Request bodies should have descriptions"
+    given: "$.paths.*[post,put,patch].requestBody"
+    severity: warn
+    then:
+      field: "description"
+      function: truthy
+
+  prepsense-media-type-json:
+    description: "APIs should primarily use application/json"
+    given: "$.paths..content.*~"
+    severity: info
+    then:
+      function: pattern
+      functionOptions:
+        match: "application\/(json|hal\\+json|problem\\+json)"
+
+  # Performance and caching
+  prepsense-get-responses-cacheable:
+    description: "GET responses should include caching headers"
+    given: "$.paths.*.get.responses.200.headers"
+    severity: info
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          anyOf:
+            - required: ["Cache-Control"]
+            - required: ["ETag"]
+            - required: ["Last-Modified"]
+
+  # Versioning
+  prepsense-api-versioning:
+    description: "API paths should include version prefix"
+    given: "$.paths.*~"
+    severity: error
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/api\/v[0-9]+\/"
+
+  # Specific PrepSense business rules
+  prepsense-pantry-endpoints:
+    description: "Pantry endpoints should follow resource conventions"
+    given: "$.paths['/api/v1/pantry*']~"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/api\/v1\/pantry(\/[a-z-]+)*$"
+
+  prepsense-recipe-endpoints:
+    description: "Recipe endpoints should follow resource conventions"
+    given: "$.paths['/api/v1/recipes*']~"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/api\/v1\/recipes(\/[a-z-]+)*$"
+
+  prepsense-user-endpoints:
+    description: "User endpoints should follow resource conventions"
+    given: "$.paths['/api/v1/users*']~"
+    severity: warn
+    then:
+      function: pattern
+      functionOptions:
+        match: "^\/api\/v1\/users(\/[a-z0-9-]+)*$"
+
+  # Health check validation
+  prepsense-health-endpoint:
+    description: "Health endpoint must be present"
+    given: "$.paths"
+    severity: error
+    then:
+      field: "/api/v1/health"
+      function: truthy
+
+  prepsense-health-response:
+    description: "Health endpoint should return structured response"
+    given: "$.paths['/api/v1/health'].get.responses.200.content['application/json'].schema"
+    severity: error
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          required: ["status"]
+          properties:
+            status:
+              type: string
+              enum: ["healthy", "degraded", "unhealthy"]
+
+  # Monitoring endpoints
+  prepsense-metrics-endpoint:
+    description: "Metrics endpoint should be present for monitoring"
+    given: "$.paths"
+    severity: warn
+    then:
+      field: "/metrics"
+      function: truthy
+
+  # CrewAI specific validation
+  prepsense-crewai-operations:
+    description: "CrewAI operations should be properly documented"
+    given: "$.paths['/api/v1/crewai*'][post,put,patch]"
+    severity: warn
+    then:
+      field: "description"
+      function: pattern
+      functionOptions:
+        match: ".*(agent|crew|task|execution).*"
+
+  # File upload validation
+  prepsense-file-upload-content:
+    description: "File upload endpoints should accept multipart/form-data"
+    given: "$.paths.*[post,put,patch].requestBody.content.*~"
+    severity: info
+    then:
+      function: pattern
+      functionOptions:
+        match: "multipart\/form-data|application\/octet-stream"
+
+  # OCR specific validation
+  prepsense-ocr-endpoints:
+    description: "OCR endpoints should handle image uploads"
+    given: "$.paths['/api/v1/ocr*'].post.requestBody.content"
+    severity: warn
+    then:
+      function: truthy
+
+  # Rate limiting documentation
+  prepsense-rate-limit-headers:
+    description: "Endpoints should document rate limiting headers"
+    given: "$.paths.*[get,post,put,patch,delete].responses.200.headers"
+    severity: info
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          properties:
+            X-RateLimit-Limit:
+              type: object
+            X-RateLimit-Remaining:
+              type: object
+            X-RateLimit-Reset:
+              type: object
+
+  # Error handling consistency
+  prepsense-400-responses:
+    description: "Endpoints that accept input should document 400 responses"
+    given: "$.paths.*[post,put,patch].responses"
+    severity: warn
+    then:
+      field: "400"
+      function: truthy
+
+  prepsense-500-responses:
+    description: "All endpoints should document 500 responses"
+    given: "$.paths.*[get,post,put,patch,delete].responses"
+    severity: info
+    then:
+      field: "500"
+      function: truthy
+
+  # Pagination for list endpoints
+  prepsense-list-pagination:
+    description: "List endpoints should support pagination"
+    given: "$.paths.*[get].parameters[?(@.name == 'limit' || @.name == 'offset' || @.name == 'page')]"
+    severity: info
+    then:
+      function: truthy
+
+  # Custom validation functions would be implemented here
+  # These are placeholders for the function names referenced above
+
+formats:
+  - "oas3"
+
+overrides:
+  - files:
+      - "**#/components/schemas/**"
+    rules:
+      prepsense-schema-properties: "warn"
+
+  - files:
+      - "**#/paths/*/get/**"
+    rules:
+      prepsense-protected-endpoints: "off"
+
+  - files:
+      - "**#/paths/*/options/**"
+    rules:
+      prepsense-operation-description: "off"
+      prepsense-operation-tags: "off"

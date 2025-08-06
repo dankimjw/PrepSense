@@ -1,6 +1,6 @@
 """Nutrient database configuration and RDA (Recommended Daily Allowance) values."""
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 # USDA-based nutrient RDA values (adult averages)
 # Based on FDA Daily Values and USDA Dietary Guidelines
@@ -13,7 +13,6 @@ RDA_VALUES = {
     "saturated_fat": 20.0,
     "trans_fat": 0.0,  # No safe level
     "sugar": 50.0,
-    
     # Vitamins (mg unless noted)
     "vitamin_c": 90.0,
     "vitamin_a": 0.9,  # mg (900 mcg)
@@ -28,7 +27,6 @@ RDA_VALUES = {
     "vitamin_b12": 0.0024,  # mg (2.4 mcg)
     "biotin": 0.03,  # mg (30 mcg)
     "pantothenic_acid": 5.0,
-    
     # Minerals (mg unless noted)
     "calcium": 1000.0,
     "iron": 18.0,
@@ -42,7 +40,6 @@ RDA_VALUES = {
     "selenium": 0.055,  # mg (55 mcg)
     "chromium": 0.035,  # mg (35 mcg)
     "molybdenum": 0.045,  # mg (45 mcg)
-    
     # Special nutrients
     "cholesterol": 300.0,  # Upper limit (not minimum)
     "omega_3": 1.6,  # Alpha-linolenic acid (grams)
@@ -50,37 +47,45 @@ RDA_VALUES = {
 }
 
 # Nutrients that should be minimized (upper limits)
-UPPER_LIMIT_NUTRIENTS = {
-    "sodium", "saturated_fat", "trans_fat", "cholesterol", "sugar"
-}
+UPPER_LIMIT_NUTRIENTS = {"sodium", "saturated_fat", "trans_fat", "cholesterol", "sugar"}
 
 # Nutrients that are essential (deficiencies should be flagged)
-ESSENTIAL_NUTRIENTS = {
-    "protein", "fiber", "vitamin_c", "vitamin_d", "calcium", "iron", "potassium"
-}
+ESSENTIAL_NUTRIENTS = {"protein", "fiber", "vitamin_c", "vitamin_d", "calcium", "iron", "potassium"}
 
 # Nutrient categories for grouping
 NUTRIENT_CATEGORIES = {
-    "macronutrients": [
-        "protein", "carbohydrates", "fiber", "total_fat", "saturated_fat", "sugar"
-    ],
+    "macronutrients": ["protein", "carbohydrates", "fiber", "total_fat", "saturated_fat", "sugar"],
     "vitamins": [
-        "vitamin_c", "vitamin_a", "vitamin_d", "vitamin_e", "vitamin_k",
-        "thiamin", "riboflavin", "niacin", "vitamin_b6", "folate", "vitamin_b12"
+        "vitamin_c",
+        "vitamin_a",
+        "vitamin_d",
+        "vitamin_e",
+        "vitamin_k",
+        "thiamin",
+        "riboflavin",
+        "niacin",
+        "vitamin_b6",
+        "folate",
+        "vitamin_b12",
     ],
     "minerals": [
-        "calcium", "iron", "magnesium", "phosphorus", "potassium", 
-        "sodium", "zinc", "copper", "selenium"
+        "calcium",
+        "iron",
+        "magnesium",
+        "phosphorus",
+        "potassium",
+        "sodium",
+        "zinc",
+        "copper",
+        "selenium",
     ],
-    "special": [
-        "cholesterol", "omega_3", "omega_6"
-    ]
+    "special": ["cholesterol", "omega_3", "omega_6"],
 }
 
 # Display names for nutrients
 NUTRIENT_DISPLAY_NAMES = {
     "protein": "Protein",
-    "carbohydrates": "Carbohydrates", 
+    "carbohydrates": "Carbohydrates",
     "fiber": "Fiber",
     "total_fat": "Total Fat",
     "saturated_fat": "Saturated Fat",
@@ -108,14 +113,14 @@ NUTRIENT_DISPLAY_NAMES = {
     "selenium": "Selenium",
     "cholesterol": "Cholesterol",
     "omega_3": "Omega-3 Fatty Acids",
-    "omega_6": "Omega-6 Fatty Acids"
+    "omega_6": "Omega-6 Fatty Acids",
 }
 
 # Units for display
 NUTRIENT_UNITS = {
     "protein": "g",
     "carbohydrates": "g",
-    "fiber": "g", 
+    "fiber": "g",
     "total_fat": "g",
     "saturated_fat": "g",
     "trans_fat": "g",
@@ -142,13 +147,14 @@ NUTRIENT_UNITS = {
     "selenium": "mg",
     "cholesterol": "mg",
     "omega_3": "g",
-    "omega_6": "g"
+    "omega_6": "g",
 }
+
 
 def get_nutrient_gap(consumed: float, nutrient: str) -> float:
     """Calculate nutrient gap (negative = deficit, positive = excess)."""
     rda = RDA_VALUES.get(nutrient, 0)
-    
+
     if nutrient in UPPER_LIMIT_NUTRIENTS:
         # For nutrients with upper limits, positive gap = excess (bad)
         return consumed - rda
@@ -156,12 +162,13 @@ def get_nutrient_gap(consumed: float, nutrient: str) -> float:
         # For essential nutrients, negative gap = deficit (bad)
         return consumed - rda
 
+
 def is_nutrient_deficient(consumed: float, nutrient: str, threshold: float = 0.8) -> bool:
     """Check if nutrient consumption is below threshold of RDA."""
     rda = RDA_VALUES.get(nutrient, 0)
     if rda == 0:
         return False
-    
+
     if nutrient in UPPER_LIMIT_NUTRIENTS:
         # For upper limit nutrients, not deficient if under limit
         return False
@@ -169,12 +176,13 @@ def is_nutrient_deficient(consumed: float, nutrient: str, threshold: float = 0.8
         # For essential nutrients, deficient if under threshold
         return consumed < (rda * threshold)
 
+
 def is_nutrient_excessive(consumed: float, nutrient: str, threshold: float = 1.2) -> bool:
     """Check if nutrient consumption exceeds safe threshold."""
     rda = RDA_VALUES.get(nutrient, 0)
     if rda == 0:
         return False
-    
+
     if nutrient in UPPER_LIMIT_NUTRIENTS:
         # For upper limit nutrients, excessive if over limit
         return consumed > rda
@@ -182,14 +190,16 @@ def is_nutrient_excessive(consumed: float, nutrient: str, threshold: float = 1.2
         # For essential nutrients, excessive if over threshold
         return consumed > (rda * threshold)
 
+
 def get_priority_nutrients() -> list:
     """Get list of nutrients to prioritize in gap analysis."""
     return list(ESSENTIAL_NUTRIENTS) + ["sodium", "saturated_fat", "sugar"]
 
+
 def format_nutrient_value(value: float, nutrient: str) -> str:
     """Format nutrient value for display."""
     unit = NUTRIENT_UNITS.get(nutrient, "g")
-    
+
     if value < 0.1:
         return f"{value:.2f} {unit}"
     elif value < 1:

@@ -3,30 +3,38 @@ Receipt Scanner Service using Agentic AI
 Uses OpenAI Vision API to intelligently extract and parse receipt data
 """
 
-import os
-import logging
 import base64
-from typing import List, Dict, Any, Optional
+import logging
+import os
 from datetime import datetime
+from typing import Any, Dict, List, Optional
+
 import openai
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+
 class GroceryItem(BaseModel):
     """Structured grocery item from receipt"""
+
     name: str = Field(description="Clean product name (e.g., 'Oreo Cookies' not 'OREO COOKIE FC')")
     quantity: Optional[float] = Field(default=1, description="Quantity purchased")
     unit: Optional[str] = Field(default=None, description="Unit of measurement if applicable")
     price: Optional[float] = Field(default=None, description="Price of the item")
-    category: Optional[str] = Field(default=None, description="Category (produce, dairy, meat, etc.)")
+    category: Optional[str] = Field(
+        default=None, description="Category (produce, dairy, meat, etc.)"
+    )
+
 
 class ReceiptData(BaseModel):
     """Structured receipt data"""
+
     store_name: Optional[str] = Field(default=None)
     date: Optional[str] = Field(default=None)
     items: List[GroceryItem] = Field(default_factory=list)
     total: Optional[float] = Field(default=None)
+
 
 class ReceiptScannerService:
     def __init__(self):
@@ -40,10 +48,10 @@ class ReceiptScannerService:
     async def scan_receipt(self, image_data: str) -> Dict[str, Any]:
         """
         Scan a receipt image and extract structured data using AI agent.
-        
+
         Args:
             image_data: Base64 encoded image data
-            
+
         Returns:
             Dict containing extracted receipt data
         """
@@ -67,23 +75,21 @@ class ReceiptScannerService:
 5. Ignore non-food items like cleaning supplies, cosmetics
 6. Format all data as clean, user-friendly text
 
-Return data in the exact JSON format specified."""
+Return data in the exact JSON format specified.""",
                 },
                 {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": "Extract all grocery items from this receipt. Clean up the names and categorize them."
+                            "text": "Extract all grocery items from this receipt. Clean up the names and categorize them.",
                         },
                         {
                             "type": "image_url",
-                            "image_url": {
-                                "url": f"data:image/jpeg;base64,{image_data}"
-                            }
-                        }
-                    ]
-                }
+                            "image_url": {"url": f"data:image/jpeg;base64,{image_data}"},
+                        },
+                    ],
+                },
             ]
 
             # Call OpenAI Vision API with structured output
@@ -92,7 +98,7 @@ Return data in the exact JSON format specified."""
                 messages=messages,
                 response_format=ReceiptData,
                 max_tokens=1000,
-                temperature=0.1  # Low temperature for consistent parsing
+                temperature=0.1,  # Low temperature for consistent parsing
             )
 
             # Extract the parsed data
@@ -111,12 +117,12 @@ Return data in the exact JSON format specified."""
                             "quantity": item.quantity,
                             "unit": item.unit,
                             "price": item.price,
-                            "category": item.category
+                            "category": item.category,
                         }
                         for item in receipt_data.items
-                    ]
+                    ],
                 },
-                "items_count": len(receipt_data.items)
+                "items_count": len(receipt_data.items),
             }
 
             logger.info(f"Successfully extracted {len(receipt_data.items)} items from receipt")
@@ -124,20 +130,18 @@ Return data in the exact JSON format specified."""
 
         except Exception as e:
             logger.error(f"Error scanning receipt: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e),
-                "data": None
-            }
+            return {"success": False, "error": str(e), "data": None}
 
-    async def add_items_to_pantry(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def add_items_to_pantry(
+        self, user_id: int, items: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         """
         Add extracted items to user's pantry.
-        
+
         Args:
             user_id: User ID
             items: List of items to add
-            
+
         Returns:
             Result of the operation
         """
@@ -147,6 +151,7 @@ Return data in the exact JSON format specified."""
 
             # Import here to avoid circular imports
             from backend_gateway.services.pantry_service import PantryService
+
             pantry_service = PantryService()
 
             for item in items:
@@ -158,7 +163,7 @@ Return data in the exact JSON format specified."""
                         "unit": item.get("unit", "piece"),
                         "category": item.get("category", "other"),
                         "purchase_date": datetime.now().isoformat(),
-                        "source": "receipt_scan"
+                        "source": "receipt_scan",
                     }
 
                     # Add to pantry
@@ -174,12 +179,9 @@ Return data in the exact JSON format specified."""
                 "added": added_items,
                 "skipped": skipped_items,
                 "total_added": len(added_items),
-                "total_skipped": len(skipped_items)
+                "total_skipped": len(skipped_items),
             }
 
         except Exception as e:
             logger.error(f"Error adding items to pantry: {str(e)}")
-            return {
-                "success": False,
-                "error": str(e)
-            }
+            return {"success": False, "error": str(e)}

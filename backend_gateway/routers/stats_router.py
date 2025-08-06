@@ -1,13 +1,14 @@
 """Router for comprehensive user statistics including pantry, recipes, and sustainability metrics"""
 
 import logging
-from typing import Dict, Any
 from datetime import datetime, timedelta
+from typing import Any, Dict
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.services.user_recipes_service import UserRecipesService
 from backend_gateway.core.security import get_current_user
+from backend_gateway.services.user_recipes_service import UserRecipesService
 
 logger = logging.getLogger(__name__)
 
@@ -18,16 +19,18 @@ router = APIRouter(
 )
 
 
-def get_user_recipes_service(db_service = Depends(get_database_service)) -> UserRecipesService:
+def get_user_recipes_service(db_service=Depends(get_database_service)) -> UserRecipesService:
     """Dependency to get UserRecipesService instance"""
     return UserRecipesService(db_service)
 
 
-@router.get("/comprehensive", response_model=Dict[str, Any], summary="Get comprehensive user statistics")
+@router.get(
+    "/comprehensive", response_model=Dict[str, Any], summary="Get comprehensive user statistics"
+)
 async def get_comprehensive_stats(
     user_id: int = Query(111, description="User ID"),
     timeframe: str = Query("month", description="Timeframe: week, month, year"),
-    db_service = Depends(get_database_service),
+    db_service=Depends(get_database_service),
     user_recipes_service: UserRecipesService = Depends(get_user_recipes_service),
 ):
     """Get comprehensive statistics including pantry, recipes, and sustainability metrics"""
@@ -42,7 +45,7 @@ async def get_comprehensive_stats(
             start_date = now - timedelta(days=365)
         else:
             start_date = now - timedelta(days=30)  # Default to month
-            
+
         # 1. Pantry Statistics
         pantry_stats_query = """
         WITH pantry_summary AS (
@@ -85,15 +88,14 @@ async def get_comprehensive_stats(
             (SELECT json_agg(row_to_json(fi)) FROM frequent_items fi) as top_products
         FROM pantry_summary ps
         """
-        
-        pantry_result = db_service.execute_query(pantry_stats_query, {
-            "user_id": user_id,
-            "start_date": start_date
-        })
-        
-        # 2. Recipe Statistics  
+
+        pantry_result = db_service.execute_query(
+            pantry_stats_query, {"user_id": user_id, "start_date": start_date}
+        )
+
+        # 2. Recipe Statistics
         recipe_stats = await user_recipes_service.get_recipe_stats(user_id)
-        
+
         # 3. Cooking History Statistics
         cooking_history_query = """
         WITH daily_cooking AS (
@@ -133,12 +135,11 @@ async def get_comprehensive_stats(
         AND change_source = 'recipe_completion'
         AND changed_at >= %(start_date)s
         """
-        
-        cooking_result = db_service.execute_query(cooking_history_query, {
-            "user_id": user_id,
-            "start_date": start_date
-        })
-        
+
+        cooking_result = db_service.execute_query(
+            cooking_history_query, {"user_id": user_id, "start_date": start_date}
+        )
+
         # 4. Sustainability Metrics
         sustainability_query = """
         WITH waste_prevention AS (
@@ -156,11 +157,9 @@ async def get_comprehensive_stats(
             items_used_in_recipes
         FROM waste_prevention
         """
-        
-        sustainability_result = db_service.execute_query(sustainability_query, {
-            "user_id": user_id
-        })
-        
+
+        sustainability_result = db_service.execute_query(sustainability_query, {"user_id": user_id})
+
         # 5. Shopping Patterns
         shopping_patterns_query = """
         SELECT 
@@ -173,12 +172,11 @@ async def get_comprehensive_stats(
         GROUP BY DATE_PART('dow', pi.created_at)
         ORDER BY day_of_week
         """
-        
-        shopping_result = db_service.execute_query(shopping_patterns_query, {
-            "user_id": user_id,
-            "start_date": start_date
-        })
-        
+
+        shopping_result = db_service.execute_query(
+            shopping_patterns_query, {"user_id": user_id, "start_date": start_date}
+        )
+
         # Compile all statistics
         stats = {
             "timeframe": timeframe,
@@ -189,48 +187,78 @@ async def get_comprehensive_stats(
                     "expired_items": pantry_result[0]["expired_items"] if pantry_result else 0,
                     "expiring_soon": pantry_result[0]["expiring_soon"] if pantry_result else 0,
                     "recently_added": pantry_result[0]["recently_added"] if pantry_result else 0,
-                    "avg_quantity": float(pantry_result[0]["avg_quantity"] or 0) if pantry_result else 0
+                    "avg_quantity": (
+                        float(pantry_result[0]["avg_quantity"] or 0) if pantry_result else 0
+                    ),
                 },
                 "top_categories": pantry_result[0]["top_categories"] if pantry_result else [],
-                "top_products": pantry_result[0]["top_products"] if pantry_result else []
+                "top_products": pantry_result[0]["top_products"] if pantry_result else [],
             },
             "recipes": {
                 **recipe_stats,
                 "cooking_history": {
                     "days_cooked": cooking_result[0]["days_cooked"] if cooking_result else 0,
-                    "total_cooked": cooking_result[0]["total_recipes_cooked"] if cooking_result else 0,
+                    "total_cooked": (
+                        cooking_result[0]["total_recipes_cooked"] if cooking_result else 0
+                    ),
                     "current_streak": cooking_result[0]["current_streak"] if cooking_result else 0,
-                    "cooked_this_week": cooking_result[0]["cooked_this_week"] if cooking_result else 0,
-                    "cooked_this_month": cooking_result[0]["cooked_this_month"] if cooking_result else 0
-                }
+                    "cooked_this_week": (
+                        cooking_result[0]["cooked_this_week"] if cooking_result else 0
+                    ),
+                    "cooked_this_month": (
+                        cooking_result[0]["cooked_this_month"] if cooking_result else 0
+                    ),
+                },
             },
             "sustainability": {
-                "food_saved_kg": float(sustainability_result[0]["food_saved_kg"] or 0) if sustainability_result else 0,
-                "co2_saved_kg": float(sustainability_result[0]["co2_saved_kg"] or 0) if sustainability_result else 0,
-                "items_used_in_recipes": sustainability_result[0]["items_used_in_recipes"] if sustainability_result else 0
+                "food_saved_kg": (
+                    float(sustainability_result[0]["food_saved_kg"] or 0)
+                    if sustainability_result
+                    else 0
+                ),
+                "co2_saved_kg": (
+                    float(sustainability_result[0]["co2_saved_kg"] or 0)
+                    if sustainability_result
+                    else 0
+                ),
+                "items_used_in_recipes": (
+                    sustainability_result[0]["items_used_in_recipes"]
+                    if sustainability_result
+                    else 0
+                ),
             },
             "shopping_patterns": {
                 "by_day_of_week": [
                     {
-                        "day": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][int(item["day_of_week"])],
-                        "items_added": item["items_added"]
+                        "day": [
+                            "Sunday",
+                            "Monday",
+                            "Tuesday",
+                            "Wednesday",
+                            "Thursday",
+                            "Friday",
+                            "Saturday",
+                        ][int(item["day_of_week"])],
+                        "items_added": item["items_added"],
                     }
                     for item in shopping_result
                 ]
-            }
+            },
         }
-        
+
         return stats
-        
+
     except Exception as e:
         logger.error(f"Error getting comprehensive stats: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
 
 
-@router.get("/milestones", response_model=Dict[str, Any], summary="Get user milestones and achievements")
+@router.get(
+    "/milestones", response_model=Dict[str, Any], summary="Get user milestones and achievements"
+)
 async def get_user_milestones(
     user_id: int = Query(111, description="User ID"),
-    db_service = Depends(get_database_service),
+    db_service=Depends(get_database_service),
 ):
     """Get user milestones and achievements"""
     try:
@@ -245,54 +273,135 @@ async def get_user_milestones(
         )
         SELECT * FROM user_stats
         """
-        
+
         result = db_service.execute_query(milestones_query, {"user_id": user_id})
-        
+
         if not result:
             return {"milestones": [], "achievements": []}
-            
+
         stats = result[0]
         milestones = []
-        
+
         # Define milestone thresholds
         milestone_definitions = [
             # Pantry milestones
-            {"condition": stats["total_pantry_items"] >= 1, "title": "First Item Added", "emoji": "🎉", "category": "pantry"},
-            {"condition": stats["total_pantry_items"] >= 10, "title": "Pantry Starter", "emoji": "📦", "category": "pantry"},
-            {"condition": stats["total_pantry_items"] >= 25, "title": "Well Stocked", "emoji": "🏪", "category": "pantry"},
-            {"condition": stats["total_pantry_items"] >= 50, "title": "Pantry Pro", "emoji": "🌟", "category": "pantry"},
-            {"condition": stats["total_pantry_items"] >= 100, "title": "Master Stocker", "emoji": "👑", "category": "pantry"},
-            
+            {
+                "condition": stats["total_pantry_items"] >= 1,
+                "title": "First Item Added",
+                "emoji": "🎉",
+                "category": "pantry",
+            },
+            {
+                "condition": stats["total_pantry_items"] >= 10,
+                "title": "Pantry Starter",
+                "emoji": "📦",
+                "category": "pantry",
+            },
+            {
+                "condition": stats["total_pantry_items"] >= 25,
+                "title": "Well Stocked",
+                "emoji": "🏪",
+                "category": "pantry",
+            },
+            {
+                "condition": stats["total_pantry_items"] >= 50,
+                "title": "Pantry Pro",
+                "emoji": "🌟",
+                "category": "pantry",
+            },
+            {
+                "condition": stats["total_pantry_items"] >= 100,
+                "title": "Master Stocker",
+                "emoji": "👑",
+                "category": "pantry",
+            },
             # Recipe milestones
-            {"condition": stats["total_recipes_cooked"] >= 1, "title": "First Recipe", "emoji": "🍳", "category": "cooking"},
-            {"condition": stats["total_recipes_cooked"] >= 5, "title": "Getting Started", "emoji": "👨‍🍳", "category": "cooking"},
-            {"condition": stats["total_recipes_cooked"] >= 10, "title": "Home Cook", "emoji": "🏠", "category": "cooking"},
-            {"condition": stats["total_recipes_cooked"] >= 25, "title": "Kitchen Regular", "emoji": "🔥", "category": "cooking"},
-            {"condition": stats["total_recipes_cooked"] >= 50, "title": "Master Chef", "emoji": "👨‍🍳", "category": "cooking"},
-            {"condition": stats["total_recipes_cooked"] >= 100, "title": "Culinary Expert", "emoji": "⭐", "category": "cooking"},
-            
+            {
+                "condition": stats["total_recipes_cooked"] >= 1,
+                "title": "First Recipe",
+                "emoji": "🍳",
+                "category": "cooking",
+            },
+            {
+                "condition": stats["total_recipes_cooked"] >= 5,
+                "title": "Getting Started",
+                "emoji": "👨‍🍳",
+                "category": "cooking",
+            },
+            {
+                "condition": stats["total_recipes_cooked"] >= 10,
+                "title": "Home Cook",
+                "emoji": "🏠",
+                "category": "cooking",
+            },
+            {
+                "condition": stats["total_recipes_cooked"] >= 25,
+                "title": "Kitchen Regular",
+                "emoji": "🔥",
+                "category": "cooking",
+            },
+            {
+                "condition": stats["total_recipes_cooked"] >= 50,
+                "title": "Master Chef",
+                "emoji": "👨‍🍳",
+                "category": "cooking",
+            },
+            {
+                "condition": stats["total_recipes_cooked"] >= 100,
+                "title": "Culinary Expert",
+                "emoji": "⭐",
+                "category": "cooking",
+            },
             # Streak milestones
-            {"condition": stats["days_cooked"] >= 3, "title": "3 Day Streak", "emoji": "🔥", "category": "streak"},
-            {"condition": stats["days_cooked"] >= 7, "title": "Week Warrior", "emoji": "💪", "category": "streak"},
-            {"condition": stats["days_cooked"] >= 30, "title": "Monthly Master", "emoji": "🏆", "category": "streak"},
-            
+            {
+                "condition": stats["days_cooked"] >= 3,
+                "title": "3 Day Streak",
+                "emoji": "🔥",
+                "category": "streak",
+            },
+            {
+                "condition": stats["days_cooked"] >= 7,
+                "title": "Week Warrior",
+                "emoji": "💪",
+                "category": "streak",
+            },
+            {
+                "condition": stats["days_cooked"] >= 30,
+                "title": "Monthly Master",
+                "emoji": "🏆",
+                "category": "streak",
+            },
             # Engagement milestones
-            {"condition": stats["favorite_recipes"] >= 5, "title": "Recipe Collector", "emoji": "❤️", "category": "engagement"},
-            {"condition": stats["liked_recipes"] >= 10, "title": "Recipe Critic", "emoji": "👍", "category": "engagement"},
+            {
+                "condition": stats["favorite_recipes"] >= 5,
+                "title": "Recipe Collector",
+                "emoji": "❤️",
+                "category": "engagement",
+            },
+            {
+                "condition": stats["liked_recipes"] >= 10,
+                "title": "Recipe Critic",
+                "emoji": "👍",
+                "category": "engagement",
+            },
         ]
-        
+
         # Filter achieved milestones
         achieved_milestones = [m for m in milestone_definitions if m["condition"]]
-        
+
         return {
             "milestones": achieved_milestones,
             "stats": stats,
             "next_milestones": [
-                m for m in milestone_definitions 
-                if not m["condition"] and any(am["category"] == m["category"] for am in achieved_milestones)
-            ][:3]  # Show next 3 potential milestones
+                m
+                for m in milestone_definitions
+                if not m["condition"]
+                and any(am["category"] == m["category"] for am in achieved_milestones)
+            ][
+                :3
+            ],  # Show next 3 potential milestones
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting milestones: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to get milestones: {str(e)}")
