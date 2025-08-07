@@ -29,7 +29,7 @@ At the same time, many individuals — like Lily, our user persona — want to e
 
 PrepSense was created to solve these problems on both fronts. By combining AI-powered pantry scanning, expiry tracking, and personalized recipe recommendations, it not only helps reduce waste but also supports healthier eating habits. The app considers nutritional balance, dietary preferences, and portion control — making it easier for users to prepare wholesome, home-cooked meals using what they already have.
 
-Our goal is to help people waste less, eat better, and live healthier, turning everyday meal preparation into a sustainable and health-conscious habit.
+**Our goal is to help people waste less, eat better, and live healthier, turning everyday meal preparation into a sustainable and health-conscious habit.**
 
 Built as a capstone project for the University of Chicago’s MS in Applied Data Science program, PrepSense combines computer vision, CrewAI-powered agent orchestration, and the use of Multimodal large language models (LLMs) to transform everyday household decisions into impactful actions.
 
@@ -91,9 +91,7 @@ Once pantry items are captured, users can:
 4. Manual pantry run down option
 
 
-[recipe generation flow screenshot from app]
-
-
+<img width="272" height="597" alt="image" src="https://github.com/user-attachments/assets/0a8e202c-2186-4374-b0ee-1a0fefb7ecc9" />
 <img width="272" height="597" alt="image" src="https://github.com/user-attachments/assets/e0378d3b-412f-4626-b75d-a0106368c4c0" />
 <img width="272" height="597" alt="image" src="https://github.com/user-attachments/assets/4d847994-793a-4520-af64-19622ba06173" />
 
@@ -208,18 +206,20 @@ ChefParser → Deliver final output (recipe + insights) to user
 
 ---
 
-## 📈 Impact Projections
+## 🌍 Impact Projections
 
-**Estimated Monthly Impact at 10,000 Users:**
+PrepSense is designed not just to make meal planning easier but to drive measurable sustainability and cost-saving outcomes.
 
-| Metric                   | Projected Value               |
-|--------------------------|-------------------------------|
-| Meals Rescued            | 30,000+                       |
-| Food Waste Avoided       | 100+ tons                     |
-| Grocery Savings          | $1M+                          |
-| CO₂ Offset               | 200+ metric tons              |
-| Average Health Score ↑   | +25% dietary quality improvement |
+**Estimated per Household Impact** (based on pilot data & market research):
+- **5% lower food waste per household**
+- ~**60 lbs** of food saved annually through pantry-based planning and expiry alerts
+- **$400 saved per year** (~75 meals rescued)
+- ~**120 kg of CO₂ emissions prevented**
 
+These figures compound significantly as PrepSense adoption grows. For example, with **10,000 active households**:
+- **600,000 lbs** of food saved
+- **$4 million** in total savings
+- **1.2 million kg of CO₂ emissions prevented**
 ---
 
 ## 🛤 Roadmap (Post-Capstone)
