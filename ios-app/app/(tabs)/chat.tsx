@@ -27,13 +27,62 @@ const defaultSuggestedMessages = [
   "What should I cook tonight?",
 ];
 
-// Modal state for recipe detail
+// Enhanced Recipe Detail Modal with Spoonacular-style design
 function RecipeDetailModal({ recipe, visible, onClose }: { 
   recipe: Recipe | null; 
   visible: boolean; 
   onClose: () => void;
 }) {
   if (!recipe) return null;
+
+  // Normalize the recipe data to ensure consistency with Spoonacular format
+  const normalizedRecipe = {
+    ...recipe,
+    // Ensure all required Spoonacular fields are present
+    title: recipe.title || recipe.name || 'Untitled Recipe',
+    readyInMinutes: recipe.readyInMinutes || recipe.time || 30,
+    servings: recipe.servings || 4,
+    image: recipe.image || `https://via.placeholder.com/556x370.png/40E0D0/000000?text=${(recipe.title || recipe.name || 'Recipe').slice(0, 20)}`,
+    
+    // Ensure nutrition data is structured properly
+    nutrition: recipe.nutrition || {
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      nutrients: []
+    },
+    
+    // Ensure ingredients are in extendedIngredients format if available
+    extendedIngredients: recipe.extendedIngredients || (recipe.ingredients ? 
+      recipe.ingredients.map((ing, index) => ({
+        id: index + 1,
+        name: typeof ing === 'string' ? ing : ing.name || ing.ingredient_name || '',
+        original: typeof ing === 'string' ? ing : ing.original || ing.name || ing.ingredient_name || '',
+        amount: typeof ing === 'object' ? ing.amount || ing.quantity : undefined,
+        unit: typeof ing === 'object' ? ing.unit : ''
+      })) : []
+    ),
+    
+    // Ensure instructions are properly structured
+    analyzedInstructions: recipe.analyzedInstructions || (recipe.instructions ? [{
+      name: '',
+      steps: Array.isArray(recipe.instructions) ? 
+        recipe.instructions.map((inst, index) => ({
+          number: index + 1,
+          step: typeof inst === 'string' ? inst : inst.step || String(inst),
+          ingredients: [],
+          equipment: []
+        })) : []
+    }] : []),
+    
+    // Add default metadata
+    cuisines: recipe.cuisines || [],
+    diets: recipe.diets || [],
+    dishTypes: recipe.dishTypes || ['main course'],
+    pricePerServing: recipe.pricePerServing || 0,
+    sourceUrl: recipe.sourceUrl || `https://prepsense.ai/chat-recipe/${recipe.id || 'unknown'}`
+  };
 
   return (
     <Modal
@@ -43,17 +92,18 @@ function RecipeDetailModal({ recipe, visible, onClose }: {
       onRequestClose={onClose}
     >
       <RecipeDetailCardV3
-        recipe={recipe}
+        recipe={normalizedRecipe}
         onBack={onClose}
         onRatingSubmitted={(rating) => {
           console.log('Recipe rated:', rating);
+          // TODO: Implement rating API call for chat recipes
         }}
       />
     </Modal>
   );
 }
 
-// Simplified Recipe Card Component for chat list
+// Enhanced Recipe Card Component with Spoonacular-style design
 function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }) {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
@@ -84,56 +134,111 @@ function RecipeCard({ recipe, onPress }: { recipe: Recipe; onPress: () => void }
     }
   }, [recipe.name, recipe.title, recipe.image]);
 
-  // Normalize recipe data for display
+  // Normalize recipe data for display using enriched Spoonacular-style data
   const recipeName = recipe.name || recipe.title || 'Untitled Recipe';
   const recipeTime = recipe.time || recipe.readyInMinutes || 30;
-  const matchScore = recipe.match_score || 
-    (recipe.available_ingredients?.length && recipe.missing_ingredients?.length ? 
-      Math.round((recipe.available_ingredients.length / 
-        (recipe.available_ingredients.length + recipe.missing_ingredients.length)) * 100) : 85);
+  const servings = recipe.servings || 4;
+  const calories = recipe.nutrition?.calories || 0;
+  const pricePerServing = recipe.pricePerServing || 0;
+  
+  // Calculate match score from ingredients
+  const totalIngredients = (recipe.extendedIngredients?.length || 
+    recipe.ingredients?.length || 
+    (recipe.available_ingredients?.length || 0) + (recipe.missing_ingredients?.length || 0)) || 10;
+  const availableCount = recipe.available_ingredients?.length || 0;
+  const matchScore = totalIngredients > 0 ? Math.round((availableCount / totalIngredients) * 100) : 85;
+
+  // Extract cuisines and diets for tags
+  const cuisines = recipe.cuisines || [];
+  const diets = recipe.diets || [];
+  const allTags = [...cuisines, ...diets].slice(0, 2); // Show max 2 tags
 
   return (
-    <TouchableOpacity style={styles.recipeCard} onPress={onPress}>
-      {/* Recipe Image */}
-      <View style={styles.recipeImageContainer}>
+    <TouchableOpacity style={styles.enhancedRecipeCard} onPress={onPress}>
+      {/* Recipe Image with Overlay */}
+      <View style={styles.enhancedImageContainer}>
         {imageLoading ? (
-          <View style={styles.imagePlaceholder}>
+          <View style={styles.enhancedImagePlaceholder}>
             <ActivityIndicator size="small" color="#297A56" />
           </View>
         ) : imageUrl ? (
-          <Image source={{ uri: imageUrl }} style={styles.recipeImage} />
+          <>
+            <Image source={{ uri: imageUrl }} style={styles.enhancedRecipeImage} />
+            <View style={styles.imageOverlay} />
+          </>
         ) : (
-          <View style={styles.imagePlaceholder}>
-            <Ionicons name="image-outline" size={30} color="#ccc" />
+          <View style={styles.enhancedImagePlaceholder}>
+            <Ionicons name="image-outline" size={32} color="#ccc" />
           </View>
         )}
+        
+        {/* Match Score Badge */}
+        <View style={[styles.matchBadge, { backgroundColor: matchScore >= 80 ? '#4CAF50' : matchScore >= 60 ? '#FF9800' : '#F44336' }]}>
+          <Text style={styles.matchBadgeText}>{matchScore}%</Text>
+        </View>
+
+        {/* Bookmark Icon */}
+        <TouchableOpacity style={styles.bookmarkButton}>
+          <Ionicons name="bookmark-outline" size={18} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       {/* Recipe Content */}
-      <View style={styles.recipeContent}>
-        <Text style={styles.recipeTitle}>{recipeName}</Text>
-        <View style={styles.recipeMetrics}>
-          <Text style={styles.recipeTime}>⏱️ {recipeTime} min</Text>
-          <Text style={styles.recipeMatch}>
-            📊 {matchScore}% match
-          </Text>
+      <View style={styles.enhancedRecipeContent}>
+        <View style={styles.titleRow}>
+          <Text style={styles.enhancedRecipeTitle} numberOfLines={2}>{recipeName}</Text>
         </View>
         
-        {recipe.available_ingredients && recipe.available_ingredients.length > 0 && (
-          <View style={styles.ingredientSection}>
-            <Text style={styles.ingredientTitle}>✅ Available:</Text>
-            <Text style={styles.availableIngredients} numberOfLines={2}>
-              {recipe.available_ingredients.join(', ')}
-            </Text>
+        {/* Tags */}
+        {allTags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {allTags.map((tag, index) => (
+              <View key={index} style={styles.tag}>
+                <Text style={styles.tagText}>{tag}</Text>
+              </View>
+            ))}
           </View>
         )}
         
-        {recipe.missing_ingredients && recipe.missing_ingredients.length > 0 && (
-          <View style={styles.ingredientSection}>
-            <Text style={styles.ingredientTitle}>🛒 Need to buy:</Text>
-            <Text style={styles.missingIngredients} numberOfLines={2}>
-              {recipe.missing_ingredients.join(', ')}
-            </Text>
+        {/* Metrics Row */}
+        <View style={styles.enhancedMetricsRow}>
+          <View style={styles.metricItem}>
+            <Ionicons name="time-outline" size={14} color="#666" />
+            <Text style={styles.metricText}>{recipeTime} min</Text>
+          </View>
+          <View style={styles.metricItem}>
+            <Ionicons name="people-outline" size={14} color="#666" />
+            <Text style={styles.metricText}>{servings}</Text>
+          </View>
+          {calories > 0 && (
+            <View style={styles.metricItem}>
+              <Text style={styles.metricText}>{calories} kcal</Text>
+            </View>
+          )}
+          {pricePerServing > 0 && (
+            <View style={styles.metricItem}>
+              <Text style={styles.metricText}>${(pricePerServing / 100).toFixed(2)}</Text>
+            </View>
+          )}
+        </View>
+        
+        {/* Ingredients Status */}
+        {(recipe.available_ingredients?.length > 0 || recipe.missing_ingredients?.length > 0) && (
+          <View style={styles.ingredientsStatus}>
+            <View style={styles.statusRow}>
+              {availableCount > 0 && (
+                <View style={styles.statusItem}>
+                  <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+                  <Text style={styles.availableText}>{availableCount} available</Text>
+                </View>
+              )}
+              {recipe.missing_ingredients?.length > 0 && (
+                <View style={styles.statusItem}>
+                  <Ionicons name="close-circle" size={14} color="#F44336" />
+                  <Text style={styles.missingText}>{recipe.missing_ingredients.length} missing</Text>
+                </View>
+              )}
+            </View>
           </View>
         )}
       </View>
@@ -590,6 +695,143 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#DC2626',
     lineHeight: 16,
+  },
+
+  // Enhanced Recipe Card Styles (Spoonacular-style)
+  enhancedRecipeCard: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  enhancedImageContainer: {
+    height: 180,
+    position: 'relative',
+  },
+  enhancedRecipeImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  enhancedImagePlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#E8F5E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  matchBadge: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  matchBadgeText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  bookmarkButton: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  enhancedRecipeContent: {
+    padding: 16,
+  },
+  titleRow: {
+    marginBottom: 8,
+  },
+  enhancedRecipeTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    lineHeight: 24,
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    marginBottom: 12,
+    gap: 6,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#E8F5E8',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#297A56',
+  },
+  tagText: {
+    fontSize: 11,
+    color: '#297A56',
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  enhancedMetricsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    gap: 16,
+  },
+  metricItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  metricText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  ingredientsStatus: {
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  statusItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  availableText: {
+    fontSize: 12,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  missingText: {
+    fontSize: 12,
+    color: '#F44336',
+    fontWeight: '600',
   },
   nutritionRow: {
     flexDirection: 'row',
