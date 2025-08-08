@@ -51,6 +51,8 @@ set_git_author.sh
 **/CLAUDE_*.txt
 Scratchpads/
 Archive/
+docs/archive/
+backend_gateway/docs/archive/
 *.swp
 *.swo
 *~
