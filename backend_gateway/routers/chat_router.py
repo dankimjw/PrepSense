@@ -9,6 +9,9 @@ from pydantic import BaseModel
 from backend_gateway.models.user import UserInDB
 from backend_gateway.routers.users import get_current_active_user
 from backend_gateway.services.recipe_advisor_service import CrewAIService
+from backend_gateway.services.intelligent_chat_service import IntelligentChatService
+from backend_gateway.services.agent_first_chat_service import AgentFirstChatService
+from backend_gateway.services.recipe_enrichment_service import RecipeEnrichmentService
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +50,11 @@ class ImageGenerationResponse(BaseModel):
 
 
 def get_crew_ai_service():
-    return CrewAIService()
+    return AgentFirstChatService()  # ALWAYS use CrewAI agents for ALL ranking decisions
+
+
+def get_recipe_enrichment_service():
+    return RecipeEnrichmentService()
 
 
 # def get_nutrient_aware_crew_service():
@@ -56,11 +63,13 @@ def get_crew_ai_service():
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
-    chat_message: ChatMessage, crew_ai_service: CrewAIService = Depends(get_crew_ai_service)
+    chat_message: ChatMessage, 
+    crew_ai_service: AgentFirstChatService = Depends(get_crew_ai_service),
+    enrichment_service: RecipeEnrichmentService = Depends(get_recipe_enrichment_service)
 ):
     """
-    Send a message to the AI assistant and get recipe recommendations
-    based on the user's pantry items.
+    Send a message to the AI assistant and get recipe recommendations.
+    ALWAYS uses CrewAI agents to analyze user intent and rank recipes contextually.
     """
     try:
         # Check if this is the first message (to show preference choice)
@@ -74,6 +83,20 @@ async def send_message(
             message=chat_message.message,
             use_preferences=chat_message.use_preferences,
         )
+
+        # Enrich chat-generated recipes with Spoonacular-style data structure
+        if response.get('recipes'):
+            enriched_recipes = []
+            for recipe in response['recipes']:
+                # Check if recipe needs enrichment (chat-generated recipes)
+                if not recipe.get('extendedIngredients') or not recipe.get('nutrition'):
+                    logger.info(f"Enriching chat recipe: {recipe.get('name', 'Unknown')}")
+                    enriched_recipe = enrichment_service.enrich_recipe(recipe, chat_message.user_id)
+                    enriched_recipes.append(enriched_recipe)
+                else:
+                    enriched_recipes.append(recipe)
+            
+            response['recipes'] = enriched_recipes
 
         # Add preference choice flag for first message
         if show_preference_choice and response.get("user_preferences"):
@@ -89,34 +112,34 @@ async def send_message(
     #     chat_message: ChatMessage,
     #     nutrient_crew_service: NutrientAwareCrewService = Depends(get_nutrient_aware_crew_service)
     # ):
-    """
-    Send a message to the AI assistant and get nutrient-aware recipe recommendations
-    based on the user's pantry items and nutritional gaps.
-    """
-    try:
-        logger.info(f"Processing nutrient-aware message: {chat_message.message}")
+    # """
+    # Send a message to the AI assistant and get nutrient-aware recipe recommendations
+    # based on the user's pantry items and nutritional gaps.
+    # """
+    # try:
+    #     logger.info(f"Processing nutrient-aware message: {chat_message.message}")
 
-        # Check if this is the first message (to show preference choice)
-        show_preference_choice = len(chat_message.message) > 0 and not any(
-            word in chat_message.message.lower()
-            for word in ["without preferences", "ignore preferences", "no preferences"]
-        )
+    #     # Check if this is the first message (to show preference choice)
+    #     show_preference_choice = len(chat_message.message) > 0 and not any(
+    #         word in chat_message.message.lower()
+    #         for word in ["without preferences", "ignore preferences", "no preferences"]
+    #     )
 
-        response = await nutrient_crew_service.process_message_with_nutrition(
-            user_id=chat_message.user_id,
-            message=chat_message.message,
-            use_preferences=chat_message.use_preferences,
-            include_nutrient_gaps=chat_message.include_nutrition,
-        )
+    #     response = await nutrient_crew_service.process_message_with_nutrition(
+    #         user_id=chat_message.user_id,
+    #         message=chat_message.message,
+    #         use_preferences=chat_message.use_preferences,
+    #         include_nutrient_gaps=chat_message.include_nutrition,
+    #     )
 
-        # Add preference choice flag for first message
-        if show_preference_choice and response.get("user_preferences"):
-            response["show_preference_choice"] = True
+    #     # Add preference choice flag for first message
+    #     if show_preference_choice and response.get("user_preferences"):
+    #         response["show_preference_choice"] = True
 
-        return response
-    except Exception as e:
-        logger.error(f"Error processing nutrient-aware chat message: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to process message: {str(e)}")
+    #     return response
+    # except Exception as e:
+    #     logger.error(f"Error processing nutrient-aware chat message: {str(e)}")
+    #     raise HTTPException(status_code=500, detail=f"Failed to process message: {str(e)}")
 
 
 @router.post("/generate-recipe-image", response_model=ImageGenerationResponse)
