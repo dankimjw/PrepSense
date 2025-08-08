@@ -34,7 +34,7 @@ class ChatStreamingService:
 
     def __init__(self, db_service):
         self.db_service = db_service
-        self.lean_crew_service = get_lean_crew_service(db_service)
+        # self.lean_crew_service = get_lean_crew_service(db_service)  # Service removed
         self.background_flows = BackgroundFlowManager()
         self.cache_manager = CacheManager(self.background_flows)
 

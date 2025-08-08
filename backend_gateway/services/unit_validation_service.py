@@ -163,7 +163,7 @@ class UnitValidationService:
             "alternatives": suggestions["alternatives"],
             "typical_quantity": typical_quantities.get(suggestions["primary"]),
             "context": context,
-            "confidence": food_info.get("confidence", 0.5),
+            "confidence": suggestions.get("confidence", 0.5),
             "reasoning": suggestions.get("reasoning", ""),
         }
 

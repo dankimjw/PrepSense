@@ -6,7 +6,7 @@ from typing import Optional
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
-from opentelemetry.exporter.jaeger.thrift import JaegerExporter
+# from opentelemetry.exporter.jaeger.thrift import JaegerExporter  # Temporarily disabled due to dependency issues
 from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
@@ -39,21 +39,22 @@ def setup_tracing(
     tracer_provider = TracerProvider(resource=resource)
     trace.set_tracer_provider(tracer_provider)
 
-    # Setup Jaeger exporter if endpoint provided
-    if jaeger_endpoint or os.getenv("JAEGER_ENDPOINT"):
-        endpoint = jaeger_endpoint or os.getenv("JAEGER_ENDPOINT")
-
-        jaeger_exporter = JaegerExporter(
-            agent_host_name=endpoint.split("://")[-1].split(":")[0],
-            agent_port=int(endpoint.split(":")[-1]) if ":" in endpoint else 14268,
-        )
-
-        span_processor = BatchSpanProcessor(jaeger_exporter)
-        tracer_provider.add_span_processor(span_processor)
-
-        logger.info(f"Jaeger tracing configured: {endpoint}")
-    else:
-        logger.info("Tracing configured without Jaeger exporter")
+    # Setup Jaeger exporter if endpoint provided (temporarily disabled)
+    # if jaeger_endpoint or os.getenv("JAEGER_ENDPOINT"):
+    #     endpoint = jaeger_endpoint or os.getenv("JAEGER_ENDPOINT")
+    #
+    #     jaeger_exporter = JaegerExporter(
+    #         agent_host_name=endpoint.split("://")[-1].split(":")[0],
+    #         agent_port=int(endpoint.split(":")[-1]) if ":" in endpoint else 14268,
+    #     )
+    #
+    #     span_processor = BatchSpanProcessor(jaeger_exporter)
+    #     tracer_provider.add_span_processor(span_processor)
+    #
+    #     logger.info(f"Jaeger tracing configured: {endpoint}")
+    logger.info("Jaeger tracing temporarily disabled due to dependency issues")
+    # else:
+    #     logger.info("Tracing configured without Jaeger exporter")
 
 
 def setup_metrics(

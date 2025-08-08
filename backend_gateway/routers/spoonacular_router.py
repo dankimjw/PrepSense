@@ -65,6 +65,111 @@ router = APIRouter(
 )
 
 
+# Helper function to validate and normalize recipe IDs
+def validate_and_normalize_recipe_id(recipe_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Validate and normalize recipe ID field to ensure proper identification
+    """
+    # Try multiple potential ID fields
+    possible_id_fields = ['id', 'recipe_id', 'spoonacularId', 'external_id']
+    recipe_id = None
+    
+    for field in possible_id_fields:
+        if field in recipe_data and recipe_data[field] is not None:
+            try:
+                # Convert to integer if it's a string
+                potential_id = recipe_data[field]
+                if isinstance(potential_id, str):
+                    potential_id = int(potential_id)
+                elif isinstance(potential_id, (int, float)):
+                    potential_id = int(potential_id)
+                else:
+                    continue
+                
+                # Validate it's a positive integer
+                if potential_id > 0:
+                    recipe_id = potential_id
+                    break
+            except (ValueError, TypeError):
+                continue
+    
+    if recipe_id is None:
+        logger.warning(f"No valid recipe ID found in recipe data: {list(recipe_data.keys())}")
+        # Generate a fallback ID based on title hash if available
+        if 'title' in recipe_data and recipe_data['title']:
+            import hashlib
+            title_hash = hashlib.md5(recipe_data['title'].encode()).hexdigest()
+            recipe_id = int(title_hash[:8], 16)  # Use first 8 chars of hash as numeric ID
+            logger.info(f"Generated fallback ID {recipe_id} for recipe: {recipe_data['title']}")
+    
+    # Ensure the id field is set
+    recipe_data['id'] = recipe_id
+    
+    # Log the ID resolution for debugging
+    logger.debug(f"Recipe ID resolved: {recipe_id} for recipe: {recipe_data.get('title', 'Unnamed')}")
+    
+    return recipe_data
+
+
+def enhance_spoonacular_image_url(recipe_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Enhance recipe image URL for Spoonacular recipes
+    """
+    recipe_id = recipe_data.get('id')
+    current_image = recipe_data.get('image', '')
+    
+    if recipe_id and isinstance(recipe_id, int) and recipe_id > 0:
+        # Generate proper Spoonacular image URL if missing or invalid
+        if not current_image or not current_image.startswith('http'):
+            spoonacular_image_url = f"https://img.spoonacular.com/recipes/{recipe_id}-312x231.jpg"
+            recipe_data['image'] = spoonacular_image_url
+            logger.debug(f"Generated Spoonacular image URL: {spoonacular_image_url}")
+        elif 'spoonacular.com' in current_image:
+            # Ensure the URL format is correct
+            if f"{recipe_id}-" not in current_image:
+                spoonacular_image_url = f"https://img.spoonacular.com/recipes/{recipe_id}-312x231.jpg"
+                recipe_data['image'] = spoonacular_image_url
+                logger.debug(f"Fixed Spoonacular image URL: {spoonacular_image_url}")
+    else:
+        # Use a working fallback image
+        if not current_image or current_image == 'https://img.spoonacular.com/recipes/default-312x231.jpg':
+            recipe_data['image'] = 'https://via.placeholder.com/312x231/E5E5E5/666666?text=Recipe+Image'
+            logger.debug("Using placeholder image for recipe without valid ID")
+    
+    return recipe_data
+
+
+def process_recipe_list_response(recipes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """
+    Process a list of recipes to ensure proper ID and image handling
+    """
+    processed_recipes = []
+    
+    for recipe in recipes:
+        try:
+            # Validate and normalize recipe ID
+            recipe = validate_and_normalize_recipe_id(recipe)
+            
+            # Enhance image URL
+            recipe = enhance_spoonacular_image_url(recipe)
+            
+            # Ensure title field is present
+            if not recipe.get('title') and recipe.get('name'):
+                recipe['title'] = recipe['name']
+            elif not recipe.get('name') and recipe.get('title'):
+                recipe['name'] = recipe['title']
+            
+            processed_recipes.append(recipe)
+            
+        except Exception as e:
+            logger.error(f"Error processing recipe: {e}")
+            # Skip malformed recipes rather than crashing
+            continue
+    
+    logger.info(f"Processed {len(processed_recipes)}/{len(recipes)} recipes successfully")
+    return processed_recipes
+
+
 # Dependencies
 def get_spoonacular_service() -> SpoonacularService:
     return SpoonacularService()
@@ -98,6 +203,9 @@ async def search_recipes_by_ingredients(
             ignore_pantry=request.ignore_pantry,
             intolerances=request.intolerances,
         )
+
+        # Process recipes to ensure proper IDs and images
+        recipes = process_recipe_list_response(recipes)
 
         # Filter out recipes with insufficient instructions
         original_count = len(recipes)
@@ -136,8 +244,11 @@ async def search_recipes_complex(
             offset=request.offset,
         )
 
-        # Filter out recipes with insufficient instructions
-        if "results" in results:
+        # Process recipes in the results
+        if "results" in results and results["results"]:
+            results["results"] = process_recipe_list_response(results["results"])
+
+            # Filter out recipes with insufficient instructions
             original_count = len(results["results"])
             results["results"] = spoonacular_service.filter_recipes_by_instructions(
                 results["results"], min_steps=2
@@ -200,6 +311,11 @@ async def get_recipe_information(
             except Exception as db_error:
                 logger.error(f"Database fallback also failed: {str(db_error)}")
                 raise spoon_error
+
+        if recipe:
+            # Process the single recipe to ensure proper ID and image handling
+            recipe = validate_and_normalize_recipe_id(recipe)
+            recipe = enhance_spoonacular_image_url(recipe)
 
         # Check for local images first, then fall back to Spoonacular
         if recipe and "image" in recipe and recipe["image"]:
@@ -283,12 +399,16 @@ async def get_random_recipes(
 
         # Fetch from Spoonacular API
         tag_list = tags.split(",") if tags else None
-        recipes = await spoonacular_service.get_random_recipes(number=number, tags=tag_list)
+        results = await spoonacular_service.get_random_recipes(number=number, tags=tag_list)
+
+        # Process recipes in the results
+        if "recipes" in results and results["recipes"]:
+            results["recipes"] = process_recipe_list_response(results["recipes"])
 
         # Cache the results for 30 minutes
-        await cache_service.cache_recipe_data(cache_key, recipes, ttl_minutes=30)
+        await cache_service.cache_recipe_data(cache_key, results, ttl_minutes=30)
 
-        return recipes
+        return results
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -415,6 +535,9 @@ async def search_recipes_from_pantry(
             intolerances=[],  # Don't filter allergens at Spoonacular level
         )
 
+        # Process recipes to ensure proper IDs and images
+        recipes = process_recipe_list_response(recipes)
+
         # Filter to only show recipes with at least 1 matching ingredient (usedIngredientCount >= 1)
         # This ensures we only show recipes that actually use pantry ingredients
         filtered_recipes = [
@@ -446,6 +569,8 @@ async def search_recipes_from_pantry(
             }
             for name in ingredients
         ]
+
+        logger.info(f"✅ Returning {len(filtered_recipes)} processed recipes from pantry search")
 
         return {
             "recipes": filtered_recipes,

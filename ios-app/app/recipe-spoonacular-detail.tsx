@@ -898,6 +898,13 @@ export default function RecipeSpoonacularDetail() {
         </View>
       )}
 
+      {/* Debug Recipe ID */}
+      {recipe && recipe.id && (
+        <View style={styles.debugIdContainer}>
+          <Text style={styles.debugIdText}>Recipe ID: {recipe.id}</Text>
+        </View>
+      )}
+
       <View style={styles.bottomSpacer} />
     </ScrollView>
   );
@@ -1277,5 +1284,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#297A56',
     fontWeight: '500',
+  },
+  
+  // Debug Recipe ID
+  debugIdContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+  },
+  debugIdText: {
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
 });

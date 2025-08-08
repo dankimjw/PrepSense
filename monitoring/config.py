@@ -1,4 +1,4 @@
-""
+"""
 Monitoring and alerting configuration for PrepSense.
 """
 import logging

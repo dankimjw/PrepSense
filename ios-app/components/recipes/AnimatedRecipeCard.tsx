@@ -15,8 +15,8 @@ import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 
-// Fallback image URL for recipes with missing or invalid images
-const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
+// Working fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://via.placeholder.com/312x231/E5E5E5/666666?text=Recipe+Image';
 
 interface Recipe {
   id: number;
@@ -97,6 +97,7 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
   // Enhanced image URL handling with proper fallback
   const getImageUrl = (): string => {
     let imageUrl = recipe.image || '';
+    const recipeId = recipe.id;
     
     console.log('🖼️ AnimatedRecipeCard - Processing image URL:', {
       recipe_id: recipe.id,
@@ -104,10 +105,26 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
       initial_url: imageUrl
     });
     
-    // Return fallback image if the URL is empty or invalid
-    if (!imageUrl || imageUrl.trim() === '') {
-      console.log('🖼️ AnimatedRecipeCard - Using fallback image for recipe:', recipe.title);
-      return FALLBACK_RECIPE_IMAGE;
+    // Enhanced Spoonacular image URL handling
+    if (recipeId && typeof recipeId === 'number' && recipeId > 0) {
+      // If no image URL or it's a broken default URL, generate proper Spoonacular URL
+      if (!imageUrl || imageUrl === 'https://img.spoonacular.com/recipes/default-312x231.jpg') {
+        imageUrl = `https://img.spoonacular.com/recipes/${recipeId}-312x231.jpg`;
+        console.log('🖼️ Generated Spoonacular image URL:', imageUrl);
+      }
+      // Fix malformed Spoonacular URLs that don't include the recipe ID
+      else if (imageUrl.includes('spoonacular.com') && !imageUrl.includes(`${recipeId}-`)) {
+        imageUrl = `https://img.spoonacular.com/recipes/${recipeId}-312x231.jpg`;
+        console.log('🔧 Fixed malformed Spoonacular URL:', imageUrl);
+      }
+    }
+    
+    // Use working fallback image if we still don't have a valid URL
+    if (!imageUrl || 
+        imageUrl === 'https://img.spoonacular.com/recipes/default-312x231.jpg' ||
+        !imageUrl.startsWith('http')) {
+      imageUrl = FALLBACK_RECIPE_IMAGE;
+      console.log('🖼️ Using working fallback image for recipe:', recipe.title);
     }
     
     return imageUrl;
@@ -117,7 +134,27 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
   const handleImageLoad = () => {
     setImageLoaded(true);
     imageOpacity.value = withTiming(1, { duration: 300 });
-    runOnJS(setImageLoaded)(true);
+    
+    const imageUrl = getImageUrl();
+    console.log(`✅ AnimatedRecipeCard - Image loaded successfully:`, {
+      url: imageUrl,
+      recipe_id: recipe.id,
+      recipe_title: recipe.title
+    });
+  };
+
+  // Image load error handling
+  const handleImageError = (error: any) => {
+    const imageUrl = getImageUrl();
+    console.log(`🚨 AnimatedRecipeCard - Failed to load recipe image:`, {
+      attempted_url: imageUrl,
+      recipe_id: recipe.id,
+      error: error?.nativeEvent?.error || 'Failed to load image'
+    });
+    
+    // Still show the image component with fallback - React Native will handle retries
+    setImageLoaded(true);
+    imageOpacity.value = withTiming(1, { duration: 300 });
   };
 
   const animatedCardStyle = useAnimatedStyle(() => ({
@@ -184,6 +221,12 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
     // Enhanced navigation logic with proper ID resolution
     const recipeId = getRecipeId();
     if (recipeId) {
+      console.log('📱 AnimatedRecipeCard - Navigating to recipe details:', {
+        recipe_id: recipeId,
+        title: recipe.title,
+        source: 'animated_card'
+      });
+      
       router.push({
         pathname: '/recipe-spoonacular-detail',
         params: { recipeId: recipeId.toString() },
@@ -200,9 +243,13 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
     }
   };
 
-  const availabilityPercentage = recipe.usedIngredientCount && recipe.missedIngredientCount 
-    ? (recipe.usedIngredientCount / (recipe.usedIngredientCount + recipe.missedIngredientCount)) * 100
+  // Calculate availability percentage for progress bar
+  const totalIngredients = (recipe.usedIngredientCount || 0) + (recipe.missedIngredientCount || 0);
+  const availabilityPercentage = totalIngredients > 0 
+    ? Math.round(((recipe.usedIngredientCount || 0) / totalIngredients) * 100)
     : 0;
+
+  const imageUrl = getImageUrl();
 
   return (
     <TouchableOpacity
@@ -210,60 +257,49 @@ const AnimatedRecipeCard: React.FC<AnimatedRecipeCardProps> = ({
       onPress={handleCardPress}
       onPressIn={handlePressIn}
       onPressOut={handlePressOut}
-      activeOpacity={1}
+      activeOpacity={0.9}
     >
       <Animated.View style={[styles.recipeCard, animatedCardStyle]}>
-        {/* Shimmer loading effect */}
-        {!imageLoaded && (
-          <Animated.View style={[styles.shimmerOverlay, shimmerStyle]} />
-        )}
-        
-        {/* Recipe Image */}
-        <Animated.View style={animatedImageStyle}>
-          <Image 
-            source={{ uri: getImageUrl() }} 
-            style={styles.recipeImage}
-            defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
-            onLoad={handleImageLoad}
-            onError={(error) => {
-              console.log('🚨 AnimatedRecipeCard - Failed to load image:', {
-                recipe_id: recipe.id,
-                attempted_url: getImageUrl(),
-                error: error.nativeEvent?.error
-              });
-            }}
-          />
-        </Animated.View>
-
-        {/* Gradient Overlay */}
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.gradient}
-        />
-
-        {/* Bookmark Button */}
-        <TouchableOpacity 
-          style={styles.bookmarkButton}
-          onPress={handleBookmarkPress}
-          activeOpacity={0.8}
-        >
-          <Animated.View style={bookmarkAnimatedStyle}>
-            <Ionicons 
-              name={isBookmarked ? "bookmark" : "bookmark-outline"} 
-              size={20} 
-              color={isBookmarked ? "#FFD700" : "#fff"} 
+        <View style={styles.imageContainer}>
+          <Animated.View style={[StyleSheet.absoluteFill, animatedImageStyle]}>
+            <Image 
+              source={{ uri: imageUrl }}
+              style={styles.recipeImage}
+              resizeMode="cover"
+              onLoad={handleImageLoad}
+              onError={handleImageError}
             />
           </Animated.View>
-        </TouchableOpacity>
+          
+          {/* Shimmer loading overlay */}
+          <Animated.View style={[styles.shimmerOverlay, shimmerStyle]} />
+          
+          {/* Gradient overlay */}
+          <LinearGradient
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
+            style={styles.gradient}
+          />
+          
+          {/* Bookmark button */}
+          <Animated.View style={[styles.bookmarkButton, bookmarkAnimatedStyle]}>
+            <TouchableOpacity onPress={handleBookmarkPress}>
+              <Ionicons 
+                name={isBookmarked ? "bookmark" : "bookmark-outline"} 
+                size={24} 
+                color="white" 
+              />
+            </TouchableOpacity>
+          </Animated.View>
+        </View>
 
-        {/* Recipe Info */}
+        {/* Recipe info overlay */}
         <View style={styles.recipeInfo}>
           <Text style={styles.recipeTitle} numberOfLines={2}>
             {recipe.title}
           </Text>
-          
-          {/* Ingredient Availability Bar */}
-          {availabilityPercentage > 0 && (
+
+          {/* Ingredient availability bar */}
+          {totalIngredients > 0 && (
             <View style={styles.availabilityContainer}>
               <View style={styles.availabilityBar}>
                 <View 
@@ -321,6 +357,10 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
+  imageContainer: {
+    flex: 1,
+    position: 'relative',
+  },
   recipeImage: {
     width: '100%',
     height: '100%',
@@ -374,7 +414,6 @@ const styles = StyleSheet.create({
     height: 4,
     backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 2,
-    overflow: 'hidden',
     marginBottom: 4,
   },
   availabilityFill: {
@@ -385,22 +424,22 @@ const styles = StyleSheet.create({
   availabilityText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
+    fontWeight: '500',
   },
   recipeStats: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 16,
   },
   stat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   statText: {
-    fontSize: 13,
+    fontSize: 12,
     color: '#fff',
-    fontWeight: '600',
+    fontWeight: '500',
     textShadowColor: 'rgba(0,0,0,0.3)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 1,
