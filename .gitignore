@@ -79,6 +79,7 @@ docs/**/*worktree*
 
 # MCP (Model Context Protocol) - local only
 .mcp.json
+.mcp.json.backup
 scripts/setup_mcp_servers.sh
 scripts/setup_mcp_worktree.sh
 mcp-servers/
