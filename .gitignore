@@ -47,12 +47,27 @@ set_git_author.sh
 .claude_collaboration_reminder
 
 # Claude-related files and folders
+.claude/
+.claude_*
+.claude-*
 **/CLAUDE_*.md
 **/CLAUDE_*.txt
+**/claude_*
+**/.claude*
 Scratchpads/
 Archive/
 docs/archive/
 backend_gateway/docs/archive/
+archive_unused/
+
+# Personal/Internal documentation (implementation status tracking)
+docs/internal/
+docs/flows/crewai-implementation-reality-check.md
+docs/flows/comprehensive-application-flows.md
+docs/flows/recipe-recommendation-system-analysis.md
+docs/flows/external-api-integrations.md
+docs/flows/*-flow.md
+docs/flows/*-flows.md
 *.swp
 *.swo
 *~

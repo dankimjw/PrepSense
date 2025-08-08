@@ -1,135 +1,110 @@
 # My Recipes Flow Documentation
 
 ## 1. User Flow
-1. User opens PrepSense app and navigates to the Recipes screen
-2. User taps on "My Recipes" tab (third tab after "From Pantry" and "Discover")
-3. System displays sub-tabs: "Saved" and "Cooked"
-4. On "Saved" tab: User sees all recipes they have saved from previous searches/recommendations
-5. On "Cooked" tab: User sees recipes they have marked as completed/cooked
-6. User can apply filters: "All", "Thumbs Up", "Thumbs Down", "Favorites"
-7. User can tap on any recipe to view details or mark as cooked
-8. User can refresh the list by pulling down
-9. System filters recipes based on user preferences (allergens, dietary preferences, cuisines)
+
+1. **Navigation to My Recipes**: User taps "My Recipes" tab in bottom navigation (RecipesContainer.tsx)
+2. **Tab Selection**: User sees "Saved" and "Cooked" sub-tabs within My Recipes section
+3. **Filter Options**: User can filter by:
+   - All recipes
+   - Thumbs up (liked recipes)
+   - Thumbs down (disliked recipes)
+   - Favorites (marked as favorite)
+4. **Recipe Display**: Recipes are shown in a scrollable list with:
+   - Recipe image, title, rating status
+   - Favorite indicator
+   - Demo recipe indicator (currently showing)
+5. **Recipe Actions**: User can:
+   - Tap to view recipe details
+   - Toggle favorite status
+   - Rate recipes (thumbs up/down)
+   - Mark recipes as cooked
 
 ## 2. Data Flow
 
-### Frontend Request Flow:
-1. **RecipesContainer.tsx** manages the My Recipes tab state
-2. When `activeTab` changes to 'my-recipes', `fetchMyRecipes()` is triggered
-3. Function builds query parameters based on current filters:
-   - `state.myRecipesTab` → `?status=saved` or `?status=cooked`
-   - `state.myRecipesFilter` → Additional filters for rating/favorites
-4. HTTP GET request sent to: `${Config.API_BASE_URL}/user-recipes${filterParam}`
-5. Response is filtered by user preferences (allergens, dietary restrictions)
-6. Filtered recipes are stored in component state via `SET_SAVED_RECIPES` action
+### Backend API Flow:
+1. **GET /user-recipes** - Retrieves user's saved recipes
+   - Filters by `status` parameter: 'saved' or 'cooked'
+   - Applies `demo_only=true` filter for "Saved" tab
+   - Additional filters: rating, favorite status
+   - Returns recipes from `user_recipes` table
 
-### Backend Processing:
-1. **FastAPI Router** (`user_recipes_router.py`) receives request at `/api/v1/user-recipes`
-2. **UserRecipesService** processes the query with filters:
-   - `user_id: 111` (hardcoded for demo)
-   - Optional filters: `source`, `is_favorite`, `rating`, `status`, `limit`, `offset`
-3. **PostgreSQL Query** executed with dynamic WHERE conditions
-4. **Recipe Data Transformation**:
-   - JSON recipe_data parsed (JSONB column)
-   - Timestamps converted to ISO format
-   - Recipe metadata enriched
-5. **Response** returned as array of SavedRecipe objects
+### Frontend Data Flow:
+1. **RecipesContainer.tsx** manages state and API calls
+2. **fetchMyRecipes()** function calls backend with appropriate filters
+3. **RecipesList.tsx** renders the filtered recipes
+4. **User preference filtering** applied client-side to respect allergens/dietary restrictions
 
-### Database Layer:
-1. **user_recipes table** stores saved recipes with columns:
-   - `id`, `user_id`, `recipe_id`, `recipe_title`, `recipe_image`
-   - `recipe_data` (JSONB), `source`, `rating`, `is_favorite`, `status`
-   - `created_at`, `updated_at`, `cooked_at`
-2. **Mock Data** added via `scripts/add_mock_recipes_and_ingredients.py`
-3. **Current Data**: 10+ recipes saved for user_id 111 with various sources and ratings
+### Database Structure:
+- **user_recipes table** stores all saved recipes with fields:
+  - `source`: 'spoonacular', 'chat', 'demo', 'generated', etc.
+  - `status`: 'saved' or 'cooked'
+  - `is_demo`: Boolean flag for demo recipes
+  - `rating`: 'thumbs_up', 'thumbs_down', 'neutral'
+  - `is_favorite`: Boolean favorite flag
 
 ## 3. Implementation Map
 
 | Layer | File / Module | Responsibility |
 |-------|---------------|----------------|
-| **UI Components** | `components/recipes/RecipesContainer.tsx` | Main container managing My Recipes tab state and data fetching |
-| | `components/recipes/RecipesList.tsx` | Renders the list of saved recipes with cards |
-| | `components/recipes/RecipesFilters.tsx` | Filter UI for Saved/Cooked tabs and rating filters |
-| | `components/recipes/RecipesTabs.tsx` | Tab switching between Pantry/Discover/My Recipes |
-| | `components/recipes/ImprovedRecipesScreen.tsx` | **🔴 STUB** - Legacy screen with TODO for My Recipes |
-| **API Layer** | `backend_gateway/routers/user_recipes_router.py` | **🟢 WORKING** - REST endpoints for CRUD operations |
-| | `backend_gateway/services/user_recipes_service.py` | **🟢 WORKING** - Business logic for recipe management |
-| | `backend_gateway/config/database.py` | Database connection management |
-| **Data Layer** | PostgreSQL `user_recipes` table | **🟢 WORKING** - Persistent storage with JSONB recipe data |
-| | `scripts/add_mock_recipes_and_ingredients.py` | **🟢 WORKING** - Mock data population script |
-| **Context** | `context/TabDataProvider.tsx` | **🟡 PARTIAL** - Caches recipe data but not fully integrated |
-| | `context/UserPreferencesContext.tsx` | **🟢 WORKING** - User dietary preferences for filtering |
-| **Utils** | `utils/ingredientMatcher.ts` | **🟢 WORKING** - Standardized ingredient availability calculation |
-| | `utils/contentValidation.ts` | **🟢 WORKING** - Recipe validation utilities |
+| **Frontend Route** | `/ios-app/app/(tabs)/recipes.tsx` | Main recipes tab route |
+| **Main Container** | `/ios-app/components/recipes/RecipesContainer.tsx` | State management, API orchestration |
+| **Filters Component** | `/ios-app/components/recipes/RecipesFilters.tsx` | My Recipes filter UI (saved/cooked, rating filters) |
+| **List Component** | `/ios-app/components/recipes/RecipesList.tsx` | Recipe rendering and display |
+| **Recipe Cards** | `/ios-app/components/recipes/AnimatedSavedRecipeCard.tsx` | Individual saved recipe card display |
+| **Backend Router** | `/backend_gateway/routers/user_recipes_router.py` | API endpoints for user recipes CRUD |
+| **Service Layer** | `/backend_gateway/services/user_recipes_service.py` | Business logic for recipe management |
+| **Database** | PostgreSQL `user_recipes` table | Recipe storage and filtering |
 
 ## 4. Diagram
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant RecipesContainer
-    participant UserRecipesService
-    participant PostgreSQL
-    participant MockData
-
-    User->>RecipesContainer: Tap "My Recipes" tab
-    RecipesContainer->>RecipesContainer: Set activeTab='my-recipes'
-    RecipesContainer->>RecipesContainer: Call fetchMyRecipes()
-    RecipesContainer->>UserRecipesService: GET /api/v1/user-recipes?status=saved
-    UserRecipesService->>PostgreSQL: SELECT from user_recipes WHERE user_id=111
-    PostgreSQL-->>UserRecipesService: Return saved recipes array
-    UserRecipesService-->>RecipesContainer: JSON response with recipe data
-    RecipesContainer->>RecipesContainer: Apply user preference filters
-    RecipesContainer->>RecipesContainer: Update state with filtered recipes
-    RecipesContainer->>User: Display saved recipes list
-
-    Note over User,MockData: Mock Data Available
-    MockData->>PostgreSQL: 10 Italian/Mexican/Indian recipes
-    MockData->>PostgreSQL: Ingredients added to pantry_items
-    MockData->>PostgreSQL: Recipes saved with various ratings
-
-    User->>RecipesContainer: Apply filter (e.g., "Thumbs Up")
-    RecipesContainer->>RecipesContainer: Update myRecipesFilter state
-    RecipesContainer->>UserRecipesService: GET /user-recipes?status=saved&rating=thumbs_up
-    UserRecipesService->>PostgreSQL: SELECT with rating filter
-    PostgreSQL-->>UserRecipesService: Return filtered results
-    UserRecipesService-->>RecipesContainer: Filtered recipe array
-    RecipesContainer->>User: Display updated list
-
-    User->>RecipesContainer: Switch to "Cooked" tab
-    RecipesContainer->>UserRecipesService: GET /user-recipes?status=cooked
-    UserRecipesService->>PostgreSQL: SELECT recipes with status='cooked'
-    PostgreSQL-->>UserRecipesService: Return cooked recipes
-    UserRecipesService-->>RecipesContainer: JSON response
-    RecipesContainer->>User: Display cooked recipes
+    participant U as User
+    participant RC as RecipesContainer
+    participant API as Backend API
+    participant DB as PostgreSQL
+    participant RL as RecipesList
+    
+    U->>RC: Tap "My Recipes" tab
+    RC->>RC: Set activeTab = 'my-recipes'
+    RC->>API: GET /user-recipes?status=saved&demo_only=true
+    API->>DB: Query user_recipes with filters
+    DB-->>API: Return filtered recipes
+    API-->>RC: Recipe data with source info
+    RC->>RC: Apply user preferences filter
+    RC->>RL: Pass filtered savedRecipes array
+    RL->>U: Display recipe cards
+    
+    U->>RL: Tap "Cooked" tab
+    RL->>RC: Update myRecipesTab = 'cooked'
+    RC->>API: GET /user-recipes?status=cooked
+    API->>DB: Query cooked recipes
+    DB-->>API: Return cooked recipes
+    API-->>RC: Cooked recipe data
+    RC->>RL: Update display
+    RL->>U: Show cooked recipes
 ```
 
 ## 5. Findings & Gaps
 
-### ✅ Implemented Items:
-- Complete backend API with CRUD operations for user recipes
-- PostgreSQL database schema with proper JSONB storage for recipe data
-- Frontend container component with state management for My Recipes
-- Filter system for Saved/Cooked recipes with rating and favorites support
-- User preference filtering (allergens, dietary restrictions, cuisines)
-- Mock data populated with 10 high-protein recipes matching user preferences
-- Database connection working with recipes successfully stored and retrievable
+### ✅ Currently Working:
+- Basic My Recipes display with saved/cooked tabs
+- Rating and favorite filtering
+- Demo recipe prioritization in "Saved" tab
+- Recipe saving mechanism from Spoonacular detail pages
+- User preferences filtering (allergens, dietary restrictions)
 
-### ❌ Missing or Mock Items:
-- **Recipe Save Functionality**: Users cannot save recipes from Pantry/Discover tabs to My Recipes
-- **Recipe Action Buttons**: Missing "Save Recipe" buttons in RecipeDetailCard components
-- **Mark as Cooked**: UI missing to mark recipes as cooked from recipe details
-- **Recipe Rating Interface**: No UI to rate recipes with thumbs up/down
-- **Favorite Toggle**: Missing heart/star buttons to mark recipes as favorites
-- **ImprovedRecipesScreen Integration**: Legacy screen has TODO comment instead of calling API
+### ❌ Issues Identified:
+- **CRITICAL: Spoonacular recipes appearing in My Recipes**: The recipe detail page (`recipe-spoonacular-detail.tsx`) saves Spoonacular recipes with `source: 'spoonacular'` to the `user_recipes` table, but the filtering logic doesn't exclude these from My Recipes display
+- **Inconsistent filtering logic**: The "Saved" tab shows demo recipes only (`demo_only=true`) but doesn't properly distinguish between user's personal recipes vs external Spoonacular recipes
+- **Data source confusion**: Spoonacular recipes should not be stored in `user_recipes` table - they should remain external and only be bookmarked/referenced
 
-### ⚠ Unclear Items (Need Follow-up):
-- **TabDataProvider Caching**: Context provider exists but integration with My Recipes flow is incomplete
-- **Authentication**: Hardcoded user_id=111, needs proper user authentication
-- **Real-time Updates**: No real-time sync when recipes are saved from other tabs
-- **Image Handling**: Recipe images use mixed sources (static files vs URLs)
-- **Error Handling**: Limited error retry logic for network failures
-- **Offline Support**: No offline caching for saved recipes
+### ⚠️ Need Investigation:
+- **Recipe ownership boundaries**: Need clear separation between user's personal/generated recipes vs external Spoonacular recipe references
+- **Recipe completion flow**: How recipe completion affects the saved vs cooked status transition
+- **Data cleanup needed**: Existing Spoonacular recipes in `user_recipes` table need to be cleaned up or properly categorized
 
-### Key Issue Identified:
-The main gap is that while the backend and database are fully functional with mock data, the **recipe saving workflow is missing**. Users can see saved recipes in My Recipes, but there's no way to actually save recipes from the Pantry or Discover tabs into the My Recipes collection. The CRUD endpoints exist, but the UI integration is incomplete.
+### 🔧 Technical Debt:
+- Dynamic column existence checking (`is_demo`, `status`) suggests incomplete migrations
+- Multiple fallback queries indicate schema inconsistency across environments
+- Complex filtering logic in `get_user_recipes()` method needs refactoring
