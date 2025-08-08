@@ -44,3 +44,13 @@ debug.log
 
 # ESLint ignored files
 dist/*
+
+# Documentation (local only)
+docs/
+doc/
+
+# Claude and team files
+.claude/
+**/claude*
+**/Claude*
+**/CLAUDE*
