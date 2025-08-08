@@ -4,7 +4,10 @@ This module provides HTTP endpoints that delegate to the OcrService for business
 """
 
 import base64
+import hashlib
+import json
 import logging
+import re
 from typing import Any, Dict
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
@@ -25,6 +28,25 @@ from backend_gateway.utils.smart_cache import get_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ocr", tags=["OCR"])
+
+
+def get_mime_type(image_data: bytes) -> str:
+    """Detect MIME type of image data."""
+    if image_data.startswith(b'\xff\xd8\xff'):
+        return "image/jpeg"
+    elif image_data.startswith(b'\x89PNG'):
+        return "image/png"
+    elif image_data.startswith(b'GIF8'):
+        return "image/gif"
+    elif image_data.startswith(b'RIFF') and b'WEBP' in image_data[:12]:
+        return "image/webp"
+    else:
+        return "image/jpeg"  # Default fallback
+
+
+def generate_image_hash(image_data: bytes) -> str:
+    """Generate SHA256 hash of image data for caching/deduplication."""
+    return hashlib.sha256(image_data).hexdigest()
 
 
 # Utility functions for backward compatibility with existing endpoints

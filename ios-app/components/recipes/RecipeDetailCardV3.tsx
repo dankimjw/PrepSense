@@ -546,6 +546,13 @@ export default function RecipeDetailCardV3({
           </View>
         </View>
 
+        {/* Debug Recipe ID */}
+        {normalizedRecipe.id && (
+          <View style={styles.debugIdContainer}>
+            <Text style={styles.debugIdText}>Recipe ID: {normalizedRecipe.id}</Text>
+          </View>
+        )}
+
         {/* Extra padding at bottom */}
         <View style={{ height: 40 }} />
       </Animated.ScrollView>
@@ -1066,5 +1073,19 @@ const styles = StyleSheet.create({
     color: '#999',
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+  
+  // Debug Recipe ID
+  debugIdContainer: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    marginTop: 16,
+    marginHorizontal: 16,
+  },
+  debugIdText: {
+    fontSize: 11,
+    color: '#999',
+    fontStyle: 'italic',
+    opacity: 0.7,
   },
 });

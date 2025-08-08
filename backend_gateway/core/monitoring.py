@@ -8,13 +8,12 @@ from typing import Any, Dict, Optional
 
 import sentry_sdk
 from fastapi import FastAPI, Request, Response
-from fastapi.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 from prometheus_client import Counter, Histogram, generate_latest
 from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
-from starlette.middleware.base import BaseHTTPMiddleware as StarletteBaseHTTPMiddleware
 from starlette.responses import Response as StarletteResponse
 
 logger = logging.getLogger(__name__)

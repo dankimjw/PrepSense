@@ -111,14 +111,6 @@ MOCK_RECIPES_FOR_TESTING = [
             },
             {
                 "id": 3,
-                "name": "granulated sugar",
-                "original": "3/4 cup granulated sugar",
-                "amount": 0.75,
-                "unit": "cup",
-                "originalName": "granulated sugar",
-            },
-            {
-                "id": 4,
                 "name": "eggs",
                 "original": "2 large eggs",
                 "amount": 2,
@@ -126,97 +118,111 @@ MOCK_RECIPES_FOR_TESTING = [
                 "originalName": "large eggs",
             },
             {
-                "id": 5,
-                "name": "vanilla extract",
-                "original": "1 teaspoon vanilla extract",
-                "amount": 1,
-                "unit": "teaspoon",
-                "originalName": "vanilla extract",
-            },
-            {
-                "id": 6,
-                "name": "salt",
-                "original": "1 teaspoon salt",
-                "amount": 1,
-                "unit": "teaspoon",
-                "originalName": "salt",
+                "id": 4,
+                "name": "chocolate chips",
+                "original": "2 cups chocolate chips",
+                "amount": 2,
+                "unit": "cups",
+                "originalName": "chocolate chips",
             },
         ],
         "analyzedInstructions": [
             {
                 "name": "",
                 "steps": [
-                    {"number": 1, "step": "Preheat oven to 375°F (190°C)."},
-                    {"number": 2, "step": "Cream butter and sugars until fluffy."},
-                    {"number": 3, "step": "Beat in eggs and vanilla."},
-                    {"number": 4, "step": "Mix in flour and salt."},
-                    {"number": 5, "step": "Drop dough on baking sheets and bake 9-11 minutes."},
+                    {"number": 1, "step": "Preheat oven to 375°F."},
+                    {"number": 2, "step": "Mix flour and butter in large bowl."},
+                    {"number": 3, "step": "Beat in eggs until well combined."},
+                    {"number": 4, "step": "Stir in chocolate chips."},
+                    {"number": 5, "step": "Drop spoonfuls on baking sheet and bake 9-11 minutes."},
                 ],
             }
         ],
     },
     {
-        "id": 632665,
-        "title": "Lemon Herb Roasted Chicken",
-        "image": "https://img.spoonacular.com/recipes/632665-556x370.jpg",
-        "readyInMinutes": 60,
-        "servings": 4,
+        "id": 654959,
+        "title": "Spinach Coriander Chive Bread",
+        "image": "https://img.spoonacular.com/recipes/654959-556x370.jpg",
+        "readyInMinutes": 25,
+        "servings": 6,
         "extendedIngredients": [
             {
                 "id": 1,
-                "name": "chicken breast",
-                "original": "1.5 pounds chicken breast",
-                "amount": 1.5,
-                "unit": "pounds",
-                "originalName": "chicken breast",
+                "name": "spinach",
+                "original": "2 cups fresh spinach, chopped",
+                "amount": 2,
+                "unit": "cups",
+                "originalName": "fresh spinach, chopped",
             },
             {
                 "id": 2,
-                "name": "olive oil",
-                "original": "1/4 cup olive oil",
+                "name": "coriander",
+                "original": "1/4 cup fresh coriander, chopped",
                 "amount": 0.25,
                 "unit": "cup",
-                "originalName": "olive oil",
+                "originalName": "fresh coriander, chopped",
             },
             {
                 "id": 3,
-                "name": "salt",
-                "original": "2 teaspoons salt",
+                "name": "chives",
+                "original": "2 tablespoons fresh chives, chopped",
                 "amount": 2,
-                "unit": "teaspoons",
-                "originalName": "salt",
+                "unit": "tablespoons",
+                "originalName": "fresh chives, chopped",
             },
             {
                 "id": 4,
-                "name": "black pepper",
-                "original": "1 teaspoon black pepper",
-                "amount": 1,
-                "unit": "teaspoon",
-                "originalName": "black pepper",
+                "name": "bread flour",
+                "original": "3 cups bread flour",
+                "amount": 3,
+                "unit": "cups",
+                "originalName": "bread flour",
+            },
+            {
+                "id": 5,
+                "name": "eggs",
+                "original": "2 eggs",
+                "amount": 2,
+                "unit": "",
+                "originalName": "eggs",
             },
         ],
         "analyzedInstructions": [
             {
                 "name": "",
                 "steps": [
-                    {"number": 1, "step": "Preheat oven to 425°F (220°C)."},
-                    {"number": 2, "step": "Season chicken with salt and pepper."},
-                    {"number": 3, "step": "Drizzle with olive oil."},
-                    {"number": 4, "step": "Roast for 45-50 minutes until golden."},
+                    {"number": 1, "step": "Preheat oven to 350°F."},
+                    {"number": 2, "step": "Mix spinach, coriander, and chives in a bowl."},
+                    {"number": 3, "step": "Combine bread flour with herb mixture."},
+                    {"number": 4, "step": "Beat eggs and fold into mixture."},
+                    {"number": 5, "step": "Form into loaf and bake 25 minutes until golden."},
                 ],
             }
         ],
     },
 ]
 
-# Import RemoteControl
-from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled, set_mock
 
-# Enable/disable mock mode - DEPRECATED, use RemoteControl instead
-use_mock_recipes = False
+def is_chat_recipes_mock_enabled() -> bool:
+    """Check if mock recipes are enabled for chat"""
+    try:
+        from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled as rc_enabled
+        return rc_enabled()
+    except ImportError:
+        return False
 
 
-@router.post("/enable-mock-recipes", summary="Enable mock recipes for testing")
+def set_mock(key: str, value: bool, source: str = "mock_router"):
+    """Set mock state through RemoteControl"""
+    try:
+        from backend_gateway.RemoteControl_7 import set_mock as rc_set_mock
+        return rc_set_mock(key, value, source)
+    except ImportError:
+        logger.warning("RemoteControl not available, mock state not persisted")
+        return False
+
+
+@router.post("/enable", summary="Enable mock recipes for testing")
 async def enable_mock_recipes(enable: bool = True):
     """Enable or disable mock recipe mode"""
     # Update RemoteControl instead of local variable
@@ -249,24 +255,30 @@ async def get_mock_recipe(recipe_id: int):
 
 
 def get_mock_recipes_for_chat():
-    """Helper function to get mock recipes in chat format"""
+    """Helper function to get mock recipes in chat format with proper IDs"""
     if not is_chat_recipes_mock_enabled():
         return None
 
     return [
         {
+            "id": recipe["id"],  # ✅ ADD MISSING ID FROM MOCK DATA
             "name": recipe["title"],
             "ingredients": [ing["original"] for ing in recipe["extendedIngredients"]],
             "instructions": [
                 step["step"] for inst in recipe["analyzedInstructions"] for step in inst["steps"]
             ],
             "time": recipe["readyInMinutes"],
+            "servings": recipe.get("servings", 4),
+            "image_url": recipe.get("image", ""),
+            "source": "mock",  # ✅ ADD SOURCE IDENTIFIER
             "nutrition": {"calories": 420, "protein": 18},
             "available_ingredients": ["pasta", "eggs", "olive oil", "salt", "pepper"],
             "missing_ingredients": [],
             "missing_count": 0,
             "available_count": 5,
             "match_score": 0.95,
+            "can_make": True,  # ✅ ADD MISSING FIELDS
+            "recipe_id": recipe["id"],  # ✅ BACKUP ID FIELD
         }
         for recipe in MOCK_RECIPES_FOR_TESTING
     ]

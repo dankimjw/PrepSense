@@ -135,6 +135,38 @@ class CrewAIService:
         # Initialize OpenAI
         from backend_gateway.core.config_utils import get_openai_api_key
 
+    def _generate_recipe_id(self, recipe: Dict[str, Any], source: str) -> str:
+        """Generate a unique ID for recipes that don't have one"""
+        # Try to get existing ID first
+        existing_id = None
+        
+        # For saved recipes, check multiple possible ID sources
+        if source == 'saved':
+            # Check direct ID fields
+            existing_id = recipe.get('id') or recipe.get('recipe_id')
+            
+            # Check recipe_data for external IDs
+            if not existing_id and 'recipe_data' in recipe:
+                recipe_data = recipe['recipe_data']
+                existing_id = recipe_data.get('external_recipe_id') or recipe_data.get('id')
+        
+        # For Spoonacular recipes
+        elif source == 'spoonacular':
+            existing_id = recipe.get('id') or recipe.get('recipe_id')
+        
+        # Use existing ID if found
+        if existing_id:
+            return str(existing_id)
+        
+        # Generate fallback ID based on recipe name and timestamp
+        recipe_name = recipe.get('name') or recipe.get('title', 'unknown')
+        name_hash = hash(recipe_name) % 100000  # Get a reasonably short hash
+        timestamp = int(datetime.now().timestamp()) % 10000  # Short timestamp
+        
+        fallback_id = f"{source}_{abs(name_hash)}_{timestamp}"
+        logger.info(f"Generated fallback ID '{fallback_id}' for recipe '{recipe_name}'")
+        return fallback_id
+
     def _is_demo_recipe(self, recipe: Dict[str, Any]) -> bool:
         """Check if a recipe is a demo recipe (ID between 1001-1010)"""
         try:
@@ -360,6 +392,7 @@ class CrewAIService:
 
                 # Extract relevant fields from saved recipe
                 standardized = {
+                    'id': self._generate_recipe_id(recipe, 'saved'),  # ✅ ADD MISSING ID
                     'name': recipe['title'],
                     'ingredients': recipe_data.get('ingredients', []),
                     'instructions': recipe_data.get('instructions', []),
@@ -380,7 +413,7 @@ class CrewAIService:
 
                 standardized_recipes.append(standardized)
 
-            logger.info(f"✅ Standardized {len(standardized_recipes)} saved recipes")
+            logger.info(f"✅ Standardized {len(standardized_recipes)} saved recipes with IDs")
             return standardized_recipes
 
         except Exception as e:
@@ -474,6 +507,7 @@ class CrewAIService:
                 can_make = missing_count == 0
 
                 standardized = {
+                    'id': str(recipe.get('id')),  # ✅ ENSURE ID IS STRING
                     'name': recipe.get('title', 'Unknown Recipe'),
                     'ingredients': self._extract_ingredients(detailed_recipe or recipe),
                     'instructions': self._extract_instructions(detailed_recipe or recipe),
@@ -493,7 +527,7 @@ class CrewAIService:
 
                 standardized_recipes.append(standardized)
 
-            logger.info(f"✅ Standardized {len(standardized_recipes)} Spoonacular recipes")
+            logger.info(f"✅ Standardized {len(standardized_recipes)} Spoonacular recipes with IDs")
             return standardized_recipes
 
         except Exception as e:
