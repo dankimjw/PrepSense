@@ -1,3 +1,9 @@
+# # PrepSense - Smart Pantry Management System
+# # Copyright (c) 2025 Daniel Kim. All rights reserved.
+# #
+# # This software is proprietary and confidential. Unauthorized copying
+# # of this file, via any medium, is strictly prohibited.
+
 """Error monitoring and performance tracking configuration for PrepSense backend."""
 
 import logging
@@ -10,7 +16,6 @@ import sentry_sdk
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from prometheus_client import Counter, Histogram, generate_latest
-from sentry_sdk.integrations.asgi import SentryAsgiMiddleware
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from sentry_sdk.integrations.logging import LoggingIntegration
 from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
@@ -108,7 +113,7 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
             return response
 
-        except Exception as e:
+        except Exception:
             REQUEST_COUNT.labels(method=method, endpoint=endpoint, status="500").inc()
             REQUEST_DURATION.labels(method=method, endpoint=endpoint).observe(
                 time.time() - start_time
@@ -197,7 +202,7 @@ def monitor_crewai_agent(agent_name: str):
                 capture_crewai_metrics(agent_name, "success")
 
                 logger.info(
-                    f"CrewAI agent completed",
+                    "CrewAI agent completed",
                     extra={
                         "agent": agent_name,
                         "duration_ms": round((time.time() - start_time) * 1000, 2),
@@ -211,7 +216,7 @@ def monitor_crewai_agent(agent_name: str):
                 capture_crewai_metrics(agent_name, "error")
 
                 logger.error(
-                    f"CrewAI agent failed",
+                    "CrewAI agent failed",
                     extra={
                         "agent": agent_name,
                         "duration_ms": round((time.time() - start_time) * 1000, 2),
@@ -258,7 +263,7 @@ def monitor_database_query(query_type: str):
 
                 if duration_ms > 1000:  # Log slow queries
                     logger.warning(
-                        f"Slow database query detected",
+                        "Slow database query detected",
                         extra={
                             "query_type": query_type,
                             "duration_ms": duration_ms,
@@ -271,7 +276,7 @@ def monitor_database_query(query_type: str):
                 capture_database_metrics(query_type, "error")
 
                 logger.error(
-                    f"Database query failed",
+                    "Database query failed",
                     extra={
                         "query_type": query_type,
                         "duration_ms": round((time.time() - start_time) * 1000, 2),

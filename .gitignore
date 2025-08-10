@@ -1,7 +1,7 @@
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Public .gitignore (minimal)
+# Centralized private/unrelated files live here (full patterns remain local in .git/info/exclude)
+/.local_private/
+**/node_modules/
 
 # Python
 __pycache__/
@@ -9,42 +9,14 @@ __pycache__/
 *$py.class
 *.so
 .Python
-venv/
-env/
-ENV/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
+.mypy_cache/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-
-# IDE specific files
-.vscode/
-.idea/
-.cursor/
-.claude/
-.claude-config
-set_git_author.sh
-.claude_collaboration_reminder
+*.egg-info/
+dist/
+build/
 
 # Claude-related files and folders
 .claude/
@@ -59,6 +31,10 @@ Archive/
 docs/archive/
 backend_gateway/docs/archive/
 archive_unused/
+
+# System files
+.DS_Store
+Thumbs.db
 *.swp
 *.swo
 *~
@@ -89,10 +65,6 @@ setup_claude_md_symlinks.sh
 setup_worktrees.sh
 ../PrepSense-worktrees/
 
-# OS specific files
-.DS_Store
-Thumbs.db
-
 # Project specific
 .prepsense_config.json
 config/
@@ -102,136 +74,48 @@ test_assets/
 notebooks/.ipynb_checkpoints/
 ios-app/coverage/
 ios-app/.vscode/
+
+# Logs
 *.log
-test_*.py
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+venv/
+ENV/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.pid
+*.seed
+*.pid.lock
 
 # Temporary files
-*.tmp
-*.bak
-*.cache
+tmp/
+temp/
+.tmp/
+.temp/
 
-# Keep environment template
-!.env.template
+# Health check results (generated files)
+health_check_results.json
+safe_delete_analysis.json
 
-# Database backups - keep these local only
-db_backups/
-bigquery_backups/
-*_backup_*.json
-*_backup_*.sql
-backend_gateway/scripts/BIGQUERY_BACKUP_RESTORE.md
-backend_gateway/scripts/backup_bigquery_tables.py
+# Git artifacts
+.git-rewrite/
 
-# Secret files - NEVER commit these
-POSTGRES_SECRETS.md
-*_SECRETS.md
-*_secrets.md
-secrets/
-credentials/
-
-# MCP local setup script (never commit)
-scripts/setup_mcp_servers.sh
-# LLM mock data prompt
-docs/llm-mock-data-prompt.md
-
-# Claude collaboration notes (internal use only)
-WORKTREE_NOTES_*.md
-CLAUDE_COLLABORATION_GUIDE.md
-CLAUDE_INSTANCE_ROLES.md
-SUBAGENT_STRATEGY_GUIDE.md
-VERIFICATION_PROTOCOL.md
-START_HERE_CLAUDE.md
-COMPREHENSIVE_TEST_PLAN.md
-setup_worktree_collaboration.sh
-check_collaboration_status.sh
-backup_claude_files.sh
-setup_claude_md_symlinks.sh
-
-# Claude collaboration files (symlinked, not tracked)
-WORKTREE_NOTES_*.md
-# Claude collaboration files
-CLAUDE_COLLABORATION_GUIDE.md
-CLAUDE_INSTANCE_ROLES.md
-START_HERE_CLAUDE.md
-WORKTREE_NOTES_*.md
-check_collaboration_status.sh
-setup_claude_md_symlinks.sh
-setup_worktree_collaboration.sh
-**/WORKTREE_NOTES_*.md
-
-# Generic Claude ignore patterns
-[Cc]laude*
-**/[Cc]laude*
-
-# Backend Gateway documentation files (ignore)
-backend_gateway/CLAUDE.md
-backend_gateway/CLEANUP_SUMMARY.md
-backend_gateway/CREWAI_IMPLEMENTATION_ROADMAP.md
-backend_gateway/CREWAI_TEST_RESULTS.md
-backend_gateway/CREWAI_TEST_SUMMARY.md
-backend_gateway/CREWAI_TESTS_COMPLETE_SUMMARY.md
-backend_gateway/DATABASE_MIGRATION_GUIDE.md
-backend_gateway/FEATURE_MY_RECIPES_SUMMARY.md
-backend_gateway/IAM_SETUP_GUIDE.md
-backend_gateway/INGREDIENT_MATCHING_TEST_PLAN.md
-backend_gateway/MAIN_UPDATES_SUMMARY.md
-backend_gateway/MULTI_AGENT_IMPLEMENTATION_GUIDE.md
-backend_gateway/MULTI_AGENT_README.md
-backend_gateway/PREPSENSE_EXPERT_AGENTS_DESIGN.md
-backend_gateway/SECURITY_NOTICE.md
-backend_gateway/TEST_IMPLEMENTATION_GUIDE.md
-backend_gateway/test_results_summary.md
-backend_gateway/TEST_SUMMARY.md
-
-# External Revision directory (ignore)
-External Revision/
-
-# Root-level documentation files (ignore)
-START_HERE_CLAUDE.md
-SUBAGENT_STRATEGY_GUIDE.md
-SUNDAY_MEETING_APP_SETUP.md
-TEST_COVERAGE_SUMMARY.md
-VERIFICATION_PROTOCOL.md
-VERIFICATION_STANDARDS.md
-WORKTREE_NOTES_BUGFIX.md
-WORKTREE_NOTES_MAIN.md
-WORKTREE_NOTES_TESTZONE.md
-MY_PANTRY_RECIPE_FLOW.md
-DEVELOPER_GUIDE.md
-COMPREHENSIVE_TEST_PLAN.md
-CLAUDE_INSTANCE_ROLES.md
-Food Data/FoodData_Central_AllData/*.zip
-
-# Large data files
-*.db
-*.csv
-*.zip
-Food Data/**/*.db
-Food Data/**/*.csv
-Food Data/**/*.zip
-
-# Image directories
-Food Data/**/Food Images/
-Recipe Images/
-
-# Data directories
-Food Data/
-data/
-passwords.txt
-
-logs/chat.json
-
-logs/notification.json
-
-logs/post_tool_use.json
-
-logs/pre_tool_use.json
-
-logs/session_start.json
-
-logs/stop.json
-
-logs/subagent_stop.json
-
-logs/user_prompt_submit.json
-
-logs/
+# Old backups
+.claude_backup_*
