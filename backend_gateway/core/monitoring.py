@@ -1,3 +1,9 @@
+# # PrepSense - Smart Pantry Management System
+# # Copyright (c) 2025 Daniel Kim. All rights reserved.
+# #
+# # This software is proprietary and confidential. Unauthorized copying
+# # of this file, via any medium, is strictly prohibited.
+
 """Error monitoring and performance tracking configuration for PrepSense backend."""
 
 import logging

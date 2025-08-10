@@ -1,121 +1,113 @@
-default_stages: [commit]
 repos:
-# Standard pre-commit hooks
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+  # Standard pre-commit hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    -   id: trailing-whitespace
+      - id: trailing-whitespace
         exclude: '.*\.md$'
-    -   id: end-of-file-fixer
+      - id: end-of-file-fixer
         exclude: '.*\.md$'
-    -   id: check-yaml
-        args: ['--unsafe']
-    -   id: check-added-large-files
-        args: ['--maxkb=1024']
-    -   id: debug-statements
-    -   id: requirements-txt-fixer
-    -   id: detect-private-key
-    -   id: check-json
+      - id: check-yaml
+        args: ["--unsafe"]
+      - id: check-added-large-files
+        args: ["--maxkb=1024"]
+      - id: debug-statements
+      - id: requirements-txt-fixer
+      - id: detect-private-key
+      - id: check-json
         exclude: '\.(vscode|claude)\/.*\.json$'
-    -   id: check-toml
-    -   id: check-xml
-    -   id: mixed-line-ending
-        args: ['--fix=lf']
+      - id: check-toml
+      - id: check-xml
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
 
-# Python formatting and linting
--   repo: https://github.com/psf/black
-    rev: 24.8.0
+  # Python formatting and linting
+  - repo: https://github.com/psf/black
+    rev: 25.1.0
     hooks:
-    -   id: black
+      - id: black
         language_version: python3.9
         args: [--line-length=100]
 
--   repo: https://github.com/pycqa/isort
-    rev: 5.13.2
+  - repo: https://github.com/pycqa/isort
+    rev: 6.0.1
     hooks:
-    -   id: isort
+      - id: isort
         name: isort (python)
         args: [--profile=black, --line-length=100, --filter-files]
 
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.4.4
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.12.8
     hooks:
-    -   id: ruff
+      - id: ruff
         args: [--fix, --exit-non-zero-on-fix]
-    -   id: ruff-format
+      - id: ruff-format
 
--   repo: https://github.com/pycqa/flake8
-    rev: 7.1.1
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.3.0
     hooks:
-    -   id: flake8
-        additional_dependencies: 
-        - flake8-bugbear
-        - flake8-annotations
-        - flake8-docstrings
-        - flake8-fastapi
-        args: [--max-line-length=100, --max-complexity=10, --ignore=E203,W503]
+      - id: flake8
+        additional_dependencies:
+          - flake8-bugbear
+          - flake8-annotations
+          - flake8-docstrings
+          - flake8-fastapi
+        args: [--max-line-length=100, --max-complexity=10, --ignore=E203, W503]
 
-# Type checking
--   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.13.0
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.17.1
     hooks:
-    -   id: mypy
-        additional_dependencies: 
-        - types-requests
-        - types-python-dateutil
-        - pydantic
-        - sqlalchemy-stubs
+      - id: mypy
+        additional_dependencies:
+          - types-requests
+          - types-python-dateutil
+          - pydantic
+          - sqlalchemy-stubs
         args: [--strict, --ignore-missing-imports]
-        exclude: '^(tests/|scripts/|migrations/|alembic/)'
+        exclude: "^(tests/|scripts/|migrations/|alembic/)"
 
-# Security scanning
--   repo: https://github.com/PyCQA/bandit
-    rev: '1.7.10'
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: "1.8.6"
     hooks:
-    -   id: bandit
-        args: ['-r', '.', '-f', 'json', '-o', 'bandit-report.json']
-        exclude: '^(tests/|scripts/test_)'
+      - id: bandit
+        args: ["-r", ".", "-f", "json", "-o", "bandit-report.json"]
+        exclude: "^(tests/|scripts/test_)"
 
-# Dependency security scanning  
--   repo: https://github.com/pyupio/safety
-    rev: '3.2.9'
-    hooks:
-    -   id: safety
-        args: [--ignore=70612] # Ignore jinja2 CVE that's not applicable
-
-# React Native and JavaScript/TypeScript
--   repo: https://github.com/pre-commit/mirrors-eslint
+  # React Native and JavaScript/TypeScript
+  - repo: https://github.com/pre-commit/mirrors-eslint
     rev: v9.32.0
     hooks:
-    -   id: eslint
-        files: '\.(js|jsx|ts|tsx)$'
+      - id: eslint
+        files: '^ios-app/.*\\.(js|jsx|ts|tsx)$'
         types: [file]
         additional_dependencies:
-        - '@typescript-eslint/eslint-plugin@^8.39.0'
-        - '@typescript-eslint/parser@^8.39.0'
-        - eslint-config-expo
-        - eslint-config-prettier
-        - eslint-plugin-import
-        - eslint-plugin-jsx-a11y
-        - eslint-plugin-prettier
-        - eslint-plugin-react
-        - eslint-plugin-react-hooks
-        - eslint-plugin-simple-import-sort
+          - "@typescript-eslint/eslint-plugin@^8.39.0"
+          - "@typescript-eslint/parser@^8.39.0"
+          - eslint-config-expo
+          - eslint-config-prettier
+          - eslint-plugin-import
+          - eslint-plugin-jsx-a11y
+          - eslint-plugin-prettier
+          - eslint-plugin-react
+          - eslint-plugin-react-hooks
+          - eslint-plugin-simple-import-sort
         args: [--fix]
-        exclude: '^ios-app/node_modules/'
+        exclude: "^(ios-app/node_modules/|node_modules/|venv/|\\.venv/|.*/site-packages/|backend_gateway/.*/node_modules/)"
 
--   repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v3.6.2
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
     hooks:
-    -   id: prettier
-        files: '\.(js|jsx|ts|tsx|json|md|yml|yaml)$'
-        exclude: '^ios-app/node_modules/'
+      - id: prettier
+        files: '\\.(js|jsx|ts|tsx|json|md|yml|yaml)$'
+        exclude: "^(ios-app/node_modules/|node_modules/|venv/|\\.venv/|.*/site-packages/|backend_gateway/.*/node_modules/)"
         args: [--write]
 
-# API Contract validation
--   repo: local
+  # API Contract validation
+  - repo: local
     hooks:
-    -   id: spectral-oas
+      - id: spectral-oas
         name: OpenAPI Spectral Linting
         entry: npx @stoplight/spectral-cli lint
         language: system
@@ -123,89 +115,101 @@ repos:
         args: [--format=pretty, --verbose]
         pass_filenames: false
         always_run: false
+        stages: [pre-push]
 
-# Custom hooks for PrepSense-specific quality checks
--   repo: local
+  # Custom hooks for PrepSense-specific quality checks
+  - repo: local
     hooks:
-    -   id: fastapi-health-check
+      - id: fastapi-health-check
         name: FastAPI Health Check
-        entry: bash -c 'cd backend_gateway && python -c "from app import app; print(\"FastAPI app validates successfully\")"'
+        entry: bash -c 'cd backend_gateway && python3 -c "from app import app; print(\"FastAPI app validates successfully\")"'
         language: system
         pass_filenames: false
         always_run: false
+        stages: [pre-push]
 
-    -   id: react-native-typecheck
+      - id: react-native-typecheck
         name: React Native TypeScript Check
         entry: bash -c 'cd ios-app && npm run typecheck'
         language: system
         pass_filenames: false
         files: '^ios-app/.*\.(ts|tsx)$'
+        stages: [pre-push]
 
-    -   id: test-requirements-check
+      - id: test-requirements-check
         name: Test Requirements Check
-        entry: bash -c 'python -m pytest --collect-only -q > /dev/null && echo "Test collection successful"'
+        entry: bash -c 'python3 -m pytest --collect-only -q > /dev/null && echo "Test collection successful"'
         language: system
         pass_filenames: false
         always_run: false
+        stages: [pre-push]
 
-# Commit message validation
--   repo: https://github.com/commitizen-tools/commitizen
-    rev: v3.29.1
+  # Commit message validation
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.8.3
     hooks:
-    -   id: commitizen
+      - id: commitizen
         stages: [commit-msg]
 
-# License and copyright checks
--   repo: https://github.com/Lucas-C/pre-commit-hooks
+  # License and copyright checks
+  - repo: https://github.com/Lucas-C/pre-commit-hooks
     rev: v1.5.5
     hooks:
-    -   id: insert-license
+      - id: insert-license
         files: '\.(py|js|jsx|ts|tsx)$'
         args:
-        - --license-filepath
-        - LICENSE_HEADER
-        - --comment-style
-        - '#'
-        exclude: '^(tests/|node_modules/|ios-app/node_modules/)'
+          - --license-filepath
+          - LICENSE_HEADER
+          - --comment-style
+          - "#"
+        exclude: "^(tests/|node_modules/|ios-app/node_modules/)"
 
-# Documentation generation
--   repo: local
+  # Documentation generation
+  - repo: local
     hooks:
-    -   id: generate-api-docs
+      - id: generate-api-docs
         name: Generate API Documentation
-        entry: bash -c 'cd backend_gateway && python -c "from app import app; import json; from fastapi.openapi.utils import get_openapi; schema = get_openapi(title=\"PrepSense API\", version=\"1.0.0\", routes=app.routes); open(\"openapi.json\", \"w\").write(json.dumps(schema, indent=2))"'
+        entry: bash -c 'cd backend_gateway && python3 -c "from app import app; import json; from fastapi.openapi.utils import get_openapi; schema = get_openapi(title=\"PrepSense API\", version=\"1.0.0\", routes=app.routes); open(\"openapi.json\", \"w\").write(json.dumps(schema, indent=2))"'
         language: system
         pass_filenames: false
         files: '^backend_gateway/.*\.py$'
+        stages: [pre-push]
 
-# Performance and bundle size checks (React Native)
--   repo: local
+  # Performance and bundle size checks (React Native)
+  - repo: local
     hooks:
-    -   id: bundle-size-check
+      - id: bundle-size-check
         name: Bundle Size Check
         entry: bash -c 'cd ios-app && npm run analyze:bundle || echo "Bundle analysis completed"'
         language: system
         pass_filenames: false
         files: '^ios-app/(components|app|services|utils)/.*\.(js|jsx|ts|tsx)$'
-        stages: [push]
+        stages: [pre-push]
+
+  # Secrets scanning managed via pre-commit (pre-push only)
+  - repo: local
+    hooks:
+      - id: ggshield-pre-push
+        name: GitGuardian Secrets Scan (pre-push)
+        entry: bash -c 'ggshield secret scan pre-push --max-commits 50 --ignore-known-secrets'
+        language: system
+        pass_filenames: false
+        always_run: false
+        stages: [pre-push]
 
 # Configuration
 ci:
-    autofix_commit_msg: |
-        [pre-commit.ci] auto fixes from pre-commit hooks
+  autofix_commit_msg: |
+    [pre-commit.ci] auto fixes from pre-commit hooks
 
-        for more information, see https://pre-commit.ci
-    autofix_prs: true
-    autoupdate_branch: ''
-    autoupdate_commit_msg: '[pre-commit.ci] pre-commit autoupdate'
-    autoupdate_schedule: weekly
-    skip: [spectral-oas, fastapi-health-check, bundle-size-check]
-    submodules: false
+    for more information, see https://pre-commit.ci
+  autofix_prs: true
+  autoupdate_branch: ""
+  autoupdate_commit_msg: "[pre-commit.ci] pre-commit autoupdate"
+  autoupdate_schedule: weekly
+  skip: [spectral-oas, fastapi-health-check, bundle-size-check]
+  submodules: false
 
 # Performance optimization
 default_install_hook_types: [pre-commit, pre-push, commit-msg, pre-merge-commit]
-default_stages: [commit, merge-commit]
 minimum_pre_commit_version: "3.0.0"
-
-# Parallel execution for performance
-repos_sequential: false

@@ -1,7 +1,7 @@
-# Environment variables
-.env
-.env.local
-.env.*.local
+# Public .gitignore (minimal)
+# Centralized private/unrelated files live here (full patterns remain local in .git/info/exclude)
+/.local_private/
+**/node_modules/
 
 # Python
 __pycache__/
@@ -29,8 +29,10 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+.mypy_cache/
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
 .tox/
 .nox/
@@ -84,6 +86,10 @@ Archive/
 docs/archive/
 backend_gateway/docs/archive/
 archive_unused/
+
+# System files
+.DS_Store
+Thumbs.db
 *.swp
 *.swo
 *~
@@ -114,10 +120,6 @@ setup_claude_md_symlinks.sh
 setup_worktrees.sh
 ../PrepSense-worktrees/
 
-# OS specific files
-.DS_Store
-Thumbs.db
-
 # Project specific
 .prepsense_config.json
 config/
@@ -127,13 +129,43 @@ test_assets/
 notebooks/.ipynb_checkpoints/
 ios-app/coverage/
 ios-app/.vscode/
+
+# Logs
 *.log
-test_*.py
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Testing
+coverage/
+.nyc_output/
+
+# Build artifacts
+*.pid
+*.seed
+*.pid.lock
 
 # Temporary files
-*.tmp
-*.bak
-*.cache
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Health check results (generated files)
+health_check_results.json
+safe_delete_analysis.json
+
+# Git artifacts
+.git-rewrite/
+
+# Old backups
+.claude_backup_*
 
 # Keep environment template
 !.env.template
@@ -153,8 +185,6 @@ POSTGRES_SECRETS.md
 secrets/
 credentials/
 
-# MCP local setup script (never commit)
-scripts/setup_mcp_servers.sh
 # LLM mock data prompt
 docs/llm-mock-data-prompt.md
 
@@ -169,11 +199,8 @@ COMPREHENSIVE_TEST_PLAN.md
 setup_worktree_collaboration.sh
 check_collaboration_status.sh
 backup_claude_files.sh
-setup_claude_md_symlinks.sh
 
 # Claude collaboration files (symlinked, not tracked)
-WORKTREE_NOTES_*.md
-# Claude collaboration files
 CLAUDE_COLLABORATION_GUIDE.md
 CLAUDE_INSTANCE_ROLES.md
 START_HERE_CLAUDE.md
@@ -244,19 +271,12 @@ data/
 passwords.txt
 
 logs/chat.json
-
 logs/notification.json
-
 logs/post_tool_use.json
-
 logs/pre_tool_use.json
-
+logs/pre_compact.json
 logs/session_start.json
-
 logs/stop.json
-
 logs/subagent_stop.json
-
 logs/user_prompt_submit.json
-
 logs/
