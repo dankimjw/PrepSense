@@ -215,31 +215,88 @@ class OcrService:
                             "detail": "high",
                         },
                     }
+                    ,
+                    {
+                        "type": "text",
+                        "text": (
+                            'Return ONLY a JSON object with the shape {"items":[{"name","brand","quantity","unit","category"}]}. '
+                            'No markdown, no backticks, no explanations.'
+                        ),
+                    }
                 ],
             },
         ]
 
-        logger.info("Calling OpenAI API for item scan with model: gpt-4o")
+        # Keep the existing model; only ensure correct parameter naming
+        logger.info("Calling OpenAI API for item scan with model: gpt-5-nano-2025-08-07")
 
-        # Call the chat completion endpoint
+        # Call the chat completion endpoint with increased token limit
         response = client.chat.completions.create(
-            model="gpt-5-nano-2025-08-07", messages=messages, max_completion_tokens=1500
+        model="gpt-5-nano-2025-08-07",
+        messages=messages,
+        max_completion_tokens=2000,
+        response_format={"type": "json_object"},
         )
 
         logger.info(
             f"OpenAI API response received - Model: {response.model}, Usage: {response.usage}"
         )
-        return response.choices[0].message.content
+        # Extract content robustly across SDK variants
+        content = getattr(response.choices[0].message, "content", None) or ""
+        if not content:
+            # Some SDK variants expose output_text
+            content = getattr(response, "output_text", "")
+            if content:
+                logger.debug("Used response.output_text fallback for OpenAI content")
+        if not content:
+            # Last resort: serialize full response and try to extract JSON later
+            try:
+                if hasattr(response, "model_dump_json"):
+                    content = response.model_dump_json()
+                    logger.debug("Used model_dump_json fallback for OpenAI content")
+                else:
+                    content = str(response)
+                    logger.debug("Used stringified response fallback for OpenAI content")
+            except Exception:
+                content = ""
+        
+        # Log the full response structure for debugging when content is empty
+        if not content:
+            logger.warning(f"OpenAI response content is empty. Full response: {response}")
+            logger.warning(f"Response choices: {response.choices}")
+            logger.warning(f"First choice message: {response.choices[0].message}")
+            
+        # Ensure content is a string before slicing
+        content_str = str(content) if content else ""
+        logger.debug(f"Raw OpenAI message content (truncated): {content_str[:500]}")
+        return content_str
 
     def _parse_openai_response(self, content: str) -> list[dict[str, Any]]:
         """
         Parse the JSON content from the OpenAI response.
         Handles both raw JSON and JSON wrapped in markdown code blocks.
         """
+        # Handle empty content case
+        if not content or not content.strip():
+            logger.warning("OpenAI response content is empty or whitespace only")
+            return []
+
         try:
             # Try to extract JSON from markdown code blocks first
             json_match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
             json_str = json_match.group(1) if json_match else content
+
+            # If still not parseable, try to find the first JSON object substring (handles extra text)
+            if not json_match:
+                brace_match = re.search(r"\{[\s\S]*\}\s*", content)
+                if brace_match:
+                    json_str = brace_match.group(0).strip()
+
+            # Handle cases where model returns an array with a single object
+            if json_str.strip().startswith("["):
+                arr_match = re.search(r"\[\s*(\{[\s\S]*?\})\s*\]", json_str)
+                if arr_match:
+                    json_str = arr_match.group(1)
 
             parsed_json = json.loads(json_str)
             items = parsed_json.get("items", [])
@@ -249,7 +306,8 @@ class OcrService:
         except (json.JSONDecodeError, AttributeError) as e:
             logger.error(f"Failed to parse JSON from OpenAI response: {e}")
             logger.debug(f"Raw response content: {content[:500]}...")
-            raise
+            # Return empty list instead of raising exception to prevent complete failure
+            return []
 
     async def _post_process_item(self, raw_item: dict[str, Any]) -> Optional[ParsedItem]:
         """
