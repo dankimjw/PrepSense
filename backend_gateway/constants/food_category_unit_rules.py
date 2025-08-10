@@ -4,7 +4,6 @@ This defines which unit categories are appropriate for each food category
 """
 
 from enum import Enum
-from typing import Dict, List, Set
 
 
 class UnitCategory(str, Enum):
@@ -34,7 +33,7 @@ class FoodCategory(str, Enum):
 
 
 # Define which unit categories are allowed for each food category
-FOOD_CATEGORY_UNIT_RULES: Dict[str, Dict[str, any]] = {
+FOOD_CATEGORY_UNIT_RULES: dict[str, dict[str, any]] = {
     FoodCategory.PRODUCE: {
         "allowed_categories": [UnitCategory.COUNT, UnitCategory.MASS],
         "default_category": UnitCategory.COUNT,
@@ -226,7 +225,7 @@ FOOD_CATEGORY_UNIT_RULES: Dict[str, Dict[str, any]] = {
 }
 
 
-def get_allowed_unit_categories(food_category: str) -> List[UnitCategory]:
+def get_allowed_unit_categories(food_category: str) -> list[UnitCategory]:
     """Get the allowed unit categories for a food category"""
     rules = FOOD_CATEGORY_UNIT_RULES.get(
         food_category, FOOD_CATEGORY_UNIT_RULES[FoodCategory.OTHER]

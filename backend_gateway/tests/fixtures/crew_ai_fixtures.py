@@ -3,11 +3,11 @@ Shared fixtures and mocks for CrewAI testing
 """
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import AsyncMock, Mock
 
 
-def get_mock_pantry_items_for_crew() -> List[Dict[str, Any]]:
+def get_mock_pantry_items_for_crew() -> list[dict[str, Any]]:
     """Get mock pantry items for CrewAI testing"""
     today = datetime.now().date()
     return [
@@ -59,7 +59,7 @@ def get_mock_pantry_items_for_crew() -> List[Dict[str, Any]]:
     ]
 
 
-def get_mock_user_preferences_for_crew() -> Dict[str, Any]:
+def get_mock_user_preferences_for_crew() -> dict[str, Any]:
     """Get mock user preferences for CrewAI testing"""
     return {
         "dietary_restrictions": ["vegetarian"],
@@ -72,7 +72,7 @@ def get_mock_user_preferences_for_crew() -> Dict[str, Any]:
     }
 
 
-def get_mock_recipes_for_crew() -> List[Dict[str, Any]]:
+def get_mock_recipes_for_crew() -> list[dict[str, Any]]:
     """Get mock recipes for CrewAI testing"""
     return [
         {
@@ -149,7 +149,7 @@ def get_mock_recipes_for_crew() -> List[Dict[str, Any]]:
     ]
 
 
-def get_mock_crew_ai_response() -> Dict[str, Any]:
+def get_mock_crew_ai_response() -> dict[str, Any]:
     """Get a complete mock CrewAI response"""
     return {
         "response": """Based on your pantry items and preferences, I've found some great recipes for you!
@@ -158,7 +158,7 @@ You have several items expiring soon:
 - Milk expires in 2 days
 - Chicken Breast expires in 3 days
 
-I recommend the Healthy Chicken Stir Fry which uses your expiring chicken and fresh broccoli. 
+I recommend the Healthy Chicken Stir Fry which uses your expiring chicken and fresh broccoli.
 It's a high-protein, balanced meal that fits your intermediate cooking skill level and can be ready in just 30 minutes.
 
 All recipes have been checked against your nut and shellfish allergies.""",
@@ -175,7 +175,7 @@ All recipes have been checked against your nut and shellfish allergies.""",
 class MockCrewAIAgent:
     """Mock CrewAI Agent for testing"""
 
-    def __init__(self, role: str, goal: str, tools: List = None):
+    def __init__(self, role: str, goal: str, tools: list = None):
         self.role = role
         self.goal = goal
         self.tools = tools or []
@@ -195,7 +195,7 @@ class MockCrewAITask:
 class MockCrewAICrew:
     """Mock CrewAI Crew for testing"""
 
-    def __init__(self, agents: List, tasks: List, process: Any = None, verbose: bool = True):
+    def __init__(self, agents: list, tasks: list, process: Any = None, verbose: bool = True):
         self.agents = agents
         self.tasks = tasks
         self.process = process
@@ -211,7 +211,7 @@ def create_mock_database_service():
     """Create a mock database service for CrewAI testing"""
     mock_db = Mock()
 
-    def mock_query(query: str, params: Dict[str, Any]):
+    def mock_query(query: str, params: dict[str, Any]):
         if "user_pantry_full" in query:
             return get_mock_pantry_items_for_crew()
         elif "user_preferences" in query:

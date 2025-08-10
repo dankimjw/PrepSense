@@ -19,7 +19,7 @@ def analyze_supply_chain_waste():
     print("=== CUMULATIVE SUPPLY CHAIN WASTE ===\n")
 
     # Group by commodity and stage
-    commodity_stages = df.groupby(["commodity", "food_supply_stage"])["loss_percentage"].agg(
+    df.groupby(["commodity", "food_supply_stage"])["loss_percentage"].agg(
         ["mean", "median", "count"]
     )
 

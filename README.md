@@ -242,7 +242,7 @@ cd PrepSense
 pip install -r requirements.txt
 
 # Frontend setup
-cd app
+cd ios-app
 npm install
 npx expo start
 ```

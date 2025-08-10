@@ -123,7 +123,7 @@ def add_pantry_items():
             # Check if item already exists
             cur.execute(
                 """
-                SELECT pantry_item_id FROM pantry_items 
+                SELECT pantry_item_id FROM pantry_items
                 WHERE pantry_id = %s AND product_name = %s
             """,
                 (PANTRY_ID, name),
@@ -135,10 +135,10 @@ def add_pantry_items():
                 # Update existing item
                 cur.execute(
                     """
-                    UPDATE pantry_items 
-                    SET quantity = %s, 
+                    UPDATE pantry_items
+                    SET quantity = %s,
                         unit_of_measurement = %s,
-                        expiration_date = %s, 
+                        expiration_date = %s,
                         category = %s,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE pantry_item_id = %s
@@ -150,7 +150,7 @@ def add_pantry_items():
                 cur.execute(
                     """
                     INSERT INTO pantry_items (
-                        pantry_id, product_name, quantity, unit_of_measurement, 
+                        pantry_id, product_name, quantity, unit_of_measurement,
                         expiration_date, category, status, source
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -315,7 +315,7 @@ def add_recipes():
             # Check if recipe already exists
             cur.execute(
                 """
-                SELECT id FROM user_recipes 
+                SELECT id FROM user_recipes
                 WHERE user_id = %s AND recipe_id = %s
             """,
                 (USER_ID, recipe["id"]),
@@ -327,7 +327,7 @@ def add_recipes():
                 # Update existing recipe
                 cur.execute(
                     """
-                    UPDATE user_recipes 
+                    UPDATE user_recipes
                     SET recipe_title = %s,
                         recipe_image = %s,
                         recipe_data = %s,
@@ -342,7 +342,7 @@ def add_recipes():
                 cur.execute(
                     """
                     INSERT INTO user_recipes (
-                        user_id, recipe_id, recipe_title, recipe_image, 
+                        user_id, recipe_id, recipe_title, recipe_image,
                         recipe_data, source, rating, is_favorite
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
@@ -392,10 +392,10 @@ def verify_data():
         # Show a few pantry items
         cur.execute(
             """
-            SELECT product_name, quantity, unit_of_measurement, category, expiration_date 
-            FROM pantry_items 
-            WHERE pantry_id = %s 
-            ORDER BY created_at DESC 
+            SELECT product_name, quantity, unit_of_measurement, category, expiration_date
+            FROM pantry_items
+            WHERE pantry_id = %s
+            ORDER BY created_at DESC
             LIMIT 5
         """,
             (PANTRY_ID,),
@@ -411,9 +411,9 @@ def verify_data():
         cur.execute(
             """
             SELECT recipe_title, recipe_data->>'cuisines' as cuisine
-            FROM user_recipes 
-            WHERE user_id = %s 
-            ORDER BY created_at DESC 
+            FROM user_recipes
+            WHERE user_id = %s
+            ORDER BY created_at DESC
             LIMIT 10
         """,
             (USER_ID,),

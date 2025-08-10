@@ -2,10 +2,9 @@
 
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
 import requests
@@ -69,7 +68,7 @@ class EnvironmentalImpactService:
         self._impact_data = {}
         self._load_cached_data()
 
-    def download_owid_data(self, force_update: bool = False) -> Dict[str, pd.DataFrame]:
+    def download_owid_data(self, force_update: bool = False) -> dict[str, pd.DataFrame]:
         """Download or update OWID environmental impact data"""
 
         for dataset_name, url in self.OWID_DATASETS.items():
@@ -101,11 +100,11 @@ class EnvironmentalImpactService:
 
         return self._load_all_datasets()
 
-    def _load_all_datasets(self) -> Dict[str, pd.DataFrame]:
+    def _load_all_datasets(self) -> dict[str, pd.DataFrame]:
         """Load all cached datasets"""
         datasets = {}
 
-        for dataset_name in self.OWID_DATASETS.keys():
+        for dataset_name in self.OWID_DATASETS:
             cache_file = self.data_dir / f"{dataset_name}_owid.csv"
             if cache_file.exists():
                 try:
@@ -122,13 +121,13 @@ class EnvironmentalImpactService:
         cache_file = self.data_dir / "processed_impact_data.json"
         if cache_file.exists():
             try:
-                with open(cache_file, "r") as f:
+                with open(cache_file) as f:
                     self._impact_data = json.load(f)
                 logger.info(f"Loaded impact data for {len(self._impact_data)} food items")
             except Exception as e:
                 logger.error(f"Error loading cached impact data: {str(e)}")
 
-    def process_impact_data(self) -> Dict[str, Dict]:
+    def process_impact_data(self) -> dict[str, dict]:
         """Process OWID data into our food database format"""
         datasets = self._load_all_datasets()
 
@@ -206,7 +205,7 @@ class EnvironmentalImpactService:
 
     def _get_supply_chain_breakdown(
         self, df: Optional[pd.DataFrame], product: str
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """Extract supply chain breakdown from data"""
         breakdown = {
             "land_use_change": 0.0,
@@ -255,7 +254,7 @@ class EnvironmentalImpactService:
 
         return breakdown
 
-    def _calculate_sustainability_profile(self, metrics: Dict) -> Dict:
+    def _calculate_sustainability_profile(self, metrics: dict) -> dict:
         """Calculate sustainability scores and categories"""
         ghg = metrics.get("ghg_kg_co2e_per_kg", 0)
 
@@ -287,7 +286,7 @@ class EnvironmentalImpactService:
         visuals = {"very_low": "🟢", "low": "🟢", "medium": "🟡", "high": "🟠", "very_high": "🔴"}
         return visuals.get(category, "⚪")
 
-    def get_food_impact(self, food_name: str) -> Optional[Dict]:
+    def get_food_impact(self, food_name: str) -> Optional[dict]:
         """Get environmental impact data for a specific food"""
         # Try direct match
         if food_name.lower() in self._impact_data:
@@ -300,7 +299,7 @@ class EnvironmentalImpactService:
 
         return None
 
-    def calculate_recipe_impact(self, ingredients: List[Dict]) -> Dict:
+    def calculate_recipe_impact(self, ingredients: list[dict]) -> dict:
         """Calculate total environmental impact for a recipe"""
         total_ghg = 0
         total_land = 0
@@ -342,7 +341,7 @@ class EnvironmentalImpactService:
         else:
             return "very_high"
 
-    def suggest_sustainable_swaps(self, ingredient: str, max_suggestions: int = 3) -> List[Dict]:
+    def suggest_sustainable_swaps(self, ingredient: str, max_suggestions: int = 3) -> list[dict]:
         """Suggest lower-impact alternatives for an ingredient"""
         current_impact = self.get_food_impact(ingredient)
         if not current_impact:

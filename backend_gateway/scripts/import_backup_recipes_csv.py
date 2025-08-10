@@ -14,7 +14,7 @@ import re
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import asyncpg
 
@@ -65,7 +65,7 @@ class IngredientParser:
         r"^(\d+(?:\.\d+)?(?:\s*[-/]\s*\d+(?:\.\d+)?)?|\d+\s*\(\d+[^)]*\)|\½|⅓|⅔|¼|¾|⅛|⅜|⅝|⅞)"
     )
 
-    def parse_ingredient(self, ingredient_text: str) -> Dict[str, str]:
+    def parse_ingredient(self, ingredient_text: str) -> dict[str, str]:
         """Parse a single ingredient string."""
         if not ingredient_text or not isinstance(ingredient_text, str):
             return {
@@ -90,7 +90,7 @@ class IngredientParser:
         unit = ""
         confidence = 0.8  # Default confidence
 
-        for unit_type, pattern in self.UNIT_PATTERNS.items():
+        for _unit_type, pattern in self.UNIT_PATTERNS.items():
             unit_match = re.search(pattern, cleaned, re.IGNORECASE)
             if unit_match:
                 unit = unit_match.group(1)
@@ -156,7 +156,7 @@ class RecipeDataProcessor:
         "hard": ["advanced", "complex", "gourmet", "professional", "technique", "sous vide"],
     }
 
-    def estimate_times(self, instructions: str) -> Tuple[int, int]:
+    def estimate_times(self, instructions: str) -> tuple[int, int]:
         """Estimate prep and cook times from instructions."""
         if not instructions:
             return 15, 30  # Default values
@@ -261,7 +261,7 @@ class BackupRecipeImporter:
             batch_recipes = []
             batch_ingredients = []
 
-            with open(CSV_FILE_PATH, "r", encoding="utf-8") as csvfile:
+            with open(CSV_FILE_PATH, encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
 
                 # Skip to start position
@@ -312,7 +312,7 @@ class BackupRecipeImporter:
         finally:
             await conn.close()
 
-    async def _process_recipe_row(self, row: Dict) -> Tuple[Optional[Dict], List[Dict]]:
+    async def _process_recipe_row(self, row: dict) -> tuple[Optional[dict], list[dict]]:
         """Process a single CSV row into recipe and ingredients data."""
         try:
             title = row.get("Title", "").strip()
@@ -376,7 +376,7 @@ class BackupRecipeImporter:
             logger.error(f"Error processing recipe row: {e}")
             return None, []
 
-    def _parse_ingredients_list(self, ingredients_text: str) -> List[str]:
+    def _parse_ingredients_list(self, ingredients_text: str) -> list[str]:
         """Parse ingredients list from CSV format."""
         if not ingredients_text:
             return []
@@ -413,7 +413,7 @@ class BackupRecipeImporter:
         return 4  # Default serving size
 
     async def _insert_batch(
-        self, conn: asyncpg.Connection, recipes: List[Dict], ingredients: List[Dict]
+        self, conn: asyncpg.Connection, recipes: list[dict], ingredients: list[dict]
     ):
         """Insert a batch of recipes and ingredients."""
         try:

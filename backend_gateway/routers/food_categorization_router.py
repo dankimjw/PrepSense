@@ -3,7 +3,7 @@ API endpoints for food categorization and unit validation
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -44,7 +44,7 @@ class UserCorrectionRequest(BaseModel):
 
 
 class BatchCategorizationRequest(BaseModel):
-    items: List[FoodCategorizationRequest] = Field(..., description="List of items to categorize")
+    items: list[FoodCategorizationRequest] = Field(..., description="List of items to categorize")
 
 
 class FoodSearchRequest(BaseModel):
@@ -70,7 +70,7 @@ async def get_unit_service():
 async def categorize_food_item(
     request: FoodCategorizationRequest,
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Categorize a food item and get allowed units.
 
@@ -86,14 +86,14 @@ async def categorize_food_item(
         return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Error categorizing food item: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/categorize/batch")
 async def categorize_food_items_batch(
     request: BatchCategorizationRequest,
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Categorize multiple food items in a single request.
 
@@ -119,13 +119,13 @@ async def categorize_food_items_batch(
         }
     except Exception as e:
         logger.error(f"Error in batch categorization: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/validate-unit")
 async def validate_unit(
     request: UnitValidationRequest, unit_service: UnitValidationService = Depends(get_unit_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validate if a unit is appropriate for a food item.
 
@@ -141,7 +141,7 @@ async def validate_unit(
         return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Error validating unit: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/suggest-unit")
@@ -149,7 +149,7 @@ async def suggest_unit(
     item_name: str = Query(..., description="Name of the food item"),
     context: Optional[str] = Query(None, description="Usage context: shopping, recipe, or storage"),
     unit_service: UnitValidationService = Depends(get_unit_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get the best unit suggestion for a food item.
 
@@ -164,13 +164,13 @@ async def suggest_unit(
         return {"success": True, "data": result}
     except Exception as e:
         logger.error(f"Error suggesting unit: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/convert-unit")
 async def convert_unit(
     request: UnitConversionRequest, unit_service: UnitValidationService = Depends(get_unit_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Convert between units for a specific food item.
 
@@ -188,7 +188,7 @@ async def convert_unit(
             return {"success": False, "error": result.get("error", "Conversion not possible")}
     except Exception as e:
         logger.error(f"Error converting unit: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/user-correction")
@@ -196,7 +196,7 @@ async def record_user_correction(
     request: UserCorrectionRequest,
     current_user: dict = Depends(get_current_user),
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Record a user correction for food categorization or unit.
 
@@ -213,7 +213,7 @@ async def record_user_correction(
         return {"success": True, "message": "Correction recorded successfully"}
     except Exception as e:
         logger.error(f"Error recording correction: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/search")
@@ -222,7 +222,7 @@ async def search_food_items(
     data_source: Optional[str] = Query(None, description="Specific data source to use"),
     limit: int = Query(10, ge=1, le=50, description="Maximum results"),
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search for food items across multiple databases.
 
@@ -239,14 +239,14 @@ async def search_food_items(
         }
     except Exception as e:
         logger.error(f"Error searching food items: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/stats/api-usage")
 async def get_api_usage_stats(
     current_user: dict = Depends(get_current_user),
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get API usage statistics (admin only).
 
@@ -267,7 +267,7 @@ async def get_api_usage_stats(
         raise
     except Exception as e:
         logger.error(f"Error getting API stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/stats/corrections")
@@ -275,7 +275,7 @@ async def get_correction_stats(
     limit: int = Query(20, ge=1, le=100, description="Maximum results"),
     current_user: dict = Depends(get_current_user),
     food_service: FoodDatabaseService = Depends(get_food_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get most corrected food items (admin only).
 
@@ -296,13 +296,13 @@ async def get_correction_stats(
         raise
     except Exception as e:
         logger.error(f"Error getting correction stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/common-units/{category}")
 async def get_common_units_for_category(
     category: str, unit_service: UnitValidationService = Depends(get_unit_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get common units used for a food category.
 
@@ -322,4 +322,4 @@ async def get_common_units_for_category(
         }
     except Exception as e:
         logger.error(f"Error getting units for category: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

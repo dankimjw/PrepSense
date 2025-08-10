@@ -1,14 +1,13 @@
 """Food lookup tool for USDA database integration and nutrition data."""
 
-import json
 import logging
 from dataclasses import dataclass
 from functools import lru_cache
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import requests
 
-from ..models.nutrition import FoodItem, NutrientProfile
+from backend_gateway.models.nutrition import FoodItem, NutrientProfile
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +20,7 @@ class USDAFoodItem:
     description: str
     brand_name: Optional[str] = None
     food_category: Optional[str] = None
-    nutrients: Optional[Dict[str, float]] = None
+    nutrients: Optional[dict[str, float]] = None
     serving_size: Optional[float] = None
     serving_unit: Optional[str] = None
 
@@ -66,7 +65,7 @@ class FoodLookupTool:
         }
 
     @lru_cache(maxsize=1000)
-    def search_foods(self, query: str, page_size: int = 10) -> List[USDAFoodItem]:
+    def search_foods(self, query: str, page_size: int = 10) -> list[USDAFoodItem]:
         """Search for foods in USDA database."""
         try:
             logger.info(f"Searching USDA database for: {query}")
@@ -221,7 +220,7 @@ class FoodLookupTool:
             logger.error(f"Error looking up food nutrition: {e}")
             return None
 
-    def batch_lookup_foods(self, food_names: List[str]) -> Dict[str, Optional[FoodItem]]:
+    def batch_lookup_foods(self, food_names: list[str]) -> dict[str, Optional[FoodItem]]:
         """Look up nutrition information for multiple foods."""
         results = {}
 
@@ -235,7 +234,7 @@ class FoodLookupTool:
 
         return results
 
-    def get_food_suggestions(self, partial_name: str, max_suggestions: int = 5) -> List[str]:
+    def get_food_suggestions(self, partial_name: str, max_suggestions: int = 5) -> list[str]:
         """Get food name suggestions based on partial input."""
         try:
             search_results = self.search_foods(partial_name, page_size=max_suggestions)
@@ -254,7 +253,7 @@ class FoodLookupTool:
             logger.error(f"Error getting food suggestions: {e}")
             return []
 
-    def estimate_nutrition_from_ingredients(self, ingredients: List[str]) -> NutrientProfile:
+    def estimate_nutrition_from_ingredients(self, ingredients: list[str]) -> NutrientProfile:
         """Estimate nutrition for a list of ingredients."""
         total_nutrition = NutrientProfile()
 
@@ -279,7 +278,7 @@ class FoodLookupTool:
 
         return total_nutrition
 
-    def _parse_ingredient(self, ingredient: str) -> Tuple[str, float]:
+    def _parse_ingredient(self, ingredient: str) -> tuple[str, float]:
         """Parse ingredient string to extract food name and quantity."""
         import re
 

@@ -3,10 +3,10 @@ Waste Reduction Router - API endpoints for food waste prevention
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from backend_gateway.agents.waste_reduction_agent import create_waste_reduction_agent
 from backend_gateway.config.database import get_database_service
@@ -29,7 +29,7 @@ async def analyze_pantry_waste_risk(user_id: str):
         postgres_service = get_database_service()
 
         query = """
-            SELECT 
+            SELECT
                 pi.pantry_item_id,
                 pi.product_name,
                 pi.quantity,
@@ -104,7 +104,7 @@ async def analyze_pantry_waste_risk(user_id: str):
 
     except Exception as e:
         logger.error(f"Error analyzing pantry waste risk: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/food-waste-rate/{food_name}")
@@ -137,12 +137,12 @@ async def get_food_waste_rate(food_name: str):
 
     except Exception as e:
         logger.error(f"Error getting waste rate: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/waste-smart-recipes")
 async def get_waste_smart_recipes(
-    user_id: str, recipe_ids: List[str] = Query(..., description="List of available recipe IDs")
+    user_id: str, recipe_ids: list[str] = Query(..., description="List of available recipe IDs")
 ):
     """
     Prioritize recipes based on waste reduction potential
@@ -161,7 +161,7 @@ async def get_waste_smart_recipes(
 
         # Get recipe details (simplified - would fetch from recipe service)
         # For now, return recipe IDs with mock scores
-        waste_service = get_food_waste_service()
+        get_food_waste_service()
 
         prioritized = []
         for recipe_id in recipe_ids[:10]:  # Limit to 10 recipes
@@ -191,7 +191,7 @@ async def get_waste_smart_recipes(
 
     except Exception as e:
         logger.error(f"Error prioritizing recipes: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/waste-impact-calculator")
@@ -227,7 +227,7 @@ async def calculate_waste_impact(
 
     except Exception as e:
         logger.error(f"Error calculating waste impact: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/weekly-waste-prevention-plan/{user_id}")
@@ -242,7 +242,7 @@ async def create_waste_prevention_plan(user_id: str):
         postgres_service = get_database_service()
 
         query = """
-            SELECT 
+            SELECT
                 pi.product_name,
                 pi.quantity,
                 pi.unit_of_measurement,
@@ -268,7 +268,7 @@ async def create_waste_prevention_plan(user_id: str):
 
     except Exception as e:
         logger.error(f"Error creating waste prevention plan: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/waste-tracking-summary/{user_id}")
@@ -285,7 +285,7 @@ async def get_waste_tracking_summary(
 
         # Get waste tracking data
         query = """
-            SELECT 
+            SELECT
                 DATE(recorded_at) as waste_date,
                 SUM(quantity_wasted) as total_waste_kg,
                 SUM(estimated_value) as total_value_lost,
@@ -337,7 +337,7 @@ async def get_waste_tracking_summary(
 
     except Exception as e:
         logger.error(f"Error getting waste tracking summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/record-waste")
@@ -411,4 +411,4 @@ async def record_food_waste(
 
     except Exception as e:
         logger.error(f"Error recording waste: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

@@ -2,7 +2,7 @@
 OCR-related Pydantic models for request/response handling.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from pydantic import BaseModel, ConfigDict
 
@@ -19,7 +19,7 @@ class ParsedItem(BaseModel):
     barcode: Optional[str] = None
     brand: Optional[str] = None
     product_name: Optional[str] = None
-    nutrition_info: Optional[Dict[str, Any]] = None
+    nutrition_info: Optional[dict[str, Any]] = None
     expiration_date: Optional[str] = None
 
 
@@ -29,10 +29,10 @@ class OCRResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     success: bool
-    items: List[ParsedItem]
+    items: list[ParsedItem]
     raw_text: Optional[str] = None
     message: str = ""
-    debug_info: Optional[Dict[str, Any]] = None
+    debug_info: Optional[dict[str, Any]] = None
 
 
 class BarcodeResponse(BaseModel):
@@ -76,7 +76,7 @@ class DebugStatusResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     mock_data_enabled: bool
-    cache_stats: Dict[str, Any]
+    cache_stats: dict[str, Any]
     openai_client_status: str
     recent_detections: int
-    image_hash_examples: List[str]
+    image_hash_examples: list[str]

@@ -6,7 +6,7 @@ Extract rich context from user messages for better recipe matching
 import logging
 import re
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -187,7 +187,7 @@ class MessageContextService:
             "meal_prep": ["meal prep", "batch", "week ahead", "prepare ahead"],
         }
 
-    def extract_context(self, message: str, time_of_day: Optional[datetime] = None) -> Dict:
+    def extract_context(self, message: str, time_of_day: Optional[datetime] = None) -> dict:
         """
         Extract comprehensive context from user message
 
@@ -251,7 +251,7 @@ class MessageContextService:
 
         return "dinner"  # default
 
-    def _extract_time_constraint(self, message: str) -> Dict:
+    def _extract_time_constraint(self, message: str) -> dict:
         """Extract cooking time preferences"""
         # Check for specific time mentions
         time_patterns = [
@@ -297,7 +297,7 @@ class MessageContextService:
                 return health_type
         return None
 
-    def _extract_cuisine_hints(self, message: str) -> List[str]:
+    def _extract_cuisine_hints(self, message: str) -> list[str]:
         """Extract cuisine preferences from message"""
         cuisines = []
         for cuisine, patterns in self.cuisine_patterns.items():
@@ -305,7 +305,7 @@ class MessageContextService:
                 cuisines.append(cuisine)
         return cuisines
 
-    def _extract_ingredient_focus(self, message: str) -> List[str]:
+    def _extract_ingredient_focus(self, message: str) -> list[str]:
         """Extract specific ingredients user wants to use"""
         ingredients = []
 
@@ -357,7 +357,7 @@ class MessageContextService:
 
         return cleaned_ingredients
 
-    def _extract_serving_info(self, message: str) -> Dict:
+    def _extract_serving_info(self, message: str) -> dict:
         """Extract serving size information"""
         serving_info = {"servings": 4, "meal_prep": False, "leftovers_ok": True}  # default
 
@@ -369,7 +369,7 @@ class MessageContextService:
             (r"feed(?:s)?\s+(\d+)", "servings"),
         ]
 
-        for pattern, key in serving_patterns:
+        for pattern, _key in serving_patterns:
             match = re.search(pattern, message)
             if match:
                 serving_info["servings"] = int(match.group(1))
@@ -404,7 +404,7 @@ class MessageContextService:
                 return occasion
         return None
 
-    def _extract_dietary_overrides(self, message: str) -> List[str]:
+    def _extract_dietary_overrides(self, message: str) -> list[str]:
         """Extract temporary dietary preferences from message"""
         dietary_overrides = []
 
@@ -423,7 +423,7 @@ class MessageContextService:
 
         return dietary_overrides
 
-    def _extract_special_requirements(self, message: str) -> Dict:
+    def _extract_special_requirements(self, message: str) -> dict:
         """Extract any special requirements or constraints"""
         requirements = {
             "no_shopping": False,
@@ -501,7 +501,7 @@ class MessageContextService:
 
         return None
 
-    def get_response_tone(self, context: Dict) -> str:
+    def get_response_tone(self, context: dict) -> str:
         """
         Determine appropriate response tone based on context
 

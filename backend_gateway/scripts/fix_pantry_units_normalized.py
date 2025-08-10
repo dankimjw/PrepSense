@@ -14,7 +14,6 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.services.unit_validation_service import UnitValidationService
 
 # Configure logging
 logging.basicConfig(

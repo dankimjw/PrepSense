@@ -3,7 +3,6 @@
 Run migration to support external recipes in user_recipes table
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -23,7 +22,7 @@ def run_migration():
     try:
         # Read the SQL file
         sql_file = Path(__file__).parent / "add_external_recipe_support.sql"
-        with open(sql_file, "r") as f:
+        with open(sql_file) as f:
             sql_content = f.read()
 
         # Split into individual statements

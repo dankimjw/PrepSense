@@ -4,7 +4,6 @@ Generate SQL INSERT statements for units data
 This can be run by someone with table creation permissions
 """
 
-import os
 from pathlib import Path
 
 
@@ -13,7 +12,7 @@ def generate_units_insert_sql():
 
     # Read the original SQL script
     script_path = Path(__file__).parent / "create_units_table.sql"
-    with open(script_path, "r") as f:
+    with open(script_path) as f:
         sql_script = f.read()
 
     # More sophisticated parsing - look for complete statements

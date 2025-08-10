@@ -4,7 +4,7 @@ Provides endpoints for nutritional analysis of pantry items.
 """
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/v1/pantry-nutrition", tags=["Pantry Nutrition"])
 @router.get("/summary/{user_id}")
 async def get_nutrition_summary(
     user_id: int, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get nutritional summary of user's entire pantry.
 
@@ -35,7 +35,7 @@ async def get_nutrition_summary(
 @router.post("/match-items/{user_id}")
 async def match_pantry_items(
     user_id: int, auto_match: bool = True, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Match pantry items to USDA foods for nutritional data.
 
@@ -55,7 +55,7 @@ async def match_pantry_items(
 @router.get("/item/{pantry_item_id}")
 async def get_item_nutrition(
     pantry_item_id: int, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get nutritional information for a specific pantry item.
     """
@@ -73,7 +73,7 @@ async def get_item_nutrition(
 @router.get("/daily-intake/{user_id}")
 async def calculate_daily_intake(
     user_id: int, days: int = 7, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate estimated daily nutritional intake based on pantry consumption.
 
@@ -112,7 +112,7 @@ async def calculate_daily_intake(
 @router.get("/recipe-nutrition")
 async def calculate_recipe_nutrition(
     recipe_id: int, servings: int = 1, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Calculate nutritional information for a recipe based on ingredients.
 
@@ -127,13 +127,13 @@ async def calculate_recipe_nutrition(
         # Get recipe ingredients
         ingredients = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 ri.name,
                 ri.quantity_amount,
                 ri.quantity_unit,
                 pi.id as pantry_item_id
             FROM recipe_ingredients ri
-            LEFT JOIN pantry_items pi ON 
+            LEFT JOIN pantry_items pi ON
                 LOWER(pi.name) LIKE '%' || LOWER(ri.name) || '%'
             WHERE ri.recipe_id = $1
         """,
@@ -165,7 +165,7 @@ async def calculate_recipe_nutrition(
 
                 if nutrition and nutrition.get("nutrients"):
                     # Add to total (simplified - would need proper unit conversion)
-                    for nutrient_name, data in nutrition["nutrients"].items():
+                    for _nutrient_name, _data in nutrition["nutrients"].items():
                         # Map to our simplified names
                         # This is a simplified example
                         pass

@@ -4,10 +4,9 @@ Simple script to add mock ingredients and recipes to PrepSense database
 """
 
 import asyncio
-import sys
 import os
+import sys
 from datetime import datetime, timedelta
-import random
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -26,7 +25,7 @@ MOCK_INGREDIENTS = [
     {"name": "quinoa", "amount": "2 cups", "category": "Grains", "is_favorite": True, "days_until_expiry": 365},
     {"name": "black beans", "amount": "2 cans", "category": "Canned Goods", "is_favorite": True, "days_until_expiry": 730},
     {"name": "cannellini beans", "amount": "2 cans", "category": "Canned Goods", "is_favorite": True, "days_until_expiry": 730},
-    
+
     # Regular ingredients
     {"name": "spinach", "amount": "5 oz bag", "category": "Produce", "is_favorite": False, "days_until_expiry": 5},
     {"name": "tomatoes", "amount": "4 count", "category": "Produce", "is_favorite": False, "days_until_expiry": 7},
@@ -94,50 +93,50 @@ async def add_mock_data():
     """Add mock ingredients and recipes to database"""
     db = get_database_service()
     recipes_service = UserRecipesService(db)
-    
+
     print("Adding mock data to PrepSense database...")
-    
+
     # Demo user ID
     user_id = 111  # samantha-1 maps to user_id 111
-    
+
     try:
         # Add mock ingredients to pantry
         print("Adding mock ingredients to pantry...")
-        
+
         for ingredient in MOCK_INGREDIENTS:
             expiration_date = datetime.now() + timedelta(days=ingredient["days_until_expiry"])
-            
+
             # Add to pantry_items table
             query = """
                 INSERT INTO pantry_items (user_id, product_name, quantity, expiration_date, category, is_favorite)
                 VALUES ($1, $2, $3, $4, $5, $6)
-                ON CONFLICT (user_id, product_name) 
-                DO UPDATE SET 
+                ON CONFLICT (user_id, product_name)
+                DO UPDATE SET
                     quantity = EXCLUDED.quantity,
                     expiration_date = EXCLUDED.expiration_date,
                     is_favorite = EXCLUDED.is_favorite,
                     updated_at = CURRENT_TIMESTAMP
                 RETURNING id
             """
-            
+
             try:
                 with db.get_connection() as conn:
                     with conn.cursor() as cursor:
                         cursor.execute(
                             query,
-                            (user_id, ingredient["name"], ingredient["amount"], 
+                            (user_id, ingredient["name"], ingredient["amount"],
                              expiration_date, ingredient["category"], ingredient["is_favorite"])
                         )
                         conn.commit()
                         print(f"✓ Added {ingredient['name']} ({'⭐ favorite' if ingredient['is_favorite'] else 'regular'})")
             except Exception as e:
                 print(f"✗ Error adding {ingredient['name']}: {e}")
-        
+
         print(f"Added {len(MOCK_INGREDIENTS)} ingredients to pantry")
-        
+
         # Add mock recipes to user's saved recipes
         print("Adding mock recipes to My Recipes...")
-        
+
         for recipe in MOCK_RECIPES:
             # Transform to match expected format
             recipe_data = {
@@ -160,7 +159,7 @@ async def add_mock_data():
                 "usedIngredients": recipe["extendedIngredients"],
                 "missedIngredients": []
             }
-            
+
             # Save the recipe
             result = await recipes_service.save_recipe(
                 user_id=user_id,
@@ -170,38 +169,38 @@ async def add_mock_data():
                 recipe_data=recipe_data,
                 source="mock_data"
             )
-            
+
             if result:
                 print(f"✓ Saved recipe: {recipe['title']}")
             else:
                 print(f"✓ Recipe already exists: {recipe['title']}")
-        
+
         print(f"Added {len(MOCK_RECIPES)} recipes to My Recipes")
-        
+
         # Verify data
         with db.get_connection() as conn:
             with conn.cursor() as cursor:
                 # Check pantry items
                 cursor.execute("SELECT COUNT(*) FROM pantry_items WHERE user_id = %s", (user_id,))
                 pantry_count = cursor.fetchone()[0]
-                
+
                 # Check favorite items
                 cursor.execute("SELECT COUNT(*) FROM pantry_items WHERE user_id = %s AND is_favorite = true", (user_id,))
                 favorites_count = cursor.fetchone()[0]
-                
+
                 # Check saved recipes
                 cursor.execute("SELECT COUNT(*) FROM user_recipes WHERE user_id = %s", (user_id,))
                 recipes_count = cursor.fetchone()[0]
-                
-                print(f"\n📊 Summary:")
+
+                print("\n📊 Summary:")
                 print(f"   Total pantry items: {pantry_count}")
                 print(f"   Favorite items: {favorites_count}")
                 print(f"   Saved recipes: {recipes_count}")
-        
+
         print("\n✅ Mock data added successfully!")
         print("🔥 Favorites will appear first in pantry with ⭐ icon")
         print("📖 Recipes will appear in My Recipes section")
-        
+
     except Exception as e:
         print(f"❌ Error adding mock data: {e}")
         raise

@@ -40,8 +40,8 @@ def update_preferences(user_id=111):
         # First, get current preferences
         cur.execute(
             """
-            SELECT preference_id, household_size, preferences 
-            FROM user_preferences 
+            SELECT preference_id, household_size, preferences
+            FROM user_preferences
             WHERE user_id = %s
         """,
             (user_id,),
@@ -59,7 +59,7 @@ def update_preferences(user_id=111):
             # Update the preferences
             cur.execute(
                 """
-                UPDATE user_preferences 
+                UPDATE user_preferences
                 SET preferences = %s
                 WHERE user_id = %s
             """,

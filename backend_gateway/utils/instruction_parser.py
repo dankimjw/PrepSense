@@ -3,7 +3,7 @@ Utility to improve recipe instruction parsing and formatting
 """
 
 import re
-from typing import Any, Dict, List
+from typing import Any
 
 
 def clean_instruction_step(step_text: str) -> str:
@@ -29,7 +29,7 @@ def clean_instruction_step(step_text: str) -> str:
     return cleaned
 
 
-def split_long_instruction(step_text: str, max_length: int = 200) -> List[str]:
+def split_long_instruction(step_text: str, max_length: int = 200) -> list[str]:
     """
     Split overly long instructions into smaller, manageable steps.
 
@@ -96,8 +96,8 @@ def split_long_instruction(step_text: str, max_length: int = 200) -> List[str]:
 
 
 def improve_recipe_instructions(
-    analyzed_instructions: List[Dict[str, Any]],
-) -> List[Dict[str, Any]]:
+    analyzed_instructions: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
     """
     Improve recipe instructions by cleaning and splitting long steps.
 
@@ -141,7 +141,7 @@ def improve_recipe_instructions(
     return improved_instructions
 
 
-def extract_step_actions(step_text: str) -> List[str]:
+def extract_step_actions(step_text: str) -> list[str]:
     """
     Extract key actions from an instruction step.
 

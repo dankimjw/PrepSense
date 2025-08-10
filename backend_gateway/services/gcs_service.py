@@ -1,15 +1,11 @@
 """Google Cloud Storage service for handling image uploads and storage"""
 
-import hashlib
 import logging
-import os
-import uuid
 from datetime import datetime
-from typing import Optional, Tuple
+from typing import Optional
 
 import requests
 from google.cloud import storage
-from google.cloud.exceptions import NotFound
 
 from backend_gateway.core.config import settings
 

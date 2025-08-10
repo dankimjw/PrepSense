@@ -4,7 +4,6 @@ Fix existing pantry items units to match our standardized units table
 """
 
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -45,7 +44,7 @@ def fix_pantry_units():
             cursor.execute(
                 """
                 SELECT DISTINCT unit_of_measurement, COUNT(*) as count
-                FROM pantry_items 
+                FROM pantry_items
                 WHERE unit_of_measurement IS NOT NULL
                 GROUP BY unit_of_measurement
                 ORDER BY count DESC
@@ -147,8 +146,8 @@ def fix_pantry_units():
                 # Update pantry items
                 cursor.execute(
                     """
-                    UPDATE pantry_items 
-                    SET unit_of_measurement = %s 
+                    UPDATE pantry_items
+                    SET unit_of_measurement = %s
                     WHERE LOWER(TRIM(unit_of_measurement)) = LOWER(%s)
                 """,
                     (new_unit, old_unit),
@@ -168,7 +167,7 @@ def fix_pantry_units():
                 SELECT DISTINCT pi.unit_of_measurement, COUNT(*) as count
                 FROM pantry_items pi
                 LEFT JOIN units u ON pi.unit_of_measurement = u.id
-                WHERE pi.unit_of_measurement IS NOT NULL 
+                WHERE pi.unit_of_measurement IS NOT NULL
                 AND u.id IS NULL
                 GROUP BY pi.unit_of_measurement
                 ORDER BY count DESC
@@ -207,8 +206,8 @@ def fix_pantry_units():
                     # Update to suggested unit
                     cursor.execute(
                         """
-                        UPDATE pantry_items 
-                        SET unit_of_measurement = %s 
+                        UPDATE pantry_items
+                        SET unit_of_measurement = %s
                         WHERE unit_of_measurement = %s
                     """,
                         (suggested_unit, unit),
@@ -228,7 +227,7 @@ def fix_pantry_units():
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     COUNT(*) as total_items,
                     COUNT(DISTINCT unit_of_measurement) as unique_units,
                     SUM(CASE WHEN u.id IS NOT NULL THEN 1 ELSE 0 END) as valid_units,
@@ -247,7 +246,7 @@ def fix_pantry_units():
             print(f"  ❌ Invalid units: {invalid}")
 
             if invalid == 0:
-                print(f"\n🎉 Unit standardization completed successfully!")
+                print("\n🎉 Unit standardization completed successfully!")
                 print(f"   Made {corrections_made} corrections total")
             else:
                 print(f"\n⚠️  {invalid} items still have invalid units")

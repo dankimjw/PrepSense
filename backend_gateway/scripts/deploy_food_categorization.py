@@ -74,7 +74,7 @@ class FoodCategorizationDeployer:
         if not schema_file.exists():
             raise FileNotFoundError(f"Schema file not found: {schema_file}")
 
-        with open(schema_file, "r") as f:
+        with open(schema_file) as f:
             schema_sql = f.read()
 
         # Execute the schema creation
@@ -231,9 +231,9 @@ class FoodCategorizationDeployer:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-                
+
                 INSERT INTO feature_flags (flag_name, is_enabled, rollout_percentage, description)
-                VALUES 
+                VALUES
                     ('food_categorization_new_items', TRUE, 100, 'Enable categorization for new pantry items'),
                     ('food_categorization_existing', FALSE, 0, 'Migrate existing pantry items'),
                     ('unit_validation', FALSE, 10, 'Enable unit validation with 10% rollout'),
@@ -266,9 +266,9 @@ class FoodCategorizationDeployer:
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 );
-                
+
                 INSERT INTO feature_flags (flag_name, is_enabled, rollout_percentage, description)
-                VALUES 
+                VALUES
                     ('food_categorization_new_items', TRUE, 100, 'Enable categorization for new pantry items'),
                     ('food_categorization_existing', TRUE, 100, 'Migrate existing pantry items'),
                     ('unit_validation', TRUE, 100, 'Enable unit validation'),

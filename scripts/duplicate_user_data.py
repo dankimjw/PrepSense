@@ -6,7 +6,6 @@ import asyncio
 import os
 import sys
 from datetime import datetime
-from typing import Any, Dict, List
 
 # Add the backend_gateway to the path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend_gateway"))
@@ -86,7 +85,7 @@ async def duplicate_user_data():
                 # Check if item already exists
                 existing_item = await db.fetch_one(
                     """
-                    SELECT pantry_item_id FROM pantry_items 
+                    SELECT pantry_item_id FROM pantry_items
                     WHERE user_id = $1 AND product_id = $2
                     """,
                     new_user["id"],
@@ -96,7 +95,7 @@ async def duplicate_user_data():
                 if not existing_item:
                     await db.execute(
                         """
-                        INSERT INTO pantry_items 
+                        INSERT INTO pantry_items
                         (user_id, product_id, quantity, expiration_date, location, added_date, updated_at)
                         VALUES ($1, $2, $3, $4, $5, $6, $7)
                         """,
@@ -124,7 +123,7 @@ async def duplicate_user_data():
                 # Check if item already exists
                 existing_item = await db.fetch_one(
                     """
-                    SELECT item_id FROM shopping_list_items 
+                    SELECT item_id FROM shopping_list_items
                     WHERE user_id = $1 AND product_id = $2
                     """,
                     new_user["id"],
@@ -134,7 +133,7 @@ async def duplicate_user_data():
                 if not existing_item:
                     await db.execute(
                         """
-                        INSERT INTO shopping_list_items 
+                        INSERT INTO shopping_list_items
                         (user_id, product_id, quantity, is_checked, added_date, updated_at)
                         VALUES ($1, $2, $3, $4, $5, $6)
                         """,
@@ -160,7 +159,7 @@ async def duplicate_user_data():
             for completion in completions:
                 await db.execute(
                     """
-                    INSERT INTO recipe_completions 
+                    INSERT INTO recipe_completions
                     (user_id, recipe_id, completed_at, rating, notes)
                     VALUES ($1, $2, $3, $4, $5)
                     """,
@@ -186,7 +185,7 @@ async def duplicate_user_data():
                 # Check if already favorited
                 existing_fav = await db.fetch_one(
                     """
-                    SELECT 1 FROM recipe_favorites 
+                    SELECT 1 FROM recipe_favorites
                     WHERE user_id = $1 AND recipe_id = $2
                     """,
                     new_user["id"],
@@ -196,7 +195,7 @@ async def duplicate_user_data():
                 if not existing_fav:
                     await db.execute(
                         """
-                        INSERT INTO recipe_favorites 
+                        INSERT INTO recipe_favorites
                         (user_id, recipe_id, favorited_at)
                         VALUES ($1, $2, $3)
                         """,

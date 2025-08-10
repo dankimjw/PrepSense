@@ -4,7 +4,6 @@ Deploy database tables directly using postgres credentials from .env
 """
 
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -49,7 +48,7 @@ def deploy_tables_direct():
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT COUNT(*) FROM information_schema.tables 
+                SELECT COUNT(*) FROM information_schema.tables
                 WHERE table_schema = 'public' AND table_name = 'units'
             """
             )
@@ -65,7 +64,7 @@ def deploy_tables_direct():
             print("   Deploying units table...")
             units_file = Path(__file__).parent / "units_table_complete.sql"
             if units_file.exists():
-                with open(units_file, "r") as f:
+                with open(units_file) as f:
                     units_sql = f.read()
 
                 with conn.cursor() as cursor:
@@ -86,7 +85,7 @@ def deploy_tables_direct():
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT COUNT(*) FROM information_schema.tables 
+                SELECT COUNT(*) FROM information_schema.tables
                 WHERE table_schema = 'public' AND table_name = 'food_items_cache'
             """
             )
@@ -102,12 +101,12 @@ def deploy_tables_direct():
             print("   Deploying food categorization tables...")
             food_file = Path(__file__).parent / "create_food_categorization_tables.sql"
             if food_file.exists():
-                with open(food_file, "r") as f:
+                with open(food_file) as f:
                     food_sql = f.read()
 
                 # Execute the entire SQL as one block (handles functions and triggers properly)
                 with conn.cursor() as cursor:
-                    print(f"  Executing food categorization schema...")
+                    print("  Executing food categorization schema...")
                     cursor.execute(food_sql)
                     conn.commit()
                 print("✅ Food categorization tables deployed successfully!")
@@ -121,12 +120,12 @@ def deploy_tables_direct():
                 print("❌ Food categorization SQL file not found")
 
         # List all tables to verify
-        print(f"\n📋 Verifying tables...")
+        print("\n📋 Verifying tables...")
         with conn.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT tablename 
-                FROM pg_tables 
+                SELECT tablename
+                FROM pg_tables
                 WHERE schemaname = 'public'
                 ORDER BY tablename
             """
@@ -137,15 +136,15 @@ def deploy_tables_direct():
             for table in tables:
                 print(f"  - {table[0]}")
 
-        print(f"\n🎉 Database deployment completed successfully!")
-        print(f"\nNext steps:")
-        print(f"1. Test: python backend_gateway/scripts/check_existing_tables.py")
-        print(f"2. Test: python backend_gateway/scripts/check_food_database.py")
-        print(f"3. Get USDA API key: https://fdc.nal.usda.gov/api-key-signup.html")
+        print("\n🎉 Database deployment completed successfully!")
+        print("\nNext steps:")
+        print("1. Test: python backend_gateway/scripts/check_existing_tables.py")
+        print("2. Test: python backend_gateway/scripts/check_food_database.py")
+        print("3. Get USDA API key: https://fdc.nal.usda.gov/api-key-signup.html")
 
     except Exception as e:
         print(f"❌ Error during deployment: {str(e)}")
-        print(f"Check your database credentials and network connectivity")
+        print("Check your database credentials and network connectivity")
         raise
     finally:
         if "conn" in locals():

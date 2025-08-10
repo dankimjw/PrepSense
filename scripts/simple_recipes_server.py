@@ -6,10 +6,8 @@ This provides the exact endpoints needed for testing the iOS app's recipes tab.
 
 import http.server
 import json
-import os
 import socketserver
 import urllib.parse
-from pathlib import Path
 
 from dotenv import load_dotenv
 

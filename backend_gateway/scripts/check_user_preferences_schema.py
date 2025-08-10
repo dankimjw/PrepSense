@@ -3,7 +3,6 @@
 Check the user_preferences table schema
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -49,7 +48,7 @@ def check_user_preferences():
 
         sample = db_service.execute_query(sample_query)
         if sample:
-            print(f"\nSample data for user 111:")
+            print("\nSample data for user 111:")
             for key, value in sample[0].items():
                 print(f"  - {key}: {value}")
         else:

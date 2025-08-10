@@ -14,7 +14,7 @@ async def create_recipe(pantry: PantryDB):
     pantry items supplied by the client.
     """
     # Lazy import to avoid circular dependency
-    from ..services.recipe_service import RecipeService
+    from backend_gateway.services.recipe_service import RecipeService
 
     recipe_service = RecipeService()
     recipe_text = recipe_service.generate_recipe_from_pantry(pantry)

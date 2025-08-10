@@ -1,9 +1,8 @@
 """Endpoints for uploading pantry images and detecting items."""
 
 # File: PrepSense/backend_gateway/routers/images_router.py
-import base64
 from datetime import datetime
-from typing import Any, Dict, List, Optional  # For type hinting
+from typing import Any, Optional  # For type hinting
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict, Field
@@ -12,8 +11,6 @@ from backend_gateway.config.database import get_database_service, get_pantry_ser
 from backend_gateway.services.pantry_item_manager import PantryItemManager
 
 # Import additional services
-from backend_gateway.services.pantry_service import PantryService
-
 # Correct import for the centralized VisionService
 from backend_gateway.services.vision_service import VisionService
 
@@ -43,7 +40,7 @@ class DetectedItem(BaseModel):
 
 
 class SaveItemsRequest(BaseModel):
-    items: List[DetectedItem]
+    items: list[DetectedItem]
     user_id: int = 111
 
 
@@ -63,7 +60,7 @@ class ScanRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
 
-@router.post("/upload", response_model=Dict[str, List[Dict[str, Any]]])  # Define a response model
+@router.post("/upload", response_model=dict[str, list[dict[str, Any]]])  # Define a response model
 async def upload_image(
     file: UploadFile = File(...), vision_service: VisionService = Depends(get_vision_service)
 ):
@@ -87,7 +84,9 @@ async def upload_image(
             )
 
     except RuntimeError as e:  # Errors from VisionService (e.g., OpenAI API communication)
-        raise HTTPException(status_code=502, detail=f"Service error: {str(e)}")  # 502 Bad Gateway
+        raise HTTPException(
+            status_code=502, detail=f"Service error: {str(e)}"
+        )  # 502 Bad Gateway from e
     except HTTPException:  # Re-raise HTTPExceptions explicitly
         raise
     except Exception as e:
@@ -95,11 +94,11 @@ async def upload_image(
         # traceback.print_exc()
         print(f"An unexpected error occurred: {e}")
         raise HTTPException(
-            status_code=500, detail=f"An unexpected internal server error occurred."
-        )
+            status_code=500, detail="An unexpected internal server error occurred."
+        ) from e
 
 
-@router.post("/save-detected-items", response_model=Dict[str, Any])
+@router.post("/save-detected-items", response_model=dict[str, Any])
 async def save_detected_items(
     request: SaveItemsRequest, pantry_manager: PantryItemManager = Depends(get_pantry_item_manager)
 ):
@@ -127,10 +126,12 @@ async def save_detected_items(
 
     except Exception as e:
         print(f"Error saving detected items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save detected items: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to save detected items: {str(e)}"
+        ) from e
 
 
-@router.delete("/cleanup-detected-items", response_model=Dict[str, Any])
+@router.delete("/cleanup-detected-items", response_model=dict[str, Any])
 async def cleanup_detected_items(
     request: CleanupRequest, pantry_manager: PantryItemManager = Depends(get_pantry_item_manager)
 ):
@@ -156,15 +157,17 @@ async def cleanup_detected_items(
         import traceback
 
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Failed to clean up detected items: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clean up detected items: {str(e)}"
+        ) from e
 
 
-@router.get("/debug-items/{user_id}", response_model=Dict[str, Any])
+@router.get("/debug-items/{user_id}", response_model=dict[str, Any])
 async def debug_user_items(user_id: int, db_service=Depends(get_database_service)):
     """Debug endpoint to check items and their timestamps."""
     try:
         query = """
-            SELECT 
+            SELECT
                 pi.pantry_item_id,
                 pi.pantry_id,
                 pi.created_at,
@@ -176,7 +179,7 @@ async def debug_user_items(user_id: int, db_service=Depends(get_database_service
             LEFT JOIN products p
             ON pi.pantry_item_id = p.pantry_item_id
             WHERE pi.pantry_id IN (
-                SELECT pantry_id 
+                SELECT pantry_id
                 FROM pantry
                 WHERE user_id = %(user_id)s
             )
@@ -194,10 +197,10 @@ async def debug_user_items(user_id: int, db_service=Depends(get_database_service
         }
     except Exception as e:
         print(f"Error in debug endpoint: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
-@router.delete("/item/{pantry_item_id}", response_model=Dict[str, Any])
+@router.delete("/item/{pantry_item_id}", response_model=dict[str, Any])
 async def delete_single_item(
     pantry_item_id: int,
     user_id: int = 111,
@@ -223,10 +226,10 @@ async def delete_single_item(
         raise
     except Exception as e:
         print(f"Error deleting item: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete item: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete item: {str(e)}") from e
 
 
-@router.post("/scan-items-vision", response_model=Dict[str, Any])
+@router.post("/scan-items-vision", response_model=dict[str, Any])
 async def scan_items_vision(
     request: ScanRequest, vision_service: VisionService = Depends(get_vision_service)
 ):

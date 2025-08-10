@@ -62,7 +62,7 @@ def main():
         )
 
     logger.info("\nData download and processing complete!")
-    logger.info(f"Data saved to: data/environmental_impact/")
+    logger.info("Data saved to: data/environmental_impact/")
 
 
 if __name__ == "__main__":

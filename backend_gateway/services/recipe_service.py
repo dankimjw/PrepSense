@@ -1,13 +1,10 @@
 """Logic for generating recipes using OpenAI based on pantry items."""
 
-import os
-
 import openai
 import pandas as pd
 from fastapi import HTTPException
-from pydantic import BaseModel
 
-from ..core.openai_client import get_openai_client
+from backend_gateway.core.openai_client import get_openai_client
 
 
 class RecipeService:
@@ -19,9 +16,9 @@ class RecipeService:
         # Initialize any required configurations, e.g., OpenAI API key
         try:
             self.client = get_openai_client()
-            print(f"Using OpenAI model: gpt-4")
+            print("Using OpenAI model: gpt-4")
         except ValueError as e:
-            raise ValueError(f"OpenAI configuration error: {e}")
+            raise ValueError(f"OpenAI configuration error: {e}") from e
 
     def generate_recipe_from_pantry(self, pantry_db: pd.DataFrame) -> str:
         """
@@ -48,7 +45,7 @@ class RecipeService:
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": prompt},
                 ],
-                max_tokens=500,
+                max_completion_tokens=500,
                 temperature=0.7,
             )
 
@@ -56,9 +53,9 @@ class RecipeService:
             return recipe_text
 
         except openai.APIError as e:
-            raise HTTPException(status_code=500, detail=f"OpenAI API error: {e}")
+            raise HTTPException(status_code=500, detail=f"OpenAI API error: {e}") from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
 
     def generate_recipe_image(self, dish_name: str) -> str:
         """
@@ -84,9 +81,9 @@ class RecipeService:
             return image_url
 
         except openai.APIError as e:
-            raise HTTPException(status_code=500, detail=f"OpenAI API error: {e}")
+            raise HTTPException(status_code=500, detail=f"OpenAI API error: {e}") from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}") from e
 
     async def process_image(self, file):
         try:
@@ -97,11 +94,11 @@ class RecipeService:
                     {"role": "system", "content": "You are a helpful assistant."},
                     {"role": "user", "content": "Test message to OpenAI"},
                 ],
-                max_tokens=100,
+                max_completion_tokens=100,
                 temperature=0.7,
             )
             print(response)
             return response.choices[0].message.content
         except Exception as e:
             print(f"Error: {str(e)}")  # Log the error
-            raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}")
+            raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}") from e

@@ -3,15 +3,12 @@
 import asyncio
 import json
 import os
-import pathlib
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
-import sqlalchemy as sa
 from httpx import AsyncClient
 from testcontainers.postgres import PostgresContainer
 
@@ -157,13 +154,13 @@ def mock_env(monkeypatch):
 
 # Import CrewAI fixtures
 from backend_gateway.tests.fixtures.crew_ai_fixtures import (
-    get_mock_pantry_items_for_crew,
-    get_mock_user_preferences_for_crew,
-    get_mock_recipes_for_crew,
-    get_mock_crew_ai_response,
+    create_mock_crew_components,
     create_mock_database_service,
     create_mock_spoonacular_service,
-    create_mock_crew_components,
+    get_mock_crew_ai_response,
+    get_mock_pantry_items_for_crew,
+    get_mock_recipes_for_crew,
+    get_mock_user_preferences_for_crew,
 )
 
 

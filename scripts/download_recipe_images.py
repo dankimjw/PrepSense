@@ -4,7 +4,6 @@ Simple script to download Spoonacular recipe images locally
 """
 
 import json
-import os
 import time
 from datetime import datetime
 from pathlib import Path
@@ -122,7 +121,7 @@ def main():
     exists = len([r for r in results if r["status"] == "exists"])
     failed = len([r for r in results if r["status"] == "failed"])
 
-    print(f"\n📊 Summary:")
+    print("\n📊 Summary:")
     print(f"   • Total: {len(results)}")
     print(f"   • Downloaded: {downloaded}")
     print(f"   • Already existed: {exists}")

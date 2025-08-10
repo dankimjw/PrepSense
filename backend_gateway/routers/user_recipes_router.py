@@ -1,13 +1,12 @@
 """Router for user recipes management using PostgreSQL"""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.core.security import get_current_user
 from backend_gateway.services.user_recipes_service import UserRecipesService
 
 logger = logging.getLogger(__name__)
@@ -19,8 +18,10 @@ class SaveRecipeRequest(BaseModel):
     recipe_id: Optional[int] = Field(None, description="Spoonacular recipe ID if applicable")
     recipe_title: str = Field(..., description="Recipe title")
     recipe_image: Optional[str] = Field(None, description="Recipe image URL")
-    recipe_data: Dict[str, Any] = Field(..., description="Complete recipe data")
-    source: str = Field(..., description="Recipe source: 'spoonacular', 'generated', 'custom', 'demo'")
+    recipe_data: dict[str, Any] = Field(..., description="Complete recipe data")
+    source: str = Field(
+        ..., description="Recipe source: 'spoonacular', 'generated', 'custom', 'demo'"
+    )
     rating: str = Field(
         "neutral", description="Initial rating: 'thumbs_up', 'thumbs_down', 'neutral'"
     )
@@ -52,7 +53,7 @@ def get_user_recipes_service(db_service=Depends(get_database_service)) -> UserRe
     return UserRecipesService(db_service)
 
 
-@router.post("", response_model=Dict[str, Any], summary="Save a recipe to user's collection")
+@router.post("", response_model=dict[str, Any], summary="Save a recipe to user's collection")
 async def save_user_recipe(
     request: SaveRecipeRequest,
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -79,17 +80,22 @@ async def save_user_recipe(
 
     except Exception as e:
         logger.error(f"Error saving recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save recipe: {str(e)}") from e
 
 
-@router.get("", response_model=List[Dict[str, Any]], summary="Get user's saved recipes (My Recipes)")
+@router.get(
+    "", response_model=list[dict[str, Any]], summary="Get user's saved recipes (My Recipes)"
+)
 async def get_user_recipes(
     source: Optional[str] = Query(None, description="Filter by source"),
     is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
     rating: Optional[str] = Query(None, description="Filter by rating"),
     status: Optional[str] = Query(None, description="Filter by status: 'saved' or 'cooked'"),
     demo_only: bool = Query(False, description="Filter to show only demo recipes"),
-    include_external: bool = Query(False, description="Include external recipes (Spoonacular, etc.) - defaults to False for My Recipes"),
+    include_external: bool = Query(
+        False,
+        description="Include external recipes (Spoonacular, etc.) - defaults to False for My Recipes",
+    ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -116,12 +122,18 @@ async def get_user_recipes(
 
     except Exception as e:
         logger.error(f"Error getting user recipes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get recipes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recipes: {str(e)}") from e
 
 
-@router.get("/bookmarked-external", response_model=List[Dict[str, Any]], summary="Get user's bookmarked external recipes")
+@router.get(
+    "/bookmarked-external",
+    response_model=list[dict[str, Any]],
+    summary="Get user's bookmarked external recipes",
+)
 async def get_bookmarked_external_recipes(
-    source: Optional[str] = Query('spoonacular', description="External source filter - defaults to 'spoonacular'"),
+    source: Optional[str] = Query(
+        "spoonacular", description="External source filter - defaults to 'spoonacular'"
+    ),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -143,10 +155,12 @@ async def get_bookmarked_external_recipes(
 
     except Exception as e:
         logger.error(f"Error getting bookmarked external recipes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get external recipes: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get external recipes: {str(e)}"
+        ) from e
 
 
-@router.get("/stats", response_model=Dict[str, Any], summary="Get user's recipe statistics")
+@router.get("/stats", response_model=dict[str, Any], summary="Get user's recipe statistics")
 async def get_recipe_stats(
     service: UserRecipesService = Depends(get_user_recipes_service),
     # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
@@ -162,10 +176,10 @@ async def get_recipe_stats(
 
     except Exception as e:
         logger.error(f"Error getting recipe stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}") from e
 
 
-@router.put("/{recipe_id}/rating", response_model=Dict[str, Any], summary="Update recipe rating")
+@router.put("/{recipe_id}/rating", response_model=dict[str, Any], summary="Update recipe rating")
 async def update_recipe_rating(
     recipe_id: int,
     request: UpdateRatingRequest,
@@ -185,11 +199,11 @@ async def update_recipe_rating(
 
     except Exception as e:
         logger.error(f"Error updating recipe rating: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update rating: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update rating: {str(e)}") from e
 
 
 @router.put(
-    "/{recipe_id}/favorite", response_model=Dict[str, Any], summary="Toggle recipe favorite status"
+    "/{recipe_id}/favorite", response_model=dict[str, Any], summary="Toggle recipe favorite status"
 )
 async def toggle_recipe_favorite(
     recipe_id: int,
@@ -207,11 +221,11 @@ async def toggle_recipe_favorite(
 
     except Exception as e:
         logger.error(f"Error toggling favorite: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to toggle favorite: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to toggle favorite: {str(e)}") from e
 
 
 @router.put(
-    "/{recipe_id}/mark-cooked", response_model=Dict[str, Any], summary="Mark recipe as cooked"
+    "/{recipe_id}/mark-cooked", response_model=dict[str, Any], summary="Mark recipe as cooked"
 )
 async def mark_recipe_as_cooked(
     recipe_id: str,
@@ -229,10 +243,12 @@ async def mark_recipe_as_cooked(
 
     except Exception as e:
         logger.error(f"Error marking recipe as cooked: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to mark recipe as cooked: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to mark recipe as cooked: {str(e)}"
+        ) from e
 
 
-@router.delete("/{recipe_id}", response_model=Dict[str, Any], summary="Delete a saved recipe")
+@router.delete("/{recipe_id}", response_model=dict[str, Any], summary="Delete a saved recipe")
 async def delete_user_recipe(
     recipe_id: int,
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -249,10 +265,10 @@ async def delete_user_recipe(
 
     except Exception as e:
         logger.error(f"Error deleting recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete recipe: {str(e)}") from e
 
 
-@router.get("/{recipe_id}", response_model=Dict[str, Any], summary="Get a specific saved recipe")
+@router.get("/{recipe_id}", response_model=dict[str, Any], summary="Get a specific saved recipe")
 async def get_user_recipe(
     recipe_id: int,
     service: UserRecipesService = Depends(get_user_recipes_service),
@@ -265,10 +281,10 @@ async def get_user_recipe(
 
         # Include external recipes when getting a specific recipe by ID
         recipes = await service.get_user_recipes(
-            user_id=user_id, 
+            user_id=user_id,
             include_external=True,  # Include external for specific lookups
             limit=1000,  # Get more recipes to find the specific one
-            offset=0
+            offset=0,
         )
 
         # Find the specific recipe
@@ -283,4 +299,4 @@ async def get_user_recipe(
         raise
     except Exception as e:
         logger.error(f"Error getting recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recipe: {str(e)}") from e

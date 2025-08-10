@@ -2,24 +2,21 @@
 
 import logging
 from datetime import date, datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 
-from ..models.nutrition import (
-    GetNutrientGapsRequest,
+from backend_gateway.models.nutrition import (
     GetNutrientGapsResponse,
     LogMealRequest,
     LogMealResponse,
-    MealType,
     NutrientAwareRecipeRequest,
-    NutrientGapAnalysis,
     NutrientProfile,
 )
 
 # from ..services.nutrient_aware_crew_service import NutrientAwareCrewService  # Service removed
-from ..services.nutrient_auditor_service import NutrientAuditorService
+from backend_gateway.services.nutrient_auditor_service import NutrientAuditorService
 
 
 # For now, use a simple function to get user ID
@@ -44,14 +41,6 @@ async def log_meal(request: LogMealRequest, user_id: int = Depends(get_current_u
         logger.info(f"Logging meal for user {user_id}: {request.meal_type} - {request.food_name}")
 
         # Convert request to meal data
-        meal_data = {
-            "meal_type": request.meal_type,
-            "food_name": request.food_name,
-            "quantity": request.quantity,
-            "serving_unit": request.serving_unit,
-            "brand": request.brand,
-            "notes": request.notes,
-        }
 
         # Log the meal using the nutrient-aware service
         # result = await nutrient_crew_service.log_meal_and_update_gaps(user_id, meal_data)  # Service disabled
@@ -75,7 +64,7 @@ async def log_meal(request: LogMealRequest, user_id: int = Depends(get_current_u
 
     except Exception as e:
         logger.error(f"Error logging meal: {e}")
-        raise HTTPException(status_code=500, detail="Failed to log meal")
+        raise HTTPException(status_code=500, detail="Failed to log meal") from e
 
 
 @router.get("/gaps", response_model=GetNutrientGapsResponse)
@@ -120,7 +109,7 @@ async def get_nutrient_gaps(
 
     except Exception as e:
         logger.error(f"Error getting nutrient gaps: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get nutrient gaps")
+        raise HTTPException(status_code=500, detail="Failed to get nutrient gaps") from e
 
 
 @router.post("/recipe-recommendations")
@@ -132,13 +121,12 @@ async def get_nutrient_aware_recipes(
         logger.info(f"Getting nutrient-aware recipes for user {user_id}")
 
         # Default message based on focus nutrients or meal type
-        message = "What can I cook?"
 
         if request.focus_nutrients:
             nutrient_names = [n.replace("_", " ").title() for n in request.focus_nutrients]
-            message = f"I need recipes high in {', '.join(nutrient_names)}"
+            f"I need recipes high in {', '.join(nutrient_names)}"
         elif request.meal_type:
-            message = f"What can I make for {request.meal_type}?"
+            pass
 
         # Get nutrient-aware recommendations
         # result = await nutrient_crew_service.process_message_with_nutrition(
@@ -147,14 +135,16 @@ async def get_nutrient_aware_recipes(
         #     use_preferences=True,
         #     include_nutrient_gaps=request.include_nutrient_gaps,
         # )  # Service disabled
-        
-        result = {"message": "Service temporarily disabled"}  # Placeholder while service is disabled
+
+        result = {
+            "message": "Service temporarily disabled"
+        }  # Placeholder while service is disabled
 
         return JSONResponse(content=result)
 
     except Exception as e:
         logger.error(f"Error getting nutrient-aware recipes: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get recipe recommendations")
+        raise HTTPException(status_code=500, detail="Failed to get recipe recommendations") from e
 
 
 @router.get("/daily-intake/{target_date}")
@@ -184,7 +174,7 @@ async def get_daily_intake(target_date: date, user_id: int = Depends(get_current
 
     except Exception as e:
         logger.error(f"Error getting daily intake: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get daily intake")
+        raise HTTPException(status_code=500, detail="Failed to get daily intake") from e
 
 
 @router.post("/analyze-food")
@@ -221,7 +211,7 @@ async def analyze_food(
 
     except Exception as e:
         logger.error(f"Error analyzing food: {e}")
-        raise HTTPException(status_code=500, detail="Failed to analyze food")
+        raise HTTPException(status_code=500, detail="Failed to analyze food") from e
 
 
 @router.get("/nutrition-goals")
@@ -232,7 +222,11 @@ async def get_nutrition_goals(user_id: int = Depends(get_current_user_id)):
 
         # In a real implementation, this would be personalized based on user profile
         # For now, return standard RDA values
-        from ..config.nutrient_config import NUTRIENT_DISPLAY_NAMES, NUTRIENT_UNITS, RDA_VALUES
+        from backend_gateway.config.nutrient_config import (
+            NUTRIENT_DISPLAY_NAMES,
+            NUTRIENT_UNITS,
+            RDA_VALUES,
+        )
 
         goals = {}
         for nutrient, rda_value in RDA_VALUES.items():
@@ -254,12 +248,12 @@ async def get_nutrition_goals(user_id: int = Depends(get_current_user_id)):
 
     except Exception as e:
         logger.error(f"Error getting nutrition goals: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get nutrition goals")
+        raise HTTPException(status_code=500, detail="Failed to get nutrition goals") from e
 
 
 @router.post("/sync-health-data")
 async def sync_health_data(
-    data_source: str, health_data: Dict, user_id: int = Depends(get_current_user_id)
+    data_source: str, health_data: dict, user_id: int = Depends(get_current_user_id)
 ):
     """Sync health data from external sources (Apple Health, Google Fit, etc.)."""
     try:
@@ -282,7 +276,7 @@ async def sync_health_data(
 
     except Exception as e:
         logger.error(f"Error syncing health data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to sync health data")
+        raise HTTPException(status_code=500, detail="Failed to sync health data") from e
 
 
 @router.get("/nutrition-insights")
@@ -324,4 +318,4 @@ async def get_nutrition_insights(
 
     except Exception as e:
         logger.error(f"Error getting nutrition insights: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get nutrition insights")
+        raise HTTPException(status_code=500, detail="Failed to get nutrition insights") from e

@@ -22,10 +22,7 @@ def decimal_to_fraction(value: Union[float, str], max_denominator: int = 16) -> 
 
     try:
         # Convert to float if string
-        if isinstance(value, str):
-            decimal_value = float(value)
-        else:
-            decimal_value = float(value)
+        decimal_value = float(value) if isinstance(value, str) else float(value)
 
         # Handle negative values
         is_negative = decimal_value < 0

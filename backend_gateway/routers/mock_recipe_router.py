@@ -1,11 +1,8 @@
 """Mock recipe router for testing recipe completion and pantry subtraction"""
 
 import logging
-from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, HTTPException
-
-from backend_gateway.config.database import get_database_service
+from fastapi import APIRouter, HTTPException
 
 logger = logging.getLogger(__name__)
 
@@ -207,6 +204,7 @@ def is_chat_recipes_mock_enabled() -> bool:
     """Check if mock recipes are enabled for chat"""
     try:
         from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled as rc_enabled
+
         return rc_enabled()
     except ImportError:
         return False
@@ -216,6 +214,7 @@ def set_mock(key: str, value: bool, source: str = "mock_router"):
     """Set mock state through RemoteControl"""
     try:
         from backend_gateway.RemoteControl_7 import set_mock as rc_set_mock
+
         return rc_set_mock(key, value, source)
     except ImportError:
         logger.warning("RemoteControl not available, mock state not persisted")

@@ -36,37 +36,37 @@ def create_api_tracking_table():
     create_table_sql = """
     CREATE TABLE IF NOT EXISTS spoonacular_api_calls (
         id SERIAL PRIMARY KEY,
-        
+
         -- API Call Metadata
         endpoint VARCHAR(100) NOT NULL,
         method VARCHAR(10) NOT NULL DEFAULT 'GET',
         call_timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-        
+
         -- Request Details
         user_id INTEGER,
         request_params JSONB,
         request_size_bytes INTEGER DEFAULT 0,
-        
+
         -- Response Details
         response_status INTEGER,
         response_size_bytes INTEGER DEFAULT 0,
         response_time_ms INTEGER,
-        
-        -- API Usage Tracking  
+
+        -- API Usage Tracking
         recipe_count INTEGER DEFAULT 0,
         cache_hit BOOLEAN DEFAULT FALSE,
         duplicate_detected BOOLEAN DEFAULT FALSE,
         cost_points INTEGER DEFAULT 1,
-        
+
         -- Error Handling
         error_code VARCHAR(50),
         error_message TEXT,
         retry_attempt INTEGER DEFAULT 0,
-        
+
         -- Recipe Fingerprinting
         recipe_fingerprints TEXT[],
         duplicate_recipe_ids INTEGER[],
-        
+
         -- Additional Metadata
         api_version VARCHAR(10) DEFAULT 'v1',
         client_version VARCHAR(20) DEFAULT 'prepsense-1.0',
@@ -98,7 +98,7 @@ def create_api_tracking_table():
         db_service = get_database_service()
 
         logger.info("Creating spoonacular_api_calls table...")
-        result = db_service.execute_query(create_table_sql)
+        db_service.execute_query(create_table_sql)
 
         logger.info("Creating indexes...")
         for index_sql in create_indexes_sql:
@@ -114,8 +114,8 @@ def create_api_tracking_table():
         logger.info("Verifying table creation...")
         columns_result = db_service.execute_query(
             """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
+            SELECT column_name, data_type
+            FROM information_schema.columns
             WHERE table_name = 'spoonacular_api_calls'
             ORDER BY ordinal_position;
         """

@@ -1,7 +1,7 @@
 """Spoonacular API tool for CrewAI agents."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend_gateway.services.spoonacular_service import SpoonacularService
 
@@ -23,7 +23,7 @@ class SpoonacularTool:
     def __init__(self):
         self.spoonacular_service = SpoonacularService()
 
-    def _run(self, action: str, **kwargs) -> Dict[str, Any]:
+    def _run(self, action: str, **kwargs) -> dict[str, Any]:
         """
         Execute a Spoonacular API action.
 
@@ -50,22 +50,19 @@ class SpoonacularTool:
             logger.error(f"Spoonacular tool error: {str(e)}")
             return {"error": f"Spoonacular API call failed: {str(e)}"}
 
-    async def _search_by_ingredients(self, **kwargs) -> Dict[str, Any]:
+    async def _search_by_ingredients(self, **kwargs) -> dict[str, Any]:
         """Search recipes by ingredients."""
         ingredients = kwargs.get("ingredients", [])
         number = kwargs.get("number", 10)
         ranking = kwargs.get("ranking", 1)
         ignore_pantry = kwargs.get("ignore_pantry", True)
-        intolerances = kwargs.get("intolerances", None)
+        intolerances = kwargs.get("intolerances")
 
         if not ingredients:
             return {"error": "No ingredients provided"}
 
         # Convert ingredients list to string if needed
-        if isinstance(ingredients, list):
-            ingredients_str = ",".join(ingredients)
-        else:
-            ingredients_str = ingredients
+        ingredients_str = ",".join(ingredients) if isinstance(ingredients, list) else ingredients
 
         try:
             recipes = await self.spoonacular_service.search_recipes_by_ingredients(
@@ -87,14 +84,14 @@ class SpoonacularTool:
             logger.error(f"Error searching by ingredients: {str(e)}")
             return {"error": f"Failed to search by ingredients: {str(e)}"}
 
-    async def _search_by_query(self, **kwargs) -> Dict[str, Any]:
+    async def _search_by_query(self, **kwargs) -> dict[str, Any]:
         """Search recipes by query string."""
         query = kwargs.get("query", "")
         number = kwargs.get("number", 10)
-        cuisine = kwargs.get("cuisine", None)
-        diet = kwargs.get("diet", None)
-        intolerances = kwargs.get("intolerances", None)
-        type_param = kwargs.get("type", None)
+        cuisine = kwargs.get("cuisine")
+        diet = kwargs.get("diet")
+        intolerances = kwargs.get("intolerances")
+        type_param = kwargs.get("type")
 
         if not query:
             return {"error": "No query provided"}
@@ -120,7 +117,7 @@ class SpoonacularTool:
             logger.error(f"Error searching by query: {str(e)}")
             return {"error": f"Failed to search by query: {str(e)}"}
 
-    async def _get_recipe_details(self, **kwargs) -> Dict[str, Any]:
+    async def _get_recipe_details(self, **kwargs) -> dict[str, Any]:
         """Get detailed recipe information."""
         recipe_id = kwargs.get("recipe_id")
         include_nutrition = kwargs.get("include_nutrition", True)
@@ -143,16 +140,16 @@ class SpoonacularTool:
             logger.error(f"Error getting recipe details: {str(e)}")
             return {"error": f"Failed to get recipe details: {str(e)}"}
 
-    async def _search_with_filters(self, **kwargs) -> Dict[str, Any]:
+    async def _search_with_filters(self, **kwargs) -> dict[str, Any]:
         """Search recipes with comprehensive filters."""
         # Extract parameters
         ingredients = kwargs.get("ingredients", [])
         query = kwargs.get("query", "")
-        cuisine = kwargs.get("cuisine", None)
-        diet = kwargs.get("diet", None)
-        intolerances = kwargs.get("intolerances", None)
-        type_param = kwargs.get("type", None)
-        max_ready_time = kwargs.get("max_ready_time", None)
+        cuisine = kwargs.get("cuisine")
+        diet = kwargs.get("diet")
+        intolerances = kwargs.get("intolerances")
+        type_param = kwargs.get("type")
+        kwargs.get("max_ready_time")
         number = kwargs.get("number", 10)
 
         # Decide which search method to use
@@ -182,7 +179,7 @@ class SpoonacularTool:
                 type_param=type_param,
             )
 
-    def format_recipes_for_agents(self, recipes: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def format_recipes_for_agents(self, recipes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Format recipes for use by agents."""
         formatted_recipes = []
 
@@ -222,7 +219,7 @@ class SpoonacularTool:
 
         return formatted_recipes
 
-    def _extract_nutrient_value(self, nutrition: Dict[str, Any], nutrient_name: str) -> float:
+    def _extract_nutrient_value(self, nutrition: dict[str, Any], nutrient_name: str) -> float:
         """Extract nutrient value from nutrition data."""
         nutrients = nutrition.get("nutrients", [])
         for nutrient in nutrients:

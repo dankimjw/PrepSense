@@ -3,7 +3,6 @@
 Check user recipes and favorites data
 """
 
-import os
 import sys
 from pathlib import Path
 

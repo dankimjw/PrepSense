@@ -6,8 +6,9 @@ Provides fast, streaming responses for recipe recommendations
 import asyncio
 import json
 import logging
+from collections.abc import AsyncGenerator
 from datetime import datetime
-from typing import Any, AsyncGenerator, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
@@ -26,7 +27,7 @@ router = APIRouter(prefix="/api/v1/chat", tags=["chat-streaming"])
 class ChatRequest(BaseModel):
     message: str
     user_id: int = 111  # Default user for demo
-    context: Dict[str, Any] = {}
+    context: dict[str, Any] = {}
 
 
 class ChatStreamingService:
@@ -39,7 +40,7 @@ class ChatStreamingService:
         self.cache_manager = CacheManager(self.background_flows)
 
     async def process_message_stream(
-        self, message: str, user_id: int, context: Dict[str, Any]
+        self, message: str, user_id: int, context: dict[str, Any]
     ) -> AsyncGenerator[str, None]:
         """Process chat message and stream response"""
         try:
@@ -90,8 +91,8 @@ class ChatStreamingService:
         return any(keyword in message_lower for keyword in recipe_keywords)
 
     async def _stream_recipe_recommendations(
-        self, message: str, user_id: int, context: Dict[str, Any]
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        self, message: str, user_id: int, context: dict[str, Any]
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream recipe recommendations"""
 
         # Send initial response
@@ -160,8 +161,8 @@ class ChatStreamingService:
                 logger.warning(f"Cache refresh failed: {str(e)}")
 
     async def _stream_general_response(
-        self, message: str, user_id: int, context: Dict[str, Any]
-    ) -> AsyncGenerator[Dict[str, Any], None]:
+        self, message: str, user_id: int, context: dict[str, Any]
+    ) -> AsyncGenerator[dict[str, Any], None]:
         """Stream general chat response"""
 
         # For now, provide a helpful response
@@ -176,7 +177,7 @@ class ChatStreamingService:
         words = response.split()
         current_text = ""
 
-        for i, word in enumerate(words):
+        for _i, word in enumerate(words):
             current_text += word + " "
 
             yield {
@@ -195,7 +196,7 @@ class ChatStreamingService:
             "timestamp": datetime.now().isoformat(),
         }
 
-    def _format_recipe_recommendation(self, recommendation: Dict[str, Any]) -> str:
+    def _format_recipe_recommendation(self, recommendation: dict[str, Any]) -> str:
         """Format recipe recommendation for display"""
         title = recommendation.get("title", "Unknown Recipe")
         explanation = recommendation.get("explanation", "")
@@ -301,7 +302,7 @@ async def quick_recipe_recommendations(
 
     except Exception as e:
         logger.error(f"Error in quick recommendations: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/performance")
@@ -330,7 +331,7 @@ async def refresh_cache(
 
     except Exception as e:
         logger.error(f"Error refreshing cache: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.delete("/cache/clear")
@@ -349,4 +350,4 @@ async def clear_cache(
 
     except Exception as e:
         logger.error(f"Error clearing cache: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

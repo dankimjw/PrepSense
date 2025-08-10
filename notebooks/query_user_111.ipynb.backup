@@ -1,0 +1,197 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# Query Postgres for User 111\n",
+    "\n",
+    "This notebook discovers all tables that contain a `user_id` column and queries rows for `user_id = 111`.\n",
+    "\n",
+    "- Reads database credentials from environment variables using `python-dotenv` if a `.env` file is present.\n",
+    "- Saves each result set to CSV and JSON in `./exports/`.\n",
+    "- Uses safe read-only `SELECT` queries.\n",
+    "\n",
+    "Required env variables (set in shell or .env):\n",
+    "- `PGHOST`\n",
+    "- `PGPORT` (default 5432)\n",
+    "- `PGDATABASE`\n",
+    "- `PGUSER`\n",
+    "- `PGPASSWORD`\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "%pip -q install psycopg2-binary python-dotenv pandas tabulate"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "import os\n",
+    "from pathlib import Path\n",
+    "from typing import List, Tuple\n",
+    "\n",
+    "import pandas as pd\n",
+    "from dotenv import load_dotenv\n",
+    "import psycopg2\n",
+    "from psycopg2.extras import RealDictCursor\n",
+    "\n",
+    "# Load .env if present (will search current working directory and parents)\n",
+    "load_dotenv(dotenv_path=Path('.') / '.env')\n",
+    "load_dotenv(dotenv_path=Path('..') / '.env')\n",
+    "load_dotenv(dotenv_path=Path('..').parent / '.env')\n",
+    "\n",
+    "USER_ID = int(os.environ.get('QUERY_USER_ID', '111'))\n",
+    "\n",
+    "PGHOST = os.environ.get('PGHOST')\n",
+    "PGPORT = int(os.environ.get('PGPORT', '5432'))\n",
+    "PGDATABASE = os.environ.get('PGDATABASE')\n",
+    "PGUSER = os.environ.get('PGUSER')\n",
+    "PGPASSWORD = os.environ.get('PGPASSWORD')\n",
+    "\n",
+    "missing = [k for k,v in [('PGHOST', PGHOST), ('PGDATABASE', PGDATABASE), ('PGUSER', PGUSER), ('PGPASSWORD', PGPASSWORD)] if not v]\n",
+    "if missing:\n",
+    "    raise RuntimeError(f'Missing required env vars: {missing}. Please set them in your environment or a .env file.')\n",
+    "\n",
+    "print('Connecting with:')\n",
+    "print(f'  Host: {PGHOST}')\n",
+    "print(f'  Port: {PGPORT}')\n",
+    "print(f'  DB  : {PGDATABASE}')\n",
+    "print(f'  User: {PGUSER}')\n",
+    "print(f'Querying user_id = {USER_ID}')\n",
+    "\n",
+    "conn = psycopg2.connect(host=PGHOST, port=PGPORT, dbname=PGDATABASE, user=PGUSER, password=PGPASSWORD)\n",
+    "conn.set_session(readonly=True, autocommit=True)\n",
+    "conn\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def find_user_tables(connection) -> List[Tuple[str, str]]:\n",
+    "    \"\"\"Return list of (schema, table) that contain a user_id column.\n",
+    "    Excludes PG internal schemas.\n",
+    "    \"\"\"\n",
+    "    sql = '''\n",
+    "    SELECT table_schema, table_name\n",
+    "    FROM information_schema.columns\n",
+    "    WHERE column_name = 'user_id'\n",
+    "      AND table_schema NOT IN ('pg_catalog', 'information_schema')\n",
+    "    ORDER BY table_schema, table_name;\n",
+    "    '''\n",
+    "    with connection.cursor() as cur:\n",
+    "        cur.execute(sql)\n",
+    "        return cur.fetchall()\n",
+    "\n",
+    "tables = find_user_tables(conn)\n",
+    "if not tables:\n",
+    "    print('No tables with user_id column found.')\n",
+    "else:\n",
+    "    print('Tables with user_id:')\n",
+    "    for schema, table in tables:\n",
+    "        print(f'- {schema}.{table}')\n",
+    "len(tables)\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "export_dir = Path('exports')\n",
+    "export_dir.mkdir(exist_ok=True)\n",
+    "export_dir.resolve()\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "def query_table(connection, schema: str, table: str, user_id: int) -> pd.DataFrame:\n",
+    "    sql = f'SELECT * FROM {schema}."{table}" WHERE user_id = %s'\n",
+    "    with connection.cursor(cursor_factory=RealDictCursor) as cur:\n",
+    "        cur.execute(sql, (user_id,))\n",
+    "        rows = cur.fetchall()\n",
+    "    return pd.DataFrame(rows)\n",
+    "\n",
+    "summaries = []\n",
+    "for schema, table in tables:\n",
+    "    try:\n",
+    "        df = query_table(conn, schema, table, USER_ID)\n",
+    "        if df.empty:\n",
+    "            print(f'No rows for user {USER_ID} in {schema}.{table}')\n",
+    "            continue\n",
+    "        csv_path = export_dir / f'{schema}.{table}.user_{USER_ID}.csv'\n",
+    "        json_path = export_dir / f'{schema}.{table}.user_{USER_ID}.json'\n",
+    "        df.to_csv(csv_path, index=False)\n",
+    "        df.to_json(json_path, orient='records', indent=2, date_format='iso')\n",
+    "        print(f'Exported {len(df)} rows from {schema}.{table} -> {csv_path.name}, {json_path.name}')\n",
+    "        summaries.append({'schema': schema, 'table': table, 'rows': len(df)})\n",
+    "    except Exception as e:\n",
+    "        print(f'Error querying {schema}.{table}: {e}')\n",
+    "\n",
+    "pd.DataFrame(summaries).sort_values(['schema','table']).reset_index(drop=True) if summaries else pd.DataFrame(columns=['schema','table','rows'])\n"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# Optional: peek into key known tables if present\n",
+    "key_tables = [\n",
+    "    ('public', 'pantry_items'),\n",
+    "    ('public', 'user_recipes'),\n",
+    "    ('public', 'recipe_consumption'),\n",
+    "    ('public', 'recipe_cooked'),\n",
+    "    ('public', 'users'),\n",
+    "]\n",
+    "\n",
+    "present = {(s,t) for (s,t) in tables}\n",
+    "for s,t in key_tables:\n",
+    "    if (s,t) in present:\n",
+    "        try:\n",
+    "            display(query_table(conn, s, t, USER_ID).head(20))\n",
+    "        except Exception as e:\n",
+    "            print(f'Error previewing {s}.{t}: {e}')\n"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## Done\n",
+    "- Exports saved in `notebooks/exports/` relative to this notebook.\n",
+    "- Adjust `USER_ID` or env variables as needed and re-run.\n"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3 (ipykernel)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "name": "python",
+   "version": "3.11"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}

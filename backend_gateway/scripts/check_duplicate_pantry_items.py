@@ -21,7 +21,7 @@ def check_duplicate_pantry_items():
 
     # Get all pantry items grouped by user
     query = """
-    SELECT 
+    SELECT
         p.user_id,
         pi.pantry_item_id,
         pi.product_name,
@@ -95,7 +95,7 @@ def check_duplicate_pantry_items():
     # Check specific case mentioned in the issue
     print("\n=== Checking 'Pacific Organic Low Sodium Chicken Broth' ===")
     pacific_query = """
-    SELECT 
+    SELECT
         p.user_id,
         pi.pantry_item_id,
         pi.product_name,

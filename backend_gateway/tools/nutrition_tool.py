@@ -1,7 +1,7 @@
 """Nutrition analysis tool for CrewAI agents."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # from crewai_tools import BaseTool  # Not available in CrewAI 0.5.0
 
@@ -40,7 +40,7 @@ class NutritionTool:
             "zinc": 11,  # mg
         }
 
-    def _run(self, action: str, **kwargs) -> Dict[str, Any]:
+    def _run(self, action: str, **kwargs) -> dict[str, Any]:
         """
         Execute a nutrition analysis action.
 
@@ -71,7 +71,7 @@ class NutritionTool:
             logger.error(f"Nutrition tool error: {str(e)}")
             return {"error": f"Nutrition analysis failed: {str(e)}"}
 
-    def _analyze_recipe(self, **kwargs) -> Dict[str, Any]:
+    def _analyze_recipe(self, **kwargs) -> dict[str, Any]:
         """Analyze nutritional content of a recipe."""
         recipe = kwargs.get("recipe", {})
 
@@ -105,7 +105,7 @@ class NutritionTool:
             "analysis_complete": True,
         }
 
-    def _compare_to_rda(self, **kwargs) -> Dict[str, Any]:
+    def _compare_to_rda(self, **kwargs) -> dict[str, Any]:
         """Compare nutrition values to RDA."""
         nutrition = kwargs.get("nutrition", {})
 
@@ -158,7 +158,7 @@ class NutritionTool:
             "overall_score": self._calculate_overall_score(comparison),
         }
 
-    def _evaluate_nutritional_balance(self, **kwargs) -> Dict[str, Any]:
+    def _evaluate_nutritional_balance(self, **kwargs) -> dict[str, Any]:
         """Evaluate overall nutritional balance."""
         nutrition = kwargs.get("nutrition", {})
 
@@ -225,7 +225,7 @@ class NutritionTool:
             "total_calories": calories,
         }
 
-    def _identify_nutritional_gaps(self, **kwargs) -> Dict[str, Any]:
+    def _identify_nutritional_gaps(self, **kwargs) -> dict[str, Any]:
         """Identify nutritional gaps and deficiencies."""
         nutrition = kwargs.get("nutrition", {})
         user_profile = kwargs.get("user_profile", {})
@@ -267,7 +267,7 @@ class NutritionTool:
             "recommendations": self._generate_gap_recommendations(gaps),
         }
 
-    def _score_recipe_nutrition(self, **kwargs) -> Dict[str, Any]:
+    def _score_recipe_nutrition(self, **kwargs) -> dict[str, Any]:
         """Score a recipe's nutritional value."""
         recipe = kwargs.get("recipe", {})
 
@@ -310,7 +310,7 @@ class NutritionTool:
             "max_score": 10,
         }
 
-    def _get_macro_breakdown(self, **kwargs) -> Dict[str, Any]:
+    def _get_macro_breakdown(self, **kwargs) -> dict[str, Any]:
         """Get detailed macronutrient breakdown."""
         nutrition = kwargs.get("nutrition", {})
 
@@ -350,7 +350,7 @@ class NutritionTool:
 
         return breakdown
 
-    def _standardize_nutrition(self, nutrition: Dict[str, Any]) -> Dict[str, Any]:
+    def _standardize_nutrition(self, nutrition: dict[str, Any]) -> dict[str, Any]:
         """Standardize nutrition data format."""
         standardized = {}
 
@@ -396,16 +396,15 @@ class NutritionTool:
                 return "adequate"
             else:
                 return "low"
+        # These should be adequate
+        elif percentage < 70:
+            return "deficient"
+        elif percentage < 100:
+            return "adequate"
         else:
-            # These should be adequate
-            if percentage < 70:
-                return "deficient"
-            elif percentage < 100:
-                return "adequate"
-            else:
-                return "excellent"
+            return "excellent"
 
-    def _calculate_overall_score(self, comparison: Dict[str, Any]) -> float:
+    def _calculate_overall_score(self, comparison: dict[str, Any]) -> float:
         """Calculate overall nutritional score."""
         scores = []
 
@@ -420,20 +419,19 @@ class NutritionTool:
                     score = 7
                 else:
                     score = 3
+            # Higher is better for these
+            elif percentage >= 100:
+                score = 10
+            elif percentage >= 70:
+                score = 7
             else:
-                # Higher is better for these
-                if percentage >= 100:
-                    score = 10
-                elif percentage >= 70:
-                    score = 7
-                else:
-                    score = 3
+                score = 3
 
             scores.append(score)
 
         return round(sum(scores) / len(scores), 1) if scores else 0
 
-    def _adjust_rda_for_user(self, user_profile: Dict[str, Any]) -> Dict[str, Any]:
+    def _adjust_rda_for_user(self, user_profile: dict[str, Any]) -> dict[str, Any]:
         """Adjust RDA values based on user profile."""
         # For now, return standard RDA values
         # In future, could adjust based on age, gender, activity level, etc.
@@ -451,7 +449,7 @@ class NutritionTool:
         else:
             return "low"
 
-    def _generate_gap_recommendations(self, gaps: List[Dict[str, Any]]) -> List[str]:
+    def _generate_gap_recommendations(self, gaps: list[dict[str, Any]]) -> list[str]:
         """Generate recommendations based on nutritional gaps."""
         recommendations = []
 
@@ -480,7 +478,7 @@ class NutritionTool:
 
         return recommendations
 
-    def _score_protein_content(self, nutrition: Dict[str, Any]) -> float:
+    def _score_protein_content(self, nutrition: dict[str, Any]) -> float:
         """Score protein content (0-10)."""
         protein = nutrition.get("protein", 0)
         calories = nutrition.get("calories", 0)
@@ -499,7 +497,7 @@ class NutritionTool:
         else:
             return 3
 
-    def _score_fiber_content(self, nutrition: Dict[str, Any]) -> float:
+    def _score_fiber_content(self, nutrition: dict[str, Any]) -> float:
         """Score fiber content (0-10)."""
         fiber = nutrition.get("fiber", 0)
         calories = nutrition.get("calories", 0)
@@ -518,7 +516,7 @@ class NutritionTool:
         else:
             return 3
 
-    def _score_vitamin_content(self, nutrition: Dict[str, Any]) -> float:
+    def _score_vitamin_content(self, nutrition: dict[str, Any]) -> float:
         """Score vitamin content (0-10)."""
         vitamin_c = nutrition.get("vitamin_c", 0)
         vitamin_d = nutrition.get("vitamin_d", 0)
@@ -541,7 +539,7 @@ class NutritionTool:
 
         return score / count if count > 0 else 5
 
-    def _score_mineral_content(self, nutrition: Dict[str, Any]) -> float:
+    def _score_mineral_content(self, nutrition: dict[str, Any]) -> float:
         """Score mineral content (0-10)."""
         calcium = nutrition.get("calcium", 0)
         iron = nutrition.get("iron", 0)
@@ -564,7 +562,7 @@ class NutritionTool:
 
         return score / count if count > 0 else 5
 
-    def _score_macro_balance(self, nutrition: Dict[str, Any]) -> float:
+    def _score_macro_balance(self, nutrition: dict[str, Any]) -> float:
         """Score macronutrient balance (0-10)."""
         balance_result = self._evaluate_nutritional_balance(nutrition=nutrition)
 
@@ -574,7 +572,7 @@ class NutritionTool:
         balance_score = balance_result["balance_score"]
         return (balance_score / 3) * 10
 
-    def _score_calorie_density(self, nutrition: Dict[str, Any]) -> float:
+    def _score_calorie_density(self, nutrition: dict[str, Any]) -> float:
         """Score calorie density (0-10)."""
         calories = nutrition.get("calories", 0)
 

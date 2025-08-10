@@ -78,7 +78,7 @@ def process_fao_data():
         return
 
     # Filter for consumer and retail stages
-    logger.info(f"Filtering for consumer and retail stages...")
+    logger.info("Filtering for consumer and retail stages...")
     consumer_retail = df[
         df[stage_col].str.lower().isin(["consumer", "retail", "consumption", "household"])
     ]
@@ -100,7 +100,7 @@ def process_fao_data():
     # Sort by median loss rate
     grouped = grouped.sort_values("median", ascending=False)
 
-    print(f"\nTop 20 commodities by median loss rate:")
+    print("\nTop 20 commodities by median loss rate:")
     print(grouped.head(20))
 
     # Create processed data for our system

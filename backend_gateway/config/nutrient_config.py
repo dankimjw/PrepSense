@@ -1,7 +1,5 @@
 """Nutrient database configuration and RDA (Recommended Daily Allowance) values."""
 
-from typing import Any, Dict
-
 # USDA-based nutrient RDA values (adult averages)
 # Based on FDA Daily Values and USDA Dietary Guidelines
 RDA_VALUES = {

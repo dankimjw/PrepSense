@@ -2,8 +2,8 @@
 
 import logging
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -40,11 +40,11 @@ class RecipePreferenceScorer:
 
     def calculate_comprehensive_score(
         self,
-        recipe: Dict[str, Any],
+        recipe: dict[str, Any],
         user_id: int,
-        pantry_items: Optional[List[Dict[str, Any]]] = None,
-        context: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        pantry_items: Optional[list[dict[str, Any]]] = None,
+        context: Optional[dict[str, Any]] = None,
+    ) -> dict[str, Any]:
         """
         Calculate comprehensive recipe score with detailed breakdown
 
@@ -117,7 +117,7 @@ class RecipePreferenceScorer:
             "personalization_confidence": self._calculate_confidence(user_data),
         }
 
-    def _get_user_preference_data(self, user_id: int) -> Dict[str, Any]:
+    def _get_user_preference_data(self, user_id: int) -> dict[str, Any]:
         """Fetch comprehensive user preference data"""
 
         data = {
@@ -149,8 +149,8 @@ class RecipePreferenceScorer:
 
         # Get cuisine preferences (including negative preferences)
         cuisine_query = """
-        SELECT cuisine, preference_level 
-        FROM user_cuisine_preferences 
+        SELECT cuisine, preference_level
+        FROM user_cuisine_preferences
         WHERE user_id = %(user_id)s
         """
         cuisines = self.db_service.execute_query(cuisine_query, {"user_id": user_id})
@@ -160,7 +160,7 @@ class RecipePreferenceScorer:
 
         # Get recipe history and ratings
         history_query = """
-        SELECT 
+        SELECT
             recipe_id,
             recipe_title,
             recipe_data,
@@ -203,10 +203,10 @@ class RecipePreferenceScorer:
 
     def _score_ingredients(
         self,
-        recipe: Dict[str, Any],
-        user_data: Dict[str, Any],
-        pantry_items: Optional[List[Dict[str, Any]]],
-    ) -> Dict[str, Any]:
+        recipe: dict[str, Any],
+        user_data: dict[str, Any],
+        pantry_items: Optional[list[dict[str, Any]]],
+    ) -> dict[str, Any]:
         """Score recipe based on ingredient preferences"""
 
         recipe_ingredients = self._extract_recipe_ingredients(recipe)
@@ -239,7 +239,7 @@ class RecipePreferenceScorer:
             "disliked_matches": list(disliked_matches),
         }
 
-    def _score_cuisine(self, recipe: Dict[str, Any], user_data: Dict[str, Any]) -> Dict[str, Any]:
+    def _score_cuisine(self, recipe: dict[str, Any], user_data: dict[str, Any]) -> dict[str, Any]:
         """Score recipe based on cuisine preferences"""
 
         recipe_cuisine = recipe.get("cuisine_type", recipe.get("cuisines", ["unknown"]))[0]
@@ -256,8 +256,8 @@ class RecipePreferenceScorer:
         return {"weighted_score": score, "cuisine": recipe_cuisine, "details": details}
 
     def _score_dietary_compatibility(
-        self, recipe: Dict[str, Any], user_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, recipe: dict[str, Any], user_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Score recipe based on dietary restrictions and allergens"""
 
         score = 0.0
@@ -286,8 +286,8 @@ class RecipePreferenceScorer:
         }
 
     def _score_cooking_time(
-        self, recipe: Dict[str, Any], user_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, recipe: dict[str, Any], user_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Score recipe based on cooking time preferences"""
 
         recipe_time = recipe.get("readyInMinutes", recipe.get("time", 30))
@@ -316,20 +316,20 @@ class RecipePreferenceScorer:
         }
 
     def _score_recipe_similarity(
-        self, recipe: Dict[str, Any], user_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, recipe: dict[str, Any], user_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Score based on similarity to previously rated recipes"""
 
         score = 0.0
         details = []
 
         # This is a simplified version - could use more sophisticated similarity metrics
-        recipe_ingredients = set(self._extract_recipe_ingredients(recipe))
+        set(self._extract_recipe_ingredients(recipe))
 
         similar_positive = 0
         similar_negative = 0
 
-        for rated_id, rating in user_data["ratings"].items():
+        for _rated_id, rating in user_data["ratings"].items():
             # In practice, would fetch recipe data for comparison
             # For now, using a simple heuristic
             if rating == "positive":
@@ -348,8 +348,8 @@ class RecipePreferenceScorer:
         return {"weighted_score": score, "details": details}
 
     def _score_nutritional_match(
-        self, recipe: Dict[str, Any], user_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, recipe: dict[str, Any], user_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Score based on nutritional goals"""
 
         score = 0.0
@@ -365,8 +365,8 @@ class RecipePreferenceScorer:
         return {"weighted_score": score, "details": details}
 
     def _score_context_match(
-        self, recipe: Dict[str, Any], context: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, recipe: dict[str, Any], context: dict[str, Any]
+    ) -> dict[str, Any]:
         """Score based on context (season, meal type, occasion)"""
 
         score = 0.0
@@ -380,7 +380,7 @@ class RecipePreferenceScorer:
 
         return {"weighted_score": score, "details": details}
 
-    def _extract_recipe_ingredients(self, recipe: Dict[str, Any]) -> List[str]:
+    def _extract_recipe_ingredients(self, recipe: dict[str, Any]) -> list[str]:
         """Extract ingredient names from recipe"""
         ingredients = []
 
@@ -388,17 +388,16 @@ class RecipePreferenceScorer:
             for ing in recipe["extendedIngredients"]:
                 if "name" in ing:
                     ingredients.append(ing["name"].lower())
-        elif "ingredients" in recipe:
-            if isinstance(recipe["ingredients"], list):
-                for ing in recipe["ingredients"]:
-                    if isinstance(ing, str):
-                        ingredients.append(ing.lower())
-                    elif isinstance(ing, dict) and "name" in ing:
-                        ingredients.append(ing["name"].lower())
+        elif "ingredients" in recipe and isinstance(recipe["ingredients"], list):
+            for ing in recipe["ingredients"]:
+                if isinstance(ing, str):
+                    ingredients.append(ing.lower())
+                elif isinstance(ing, dict) and "name" in ing:
+                    ingredients.append(ing["name"].lower())
 
         return ingredients
 
-    def _extract_allergens(self, recipe: Dict[str, Any]) -> List[str]:
+    def _extract_allergens(self, recipe: dict[str, Any]) -> list[str]:
         """Extract potential allergens from recipe"""
         allergens = []
 
@@ -417,7 +416,7 @@ class RecipePreferenceScorer:
         return allergens
 
     def _count_expiring_items_used(
-        self, recipe_ingredients: List[str], pantry_items: List[Dict[str, Any]]
+        self, recipe_ingredients: list[str], pantry_items: list[dict[str, Any]]
     ) -> int:
         """Count how many expiring pantry items the recipe uses"""
 
@@ -438,19 +437,19 @@ class RecipePreferenceScorer:
 
         return expiring_count
 
-    def _generate_reasoning(self, components: Dict[str, Any], recipe: Dict[str, Any]) -> List[str]:
+    def _generate_reasoning(self, components: dict[str, Any], recipe: dict[str, Any]) -> list[str]:
         """Generate human-readable reasoning for the score"""
 
         reasoning = []
 
         # Gather all positive reasons
-        for component, data in components.items():
+        for _component, data in components.items():
             if data.get("weighted_score", 0) > 0:
                 reasoning.extend(data.get("details", []))
 
         # Add warnings for negative scores
         warnings = []
-        for component, data in components.items():
+        for _component, data in components.items():
             if data.get("weighted_score", 0) < 0:
                 warnings.extend(data.get("details", []))
                 warnings.extend(data.get("violations", []))
@@ -474,7 +473,7 @@ class RecipePreferenceScorer:
         else:
             return "Not Recommended"
 
-    def _calculate_confidence(self, user_data: Dict[str, Any]) -> float:
+    def _calculate_confidence(self, user_data: dict[str, Any]) -> float:
         """Calculate confidence in personalization based on available data"""
 
         data_points = 0

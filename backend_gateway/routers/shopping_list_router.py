@@ -1,6 +1,5 @@
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -30,12 +29,12 @@ class ShoppingListItem(BaseModel):
 
 class AddItemsRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
-    items: List[ShoppingListItem] = Field(..., description="Items to add")
+    items: list[ShoppingListItem] = Field(..., description="Items to add")
 
 
 class RemoveItemsRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
-    item_names: List[str] = Field(..., description="Names of items to remove")
+    item_names: list[str] = Field(..., description="Names of items to remove")
 
 
 class UpdateItemRequest(BaseModel):
@@ -47,7 +46,7 @@ class UpdateItemRequest(BaseModel):
 
 
 @router.get(
-    "/user/{user_id}/items", response_model=List[Dict[str, Any]], summary="Get Shopping List"
+    "/user/{user_id}/items", response_model=list[dict[str, Any]], summary="Get Shopping List"
 )
 async def get_shopping_list(user_id: int, db_service=Depends(get_database_service)):
     """
@@ -55,7 +54,7 @@ async def get_shopping_list(user_id: int, db_service=Depends(get_database_servic
     """
     try:
         query = """
-        SELECT 
+        SELECT
             shopping_list_item_id,
             item_name,
             quantity,
@@ -69,7 +68,7 @@ async def get_shopping_list(user_id: int, db_service=Depends(get_database_servic
             updated_at
         FROM shopping_list_items
         WHERE user_id = @user_id
-        ORDER BY 
+        ORDER BY
             is_checked ASC,  -- Unchecked items first
             priority DESC,   -- Higher priority first
             added_date DESC  -- Newest first
@@ -99,10 +98,10 @@ async def get_shopping_list(user_id: int, db_service=Depends(get_database_servic
 
     except Exception as e:
         logger.error(f"Error getting shopping list: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get shopping list: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get shopping list: {str(e)}") from e
 
 
-@router.post("/add-items", response_model=Dict[str, Any], summary="Add Items to Shopping List")
+@router.post("/add-items", response_model=dict[str, Any], summary="Add Items to Shopping List")
 async def add_shopping_list_items(
     request: AddItemsRequest, db_service=Depends(get_database_service)
 ):
@@ -118,7 +117,7 @@ async def add_shopping_list_items(
             check_query = """
             SELECT shopping_list_item_id, quantity
             FROM shopping_list_items
-            WHERE user_id = @user_id 
+            WHERE user_id = @user_id
             AND LOWER(item_name) = LOWER(@item_name)
             AND is_checked = false
             """
@@ -150,7 +149,7 @@ async def add_shopping_list_items(
                 # Insert new item
                 insert_query = """
                 INSERT INTO shopping_list_items (
-                    user_id, item_name, quantity, unit, category, 
+                    user_id, item_name, quantity, unit, category,
                     recipe_name, notes, is_checked, priority
                 ) VALUES (
                     @user_id, @item_name, @quantity, @unit, @category,
@@ -194,11 +193,11 @@ async def add_shopping_list_items(
 
     except Exception as e:
         logger.error(f"Error adding shopping list items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add items: {str(e)}") from e
 
 
 @router.post(
-    "/remove-items", response_model=Dict[str, Any], summary="Remove Items from Shopping List"
+    "/remove-items", response_model=dict[str, Any], summary="Remove Items from Shopping List"
 )
 async def remove_shopping_list_items(
     request: RemoveItemsRequest, db_service=Depends(get_database_service)
@@ -212,7 +211,7 @@ async def remove_shopping_list_items(
         for item_name in request.item_names:
             delete_query = """
             DELETE FROM shopping_list_items
-            WHERE user_id = @user_id 
+            WHERE user_id = @user_id
             AND LOWER(item_name) = LOWER(@item_name)
             """
 
@@ -242,11 +241,11 @@ async def remove_shopping_list_items(
 
     except Exception as e:
         logger.error(f"Error removing shopping list items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to remove items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to remove items: {str(e)}") from e
 
 
 @router.patch(
-    "/items/{item_id}", response_model=Dict[str, Any], summary="Update Shopping List Item"
+    "/items/{item_id}", response_model=dict[str, Any], summary="Update Shopping List Item"
 )
 async def update_shopping_list_item(
     item_id: int, update_data: UpdateItemRequest, db_service=Depends(get_database_service)
@@ -301,11 +300,11 @@ async def update_shopping_list_item(
         raise
     except Exception as e:
         logger.error(f"Error updating shopping list item: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update item: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update item: {str(e)}") from e
 
 
 @router.delete(
-    "/user/{user_id}/clear", response_model=Dict[str, Any], summary="Clear Shopping List"
+    "/user/{user_id}/clear", response_model=dict[str, Any], summary="Clear Shopping List"
 )
 async def clear_shopping_list(user_id: int, db_service=Depends(get_database_service)):
     """
@@ -334,11 +333,13 @@ async def clear_shopping_list(user_id: int, db_service=Depends(get_database_serv
 
     except Exception as e:
         logger.error(f"Error clearing shopping list: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to clear shopping list: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear shopping list: {str(e)}"
+        ) from e
 
 
 @router.get(
-    "/user/{user_id}/summary", response_model=Dict[str, Any], summary="Get Shopping List Summary"
+    "/user/{user_id}/summary", response_model=dict[str, Any], summary="Get Shopping List Summary"
 )
 async def get_shopping_list_summary(user_id: int, db_service=Depends(get_database_service)):
     """
@@ -346,7 +347,7 @@ async def get_shopping_list_summary(user_id: int, db_service=Depends(get_databas
     """
     try:
         query = """
-        SELECT 
+        SELECT
             total_items,
             unchecked_items,
             checked_items,
@@ -367,4 +368,4 @@ async def get_shopping_list_summary(user_id: int, db_service=Depends(get_databas
 
     except Exception as e:
         logger.error(f"Error getting shopping list summary: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get summary: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get summary: {str(e)}") from e

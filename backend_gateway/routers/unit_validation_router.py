@@ -4,10 +4,10 @@ Provides endpoints for validating and fixing inappropriate units.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import asyncpg
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from backend_gateway.core.database import get_db_pool
@@ -59,7 +59,7 @@ async def validate_unit(
 @router.get("/check-pantry/{user_id}")
 async def check_pantry_units(
     user_id: int, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Check all pantry items for unit validation issues.
 
@@ -75,7 +75,7 @@ async def check_pantry_units(
 @router.post("/fix-pantry/{user_id}")
 async def fix_pantry_units(
     user_id: int, auto_fix: bool = False, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Fix unit validation issues in pantry.
 
@@ -96,7 +96,7 @@ async def fix_pantry_units(
 @router.get("/suggestions/{item_name}")
 async def get_unit_suggestions(
     item_name: str, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get suggested units for a food item.
 
@@ -116,7 +116,7 @@ async def get_unit_suggestions(
 
 
 @router.get("/categories")
-async def get_unit_categories() -> Dict[str, Any]:
+async def get_unit_categories() -> dict[str, Any]:
     """
     Get all unit categories and their rules.
 
@@ -209,7 +209,7 @@ async def get_unit_categories() -> Dict[str, Any]:
 @router.post("/batch-validate")
 async def batch_validate_units(
     items: list[UnitValidationRequest], db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validate multiple items at once.
 

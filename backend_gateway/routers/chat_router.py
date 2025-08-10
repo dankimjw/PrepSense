@@ -1,17 +1,12 @@
 import logging
 import os
-from typing import Any, Dict, List
+from typing import Any
 
 import openai
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend_gateway.models.user import UserInDB
-from backend_gateway.routers.users import get_current_active_user
 from backend_gateway.services.recipe_advisor_service import CrewAIService
-from backend_gateway.services.intelligent_chat_service import IntelligentChatService
-from backend_gateway.services.agent_first_chat_service import AgentFirstChatService
-from backend_gateway.services.recipe_enrichment_service import RecipeEnrichmentService
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +26,11 @@ class ChatMessage(BaseModel):
 
 class ChatResponse(BaseModel):
     response: str
-    recipes: List[Dict[str, Any]] = []
-    pantry_items: List[Dict[str, Any]] = []
-    user_preferences: Dict[str, Any] = None
+    recipes: list[dict[str, Any]] = []
+    pantry_items: list[dict[str, Any]] = []
+    user_preferences: dict[str, Any] = None
     show_preference_choice: bool = False
-    nutrient_analysis: Dict[str, Any] = None
+    nutrient_analysis: dict[str, Any] = None
 
 
 class ImageGenerationRequest(BaseModel):
@@ -50,11 +45,7 @@ class ImageGenerationResponse(BaseModel):
 
 
 def get_crew_ai_service():
-    return AgentFirstChatService()  # ALWAYS use CrewAI agents for ALL ranking decisions
-
-
-def get_recipe_enrichment_service():
-    return RecipeEnrichmentService()
+    return CrewAIService()
 
 
 # def get_nutrient_aware_crew_service():
@@ -63,13 +54,10 @@ def get_recipe_enrichment_service():
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
-    chat_message: ChatMessage, 
-    crew_ai_service: AgentFirstChatService = Depends(get_crew_ai_service),
-    enrichment_service: RecipeEnrichmentService = Depends(get_recipe_enrichment_service)
+    chat_message: ChatMessage, crew_ai_service: CrewAIService = Depends(get_crew_ai_service)
 ):
     """
     Send a message to the AI assistant and get recipe recommendations.
-    ALWAYS uses CrewAI agents to analyze user intent and rank recipes contextually.
     """
     try:
         # Check if this is the first message (to show preference choice)
@@ -84,20 +72,6 @@ async def send_message(
             use_preferences=chat_message.use_preferences,
         )
 
-        # Enrich chat-generated recipes with Spoonacular-style data structure
-        if response.get('recipes'):
-            enriched_recipes = []
-            for recipe in response['recipes']:
-                # Check if recipe needs enrichment (chat-generated recipes)
-                if not recipe.get('extendedIngredients') or not recipe.get('nutrition'):
-                    logger.info(f"Enriching chat recipe: {recipe.get('name', 'Unknown')}")
-                    enriched_recipe = enrichment_service.enrich_recipe(recipe, chat_message.user_id)
-                    enriched_recipes.append(enriched_recipe)
-                else:
-                    enriched_recipes.append(recipe)
-            
-            response['recipes'] = enriched_recipes
-
         # Add preference choice flag for first message
         if show_preference_choice and response.get("user_preferences"):
             response["show_preference_choice"] = True
@@ -105,7 +79,7 @@ async def send_message(
         return response
     except Exception as e:
         logger.error(f"Error processing chat message: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to process message: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to process message: {str(e)}") from e
 
     # @router.post("/message-with-nutrition", response_model=ChatResponse)
     # async def send_message_with_nutrition(

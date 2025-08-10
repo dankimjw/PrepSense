@@ -1,7 +1,7 @@
 """Router for centralized mock data control"""
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -36,8 +36,8 @@ class MockStateResponse(BaseModel):
     """Response model for mock state queries"""
 
     success: bool
-    states: Dict[str, bool]
-    summary: Dict[str, Any]
+    states: dict[str, bool]
+    summary: dict[str, Any]
     message: str
 
 
@@ -56,7 +56,7 @@ async def get_mock_status() -> MockStateResponse:
         )
     except Exception as e:
         logger.error(f"Error getting mock status: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/toggle", response_model=MockStateResponse, summary="Toggle a specific mock feature")
@@ -81,7 +81,7 @@ async def toggle_mock_feature(request: MockToggleRequest) -> MockStateResponse:
         raise
     except Exception as e:
         logger.error(f"Error toggling mock feature: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/toggle-all", response_model=MockStateResponse, summary="Toggle all mock features")
@@ -103,7 +103,7 @@ async def toggle_all_mocks(request: BulkToggleRequest) -> MockStateResponse:
         )
     except Exception as e:
         logger.error(f"Error toggling all mocks: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/reset", response_model=MockStateResponse, summary="Reset all mock data to disabled")
@@ -121,11 +121,11 @@ async def reset_mock_data() -> MockStateResponse:
         )
     except Exception as e:
         logger.error(f"Error resetting mock data: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/features", summary="List all available mock features")
-async def list_mock_features() -> Dict[str, Any]:
+async def list_mock_features() -> dict[str, Any]:
     """Get a list of all available mock features and their descriptions"""
     return {
         "features": {
@@ -160,7 +160,7 @@ async def list_mock_features() -> Dict[str, Any]:
 
 # Backward compatibility endpoints
 @router.post("/ocr/toggle", summary="Toggle OCR mock data (backward compatibility)")
-async def toggle_ocr_mock(enabled: bool = True) -> Dict[str, Any]:
+async def toggle_ocr_mock(enabled: bool = True) -> dict[str, Any]:
     """Toggle OCR mock data - for backward compatibility"""
     RemoteControl.set_mock("ocr_scan", enabled, "legacy_api")
     return {
@@ -172,7 +172,7 @@ async def toggle_ocr_mock(enabled: bool = True) -> Dict[str, Any]:
 
 
 @router.post("/recipes/toggle", summary="Toggle recipe mock data (backward compatibility)")
-async def toggle_recipe_mock(enabled: bool = True) -> Dict[str, Any]:
+async def toggle_recipe_mock(enabled: bool = True) -> dict[str, Any]:
     """Toggle recipe completion mock data - for backward compatibility"""
     RemoteControl.set_mock("recipe_completion", enabled, "legacy_api")
     RemoteControl.set_mock("chat_recipes", enabled, "legacy_api")

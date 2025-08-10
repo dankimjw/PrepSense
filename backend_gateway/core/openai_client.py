@@ -34,7 +34,7 @@ def get_openai_client() -> OpenAI:
             raise
         except Exception as e:
             logger.error(f"Unexpected error initializing OpenAI client: {e}")
-            raise ValueError(f"Failed to initialize OpenAI client: {e}")
+            raise ValueError(f"Failed to initialize OpenAI client: {e}") from e
 
     return _client
 

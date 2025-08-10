@@ -4,7 +4,6 @@ Configure database settings for PrepSense
 Switch between BigQuery and PostgreSQL
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -18,17 +17,15 @@ def update_env_file(use_postgres: bool):
         return False
 
     # Read current .env
-    with open(env_path, "r") as f:
+    with open(env_path) as f:
         lines = f.readlines()
 
     # Update or add database configuration
-    db_config_found = False
     new_lines = []
 
     for line in lines:
         # Skip existing DB_TYPE lines
         if line.strip().startswith("DB_TYPE="):
-            db_config_found = True
             continue
         # Skip PostgreSQL config lines if switching to BigQuery
         if not use_postgres and any(

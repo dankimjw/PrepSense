@@ -3,9 +3,9 @@
 import logging
 import os
 import sys
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 from pydantic import BaseModel, Field
 
 # Add src directory to path to import CrewAI agents
@@ -30,7 +30,7 @@ class PantryNormalizationRequest(BaseModel):
     image_b64: Optional[str] = Field(
         None, description="Base64 encoded image for BiteCam processing"
     )
-    raw_items: Optional[List[Dict[str, Any]]] = Field(
+    raw_items: Optional[list[dict[str, Any]]] = Field(
         None, description="Pre-extracted raw items [{'raw_line': '2 lb chicken'}]"
     )
     user_id: Optional[str] = Field(None, description="User ID for personalization")
@@ -44,7 +44,7 @@ class PrepSenseWorkflowRequest(BaseModel):
     image_b64: Optional[str] = Field(
         None, description="Base64 encoded image for BiteCam processing"
     )
-    raw_items: Optional[List[Dict[str, Any]]] = Field(None, description="Pre-extracted raw items")
+    raw_items: Optional[list[dict[str, Any]]] = Field(None, description="Pre-extracted raw items")
     user_id: str = Field(..., description="User ID (required)")
     freshness_days: int = Field(7, ge=1, le=30, description="Days threshold for freshness filter")
 
@@ -53,7 +53,7 @@ class PrepSenseWorkflowRequest(BaseModel):
     max_final_recipes: int = Field(5, ge=1, le=20, description="Maximum final recommendations")
 
     # Health goals
-    user_health_goals: Optional[Dict[str, Any]] = Field(
+    user_health_goals: Optional[dict[str, Any]] = Field(
         None, description="User health goals for nutrition analysis"
     )
 
@@ -76,8 +76,8 @@ class CrewHealthResponse(BaseModel):
 
     status: str
     crew_name: str
-    agents: Dict[str, str]
-    enabled_features: List[str]
+    agents: dict[str, str]
+    enabled_features: list[str]
     timestamp: str
 
 
@@ -88,9 +88,9 @@ class WorkflowResponse(BaseModel):
     message: str
     timestamp: str
     user_id: Optional[str]
-    recommendations: Optional[List[Dict[str, Any]]] = None
-    workflow_summary: Optional[Dict[str, Any]] = None
-    steps: Optional[Dict[str, Any]] = None
+    recommendations: Optional[list[dict[str, Any]]] = None
+    workflow_summary: Optional[dict[str, Any]] = None
+    steps: Optional[dict[str, Any]] = None
 
 
 # Router setup
@@ -185,7 +185,7 @@ async def get_workflow_description():
         return crew.get_workflow_description()
     except Exception as e:
         logger.error(f"Failed to get workflow description: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/pantry/normalize", response_model=WorkflowResponse)
@@ -221,7 +221,7 @@ async def normalize_pantry(request: PantryNormalizationRequest):
 
     except Exception as e:
         logger.error(f"Pantry normalization failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pantry normalization failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pantry normalization failed: {str(e)}") from e
 
 
 @router.post("/workflow/complete", response_model=WorkflowResponse)
@@ -242,7 +242,7 @@ async def run_complete_workflow(request: PrepSenseWorkflowRequest):
 
     except Exception as e:
         logger.error(f"Complete workflow failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Workflow failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Workflow failed: {str(e)}") from e
 
 
 @router.post("/recipes/quick", response_model=WorkflowResponse)
@@ -261,7 +261,9 @@ async def quick_recipe_recommendations(request: QuickRecommendationRequest):
 
     except Exception as e:
         logger.error(f"Quick recommendations failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Quick recommendations failed: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Quick recommendations failed: {str(e)}"
+        ) from e
 
 
 @router.post("/recipes/select")
@@ -278,12 +280,6 @@ async def select_recipe(
         crew = get_main_crew()
 
         # Run workflow with specific recipe selection
-        input_data = {
-            "user_id": user_id,
-            "selected_recipe_id": recipe_id,
-            "commit_deduction": commit_deduction,
-            "max_recipes": 1,  # Only process the selected recipe
-        }
 
         if commit_deduction:
             logger.info(f"Deducting ingredients for recipe {recipe_id} for user {user_id}")
@@ -313,7 +309,7 @@ async def select_recipe(
 
     except Exception as e:
         logger.error(f"Recipe selection failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Recipe selection failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Recipe selection failed: {str(e)}") from e
 
 
 @router.get("/pantry/summary/{user_id}")
@@ -334,7 +330,7 @@ async def get_pantry_summary(user_id: str):
 
     except Exception as e:
         logger.error(f"Pantry summary failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pantry summary failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pantry summary failed: {str(e)}") from e
 
 
 @router.get("/status")

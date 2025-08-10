@@ -5,10 +5,9 @@ Caching service for AI-generated recipes to reduce API calls and improve perform
 import hashlib
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 from backend_gateway.services.postgres_service import PostgresService
 
@@ -38,7 +37,7 @@ class AIRecipeCacheService:
                 expires_at TIMESTAMP NOT NULL,
                 UNIQUE(user_id, cache_key)
             );
-            
+
             CREATE INDEX IF NOT EXISTS idx_ai_recipe_cache_user_id ON ai_recipe_cache(user_id);
             CREATE INDEX IF NOT EXISTS idx_ai_recipe_cache_expires_at ON ai_recipe_cache(expires_at);
             """
@@ -46,7 +45,7 @@ class AIRecipeCacheService:
             session.commit()
 
     def _generate_cache_key(
-        self, user_id: int, pantry_items: List[Dict], preferences: Dict, max_recipes: int
+        self, user_id: int, pantry_items: list[dict], preferences: dict, max_recipes: int
     ) -> str:
         """Generate a unique cache key based on user's pantry and preferences"""
         # Sort items for consistent hashing
@@ -68,21 +67,21 @@ class AIRecipeCacheService:
         return hashlib.sha256(cache_string.encode()).hexdigest()
 
     def get_cached_recipes(
-        self, user_id: int, pantry_items: List[Dict], preferences: Dict, max_recipes: int
-    ) -> Optional[Dict[str, Any]]:
+        self, user_id: int, pantry_items: list[dict], preferences: dict, max_recipes: int
+    ) -> Optional[dict[str, Any]]:
         """Retrieve cached recipes if available and not expired"""
         cache_key = self._generate_cache_key(user_id, pantry_items, preferences, max_recipes)
 
         with self.db_service.get_session() as session:
             query = text(
                 """
-                SELECT 
+                SELECT
                     recipes,
                     metadata,
                     created_at,
                     expires_at
                 FROM ai_recipe_cache
-                WHERE user_id = :user_id 
+                WHERE user_id = :user_id
                     AND cache_key = :cache_key
                     AND expires_at > CURRENT_TIMESTAMP
                 ORDER BY created_at DESC
@@ -108,11 +107,11 @@ class AIRecipeCacheService:
     def cache_recipes(
         self,
         user_id: int,
-        pantry_items: List[Dict],
-        preferences: Dict,
-        recipes: List[Dict],
+        pantry_items: list[dict],
+        preferences: dict,
+        recipes: list[dict],
         max_recipes: int,
-        metadata: Optional[Dict] = None,
+        metadata: Optional[dict] = None,
     ):
         """Cache AI-generated recipes"""
         cache_key = self._generate_cache_key(user_id, pantry_items, preferences, max_recipes)
@@ -122,7 +121,7 @@ class AIRecipeCacheService:
             # Delete any existing cache for this key
             delete_query = text(
                 """
-                DELETE FROM ai_recipe_cache 
+                DELETE FROM ai_recipe_cache
                 WHERE user_id = :user_id AND cache_key = :cache_key
             """
             )
@@ -131,10 +130,10 @@ class AIRecipeCacheService:
             # Insert new cache entry
             insert_query = text(
                 """
-                INSERT INTO ai_recipe_cache 
-                (user_id, cache_key, pantry_snapshot, preferences_snapshot, 
+                INSERT INTO ai_recipe_cache
+                (user_id, cache_key, pantry_snapshot, preferences_snapshot,
                  recipes, metadata, expires_at)
-                VALUES 
+                VALUES
                 (:user_id, :cache_key, :pantry_snapshot, :preferences_snapshot,
                  :recipes, :metadata, :expires_at)
             """
@@ -160,7 +159,7 @@ class AIRecipeCacheService:
         with self.db_service.get_session() as session:
             query = text(
                 """
-                UPDATE ai_recipe_cache 
+                UPDATE ai_recipe_cache
                 SET expires_at = CURRENT_TIMESTAMP
                 WHERE user_id = :user_id AND expires_at > CURRENT_TIMESTAMP
             """
@@ -174,7 +173,7 @@ class AIRecipeCacheService:
         with self.db_service.get_session() as session:
             query = text(
                 """
-                DELETE FROM ai_recipe_cache 
+                DELETE FROM ai_recipe_cache
                 WHERE expires_at < CURRENT_TIMESTAMP
             """
             )
@@ -184,13 +183,13 @@ class AIRecipeCacheService:
 
             return result.rowcount
 
-    def get_cache_stats(self, user_id: Optional[int] = None) -> Dict[str, Any]:
+    def get_cache_stats(self, user_id: Optional[int] = None) -> dict[str, Any]:
         """Get cache statistics"""
         with self.db_service.get_session() as session:
             if user_id:
                 stats_query = text(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_entries,
                         COUNT(CASE WHEN expires_at > CURRENT_TIMESTAMP THEN 1 END) as active_entries,
                         COUNT(CASE WHEN expires_at <= CURRENT_TIMESTAMP THEN 1 END) as expired_entries,
@@ -204,7 +203,7 @@ class AIRecipeCacheService:
             else:
                 stats_query = text(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_entries,
                         COUNT(CASE WHEN expires_at > CURRENT_TIMESTAMP THEN 1 END) as active_entries,
                         COUNT(CASE WHEN expires_at <= CURRENT_TIMESTAMP THEN 1 END) as expired_entries,

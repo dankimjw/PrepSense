@@ -5,7 +5,7 @@ API Router for AI-powered recipe generation using CrewAI
 import asyncio
 import os
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 
@@ -29,9 +29,9 @@ def get_crew_ai_service():
 @router.post("/generate")
 async def generate_ai_recipes(
     max_recipes: Optional[int] = 3,
-    current_user: Dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: CrewAIService = Depends(get_crew_ai_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate AI-powered recipe suggestions based on user's pantry items.
 
@@ -76,14 +76,14 @@ async def generate_ai_recipes(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating AI recipes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error generating AI recipes: {str(e)}") from e
 
 
 @router.get("/pantry-summary")
 async def get_pantry_summary(
-    current_user: Dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: CrewAIService = Depends(get_crew_ai_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get a summary of user's pantry for recipe generation.
 
@@ -117,7 +117,9 @@ async def get_pantry_summary(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error getting pantry summary: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error getting pantry summary: {str(e)}"
+        ) from e
 
 
 @router.post("/generate-async")
@@ -125,9 +127,9 @@ async def generate_ai_recipes_async(
     background_tasks: BackgroundTasks,
     max_recipes: Optional[int] = 3,
     webhook_url: Optional[str] = None,
-    current_user: Dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: CrewAIService = Depends(get_crew_ai_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Generate AI recipes asynchronously (for long-running operations).
 
@@ -163,7 +165,9 @@ async def generate_ai_recipes_async(
         }
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting recipe generation: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error starting recipe generation: {str(e)}"
+        ) from e
 
 
 async def _generate_recipes_background(
@@ -202,7 +206,7 @@ async def _generate_recipes_background(
 
 
 @router.get("/health")
-async def ai_recipes_health() -> Dict[str, Any]:
+async def ai_recipes_health() -> dict[str, Any]:
     """Check health of AI recipe generation service"""
     try:
         service = get_crew_ai_service()

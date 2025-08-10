@@ -3,10 +3,10 @@
 from datetime import timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 
 from backend_gateway.core.config import settings
-from backend_gateway.core.security import create_access_token, get_current_user, reusable_oauth2
+from backend_gateway.core.security import create_access_token, get_current_user
 from backend_gateway.models.user import UserInDB
 from backend_gateway.services.user_service import UserService
 

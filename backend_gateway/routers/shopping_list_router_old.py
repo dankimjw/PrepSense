@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
@@ -14,7 +14,7 @@ router = APIRouter(
 )
 
 # In-memory storage for shopping list items (replace with database in production)
-shopping_lists: Dict[int, List[Dict[str, Any]]] = {}
+shopping_lists: dict[int, list[dict[str, Any]]] = {}
 
 
 class ShoppingListItem(BaseModel):
@@ -28,16 +28,16 @@ class ShoppingListItem(BaseModel):
 
 class AddItemsRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
-    items: List[ShoppingListItem] = Field(..., description="Items to add")
+    items: list[ShoppingListItem] = Field(..., description="Items to add")
 
 
 class RemoveItemsRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
-    item_names: List[str] = Field(..., description="Names of items to remove")
+    item_names: list[str] = Field(..., description="Names of items to remove")
 
 
 @router.get(
-    "/user/{user_id}/items", response_model=List[Dict[str, Any]], summary="Get Shopping List"
+    "/user/{user_id}/items", response_model=list[dict[str, Any]], summary="Get Shopping List"
 )
 async def get_shopping_list(user_id: int):
     """
@@ -49,7 +49,7 @@ async def get_shopping_list(user_id: int):
     return shopping_lists[user_id]
 
 
-@router.post("/add-items", response_model=Dict[str, Any], summary="Add Items to Shopping List")
+@router.post("/add-items", response_model=dict[str, Any], summary="Add Items to Shopping List")
 async def add_shopping_list_items(request: AddItemsRequest):
     """
     Add items to the user's shopping list.
@@ -88,11 +88,11 @@ async def add_shopping_list_items(request: AddItemsRequest):
 
     except Exception as e:
         logger.error(f"Error adding shopping list items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add items: {str(e)}") from e
 
 
 @router.post(
-    "/remove-items", response_model=Dict[str, Any], summary="Remove Items from Shopping List"
+    "/remove-items", response_model=dict[str, Any], summary="Remove Items from Shopping List"
 )
 async def remove_shopping_list_items(request: RemoveItemsRequest):
     """
@@ -121,11 +121,11 @@ async def remove_shopping_list_items(request: RemoveItemsRequest):
 
     except Exception as e:
         logger.error(f"Error removing shopping list items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to remove items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to remove items: {str(e)}") from e
 
 
 @router.delete(
-    "/user/{user_id}/clear", response_model=Dict[str, Any], summary="Clear Shopping List"
+    "/user/{user_id}/clear", response_model=dict[str, Any], summary="Clear Shopping List"
 )
 async def clear_shopping_list(user_id: int):
     """
@@ -141,4 +141,6 @@ async def clear_shopping_list(user_id: int):
 
     except Exception as e:
         logger.error(f"Error clearing shopping list: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to clear shopping list: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to clear shopping list: {str(e)}"
+        ) from e

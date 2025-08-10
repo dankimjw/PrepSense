@@ -21,7 +21,7 @@ def load_environmental_data():
     if not data_file.exists():
         raise FileNotFoundError(f"Environmental data not found at {data_file}")
 
-    with open(data_file, "r") as f:
+    with open(data_file) as f:
         return json.load(f)
 
 
@@ -53,8 +53,8 @@ def update_products_with_environmental_data(conn, environmental_data):
 
     # Update query
     update_query = """
-        UPDATE products 
-        SET 
+        UPDATE products
+        SET
             ghg_kg_co2e_per_kg = data.ghg,
             land_m2_per_kg = data.land,
             water_l_per_kg = data.water,
@@ -65,7 +65,7 @@ def update_products_with_environmental_data(conn, environmental_data):
             owid_product = data.owid,
             environmental_data_updated_at = data.updated_at
         FROM (VALUES %s) AS data(ghg, land, water, eutrophying, category, score, visual, owid, updated_at, name)
-        WHERE LOWER(products.product_name) = data.name 
+        WHERE LOWER(products.product_name) = data.name
            OR LOWER(products.product_name) LIKE '%' || data.name || '%'
     """
 
@@ -78,14 +78,14 @@ def update_products_with_environmental_data(conn, environmental_data):
         # Log some statistics
         cursor.execute(
             """
-            SELECT 
-                impact_category, 
+            SELECT
+                impact_category,
                 COUNT(*) as count,
                 AVG(ghg_kg_co2e_per_kg) as avg_ghg
-            FROM products 
+            FROM products
             WHERE impact_category IS NOT NULL
             GROUP BY impact_category
-            ORDER BY 
+            ORDER BY
                 CASE impact_category
                     WHEN 'very_low' THEN 1
                     WHEN 'low' THEN 2

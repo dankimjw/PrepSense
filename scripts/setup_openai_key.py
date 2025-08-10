@@ -2,10 +2,9 @@
 """Setup OpenAI API key from JSON config"""
 
 import json
-import os
 
 # Read from JSON file
-with open("config/openai.json", "r") as f:
+with open("config/openai.json") as f:
     config = json.load(f)
     api_key = config.get("openai_key")
 

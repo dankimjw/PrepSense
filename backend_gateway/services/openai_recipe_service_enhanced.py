@@ -3,12 +3,11 @@
 import asyncio
 import json
 import logging
-import os
 import random
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
-from ..core.openai_client import get_openai_client
+from backend_gateway.core.openai_client import get_openai_client
 
 logger = logging.getLogger(__name__)
 
@@ -50,8 +49,8 @@ class EnhancedOpenAIRecipeService:
         ]
 
     async def generate_enhanced_recipes(
-        self, ingredients: List[str], context: Dict[str, Any]
-    ) -> List[Dict[str, Any]]:
+        self, ingredients: list[str], context: dict[str, Any]
+    ) -> list[dict[str, Any]]:
         """
         Generate enhanced recipes with detailed information
 
@@ -126,8 +125,8 @@ class EnhancedOpenAIRecipeService:
             return []
 
     async def _generate_single_enhanced_recipe(
-        self, ingredients: List[str], context: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, ingredients: list[str], context: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         """Generate a single enhanced recipe"""
 
         try:
@@ -144,7 +143,7 @@ class EnhancedOpenAIRecipeService:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.8,  # Slightly higher for creativity
-                max_tokens=3000,  # More tokens for detailed recipes
+                max_completion_tokens=3000,  # More tokens for detailed recipes
                 presence_penalty=0.3,  # Encourage variety
                 frequency_penalty=0.2,
             )
@@ -184,7 +183,7 @@ Your recipes should be:
 
 Always provide exact measurements, specific temperatures, and precise timing."""
 
-    def _build_enhanced_prompt(self, ingredients: List[str], context: Dict[str, Any]) -> str:
+    def _build_enhanced_prompt(self, ingredients: list[str], context: dict[str, Any]) -> str:
         """Build an enhanced prompt for recipe generation"""
 
         # Start with available ingredients
@@ -295,7 +294,7 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
 
         return prompt
 
-    def _parse_enhanced_response(self, response: str) -> Optional[Dict[str, Any]]:
+    def _parse_enhanced_response(self, response: str) -> Optional[dict[str, Any]]:
         """Parse enhanced recipe response with better error handling"""
 
         try:
@@ -324,13 +323,13 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
                 json_str = json_str.replace(",]", "]").replace(",}", "}")
                 recipe = json.loads(json_str)
                 return self._standardize_recipe_format(recipe)
-            except:
+            except Exception:
                 return None
         except Exception as e:
             logger.error(f"Error parsing enhanced response: {e}")
             return None
 
-    def _standardize_recipe_format(self, recipe: Dict[str, Any]) -> Dict[str, Any]:
+    def _standardize_recipe_format(self, recipe: dict[str, Any]) -> dict[str, Any]:
         """Standardize recipe format for compatibility"""
 
         # Ensure required fields
@@ -360,21 +359,20 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
             recipe["extendedIngredients"] = extended_ingredients
 
         # Convert instructions
-        if "instructions" in recipe:
-            if isinstance(recipe["instructions"], list):
-                steps = []
-                for i, inst in enumerate(recipe["instructions"]):
-                    if isinstance(inst, dict):
-                        steps.append(
-                            {
-                                "number": inst.get("step", i + 1),
-                                "step": f"{inst.get('action', '')}: {inst.get('details', '')}".strip(),
-                            }
-                        )
-                    else:
-                        steps.append({"number": i + 1, "step": inst})
+        if "instructions" in recipe and isinstance(recipe["instructions"], list):
+            steps = []
+            for i, inst in enumerate(recipe["instructions"]):
+                if isinstance(inst, dict):
+                    steps.append(
+                        {
+                            "number": inst.get("step", i + 1),
+                            "step": f"{inst.get('action', '')}: {inst.get('details', '')}".strip(),
+                        }
+                    )
+                else:
+                    steps.append({"number": i + 1, "step": inst})
 
-                recipe["analyzedInstructions"] = [{"steps": steps}]
+            recipe["analyzedInstructions"] = [{"steps": steps}]
 
         # Add cuisine type if not present
         if "cuisineType" not in recipe:
@@ -387,7 +385,7 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
         return recipe
 
     def _enhance_recipe_metadata(
-        self, recipe: Dict[str, Any], ingredients: List[str], context: Dict[str, Any]
+        self, recipe: dict[str, Any], ingredients: list[str], context: dict[str, Any]
     ):
         """Add additional metadata to enhance the recipe"""
 
@@ -422,7 +420,7 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
         recipe["costEstimate"] = self._estimate_cost(recipe)
 
     def _calculate_quality_score(
-        self, recipe: Dict[str, Any], available_ingredients: List[str], context: Dict[str, Any]
+        self, recipe: dict[str, Any], available_ingredients: list[str], context: dict[str, Any]
     ) -> float:
         """Calculate a quality score for ranking recipes"""
 
@@ -464,7 +462,7 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
 
         return min(score, 100)  # Cap at 100
 
-    def _determine_seasonality(self, recipe: Dict[str, Any]) -> str:
+    def _determine_seasonality(self, recipe: dict[str, Any]) -> str:
         """Determine seasonal appropriateness of recipe"""
 
         # Simple heuristic based on ingredients
@@ -485,7 +483,7 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
         else:
             return "Year-round favorite"
 
-    def _estimate_cost(self, recipe: Dict[str, Any]) -> str:
+    def _estimate_cost(self, recipe: dict[str, Any]) -> str:
         """Estimate recipe cost category"""
 
         # Simple estimation based on ingredients
@@ -507,8 +505,8 @@ Make the recipe creative, delicious, and perfectly suited to the requirements!""
             return "$$ (Moderate)"
 
     async def generate_creative_variations(
-        self, base_recipe: Dict[str, Any], variations_count: int = 3
-    ) -> List[Dict[str, Any]]:
+        self, base_recipe: dict[str, Any], variations_count: int = 3
+    ) -> list[dict[str, Any]]:
         """Generate creative variations of a base recipe"""
 
         variations = []
@@ -540,10 +538,10 @@ Provide a brief JSON with:
                         {"role": "user", "content": prompt},
                     ],
                     temperature=0.9,
-                    max_tokens=500,
+                    max_completion_tokens=500,
                 )
 
-                variation_content = response.choices[0].message.content
+                response.choices[0].message.content
                 # Parse and add to variations
                 # ... parsing logic ...
 

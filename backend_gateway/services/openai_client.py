@@ -4,9 +4,9 @@ OpenAI API client wrapper for centralized API interaction.
 
 import os
 import time
-from typing import Any, Dict, Iterator, List, Optional, Union
+from collections.abc import Iterator
+from typing import Any, Optional
 
-import openai
 from openai import APIConnectionError, APIError, OpenAI, RateLimitError
 
 
@@ -31,13 +31,13 @@ class OpenAIClient:
 
     def chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str = "gpt-3.5-turbo",
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
+        max_completion_tokens: Optional[int] = None,
         max_retries: int = 0,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Create a chat completion.
 
@@ -45,7 +45,7 @@ class OpenAIClient:
             messages: List of message dictionaries with 'role' and 'content'.
             model: Model to use for completion.
             temperature: Sampling temperature (0-2).
-            max_tokens: Maximum tokens in response.
+            max_completion_tokens: Maximum tokens in response.
             max_retries: Number of retries for transient failures.
             **kwargs: Additional parameters for the API.
 
@@ -61,7 +61,7 @@ class OpenAIClient:
                     model=model,
                     messages=messages,
                     temperature=temperature,
-                    max_tokens=max_tokens,
+                    max_completion_tokens=max_completion_tokens,
                     **kwargs,
                 )
 
@@ -88,7 +88,7 @@ class OpenAIClient:
                     continue
                 raise
 
-            except (APIError, RateLimitError) as e:
+            except (APIError, RateLimitError):
                 # Don't retry on API errors or rate limits
                 raise
 
@@ -101,8 +101,8 @@ class OpenAIClient:
         image_url: str,
         prompt: str,
         model: str = "gpt-4-vision-preview",
-        max_tokens: int = 300,
-    ) -> Dict[str, Any]:
+        max_completion_tokens: int = 300,
+    ) -> dict[str, Any]:
         """
         Analyze an image using GPT-4 Vision.
 
@@ -110,7 +110,7 @@ class OpenAIClient:
             image_url: URL of the image to analyze.
             prompt: Question or prompt about the image.
             model: Vision model to use.
-            max_tokens: Maximum tokens in response.
+            max_completion_tokens: Maximum tokens in response.
 
         Returns:
             Dictionary with analysis results.
@@ -126,7 +126,7 @@ class OpenAIClient:
         ]
 
         response = self.client.chat.completions.create(
-            model=model, messages=messages, max_tokens=max_tokens
+            model=model, messages=messages, max_completion_tokens=max_completion_tokens
         )
 
         return {
@@ -137,11 +137,11 @@ class OpenAIClient:
 
     def generate_recipe_suggestions(
         self,
-        ingredients: List[str],
-        dietary_restrictions: Optional[List[str]] = None,
+        ingredients: list[str],
+        dietary_restrictions: Optional[list[str]] = None,
         cuisine_preference: Optional[str] = None,
         model: str = "gpt-3.5-turbo",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Generate recipe suggestions based on ingredients and preferences.
 
@@ -183,7 +183,7 @@ class OpenAIClient:
             "usage": result.get("usage"),
         }
 
-    def moderate_content(self, text: str) -> Dict[str, Any]:
+    def moderate_content(self, text: str) -> dict[str, Any]:
         """
         Check if content violates OpenAI usage policies.
 
@@ -213,7 +213,7 @@ class OpenAIClient:
             },
         }
 
-    def create_embedding(self, text: str, model: str = "text-embedding-ada-002") -> Dict[str, Any]:
+    def create_embedding(self, text: str, model: str = "text-embedding-ada-002") -> dict[str, Any]:
         """
         Create an embedding for the given text.
 
@@ -234,7 +234,7 @@ class OpenAIClient:
 
     def stream_chat_completion(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         model: str = "gpt-3.5-turbo",
         temperature: float = 0.7,
         **kwargs,

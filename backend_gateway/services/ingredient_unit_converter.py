@@ -5,8 +5,7 @@ for specific ingredients where such conversions are known and reliable.
 """
 
 import logging
-from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +157,7 @@ class IngredientUnitConverter:
 
     def convert_ingredient_unit(
         self, ingredient_name: str, from_amount: float, from_unit: str, to_unit: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Convert amount from one unit to another for a specific ingredient.
 
@@ -223,7 +222,7 @@ class IngredientUnitConverter:
                 "message": f"Error during conversion: {str(e)}",
             }
 
-    def suggest_best_unit(self, ingredient_name: str, current_unit: str) -> Dict[str, Any]:
+    def suggest_best_unit(self, ingredient_name: str, current_unit: str) -> dict[str, Any]:
         """
         Suggest the best unit for an ingredient based on common cooking practices.
 

@@ -2,12 +2,12 @@
 
 import logging
 from datetime import date, datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
-from backend_gateway.config.database import get_database_service, get_pantry_service
+from backend_gateway.config.database import get_pantry_service
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.spoonacular_service import SpoonacularService
 
@@ -30,7 +30,7 @@ class CookRecipeRequest(BaseModel):
     recipe_id: int = Field(..., description="Spoonacular recipe ID")
     recipe_title: str = Field(..., description="Recipe title")
     servings: int = Field(1, description="Number of servings being made")
-    ingredients_used: List[IngredientUsage] = Field(
+    ingredients_used: list[IngredientUsage] = Field(
         ..., description="List of ingredients used from pantry"
     )
 
@@ -58,7 +58,7 @@ class QuickCompleteRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
     recipe_id: int = Field(..., description="Spoonacular recipe ID")
     servings: int = Field(1, description="Number of servings being made")
-    ingredient_selections: List[IngredientSelection] = Field(
+    ingredient_selections: list[IngredientSelection] = Field(
         ..., description="Selected ingredients"
     )
 
@@ -81,7 +81,7 @@ def get_spoonacular_service() -> SpoonacularService:
 @router.post("/cook", summary="Cook a recipe and update pantry")
 async def cook_recipe(
     request: CookRecipeRequest, pantry_service: PantryService = Depends(get_pantry_service_dep)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Cook a recipe and subtract ingredients from pantry
 
@@ -178,7 +178,9 @@ async def cook_recipe(
 
     except Exception as e:
         logger.error(f"Error cooking recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to process recipe cooking: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to process recipe cooking: {str(e)}"
+        ) from e
 
 
 @router.post("/check-ingredients", summary="Check if user has sufficient ingredients")
@@ -186,7 +188,7 @@ async def check_ingredients_availability(
     request: IngredientCheckRequest,
     pantry_service: PantryService = Depends(get_pantry_service_dep),
     spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Check if user has sufficient ingredients to cook a recipe
 
@@ -207,7 +209,7 @@ async def check_ingredients_availability(
                 exp_date = datetime.fromisoformat(expiration_date_str.replace("Z", "+00:00")).date()
                 today = date.today()
                 return (exp_date - today).days
-            except:
+            except Exception:
                 return None
 
         # Create pantry lookup by ingredient name
@@ -287,7 +289,7 @@ async def check_ingredients_availability(
 
     except Exception as e:
         logger.error(f"Error checking ingredients: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to check ingredients: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to check ingredients: {str(e)}") from e
 
 
 @router.post("/quick-complete", summary="Quick complete a recipe")
@@ -295,7 +297,7 @@ async def quick_complete_recipe(
     request: QuickCompleteRequest,
     pantry_service: PantryService = Depends(get_pantry_service_dep),
     spoonacular_service: SpoonacularService = Depends(get_spoonacular_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Quick complete a recipe by updating pantry quantities based on ingredient selections
     """
@@ -306,7 +308,7 @@ async def quick_complete_recipe(
         try:
             recipe = await spoonacular_service.get_recipe_information(request.recipe_id)
             recipe_title = recipe.get("title", f"Recipe {request.recipe_id}")
-        except:
+        except Exception:
             recipe_title = f"Recipe {request.recipe_id}"
 
         # Track results
@@ -404,4 +406,4 @@ async def quick_complete_recipe(
 
     except Exception as e:
         logger.error(f"Error in quick complete: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}") from e

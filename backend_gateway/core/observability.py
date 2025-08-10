@@ -1,19 +1,16 @@
 """OpenTelemetry observability configuration for PrepSense backend."""
 
 import logging
-import os
 from typing import Optional
 
 from fastapi import FastAPI
 from opentelemetry import metrics, trace
+
 # from opentelemetry.exporter.jaeger.thrift import JaegerExporter  # Temporarily disabled due to dependency issues
-from opentelemetry.instrumentation.asgi import OpenTelemetryMiddleware
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.metrics import MeterProvider
-from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 
 logger = logging.getLogger(__name__)
 

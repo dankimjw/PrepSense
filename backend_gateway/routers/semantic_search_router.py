@@ -4,7 +4,7 @@ Provides endpoints for semantic search functionality using vector embeddings
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -31,7 +31,7 @@ class HybridSearchRequest(BaseModel):
     """Request model for hybrid search"""
 
     query: str = Field(..., min_length=1, max_length=500, description="Search query text")
-    available_ingredients: List[str] = Field(
+    available_ingredients: list[str] = Field(
         default_factory=list, description="List of available ingredients"
     )
     limit: int = Field(10, ge=1, le=50, description="Maximum number of results")
@@ -49,13 +49,13 @@ class RecipeSearchResult(BaseModel):
     recipe_id: int
     recipe_name: str
     similarity_score: float
-    ingredients: List[str]
+    ingredients: list[str]
     description: Optional[str]
     # Additional fields for hybrid search
     ingredient_match_score: Optional[float] = None
     combined_score: Optional[float] = None
-    matched_ingredients: Optional[List[str]] = None
-    missing_ingredients: Optional[List[str]] = None
+    matched_ingredients: Optional[list[str]] = None
+    missing_ingredients: Optional[list[str]] = None
 
 
 class ProductSearchResult(BaseModel):
@@ -80,12 +80,12 @@ class PantryItemSearchResult(BaseModel):
     similarity_score: float
 
 
-@router.post("/recipes", response_model=List[RecipeSearchResult])
+@router.post("/recipes", response_model=list[RecipeSearchResult])
 async def semantic_search_recipes(
     request: SemanticSearchRequest,
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> List[RecipeSearchResult]:
+) -> list[RecipeSearchResult]:
     """
     Search for recipes using semantic similarity
 
@@ -122,15 +122,15 @@ async def semantic_search_recipes(
 
     except Exception as e:
         logger.error(f"Error in semantic recipe search: {e}")
-        raise HTTPException(status_code=500, detail="Failed to perform semantic search")
+        raise HTTPException(status_code=500, detail="Failed to perform semantic search") from e
 
 
-@router.post("/recipes/hybrid", response_model=List[RecipeSearchResult])
+@router.post("/recipes/hybrid", response_model=list[RecipeSearchResult])
 async def hybrid_recipe_search(
     request: HybridSearchRequest,
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> List[RecipeSearchResult]:
+) -> list[RecipeSearchResult]:
     """
     Search for recipes using hybrid approach (semantic + ingredient matching)
 
@@ -182,15 +182,15 @@ async def hybrid_recipe_search(
         raise
     except Exception as e:
         logger.error(f"Error in hybrid recipe search: {e}")
-        raise HTTPException(status_code=500, detail="Failed to perform hybrid search")
+        raise HTTPException(status_code=500, detail="Failed to perform hybrid search") from e
 
 
-@router.post("/products", response_model=List[ProductSearchResult])
+@router.post("/products", response_model=list[ProductSearchResult])
 async def semantic_search_products(
     request: SemanticSearchRequest,
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> List[ProductSearchResult]:
+) -> list[ProductSearchResult]:
     """
     Search for products using semantic similarity
 
@@ -227,16 +227,16 @@ async def semantic_search_products(
 
     except Exception as e:
         logger.error(f"Error in semantic product search: {e}")
-        raise HTTPException(status_code=500, detail="Failed to perform semantic search")
+        raise HTTPException(status_code=500, detail="Failed to perform semantic search") from e
 
 
-@router.get("/pantry/similar/{item_name}", response_model=List[PantryItemSearchResult])
+@router.get("/pantry/similar/{item_name}", response_model=list[PantryItemSearchResult])
 async def find_similar_pantry_items(
     item_name: str,
     limit: int = Query(5, ge=1, le=20, description="Maximum number of similar items"),
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> List[PantryItemSearchResult]:
+) -> list[PantryItemSearchResult]:
     """
     Find pantry items similar to a given item name
 
@@ -263,7 +263,7 @@ async def find_similar_pantry_items(
 
     except Exception as e:
         logger.error(f"Error finding similar pantry items: {e}")
-        raise HTTPException(status_code=500, detail="Failed to find similar items")
+        raise HTTPException(status_code=500, detail="Failed to find similar items") from e
 
 
 @router.post("/update-embedding/{entity_type}/{entity_id}")
@@ -272,7 +272,7 @@ async def update_entity_embedding(
     entity_id: int,
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Update the embedding for a specific entity
 
@@ -303,7 +303,7 @@ async def update_entity_embedding(
         raise
     except Exception as e:
         logger.error(f"Error updating embedding: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update embedding")
+        raise HTTPException(status_code=500, detail="Failed to update embedding") from e
 
 
 @router.get("/search-analytics")
@@ -311,7 +311,7 @@ async def get_search_analytics(
     days: int = Query(7, ge=1, le=30, description="Number of days to analyze"),
     current_user: UserInDB = Depends(get_current_user),
     db_service: PostgresService = Depends(get_database_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get search analytics for the current user
 
@@ -322,7 +322,7 @@ async def get_search_analytics(
             # Get user's recent searches
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     query_text,
                     query_type,
                     results_count,
@@ -342,7 +342,7 @@ async def get_search_analytics(
             # Get popular search terms
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     query_text,
                     COUNT(*) as search_count,
                     AVG(results_count) as avg_results
@@ -361,7 +361,7 @@ async def get_search_analytics(
             # Get search type distribution
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     query_type,
                     COUNT(*) as count
                 FROM search_query_embeddings
@@ -383,4 +383,4 @@ async def get_search_analytics(
 
     except Exception as e:
         logger.error(f"Error getting search analytics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get search analytics")
+        raise HTTPException(status_code=500, detail="Failed to get search analytics") from e

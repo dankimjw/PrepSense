@@ -18,7 +18,7 @@ import logging
 import time
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -94,7 +94,7 @@ class SpoonacularAPITracker:
         self,
         endpoint: str,
         user_id: Optional[int] = None,
-        request_params: Optional[Dict[str, Any]] = None,
+        request_params: Optional[dict[str, Any]] = None,
         method: str = "GET",
     ):
         """
@@ -153,7 +153,7 @@ class SpoonacularAPITracker:
         endpoint: str,
         method: str = "GET",
         user_id: Optional[int] = None,
-        request_params: Optional[Dict[str, Any]] = None,
+        request_params: Optional[dict[str, Any]] = None,
         response_status: Optional[int] = None,
         response_time_ms: Optional[int] = None,
         recipe_count: int = 0,
@@ -163,8 +163,8 @@ class SpoonacularAPITracker:
         error_code: Optional[str] = None,
         error_message: Optional[str] = None,
         retry_attempt: int = 0,
-        recipe_fingerprints: Optional[List[str]] = None,
-        duplicate_recipe_ids: Optional[List[int]] = None,
+        recipe_fingerprints: Optional[list[str]] = None,
+        duplicate_recipe_ids: Optional[list[int]] = None,
         request_size_bytes: int = 0,
         response_size_bytes: int = 0,
         call_timestamp: Optional[datetime] = None,
@@ -276,8 +276,8 @@ class SpoonacularAPITracker:
             return None
 
     def process_recipe_response(
-        self, recipes: List[Dict[str, Any]], apply_deduplication: bool = True
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        self, recipes: list[dict[str, Any]], apply_deduplication: bool = True
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """
         Process recipe response data for fingerprinting and deduplication.
 
@@ -327,7 +327,7 @@ class SpoonacularAPITracker:
         endpoint: Optional[str] = None,
         hours: int = 24,
         limit: int = 100,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Retrieve recent API call history.
 
@@ -371,7 +371,7 @@ class SpoonacularAPITracker:
             logger.error(f"Error retrieving call history: {str(e)}")
             return []
 
-    def get_usage_stats(self, user_id: Optional[int] = None, days: int = 7) -> Dict[str, Any]:
+    def get_usage_stats(self, user_id: Optional[int] = None, days: int = 7) -> dict[str, Any]:
         """
         Get usage statistics for the specified period.
 
@@ -398,7 +398,7 @@ class SpoonacularAPITracker:
 
             # Execute aggregation query
             query = f"""
-                SELECT 
+                SELECT
                     COUNT(*) as total_calls,
                     COUNT(*) FILTER (WHERE cache_hit = true) as cache_hits,
                     COUNT(*) FILTER (WHERE duplicate_detected = true) as duplicate_detections,
@@ -450,7 +450,7 @@ class SpoonacularAPITracker:
             "unique_endpoints": 0,
         }
 
-    def _calculate_in_memory_stats(self, user_id: Optional[int], days: int) -> Dict[str, Any]:
+    def _calculate_in_memory_stats(self, user_id: Optional[int], days: int) -> dict[str, Any]:
         """Calculate statistics from in-memory call data."""
         cutoff = datetime.now() - timedelta(days=days)
         relevant_calls = [
@@ -488,14 +488,14 @@ class SpoonacularAPITracker:
             "total_recipes": sum(call.get("recipe_count", 0) for call in relevant_calls),
             "avg_response_time_ms": sum(call.get("response_time_ms", 0) for call in relevant_calls)
             / total_calls,
-            "unique_endpoints": len(set(call.get("endpoint") for call in relevant_calls)),
+            "unique_endpoints": len({call.get("endpoint") for call in relevant_calls}),
         }
 
 
 class APICallContext:
     """Context object for tracking API call data."""
 
-    def __init__(self, call_data: Dict[str, Any]):
+    def __init__(self, call_data: dict[str, Any]):
         self.call_data = call_data
 
     def set_response_data(
@@ -517,8 +517,8 @@ class APICallContext:
     def set_deduplication_info(
         self,
         duplicate_detected: bool,
-        recipe_fingerprints: List[str] = None,
-        duplicate_recipe_ids: List[int] = None,
+        recipe_fingerprints: list[str] = None,
+        duplicate_recipe_ids: list[int] = None,
     ):
         """Set deduplication information."""
         self.call_data.update(

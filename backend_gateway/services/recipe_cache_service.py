@@ -5,7 +5,7 @@ import json
 import logging
 import random
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,11 @@ class RecipeCacheService:
     def __init__(self):
         # In-memory cache for recipes per user
         # Structure: {user_id: {'recipes': [...], 'shown_ids': set(), 'last_refresh': datetime}}
-        self._cache: Dict[int, Dict[str, Any]] = {}
+        self._cache: dict[int, dict[str, Any]] = {}
 
         # Simple key-value cache for general recipe data (e.g., random recipes)
         # Structure: {key: {'data': {...}, 'expires_at': datetime}}
-        self._simple_cache: Dict[str, Dict[str, Any]] = {}
+        self._simple_cache: dict[str, dict[str, Any]] = {}
 
         # Cache expiration time
         self.cache_duration = timedelta(hours=24)
@@ -35,7 +35,7 @@ class RecipeCacheService:
         """Generate cache key based on user and pantry state"""
         return f"{user_id}_{pantry_hash}"
 
-    def _hash_pantry_items(self, pantry_items: List[Dict[str, Any]]) -> str:
+    def _hash_pantry_items(self, pantry_items: list[dict[str, Any]]) -> str:
         """Create a hash of pantry items to detect changes"""
         # Sort items by name to ensure consistent hashing
         sorted_items = sorted(
@@ -45,8 +45,8 @@ class RecipeCacheService:
         return hashlib.md5(pantry_str.encode()).hexdigest()[:8]
 
     def get_cached_recipes(
-        self, user_id: int, pantry_items: List[Dict[str, Any]], exclude_shown: bool = True
-    ) -> Optional[List[Dict[str, Any]]]:
+        self, user_id: int, pantry_items: list[dict[str, Any]], exclude_shown: bool = True
+    ) -> Optional[list[dict[str, Any]]]:
         """
         Get recipes from cache, excluding already shown ones
 
@@ -105,8 +105,8 @@ class RecipeCacheService:
     def cache_recipes(
         self,
         user_id: int,
-        pantry_items: List[Dict[str, Any]],
-        recipes: List[Dict[str, Any]],
+        pantry_items: list[dict[str, Any]],
+        recipes: list[dict[str, Any]],
         merge_with_existing: bool = False,
     ):
         """
@@ -145,7 +145,7 @@ class RecipeCacheService:
         }
 
     def mark_recipes_shown(
-        self, user_id: int, pantry_items: List[Dict[str, Any]], recipe_ids: List[Any]
+        self, user_id: int, pantry_items: list[dict[str, Any]], recipe_ids: list[Any]
     ):
         """Mark specific recipes as shown"""
         pantry_hash = self._hash_pantry_items(pantry_items)
@@ -157,12 +157,12 @@ class RecipeCacheService:
 
     def clear_user_cache(self, user_id: int):
         """Clear all cached recipes for a user"""
-        keys_to_remove = [k for k in self._cache.keys() if k.startswith(f"{user_id}_")]
+        keys_to_remove = [k for k in self._cache if k.startswith(f"{user_id}_")]
         for key in keys_to_remove:
             del self._cache[key]
         logger.info(f"Cleared cache for user {user_id}")
 
-    def get_cache_stats(self, user_id: int, pantry_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def get_cache_stats(self, user_id: int, pantry_items: list[dict[str, Any]]) -> dict[str, Any]:
         """Get cache statistics for debugging"""
         pantry_hash = self._hash_pantry_items(pantry_items)
         cache_key = self._get_cache_key(user_id, pantry_hash)
@@ -180,7 +180,7 @@ class RecipeCacheService:
             "pantry_hash": pantry_hash,
         }
 
-    async def get_recipe_data(self, cache_key: str) -> Optional[Dict[str, Any]]:
+    async def get_recipe_data(self, cache_key: str) -> Optional[dict[str, Any]]:
         """
         Get cached recipe data by key
 
@@ -204,7 +204,7 @@ class RecipeCacheService:
         logger.info(f"Cache hit for key: {cache_key}")
         return cache_entry["data"]
 
-    async def cache_recipe_data(self, cache_key: str, data: Dict[str, Any], ttl_minutes: int = 30):
+    async def cache_recipe_data(self, cache_key: str, data: dict[str, Any], ttl_minutes: int = 30):
         """
         Cache recipe data with TTL
 

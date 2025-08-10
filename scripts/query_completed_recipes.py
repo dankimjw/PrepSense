@@ -3,7 +3,6 @@
 
 import os
 import sys
-from datetime import datetime
 
 import psycopg2
 from dotenv import load_dotenv
@@ -43,8 +42,8 @@ def query_completed_recipes():
             cursor.execute(
                 """
                 SELECT EXISTS (
-                    SELECT 1 
-                    FROM information_schema.tables 
+                    SELECT 1
+                    FROM information_schema.tables
                     WHERE table_name = 'recipe_history'
                 );
             """
@@ -61,7 +60,7 @@ def query_completed_recipes():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     u.user_id,
                     u.first_name,
                     u.last_name,
@@ -126,7 +125,7 @@ def query_completed_recipes():
             users_with_completed = sum(1 for r in results if r["completed_recipes"] > 0)
             total_completed = sum(r["completed_recipes"] for r in results)
 
-            print(f"\nSummary:")
+            print("\nSummary:")
             print(f"  Total users: {total_users}")
             print(f"  Users who have cooked recipes: {users_with_completed}")
             print(f"  Total completed recipes: {total_completed}")
@@ -141,18 +140,18 @@ def query_completed_recipes():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     u.user_id,
                     u.first_name,
                     u.last_name,
                     COUNT(CASE WHEN ur.status = 'saved' THEN 1 END) as saved_recipes,
                     COUNT(CASE WHEN ur.status = 'cooked' THEN 1 END) as cooked_recipes,
                     COUNT(ur.id) as total_recipes,
-                    CASE 
-                        WHEN COUNT(CASE WHEN ur.status = 'saved' THEN 1 END) > 0 
-                        THEN ROUND(COUNT(CASE WHEN ur.status = 'cooked' THEN 1 END)::numeric / 
+                    CASE
+                        WHEN COUNT(CASE WHEN ur.status = 'saved' THEN 1 END) > 0
+                        THEN ROUND(COUNT(CASE WHEN ur.status = 'cooked' THEN 1 END)::numeric /
                                   COUNT(ur.id)::numeric * 100, 1)
-                        ELSE 0 
+                        ELSE 0
                     END as completion_rate
                 FROM users u
                 LEFT JOIN user_recipes ur ON u.user_id = ur.user_id
@@ -193,7 +192,7 @@ def query_completed_recipes():
 
                 cursor.execute(
                     """
-                    SELECT 
+                    SELECT
                         u.user_id,
                         u.first_name,
                         u.last_name,
@@ -226,7 +225,7 @@ def query_completed_recipes():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     u.first_name || ' ' || u.last_name as user_name,
                     ur.recipe_title,
                     ur.source,
@@ -234,7 +233,7 @@ def query_completed_recipes():
                     ur.cooked_at
                 FROM user_recipes ur
                 JOIN users u ON u.user_id = ur.user_id
-                WHERE ur.status = 'cooked' 
+                WHERE ur.status = 'cooked'
                 AND ur.cooked_at IS NOT NULL
                 AND ur.cooked_at >= CURRENT_DATE - INTERVAL '30 days'
                 ORDER BY ur.cooked_at DESC

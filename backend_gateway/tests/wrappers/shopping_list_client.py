@@ -5,9 +5,8 @@ This wrapper provides a clean interface for testing shopping list operations
 without direct dependencies on the database or router implementation.
 """
 
-import random
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any
 
 
 class MockShoppingListClient:
@@ -23,7 +22,7 @@ class MockShoppingListClient:
         self._id_counter += 1
         return current_id
 
-    def get_shopping_list(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_shopping_list(self, user_id: int) -> list[dict[str, Any]]:
         """
         Get all items in user's shopping list
 
@@ -56,7 +55,7 @@ class MockShoppingListClient:
 
         return items
 
-    def add_shopping_list_items(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_shopping_list_items(self, user_id: int, items: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Add items to shopping list
 
@@ -118,7 +117,7 @@ class MockShoppingListClient:
             "total_items": len(self.shopping_lists[user_id]),
         }
 
-    def remove_shopping_list_items(self, user_id: int, item_names: List[str]) -> Dict[str, Any]:
+    def remove_shopping_list_items(self, user_id: int, item_names: list[str]) -> dict[str, Any]:
         """
         Remove items from shopping list
 
@@ -144,8 +143,8 @@ class MockShoppingListClient:
         return {"removed_count": removed_count}
 
     def update_shopping_list_item(
-        self, user_id: int, item_name: str, updates: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, user_id: int, item_name: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Update a specific shopping list item
 
@@ -175,7 +174,7 @@ class MockShoppingListClient:
 
         return {"success": True, "message": "Item updated"}
 
-    def clear_shopping_list(self, user_id: int) -> Dict[str, Any]:
+    def clear_shopping_list(self, user_id: int) -> dict[str, Any]:
         """
         Clear all items from shopping list
 
@@ -193,7 +192,7 @@ class MockShoppingListClient:
 
         return {"removed_count": removed_count}
 
-    def get_shopping_list_by_category(self, user_id: int) -> Dict[str, List[Dict[str, Any]]]:
+    def get_shopping_list_by_category(self, user_id: int) -> dict[str, list[dict[str, Any]]]:
         """
         Get shopping list grouped by category
 
@@ -228,11 +227,11 @@ class ShoppingListClientWrapper:
         self._db_service = db_service
         self._mock = MockShoppingListClient()
 
-    def get_shopping_list(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_shopping_list(self, user_id: int) -> list[dict[str, Any]]:
         """Get shopping list items"""
         if self._db_service:
             query = """
-            SELECT 
+            SELECT
                 shopping_list_item_id,
                 item_name,
                 quantity,
@@ -246,7 +245,7 @@ class ShoppingListClientWrapper:
                 updated_at
             FROM shopping_list_items
             WHERE user_id = %(user_id)s
-            ORDER BY 
+            ORDER BY
                 is_checked ASC,
                 priority DESC,
                 added_date DESC
@@ -255,13 +254,13 @@ class ShoppingListClientWrapper:
 
         return self._mock.get_shopping_list(user_id)
 
-    def add_shopping_list_items(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_shopping_list_items(self, user_id: int, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Add items to shopping list"""
         if self._db_service:
             # Simplified implementation - in real code this would check for
             # existing items and update/insert accordingly
             added_count = 0
-            for item in items:
+            for _item in items:
                 # This is a simplified version
                 added_count += 1
 
@@ -269,7 +268,7 @@ class ShoppingListClientWrapper:
 
         return self._mock.add_shopping_list_items(user_id, items)
 
-    def remove_shopping_list_items(self, user_id: int, item_names: List[str]) -> Dict[str, Any]:
+    def remove_shopping_list_items(self, user_id: int, item_names: list[str]) -> dict[str, Any]:
         """Remove items from shopping list"""
         if self._db_service:
             query = """
@@ -285,8 +284,8 @@ class ShoppingListClientWrapper:
         return self._mock.remove_shopping_list_items(user_id, item_names)
 
     def update_shopping_list_item(
-        self, user_id: int, item_name: str, updates: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, user_id: int, item_name: str, updates: dict[str, Any]
+    ) -> dict[str, Any]:
         """Update shopping list item"""
         if self._db_service:
             # Build update query dynamically
@@ -314,7 +313,7 @@ class ShoppingListClientWrapper:
 
         return self._mock.update_shopping_list_item(user_id, item_name, updates)
 
-    def clear_shopping_list(self, user_id: int) -> Dict[str, Any]:
+    def clear_shopping_list(self, user_id: int) -> dict[str, Any]:
         """Clear all items from shopping list"""
         if self._db_service:
             query = """

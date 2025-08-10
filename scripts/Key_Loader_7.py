@@ -11,7 +11,7 @@ def validate_openai_key(api_key: str) -> bool:
     try:
         client = OpenAI(api_key=api_key)
         # Make a minimal API call to validate the key
-        response = client.models.list()
+        client.models.list()
         # If we get here, the key is valid
         return True
     except Exception as e:
@@ -106,7 +106,6 @@ def update_env_file(env_path: Path, use_file_reference: bool, api_key: str = Non
 
     lines = env_path.read_text().splitlines()
     new_lines = []
-    key_added = False
 
     for line in lines:
         # Skip any OPENAI_API_KEY related lines (including commented ones)

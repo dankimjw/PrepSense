@@ -1,7 +1,7 @@
 """Service for handling recipe completion with unit conversion support"""
 
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 from backend_gateway.constants.units import (
     UnitCategory,
@@ -18,8 +18,8 @@ class RecipeCompletionService:
 
     @staticmethod
     def match_ingredient_to_pantry(
-        ingredient_name: str, pantry_items: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        ingredient_name: str, pantry_items: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """
         Find matching pantry items for a recipe ingredient
         Returns list of matching items sorted by relevance
@@ -71,10 +71,7 @@ class RecipeCompletionService:
             {"vegetable oil", "canola oil", "olive oil", "cooking oil"},
         ]
 
-        for group in substitutions:
-            if ingredient1 in group and ingredient2 in group:
-                return True
-        return False
+        return any(ingredient1 in group and ingredient2 in group for group in substitutions)
 
     @staticmethod
     def calculate_quantity_to_use(
@@ -82,7 +79,7 @@ class RecipeCompletionService:
         needed_unit: Optional[str],
         available_quantity: float,
         available_unit: str,
-    ) -> Tuple[Optional[float], str, Dict[str, Any]]:
+    ) -> tuple[Optional[float], str, dict[str, Any]]:
         """
         Calculate how much to subtract considering unit conversions
 
@@ -154,8 +151,8 @@ class RecipeCompletionService:
 
     @staticmethod
     def process_ingredient_consumption(
-        ingredient: Dict[str, Any], matching_items: List[Dict[str, Any]], db_service: Any
-    ) -> Dict[str, Any]:
+        ingredient: dict[str, Any], matching_items: list[dict[str, Any]], db_service: Any
+    ) -> dict[str, Any]:
         """
         Process consumption of a single ingredient from pantry
 
@@ -207,7 +204,7 @@ class RecipeCompletionService:
             try:
                 update_query = """
                 UPDATE pantry_items
-                SET 
+                SET
                     quantity = %(new_quantity)s,
                     used_quantity = %(new_used_quantity)s,
                     updated_at = CURRENT_TIMESTAMP

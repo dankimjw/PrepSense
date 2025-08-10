@@ -6,8 +6,8 @@ without direct dependencies on the actual implementation.
 """
 
 import random
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Optional
 
 
 class MockCrewAIClient:
@@ -19,7 +19,7 @@ class MockCrewAIClient:
             "Recommend the best recipes based on pantry items, preferences, and context"
         )
 
-    def analyze_pantry(self, pantry_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_pantry(self, pantry_items: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Analyze pantry for insights like expiring items, common ingredients, etc.
 
@@ -82,10 +82,10 @@ class MockCrewAIClient:
 
     def evaluate_recipe_fit(
         self,
-        recipe: Dict[str, Any],
-        user_preferences: Dict[str, Any],
-        pantry_analysis: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        recipe: dict[str, Any],
+        user_preferences: dict[str, Any],
+        pantry_analysis: dict[str, Any],
+    ) -> dict[str, Any]:
         """
         Evaluate how well a recipe fits the user's needs
 
@@ -132,7 +132,7 @@ class MockCrewAIClient:
         return evaluation
 
     def generate_advice(
-        self, recipes: List[Dict[str, Any]], pantry_analysis: Dict[str, Any], message: str
+        self, recipes: list[dict[str, Any]], pantry_analysis: dict[str, Any], message: str
     ) -> str:
         """
         Generate contextual advice about the recipes
@@ -155,7 +155,7 @@ class MockCrewAIClient:
             )
 
         # Variety advice
-        cuisines = set(r.get("cuisine_type", "various") for r in recipes[:3])
+        cuisines = {r.get("cuisine_type", "various") for r in recipes[:3]}
         if len(cuisines) >= 3:
             advice_parts.append("I've included diverse cuisine options for variety.")
 
@@ -174,10 +174,10 @@ class MockCrewAIClient:
         self,
         user_id: int,
         message: str,
-        pantry_items: List[Dict[str, Any]],
-        user_preferences: Optional[Dict[str, Any]] = None,
-        available_recipes: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        pantry_items: list[dict[str, Any]],
+        user_preferences: Optional[dict[str, Any]] = None,
+        available_recipes: Optional[list[dict[str, Any]]] = None,
+    ) -> dict[str, Any]:
         """
         Process a chat message and return recipe recommendations
 
@@ -226,7 +226,7 @@ class MockCrewAIClient:
             "user_preferences": user_preferences,
         }
 
-    def _generate_mock_recipes(self, pantry_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _generate_mock_recipes(self, pantry_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Generate mock recipes based on pantry items"""
         recipes = []
 
@@ -269,7 +269,7 @@ class CrewAIClientWrapper:
         self._service = crew_ai_service
         self._mock = MockCrewAIClient()
 
-    def analyze_pantry(self, pantry_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_pantry(self, pantry_items: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze pantry items"""
         if self._service and hasattr(self._service.recipe_advisor, "analyze_pantry"):
             return self._service.recipe_advisor.analyze_pantry(pantry_items)
@@ -277,10 +277,10 @@ class CrewAIClientWrapper:
 
     def evaluate_recipe_fit(
         self,
-        recipe: Dict[str, Any],
-        user_preferences: Dict[str, Any],
-        pantry_analysis: Dict[str, Any],
-    ) -> Dict[str, Any]:
+        recipe: dict[str, Any],
+        user_preferences: dict[str, Any],
+        pantry_analysis: dict[str, Any],
+    ) -> dict[str, Any]:
         """Evaluate recipe fit"""
         if self._service and hasattr(self._service.recipe_advisor, "evaluate_recipe_fit"):
             return self._service.recipe_advisor.evaluate_recipe_fit(
@@ -289,7 +289,7 @@ class CrewAIClientWrapper:
         return self._mock.evaluate_recipe_fit(recipe, user_preferences, pantry_analysis)
 
     def generate_advice(
-        self, recipes: List[Dict[str, Any]], pantry_analysis: Dict[str, Any], message: str
+        self, recipes: list[dict[str, Any]], pantry_analysis: dict[str, Any], message: str
     ) -> str:
         """Generate advice"""
         if self._service and hasattr(self._service.recipe_advisor, "generate_advice"):
@@ -298,7 +298,7 @@ class CrewAIClientWrapper:
 
     async def process_message(
         self, user_id: int, message: str, use_preferences: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Process message through real service"""
         if self._service and hasattr(self._service, "process_message"):
             return await self._service.process_message(user_id, message, use_preferences)

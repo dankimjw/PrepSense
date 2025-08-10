@@ -4,7 +4,7 @@ Provides instant product information from barcode scans.
 """
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -110,7 +110,7 @@ async def lookup_barcode(barcode: str, db_pool: asyncpg.Pool = Depends(get_db_po
 @router.get("/nutrition/{barcode}")
 async def get_barcode_nutrition(
     barcode: str, db_pool: asyncpg.Pool = Depends(get_db_pool)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get nutritional information for a product by barcode.
 
@@ -184,7 +184,7 @@ async def search_by_barcode_pattern(
         # Search for barcodes containing the pattern
         results = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 fdc_id,
                 description,
                 brand_owner,

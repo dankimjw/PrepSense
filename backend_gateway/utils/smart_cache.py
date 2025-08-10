@@ -8,9 +8,9 @@ import hashlib
 import json
 import logging
 import time
-from datetime import datetime, timedelta
+from datetime import datetime
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class SmartCache:
     """TTL-based cache with content-aware keys"""
 
     def __init__(self, default_ttl: int = 3600):
-        self.cache: Dict[str, Tuple[Any, float]] = {}
+        self.cache: dict[str, tuple[Any, float]] = {}
         self.default_ttl = default_ttl
         self.hit_count = 0
         self.miss_count = 0
@@ -76,7 +76,7 @@ class SmartCache:
         self.hit_count = 0
         self.miss_count = 0
 
-    def get_stats(self) -> Dict[str, Any]:
+    def get_stats(self) -> dict[str, Any]:
         """Get cache statistics"""
         total_requests = self.hit_count + self.miss_count
         hit_rate = (self.hit_count / total_requests) if total_requests > 0 else 0
@@ -196,7 +196,7 @@ async def _get_pantry_hash(user_id: int) -> str:
         # Get pantry items with quantities and expiry dates
         query = """
             SELECT product_name, quantity, expiration_date, updated_at
-            FROM pantry_items 
+            FROM pantry_items
             WHERE user_id = %s AND quantity > 0
             ORDER BY product_name
         """
@@ -229,7 +229,7 @@ def invalidate_user_cache(user_id: int):
 
     # Find all keys that contain this user_id
     keys_to_delete = []
-    for key in cache.cache.keys():
+    for key in cache.cache:
         if f"user_id={user_id}" in key or f"args=({user_id}" in key:
             keys_to_delete.append(key)
 
@@ -245,7 +245,7 @@ def invalidate_pattern_cache(pattern: str):
     cache = get_cache()
 
     keys_to_delete = []
-    for key in cache.cache.keys():
+    for key in cache.cache:
         if pattern in key:
             keys_to_delete.append(key)
 
@@ -259,7 +259,7 @@ class CacheStats:
     """Cache statistics and monitoring"""
 
     @staticmethod
-    def get_global_stats() -> Dict[str, Any]:
+    def get_global_stats() -> dict[str, Any]:
         """Get global cache statistics"""
         cache = get_cache()
         stats = cache.get_stats()
@@ -267,7 +267,7 @@ class CacheStats:
         return {"cache_stats": stats, "timestamp": datetime.now().isoformat()}
 
     @staticmethod
-    def get_memory_usage() -> Dict[str, Any]:
+    def get_memory_usage() -> dict[str, Any]:
         """Get approximate memory usage of cache"""
         import sys
 

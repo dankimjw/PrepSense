@@ -56,9 +56,9 @@ def grant_permissions(user_email):
 
         # Verify permissions
         cursor.execute(
-            f"""
-            SELECT table_name, privilege_type 
-            FROM information_schema.table_privileges 
+            """
+            SELECT table_name, privilege_type
+            FROM information_schema.table_privileges
             WHERE grantee = %s AND table_schema = 'public'
             LIMIT 5;
         """,

@@ -3,9 +3,7 @@ Item category to unit mapping for PrepSense
 Defines which units are appropriate for different types of food items
 """
 
-from typing import Dict, List, Set
-
-from .units import Unit, UnitCategory
+from .units import Unit
 
 
 # Define food categories
@@ -28,7 +26,7 @@ class FoodCategory:
 
 
 # Map categories to allowed units
-CATEGORY_UNIT_MAPPING: Dict[str, List[str]] = {
+CATEGORY_UNIT_MAPPING: dict[str, list[str]] = {
     FoodCategory.PRODUCE_COUNTABLE: [
         Unit.EACH,
         Unit.GRAM,
@@ -175,7 +173,7 @@ CATEGORY_UNIT_MAPPING: Dict[str, List[str]] = {
 }
 
 # Keywords to help categorize items
-CATEGORY_KEYWORDS: Dict[str, List[str]] = {
+CATEGORY_KEYWORDS: dict[str, list[str]] = {
     FoodCategory.PRODUCE_COUNTABLE: [
         "banana",
         "apple",
@@ -379,7 +377,7 @@ def categorize_item(item_name: str, existing_category: str = None) -> str:
     return FoodCategory.GENERAL
 
 
-def get_allowed_units(item_name: str, category: str = None) -> List[str]:
+def get_allowed_units(item_name: str, category: str = None) -> list[str]:
     """
     Get the list of allowed units for an item
     """

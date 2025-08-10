@@ -15,7 +15,6 @@ import os
 import zipfile
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
 import asyncpg
 from dotenv import load_dotenv
@@ -50,7 +49,7 @@ class USDAUnitMappingImporter:
             await self.conn.close()
             logger.info("Database connection closed")
 
-    async def analyze_category_unit_relationships(self) -> Dict[int, Dict[str, any]]:
+    async def analyze_category_unit_relationships(self) -> dict[int, dict[str, any]]:
         """Analyze which units are commonly used with each food category."""
         logger.info("Analyzing category-to-unit relationships from USDA data...")
 
@@ -95,7 +94,7 @@ class USDAUnitMappingImporter:
         # Convert to regular dict for return
         return dict(category_unit_stats)
 
-    async def generate_category_unit_rules(self, category_stats: Dict[int, Dict[str, any]]):
+    async def generate_category_unit_rules(self, category_stats: dict[int, dict[str, any]]):
         """Generate category-to-unit rules based on analysis."""
         logger.info("Generating category-to-unit rules...")
 
@@ -151,7 +150,7 @@ class USDAUnitMappingImporter:
 
         return rules
 
-    async def import_to_database(self, rules: List[Dict[str, any]]):
+    async def import_to_database(self, rules: list[dict[str, any]]):
         """Import generated rules to database."""
         logger.info("Creating category unit mapping table...")
 
@@ -165,9 +164,9 @@ class USDAUnitMappingImporter:
                 usage_percentage DECIMAL(5,2),
                 is_preferred BOOLEAN DEFAULT FALSE,
                 notes TEXT,
-                
+
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                
+
                 FOREIGN KEY (category_id) REFERENCES usda_food_categories(id),
                 FOREIGN KEY (unit_id) REFERENCES usda_measure_units(id),
                 UNIQUE(category_id, unit_id)
@@ -185,7 +184,7 @@ class USDAUnitMappingImporter:
 
                 await self.conn.execute(
                     """
-                    INSERT INTO usda_category_unit_mappings 
+                    INSERT INTO usda_category_unit_mappings
                     (category_id, unit_id, usage_percentage, is_preferred, notes)
                     VALUES ($1, $2, $3, $4, $5)
                     ON CONFLICT (category_id, unit_id) DO UPDATE SET
@@ -233,42 +232,42 @@ class USDAUnitMappingImporter:
                 ELSE
                     v_category_id := p_category_id;
                 END IF;
-                
+
                 -- Get unit ID
                 SELECT id INTO v_unit_id
                 FROM usda_measure_units
                 WHERE LOWER(name) = LOWER(p_unit_name)
                    OR LOWER(abbreviation) = LOWER(p_unit_name)
                 LIMIT 1;
-                
+
                 -- Check if unit is valid for category
                 IF v_category_id IS NOT NULL AND v_unit_id IS NOT NULL THEN
                     SELECT usage_percentage INTO v_usage_percentage
                     FROM usda_category_unit_mappings
                     WHERE category_id = v_category_id AND unit_id = v_unit_id;
-                    
+
                     -- Get preferred units
                     SELECT ARRAY_AGG(um.name ORDER BY ucm.usage_percentage DESC)
                     INTO v_preferred_units
                     FROM usda_category_unit_mappings ucm
                     JOIN usda_measure_units um ON ucm.unit_id = um.id
                     WHERE ucm.category_id = v_category_id AND ucm.is_preferred = TRUE;
-                    
+
                     IF v_usage_percentage IS NOT NULL THEN
-                        RETURN QUERY SELECT 
+                        RETURN QUERY SELECT
                             TRUE,
                             v_usage_percentage / 100.0,
                             v_preferred_units,
                             'Unit is used in ' || v_usage_percentage || '% of similar foods';
                     ELSE
-                        RETURN QUERY SELECT 
+                        RETURN QUERY SELECT
                             FALSE,
                             0.0,
                             v_preferred_units,
                             'Unit not commonly used for this food category';
                     END IF;
                 ELSE
-                    RETURN QUERY SELECT 
+                    RETURN QUERY SELECT
                         FALSE,
                         0.0,
                         ARRAY['each', 'lb', 'oz']::TEXT[],

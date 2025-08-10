@@ -7,14 +7,14 @@ recipe recommendations using background flows and foreground crews.
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from backend_gateway.config.database import get_database_service
 
 # We'll import the foreground crew function once CrewAI is installed
 # from backend_gateway.crewai.foreground_crew import get_recipe_recommendations
-from backend_gateway.crewai.cache_manager import ArtifactCacheManager
-from backend_gateway.crewai.models import CrewInput, CrewOutput
+from backend_gateway.crewai.crewai.cache_manager import ArtifactCacheManager
+from backend_gateway.crewai.crewai.models import CrewInput, CrewOutput
 from backend_gateway.services.spoonacular_service import SpoonacularService
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ class RealCrewAIService:
 
     async def process_message(
         self, user_id: int, message: str, use_preferences: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Process a chat message using real CrewAI.
 
@@ -86,7 +86,7 @@ class RealCrewAIService:
             logger.error(f"❌ Error in CrewAI processing: {e}")
             return await self._get_fallback_response(user_id, message)
 
-    async def _get_recipe_candidates(self, message: str, user_id: int) -> List[Dict[str, Any]]:
+    async def _get_recipe_candidates(self, message: str, user_id: int) -> list[dict[str, Any]]:
         """Get recipe candidates from Spoonacular based on message"""
         try:
             # Extract ingredients from pantry if available
@@ -151,8 +151,8 @@ class RealCrewAIService:
         )
 
     def _rank_recipes_intelligently(
-        self, recipes: List[Dict], pantry_artifact, preference_artifact
-    ) -> List[Dict]:
+        self, recipes: list[dict], pantry_artifact, preference_artifact
+    ) -> list[dict]:
         """Intelligent recipe ranking using available data"""
         if not recipes:
             return []
@@ -225,7 +225,7 @@ class RealCrewAIService:
         return sorted(recipes, key=lambda r: r.get("rank_score", 0), reverse=True)
 
     def _generate_contextual_response(
-        self, message: str, recipes: List[Dict], pantry_artifact
+        self, message: str, recipes: list[dict], pantry_artifact
     ) -> str:
         """Generate contextual response based on available data"""
         message_lower = message.lower()
@@ -258,7 +258,7 @@ class RealCrewAIService:
 
         return base_response
 
-    def _format_recipe_cards(self, recipes: List[Dict]) -> List[Dict[str, Any]]:
+    def _format_recipe_cards(self, recipes: list[dict]) -> list[dict[str, Any]]:
         """Format recipes into standardized recipe cards"""
         cards = []
 
@@ -324,7 +324,7 @@ class RealCrewAIService:
             },
         }
 
-    def _get_pantry_summary(self, pantry_artifact) -> List[Dict[str, Any]]:
+    def _get_pantry_summary(self, pantry_artifact) -> list[dict[str, Any]]:
         """Get pantry summary for response"""
         if not pantry_artifact:
             return []
@@ -338,7 +338,7 @@ class RealCrewAIService:
             for item in pantry_artifact.normalized_items[:10]  # Limit to 10 items
         ]
 
-    def _get_preference_summary(self, preference_artifact) -> Dict[str, Any]:
+    def _get_preference_summary(self, preference_artifact) -> dict[str, Any]:
         """Get preference summary for response"""
         if not preference_artifact:
             return None
@@ -349,7 +349,7 @@ class RealCrewAIService:
             "top_cuisines": list(preference_artifact.cuisine_preferences.keys())[:3],
         }
 
-    def _extract_context(self, message: str) -> Dict[str, Any]:
+    def _extract_context(self, message: str) -> dict[str, Any]:
         """Extract context from user message"""
         message_lower = message.lower()
         context = {}
@@ -378,7 +378,7 @@ class RealCrewAIService:
 
         return context
 
-    async def _get_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+    async def _get_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """Get pantry items from database"""
         try:
             pantry_items = await self.db_service.get_user_pantry_items(user_id)
@@ -387,7 +387,7 @@ class RealCrewAIService:
             logger.error(f"Error fetching pantry items: {e}")
             return []
 
-    async def _get_fallback_response(self, user_id: int, message: str) -> Dict[str, Any]:
+    async def _get_fallback_response(self, user_id: int, message: str) -> dict[str, Any]:
         """Fallback response when everything fails"""
         return {
             "response": "I'm having trouble processing your request right now. Please try again in a moment!",

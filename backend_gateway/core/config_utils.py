@@ -33,7 +33,7 @@ def read_api_key_from_file(file_path: str) -> Optional[str]:
             raise ValueError(f"API key file {file_path} is empty")
         return api_key
     except Exception as e:
-        raise ValueError(f"Error reading API key from {file_path}: {e}")
+        raise ValueError(f"Error reading API key from {file_path}: {e}") from e
 
 
 def get_openai_api_key() -> str:

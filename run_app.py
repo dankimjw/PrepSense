@@ -23,7 +23,7 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 
@@ -31,12 +31,11 @@ from dotenv import load_dotenv
 sys.path.insert(0, str(Path(__file__).parent / "scripts"))
 from Key_Loader_7 import load_openai_key_from_file
 
-
 # ──────────────────────────────────────────────────────────────────────────────
 # 1. **Environment‑variable cleanup** – values in .env (or pydantic settings)
 #    always win over ad‑hoc `export`‑ed ones.
 # ──────────────────────────────────────────────────────────────────────────────
-_VARIABLES_TO_UNSET: List[str] = [
+_VARIABLES_TO_UNSET: list[str] = [
     "BIGQUERY_PROJECT",   # comes from .env or Settings
     "PORT",               # set via CLI or .env
     # add more here as needed
@@ -84,21 +83,21 @@ def kill_processes_on_port(port: int, host: str = "0.0.0.0") -> bool:
     """SIGTERM/SIGKILL whatever is bound to *port* (cross‑platform)."""
     killed_any = False
     if platform.system() == "Windows":
-        result = subprocess.run(["netstat", "-ano", "-p", "tcp"], capture_output=True, text=True)
+        result = subprocess.run(["netstat", "-ano", "-p", "tcp"], check=False, capture_output=True, text=True)
         lines = result.stdout.splitlines()
         for line in lines:
             if f":{port} " in line and (f"{host}:" in line or "0.0.0.0" in line):
                 pid = line.split()[-1]
-                subprocess.run(["taskkill", "/F", "/PID", pid], stderr=subprocess.PIPE)
+                subprocess.run(["taskkill", "/F", "/PID", pid], check=False, stderr=subprocess.PIPE)
                 print(f"Killed PID {pid} on port {port}")
                 killed_any = True
     else:
-        result = subprocess.run(["lsof", "-ti", f":{port}"], capture_output=True, text=True)
+        result = subprocess.run(["lsof", "-ti", f":{port}"], check=False, capture_output=True, text=True)
         for pid in result.stdout.splitlines():
             if pid.strip():
                 # Try TERM, fall back to KILL if necessary
-                if subprocess.run(["kill", "-TERM", pid]).returncode != 0:
-                    subprocess.run(["kill", "-KILL", pid])
+                if subprocess.run(["kill", "-TERM", pid], check=False).returncode != 0:
+                    subprocess.run(["kill", "-KILL", pid], check=False)
                 print(f"Terminated PID {pid} on port {port}")
                 killed_any = True
     if killed_any:
@@ -181,23 +180,23 @@ class ProcessManager:
 def enable_mock_data(backend_url: str) -> bool:
     """Enable all mock data via RemoteControl API."""
     import requests
-    
+
     try:
         # Remove /api/v1 from backend_url if present
-        base_url = backend_url.replace('/api/v1', '') if '/api/v1' in backend_url else backend_url
-        if not base_url.startswith('http'):
+        base_url = backend_url.replace("/api/v1", "") if "/api/v1" in backend_url else backend_url
+        if not base_url.startswith("http"):
             base_url = f"http://{base_url}"
-        
+
         response = requests.post(
             f"{base_url}/api/v1/remote-control/toggle-all",
             json={"enabled": True, "changed_by": "run_app_mock_mode"},
             timeout=5
         )
-        
+
         if response.status_code == 200:
             data = response.json()
-            enabled_count = data.get('summary', {}).get('enabled_count', 0)
-            total_count = data.get('summary', {}).get('total_features', 0)
+            enabled_count = data.get("summary", {}).get("enabled_count", 0)
+            total_count = data.get("summary", {}).get("total_features", 0)
             print(f"✅ Mock mode enabled: {enabled_count}/{total_count} features activated")
             print("   • OCR scanning: mock receipts and items")
             print("   • Recipe completion: mock pantry subtraction")
@@ -239,12 +238,12 @@ def start_backend(host: str, port: int, hot_reload: bool = False) -> subprocess.
     docs_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
     docs_url = f"http://{docs_host}:{port}/docs"
     print(f"\n📚 Swagger UI available at: {docs_url}")
-    
+
     # Open the browser after a short delay to ensure the server is ready
     def open_browser():
         time.sleep(1)  # Short delay to ensure server is ready
         webbrowser.open(docs_url)
-    
+
     import threading
     threading.Thread(target=open_browser, daemon=True).start()
 
@@ -270,42 +269,42 @@ def check_ios_prerequisites() -> bool:
     """Check if iOS development prerequisites are installed."""
     prerequisites_met = True
     missing_items = []
-    
+
     # Check for Xcode (macOS only)
     if platform.system() == "Darwin":
-        xcode_check = subprocess.run(["which", "xcodebuild"], capture_output=True)
+        xcode_check = subprocess.run(["which", "xcodebuild"], check=False, capture_output=True)
         if xcode_check.returncode != 0:
             prerequisites_met = False
             missing_items.append("Xcode")
-    
+
     # Check for npm
-    npm_check = subprocess.run(["which", "npm"], capture_output=True)
+    npm_check = subprocess.run(["which", "npm"], check=False, capture_output=True)
     if npm_check.returncode != 0:
         prerequisites_met = False
         missing_items.append("Node.js/npm")
-    
+
     # Check for Expo CLI
-    expo_check = subprocess.run(["which", "expo"], capture_output=True)
+    expo_check = subprocess.run(["which", "expo"], check=False, capture_output=True)
     if expo_check.returncode != 0:
         # Try npx expo as fallback
-        npx_expo_check = subprocess.run(["npx", "expo", "--version"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+        npx_expo_check = subprocess.run(["npx", "expo", "--version"], check=False, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
         if npx_expo_check.returncode != 0:
             prerequisites_met = False
             missing_items.append("Expo CLI")
-    
+
     return prerequisites_met, missing_items
 
 
 def display_ios_setup_instructions():
     """Display setup instructions for iOS development."""
     print("\n⚠️  iOS SIMULATOR PREREQUISITES MISSING!\n")
-    
+
     print("Required components:")
     print("1. Xcode (Mac App Store)")
     print("2. Node.js & npm (https://nodejs.org/)")
     print("3. Expo CLI (npm install -g expo-cli)")
     print("4. Watchman (brew install watchman)")
-    
+
     print("\nManual startup alternative:")
     print("1. Create .env file: cp .env.template .env")
     print("2. Start backend: cd backend_gateway && python main.py")
@@ -324,11 +323,11 @@ def main():
     # Load .env **before** evaluating env vars
     load_dotenv()
     print("Successfully loaded .env file.")
-    
+
     # Load OpenAI API key from file if specified
     project_root = Path(__file__).resolve().parent
     load_openai_key_from_file(project_root)
-    
+
     # Update ingredient expiration dates dynamically
     try:
         update_script = project_root / "scripts" / "update_ingredient_expirations.py"
@@ -370,9 +369,9 @@ def main():
     if mode in {"both", "ios"}:
         print(f"  iOS     → http://localhost:{ios_port} (calls {backend_url})")
     if args.mock:
-        print(f"  Mock Data: ENABLED 🧪")
+        print("  Mock Data: ENABLED 🧪")
     print()
-    
+
     # Check iOS prerequisites if running iOS mode
     if mode in {"both", "ios"}:
         prerequisites_ok, missing = check_ios_prerequisites()
@@ -418,7 +417,7 @@ def main():
     try:
         if mode == "backend":
             pm.backend = start_backend(host, port)
-            
+
             # Enable mock data if requested
             if args.mock:
                 print("Waiting 3s for backend to initialize...")
@@ -433,14 +432,14 @@ def main():
             pm.backend = start_backend(host, port)
             print("Waiting 3s for backend to initialize...")
             time.sleep(3)
-            
+
             # Enable mock data if requested
             if args.mock:
                 print("\n🧪 Enabling mock data mode...")
                 backend_host = "127.0.0.1" if host in {"0.0.0.0", "localhost"} else host
                 enable_mock_data(f"http://{backend_host}:{port}")
                 print()
-            
+
             pm.ios = start_ios(backend_url, ios_port, project_root)
 
         while True:

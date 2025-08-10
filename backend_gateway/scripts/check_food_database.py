@@ -42,8 +42,8 @@ def check_food_database():
             tables = db_service.execute_query(
                 """
                 SELECT COUNT(*) as count
-                FROM information_schema.tables 
-                WHERE table_schema = 'public' 
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
                 AND table_name = %(table_name)s
             """,
                 {"table_name": table_name},
@@ -71,37 +71,37 @@ def check_food_database():
         usda_key = os.getenv("USDA_API_KEY")
         usda_key_file = Path("config/usda_key.txt")
 
-        print(f"\nUSDA API Integration:")
+        print("\nUSDA API Integration:")
         if usda_key:
-            print(f"  ✅ USDA_API_KEY environment variable set")
+            print("  ✅ USDA_API_KEY environment variable set")
         elif usda_key_file.exists():
             print(f"  ✅ USDA API key file exists: {usda_key_file}")
         else:
-            print(f"  ❌ No USDA API key configured")
+            print("  ❌ No USDA API key configured")
             print(f"     Set USDA_API_KEY environment variable or create {usda_key_file}")
-            print(f"     Get free API key at: https://fdc.nal.usda.gov/api-key-signup.html")
+            print("     Get free API key at: https://fdc.nal.usda.gov/api-key-signup.html")
 
         # Check OpenFoodFacts availability (no key needed)
-        print(f"\nOpenFoodFacts Integration:")
-        print(f"  ✅ Available (no API key required)")
+        print("\nOpenFoodFacts Integration:")
+        print("  ✅ Available (no API key required)")
 
         # Check Spoonacular API key
         spoon_key = os.getenv("SPOONACULAR_API_KEY")
-        print(f"\nSpoonacular API Integration:")
+        print("\nSpoonacular API Integration:")
         if spoon_key and spoon_key != "your-spoonacular-api-key":
-            print(f"  ✅ Spoonacular API key configured")
+            print("  ✅ Spoonacular API key configured")
         else:
-            print(f"  ⚠️  Spoonacular API key not configured or using placeholder")
+            print("  ⚠️  Spoonacular API key not configured or using placeholder")
 
-        print(f"\n🏁 Summary:")
+        print("\n🏁 Summary:")
         if len(existing_tables) == len(food_tables):
-            print(f"  ✅ Food categorization database is fully deployed")
+            print("  ✅ Food categorization database is fully deployed")
         elif len(existing_tables) > 0:
-            print(f"  ⚠️  Food categorization database is partially deployed")
+            print("  ⚠️  Food categorization database is partially deployed")
             print(f"     Missing: {set(food_tables) - set(existing_tables)}")
         else:
-            print(f"  ❌ Food categorization database is not deployed")
-            print(f"     Run: python backend_gateway/scripts/deploy_food_categorization.py")
+            print("  ❌ Food categorization database is not deployed")
+            print("     Run: python backend_gateway/scripts/deploy_food_categorization.py")
 
     except Exception as e:
         print(f"\n❌ Error checking food database: {str(e)}")

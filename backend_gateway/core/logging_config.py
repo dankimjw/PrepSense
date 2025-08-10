@@ -4,7 +4,7 @@ import logging
 import os
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
 
 import structlog
 from structlog.stdlib import LoggerFactory
@@ -206,8 +206,8 @@ def log_crewai_execution(
     task_type: str,
     status: str = "started",
     duration_ms: float = None,
-    input_data: Dict[str, Any] = None,
-    output_data: Dict[str, Any] = None,
+    input_data: dict[str, Any] = None,
+    output_data: dict[str, Any] = None,
     error: Exception = None,
 ) -> None:
     """Log CrewAI agent execution with structured data."""

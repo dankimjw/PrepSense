@@ -3,26 +3,21 @@ PostgreSQL Service for PrepSense
 Handles all database operations with PostgreSQL instead of BigQuery
 """
 
-import json
 import logging
-import os
 import threading
 from contextlib import contextmanager
-from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional, Union
 
-import numpy as np
-import psycopg2
 from psycopg2.extras import RealDictCursor, execute_batch
 from psycopg2.pool import SimpleConnectionPool
 
-from .embedding_service import EmbeddingService, get_embedding_service
+from .embedding_service import get_embedding_service
 
 logger = logging.getLogger(__name__)
 
 
 class PostgresService:
-    def __init__(self, connection_params: Dict[str, Any]):
+    def __init__(self, connection_params: dict[str, Any]):
         """
         Initialize PostgreSQL service with connection pooling
 
@@ -73,8 +68,8 @@ class PostgresService:
                 self.pool.putconn(conn)
 
     def execute_query(
-        self, query: str, params: Optional[Dict[str, Any]] = None, fetch: str = "all"
-    ) -> Optional[Union[List[Dict[str, Any]], Dict[str, Any]]]:
+        self, query: str, params: Optional[dict[str, Any]] = None, fetch: str = "all"
+    ) -> Optional[Union[list[dict[str, Any]], dict[str, Any]]]:
         """
         Execute a SQL query and fetch results as dictionaries.
 
@@ -129,7 +124,7 @@ class PostgresService:
                 return [{"affected_rows": cursor.rowcount}]
 
     def execute_batch_insert(
-        self, table: str, data: List[Dict[str, Any]], conflict_resolution: Optional[str] = None
+        self, table: str, data: list[dict[str, Any]], conflict_resolution: Optional[str] = None
     ) -> int:
         """
         Batch insert data into a table
@@ -169,12 +164,12 @@ class PostgresService:
 
     # Pantry-specific methods that match BigQueryService interface
 
-    def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_user_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """Get all pantry items for a user with full BigQuery-compatible schema"""
         # Query that matches the BigQuery user_pantry_full view structure
         # Adjusted for PostgreSQL schema differences
         query = """
-        SELECT 
+        SELECT
             u.user_id,
             u.username as user_name,
             p.pantry_id,
@@ -221,7 +216,7 @@ class PostgresService:
 
         return results
 
-    async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]:
+    async def add_pantry_item(self, item_data: Any, user_id: int) -> dict[str, Any]:
         """Add a new pantry item"""
         # First get the user's pantry
         pantry_query = """
@@ -309,7 +304,7 @@ class PostgresService:
                 "message": "Item added successfully",
             }
 
-    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
+    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> dict[str, Any]:
         """Update a pantry item"""
         # Build dynamic update query
         set_clauses = []
@@ -396,7 +391,7 @@ class PostgresService:
         """Delete a single pantry item (async wrapper for compatibility)"""
         return self.delete_pantry_item(pantry_item_id)
 
-    def batch_add_pantry_items(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def batch_add_pantry_items(self, user_id: int, items: list[dict[str, Any]]) -> dict[str, Any]:
         """Add multiple pantry items in a batch"""
         # Get user's pantry
         pantry_query = "SELECT pantry_id FROM pantries WHERE user_id = %(user_id)s LIMIT 1"
@@ -438,7 +433,7 @@ class PostgresService:
                 column_names = ", ".join(columns)
 
                 query = f"""
-                INSERT INTO pantry_items ({column_names}) 
+                INSERT INTO pantry_items ({column_names})
                 VALUES ({placeholders})
                 RETURNING pantry_item_id, product_name
                 """
@@ -460,7 +455,7 @@ class PostgresService:
 
     # User preference methods
 
-    def get_user_preferences(self, user_id: int) -> Dict[str, Any]:
+    def get_user_preferences(self, user_id: int) -> dict[str, Any]:
         """Get user preferences including dietary, allergens, and cuisine"""
         with self.get_cursor() as cursor:
             # Get basic preferences
@@ -498,7 +493,7 @@ class PostgresService:
                 "cuisine_preference": cuisines,
             }
 
-    def update_user_preferences(self, user_id: int, preferences: Dict[str, Any]) -> Dict[str, Any]:
+    def update_user_preferences(self, user_id: int, preferences: dict[str, Any]) -> dict[str, Any]:
         """Update user preferences"""
         with self.get_cursor() as cursor:
             # Update or insert main preferences
@@ -556,7 +551,7 @@ class PostgresService:
 
     async def semantic_search_recipes(
         self, query: str, limit: int = 10, similarity_threshold: float = 0.3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search recipes using semantic similarity
 
@@ -594,7 +589,7 @@ class PostgresService:
 
     async def semantic_search_products(
         self, query: str, limit: int = 10, similarity_threshold: float = 0.3
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search products using semantic similarity
 
@@ -633,11 +628,11 @@ class PostgresService:
     async def hybrid_recipe_search(
         self,
         query: str,
-        available_ingredients: List[str],
+        available_ingredients: list[str],
         limit: int = 10,
         semantic_weight: float = 0.6,
         ingredient_weight: float = 0.4,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Perform hybrid search combining semantic similarity and ingredient matching
 
@@ -685,7 +680,7 @@ class PostgresService:
 
     async def find_similar_pantry_items(
         self, item_name: str, limit: int = 5
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Find pantry items similar to a given item name
 
@@ -710,7 +705,7 @@ class PostgresService:
         with self.get_cursor() as cursor:
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     pi.*,
                     1 - (pi.embedding <=> %(embedding)s::vector) as similarity_score
                 FROM pantry_items pi
@@ -765,7 +760,7 @@ class PostgresService:
                     recipe_info["description"] = data.get("description", "")
                     recipe_info["ingredients"] = data.get("ingredients", [])
                     recipe_info["tags"] = data.get("tags", [])
-                except:
+                except Exception:
                     pass
 
             # Generate embedding
@@ -778,7 +773,7 @@ class PostgresService:
             with self.get_cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE recipes 
+                    UPDATE recipes
                     SET embedding = %(embedding)s::vector,
                         embedding_updated_at = CURRENT_TIMESTAMP
                     WHERE recipe_id = %(id)s
@@ -826,7 +821,7 @@ class PostgresService:
             with self.get_cursor() as cursor:
                 cursor.execute(
                     """
-                    UPDATE products 
+                    UPDATE products
                     SET embedding = %(embedding)s::vector,
                         embedding_updated_at = CURRENT_TIMESTAMP
                     WHERE id = %(id)s
@@ -875,9 +870,9 @@ class PostgresService:
             with self.get_cursor() as cursor:
                 cursor.execute(
                     """
-                    INSERT INTO search_query_embeddings 
+                    INSERT INTO search_query_embeddings
                     (user_id, query_text, query_type, embedding, results_count, clicked_result_id)
-                    VALUES (%(user_id)s, %(query_text)s, %(query_type)s, %(embedding)s::vector, 
+                    VALUES (%(user_id)s, %(query_text)s, %(query_type)s, %(embedding)s::vector,
                             %(results_count)s, %(clicked_result_id)s)
                     """,
                     {

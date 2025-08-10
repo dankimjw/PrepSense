@@ -3,15 +3,13 @@
 # File: PrepSense/backend_gateway/services/vision_service.py
 import base64
 import json
-import os
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
-import openai
 from dotenv import load_dotenv
 
-from ..core.openai_client import get_openai_client
+from backend_gateway.core.openai_client import get_openai_client
 
 # Load environment variables.
 load_dotenv()
@@ -34,9 +32,9 @@ class VisionService:
         try:
             self.client = get_openai_client()
         except ValueError as e:
-            raise ValueError(f"Failed to initialize VisionService: {e}")
+            raise ValueError(f"Failed to initialize VisionService: {e}") from e
 
-    async def process_image(self, file) -> Tuple[str, Optional[str]]:
+    async def process_image(self, file) -> tuple[str, Optional[str]]:
         """
         Reads and preprocesses the uploaded image file.
         Converts the image to base64 format for OpenAI API.
@@ -117,7 +115,7 @@ class VisionService:
 
         try:
             response = self.client.chat.completions.create(
-                model="gpt-4o",  # Or your preferred current vision model
+                model="gpt-5-nano-2025-08-07",  # Or your preferred current vision model
                 messages=[
                     {
                         "role": "user",
@@ -130,18 +128,18 @@ class VisionService:
                         ],
                     }
                 ],
-                max_tokens=1500,
+                max_completion_tokens=1500,
                 temperature=0.5,
             )
 
             # Log the full OpenAI vision response for debugging
-            print(f"\n👁️ OpenAI Vision API Response:")
-            print(f"   Model: gpt-4o (vision)")
+            print("\n👁️ OpenAI Vision API Response:")
+            print("   Model: gpt-4o (vision)")
             print(f"   Usage: {response.usage}")
             print(f"   Response ID: {response.id}")
 
             vision_result = response.choices[0].message.content.strip()
-            print(f"   Vision Result Preview:")
+            print("   Vision Result Preview:")
             print(f"   {vision_result[:300]}...")
             print(f"   Full Result Length: {len(vision_result)} characters\n")
 
@@ -149,9 +147,9 @@ class VisionService:
 
         except Exception as e:
             print(f"Error communicating with OpenAI API: {e}")  # Log the actual error
-            raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}")
+            raise RuntimeError(f"Error communicating with OpenAI API: {str(e)}") from e
 
-    def parse_openai_response(self, response_text: str) -> List[Dict[str, Any]]:
+    def parse_openai_response(self, response_text: str) -> list[dict[str, Any]]:
         """
         Parses the JSON response from OpenAI and extracts pantry items.
         Combines duplicate items and sums their quantities.
@@ -210,10 +208,7 @@ class VisionService:
                     try:
                         quantity_amount = float(match.group(1))
                         parsed_unit = match.group(2).strip()
-                        if parsed_unit:
-                            quantity_unit = parsed_unit
-                        else:
-                            quantity_unit = "unit"
+                        quantity_unit = parsed_unit or "unit"
                     except ValueError:
                         print(
                             f"Could not parse quantity amount from: '{match.group(1)}' for item '{item_name}'"

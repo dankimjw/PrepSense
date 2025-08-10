@@ -1,7 +1,7 @@
 """Pydantic models representing application users."""
 
 from datetime import datetime
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -35,9 +35,9 @@ class UserResponse(UserBase):
 
 class UserProfilePreference(BaseModel):
     household_size: Optional[int] = None
-    dietary_preference: Optional[Union[str, List[str]]] = None
-    allergens: Optional[List[str]] = None
-    cuisine_preference: Optional[Union[str, List[str]]] = None
+    dietary_preference: Optional[Union[str, list[str]]] = None
+    allergens: Optional[list[str]] = None
+    cuisine_preference: Optional[Union[str, list[str]]] = None
     # Using 'pref_created_at' to avoid conflict if 'created_at' is directly from query result
     preference_created_at: Optional[datetime] = Field(None, alias="preference_created_at")
 

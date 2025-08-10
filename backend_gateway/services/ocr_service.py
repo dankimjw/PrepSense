@@ -10,13 +10,13 @@ import json
 import logging
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from openai import AuthenticationError, OpenAI
+from openai import AuthenticationError
 
 from backend_gateway.core.openai_client import get_openai_client
 from backend_gateway.models.ocr_models import OCRResponse, ParsedItem
-from backend_gateway.RemoteControl_7 import is_mock_enabled, set_mock
+from backend_gateway.RemoteControl_7 import is_mock_enabled
 from backend_gateway.services.fallback_unit_service import fallback_unit_service
 from backend_gateway.services.practical_food_categorization import (
     PracticalFoodCategorizationService,
@@ -119,7 +119,7 @@ class OcrService:
         self.cache = get_cache()
         self.categorizer = PracticalFoodCategorizationService()
         # Track recent detections for debugging
-        self.recent_detections: List[Dict[str, Any]] = []
+        self.recent_detections: list[dict[str, Any]] = []
 
     def _generate_image_hash(self, data: bytes) -> str:
         """Compute an MD5 hash for the input bytes for cache keys."""
@@ -223,7 +223,7 @@ class OcrService:
 
         # Call the chat completion endpoint
         response = client.chat.completions.create(
-            model="gpt-4o", messages=messages, max_tokens=1500
+            model="gpt-5-nano-2025-08-07", messages=messages, max_completion_tokens=1500
         )
 
         logger.info(
@@ -231,7 +231,7 @@ class OcrService:
         )
         return response.choices[0].message.content
 
-    def _parse_openai_response(self, content: str) -> List[Dict[str, Any]]:
+    def _parse_openai_response(self, content: str) -> list[dict[str, Any]]:
         """
         Parse the JSON content from the OpenAI response.
         Handles both raw JSON and JSON wrapped in markdown code blocks.
@@ -239,10 +239,7 @@ class OcrService:
         try:
             # Try to extract JSON from markdown code blocks first
             json_match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                json_str = content
+            json_str = json_match.group(1) if json_match else content
 
             parsed_json = json.loads(json_str)
             items = parsed_json.get("items", [])
@@ -254,7 +251,7 @@ class OcrService:
             logger.debug(f"Raw response content: {content[:500]}...")
             raise
 
-    async def _post_process_item(self, raw_item: Dict[str, Any]) -> Optional[ParsedItem]:
+    async def _post_process_item(self, raw_item: dict[str, Any]) -> Optional[ParsedItem]:
         """
         Post-process a single raw item from OpenAI response:
         - Validate and fix quantity/unit pairs
@@ -413,7 +410,7 @@ class OcrService:
         return "Pantry"
 
     async def process_image(
-        self, image_data: bytes, source_info: Optional[Dict[str, Any]] = None
+        self, image_data: bytes, source_info: Optional[dict[str, Any]] = None
     ) -> OCRResponse:
         """
         Main entrypoint for OCR scanning flow:
@@ -431,7 +428,7 @@ class OcrService:
         cache_key = f"ocr_scan_{image_hash}"
 
         # Collect debug details
-        debug_info: Dict[str, Any] = {
+        debug_info: dict[str, Any] = {
             "image_hash": image_hash,
             "cache_key": cache_key,
             "mock_enabled": is_mock_enabled("ocr_scan"),
@@ -555,7 +552,7 @@ class OcrService:
                 logger.info(
                     f"✅ FINAL RESULT: Returning {len(processed_items)} processed items to client"
                 )
-                for i, item in enumerate(processed_items[:3]):  # Log first 3 items
+                for _i, item in enumerate(processed_items[:3]):  # Log first 3 items
                     logger.info(
                         f"  ➤ {item.name}: {item.quantity} {item.unit} (Category: {item.category})"
                     )
@@ -574,7 +571,7 @@ class OcrService:
             raise
 
     def _track_detection(
-        self, image_hash: str, response: OCRResponse, source_info: Optional[Dict[str, Any]] = None
+        self, image_hash: str, response: OCRResponse, source_info: Optional[dict[str, Any]] = None
     ):
         """Track detection results for debugging purposes."""
         detection_record = {
@@ -594,15 +591,15 @@ class OcrService:
         if len(self.recent_detections) > 10:
             self.recent_detections.pop(0)
 
-    def get_recent_detections(self) -> List[Dict[str, Any]]:
+    def get_recent_detections(self) -> list[dict[str, Any]]:
         """Get recent detection results for debugging."""
         return self.recent_detections.copy()
 
-    def clear_cache(self) -> Dict[str, Any]:
+    def clear_cache(self) -> dict[str, Any]:
         """Clear OCR-related cache entries."""
         try:
             # Find and clear OCR-related cache entries
-            ocr_keys = [key for key in self.cache.cache.keys() if "ocr_scan_" in key]
+            ocr_keys = [key for key in self.cache.cache if "ocr_scan_" in key]
 
             for key in ocr_keys:
                 self.cache.delete(key)
@@ -620,7 +617,7 @@ class OcrService:
 
         except Exception as e:
             logger.error(f"Error clearing OCR cache: {e}")
-            raise RuntimeError(f"Error clearing cache: {str(e)}")
+            raise RuntimeError(f"Error clearing cache: {str(e)}") from e
 
 
 # Global service instance

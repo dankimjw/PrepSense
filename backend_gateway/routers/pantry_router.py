@@ -1,7 +1,7 @@
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 # Import RemoteControl
 from backend_gateway.RemoteControl_7 import is_recipe_completion_mock_enabled, set_mock
@@ -43,21 +43,14 @@ MOCK_RECIPE_COMPLETION_RESPONSE = {
 }
 
 from datetime import date, datetime
-from typing import List
 
 # Model for creating a pantry item
 from pydantic import BaseModel, ConfigDict, Field
 
 from backend_gateway.config.database import get_database_service, get_pantry_service
-from backend_gateway.constants.units import convert_quantity, get_unit_category, normalize_unit
 
 # Security imports
-from backend_gateway.core.security import get_current_user, oauth2_scheme_optional
-
 # User and Auth related imports
-from backend_gateway.models.user import UserInDB
-from backend_gateway.routers.users import get_current_active_user
-
 # Service imports
 from backend_gateway.services.pantry_service import PantryService
 from backend_gateway.services.recipe_completion_service import RecipeCompletionService
@@ -137,7 +130,7 @@ class RecipeIngredient(BaseModel):
 class RecipeCompletionRequest(BaseModel):
     user_id: int = Field(..., description="ID of the user")
     recipe_name: str = Field(..., description="Name of the completed recipe")
-    ingredients: List[RecipeIngredient] = Field(..., description="List of ingredients to subtract")
+    ingredients: list[RecipeIngredient] = Field(..., description="List of ingredients to subtract")
 
 
 class UserPantryItem(BaseModel):
@@ -176,7 +169,7 @@ def get_pantry_service_dep() -> PantryService:
 
 
 @router.get(
-    "/user/{user_id}/items", response_model=List[UserPantryItem], summary="Get User's Pantry Items"
+    "/user/{user_id}/items", response_model=list[UserPantryItem], summary="Get User's Pantry Items"
 )
 async def get_user_pantry_items(
     user_id: int, pantry_service: PantryService = Depends(get_pantry_service_dep)
@@ -201,12 +194,14 @@ async def get_user_pantry_items(
         return items
     except Exception as e:
         logger.error(f"Error retrieving pantry items for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to retrieve pantry items: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to retrieve pantry items: {str(e)}"
+        ) from e
 
 
 @router.post(
     "/user/{user_id}/items",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     status_code=201,
     summary="Add Item to Specific User's Pantry",
 )
@@ -271,14 +266,14 @@ async def add_pantry_item_for_specific_user(
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
         logger.error(f"Error adding pantry item for user {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}") from e
 
 
 @router.post(
-    "/items", response_model=Dict[str, Any], status_code=201, summary="Add Item to User's Pantry"
+    "/items", response_model=dict[str, Any], status_code=201, summary="Add Item to User's Pantry"
 )
 async def add_pantry_item_for_user(
     item_data: PantryItemCreate, pantry_service: PantryService = Depends(get_pantry_service_dep)
@@ -337,14 +332,14 @@ async def add_pantry_item_for_user(
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except ValueError as ve:  # Example: if service validates and raises ValueError
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except Exception as e:
         # Log the exception for server-side diagnostics
         logger.error(f"Error adding pantry item: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add pantry item: {str(e)}") from e
 
 
-@router.get("/user/{user_id}/full", response_model=List[Dict[str, Any]])
+@router.get("/user/{user_id}/full", response_model=list[dict[str, Any]])
 async def get_user_pantry_full(user_id: int = 111, db_service=Depends(get_database_service)):
     """
     Get the user's full pantry view ordered by expiration date.
@@ -353,7 +348,7 @@ async def get_user_pantry_full(user_id: int = 111, db_service=Depends(get_databa
     try:
         # The query to get the full user pantry view
         query = """
-            SELECT 
+            SELECT
                 pi.*,
                 p.user_id
             FROM pantry_items pi
@@ -369,10 +364,12 @@ async def get_user_pantry_full(user_id: int = 111, db_service=Depends(get_databa
 
     except Exception as e:
         logger.error(f"Error retrieving user pantry full view: {e}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving pantry items: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving pantry items: {str(e)}"
+        ) from e
 
 
-@router.put("/items/{item_id}", response_model=Dict[str, Any], summary="Update Pantry Item")
+@router.put("/items/{item_id}", response_model=dict[str, Any], summary="Update Pantry Item")
 async def update_pantry_item(
     item_id: str,
     item_data: PantryItemCreate,
@@ -400,16 +397,18 @@ async def update_pantry_item(
             raise HTTPException(status_code=404, detail=f"Pantry item {item_id} not found")
         return updated_item
     except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve)) from ve
     except HTTPException:
         raise  # Re-raise HTTPException as is
     except Exception as e:
         logger.error(f"Error updating pantry item {item_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update pantry item: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update pantry item: {str(e)}"
+        ) from e
 
 
 @router.patch(
-    "/items/{item_id}/consume", response_model=Dict[str, Any], summary="Update Item Consumption"
+    "/items/{item_id}/consume", response_model=dict[str, Any], summary="Update Item Consumption"
 )
 async def consume_pantry_item(
     item_id: str,
@@ -442,7 +441,7 @@ async def consume_pantry_item(
         # Execute the update using SQL query
         update_query = """
         UPDATE pantry_items
-        SET 
+        SET
             quantity = %(quantity_amount)s,
             used_quantity = %(used_quantity)s,
             updated_at = CURRENT_TIMESTAMP
@@ -466,11 +465,13 @@ async def consume_pantry_item(
         raise
     except Exception as e:
         logger.error(f"Error updating item consumption {item_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to update item consumption: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update item consumption: {str(e)}"
+        ) from e
 
 
 @router.delete(
-    "/items/{item_id}", response_model=Dict[str, Any], summary="Delete Single Pantry Item"
+    "/items/{item_id}", response_model=dict[str, Any], summary="Delete Single Pantry Item"
 )
 async def delete_pantry_item(
     item_id: str, pantry_service: PantryService = Depends(get_pantry_service_dep)
@@ -497,10 +498,12 @@ async def delete_pantry_item(
         raise  # Re-raise HTTPException as is
     except Exception as e:
         logger.error(f"Error deleting pantry item {item_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to delete pantry item: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete pantry item: {str(e)}"
+        ) from e
 
 
-@router.delete("/user/{user_id}/items", response_model=Dict[str, Any])
+@router.delete("/user/{user_id}/items", response_model=dict[str, Any])
 async def delete_user_pantry_items(
     user_id: int = 111,
     hours_ago: Optional[int] = None,
@@ -529,12 +532,12 @@ async def delete_user_pantry_items(
         return result
     except Exception as e:
         logger.error(f"Error deleting user pantry items: {e}")
-        raise HTTPException(status_code=500, detail=f"Error deleting pantry items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error deleting pantry items: {str(e)}") from e
 
 
 @router.post(
     "/recipe/complete",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Complete Recipe and Subtract Ingredients",
 )
 async def complete_recipe(
@@ -696,11 +699,11 @@ async def complete_recipe(
 
     except Exception as e:
         logger.error(f"Error completing recipe: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to complete recipe: {str(e)}") from e
 
 
 @router.post(
-    "/revert-changes", response_model=Dict[str, Any], summary="Revert Recent Pantry Changes"
+    "/revert-changes", response_model=dict[str, Any], summary="Revert Recent Pantry Changes"
 )
 async def revert_pantry_changes(
     user_id: int = 111,
@@ -738,7 +741,6 @@ async def revert_pantry_changes(
             # Default to last hour
             cutoff_query = "CURRENT_TIMESTAMP - INTERVAL '1 hour'"
 
-        reverted_items = []
         deleted_items = []
         restored_quantities = []
 
@@ -799,7 +801,7 @@ async def revert_pantry_changes(
         if include_recipe_changes:
             # Find items that were modified (not created) within the time window
             modified_query = f"""
-            SELECT 
+            SELECT
                 pi.pantry_item_id,
                 pi.product_name,
                 pi.quantity as current_quantity,
@@ -822,7 +824,7 @@ async def revert_pantry_changes(
 
                 restore_query = """
                 UPDATE pantry_items
-                SET 
+                SET
                     quantity = %(restored_quantity)s,
                     used_quantity = 0,
                     updated_at = CURRENT_TIMESTAMP
@@ -864,7 +866,7 @@ async def revert_pantry_changes(
 
     except Exception as e:
         logger.error(f"Error reverting pantry changes: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to revert changes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to revert changes: {str(e)}") from e
 
 
 class MockRecipeCompletionConfig(BaseModel):
@@ -942,4 +944,4 @@ async def cleanup_trader_joes_items(user_id: int = 111, db_service=Depends(get_d
 
     except Exception as e:
         logger.error(f"Error cleaning up Trader Joe's items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to cleanup items: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to cleanup items: {str(e)}") from e

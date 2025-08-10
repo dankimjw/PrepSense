@@ -4,7 +4,7 @@ Improves OCR accuracy by matching extracted items with USDA food database.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 from backend_gateway.core.database import get_db_pool
 from backend_gateway.core.openai_client import get_openai_client
-from backend_gateway.routers.ocr_router import OCRResponse, ParsedItem, ScanRequest
+from backend_gateway.routers.ocr_router import ParsedItem, ScanRequest
 from backend_gateway.routers.ocr_router import scan_items as original_scan_items
 from backend_gateway.routers.ocr_router import scan_receipt as original_scan_receipt
 from backend_gateway.services.ocr_usda_enhancer import OCRUSDAEnhancer
@@ -38,7 +38,7 @@ class EnhancedOCRResponse(BaseModel):
     """Enhanced OCR response with USDA matches."""
 
     success: bool
-    items: List[EnhancedParsedItem]
+    items: list[EnhancedParsedItem]
     enhanced_count: int
     message: Optional[str] = None
     processing_time: Optional[float] = None

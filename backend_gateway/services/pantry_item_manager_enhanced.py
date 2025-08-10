@@ -2,10 +2,8 @@
 
 import asyncio
 import logging
-import random
-import uuid
 from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend_gateway.services.food_database_service import FoodDatabaseService
 from backend_gateway.services.pantry_item_manager import PantryItemManager
@@ -23,8 +21,8 @@ class PantryItemManagerEnhanced(PantryItemManager):
         self.unit_service = UnitValidationService(db_service)
 
     async def add_items_batch_enhanced(
-        self, user_id: int, items: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, user_id: int, items: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Enhanced version that categorizes items and validates units before saving.
 
@@ -46,7 +44,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
         start_time = datetime.now()
 
         # Get or create pantry
-        pantry_id = self.get_or_create_pantry(user_id)
+        self.get_or_create_pantry(user_id)
 
         # Process items with categorization
         enhanced_items = []
@@ -89,7 +87,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
 
         return save_result
 
-    async def _process_item_with_categorization(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def _process_item_with_categorization(self, item: dict[str, Any]) -> dict[str, Any]:
         """Process a single item with categorization and unit validation."""
         try:
             item_name = item.get("item_name", "")
@@ -158,7 +156,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
 
     async def validate_and_fix_existing_items(
         self, user_id: int, fix_units: bool = True, fix_categories: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Validate and fix existing pantry items for a user.
 
@@ -229,7 +227,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
                             SET {updates}, updated_at = CURRENT_TIMESTAMP
                             WHERE pantry_item_id = %(pantry_item_id)s
                         """.format(
-                            updates=", ".join([f"{k} = %({k})s" for k in updates_needed.keys()])
+                            updates=", ".join([f"{k} = %({k})s" for k in updates_needed])
                         )
 
                         params = {"pantry_item_id": pantry_item_id, **updates_needed}
@@ -254,7 +252,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
             logger.error(f"Error in validate_and_fix_existing_items: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    async def smart_add_item(self, user_id: int, item_description: str) -> Dict[str, Any]:
+    async def smart_add_item(self, user_id: int, item_description: str) -> dict[str, Any]:
         """
         Smart add that parses natural language item descriptions.
 
@@ -324,7 +322,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
             logger.error(f"Error in smart_add_item: {str(e)}")
             return {"success": False, "error": str(e)}
 
-    def _parse_item_description(self, description: str) -> Dict[str, Any]:
+    def _parse_item_description(self, description: str) -> dict[str, Any]:
         """Parse natural language item description."""
         import re
 
@@ -375,10 +373,10 @@ class PantryItemManagerEnhanced(PantryItemManager):
 
         return result
 
-    async def get_expiring_items(self, user_id: int, days_ahead: int = 7) -> List[Dict[str, Any]]:
+    async def get_expiring_items(self, user_id: int, days_ahead: int = 7) -> list[dict[str, Any]]:
         """Get items expiring within specified days, with smart categorization."""
         query = """
-            SELECT 
+            SELECT
                 pi.*,
                 p.product_name,
                 p.brand_name,
@@ -410,7 +408,7 @@ class PantryItemManagerEnhanced(PantryItemManager):
 
         return items
 
-    def _get_usage_suggestions(self, category: str, item_name: str) -> List[str]:
+    def _get_usage_suggestions(self, category: str, item_name: str) -> list[str]:
         """Get usage suggestions based on item category."""
         suggestions = {
             "produce_countable": [

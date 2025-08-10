@@ -1,8 +1,10 @@
 """Security helpers for authentication and password management."""
 
 from datetime import datetime, timedelta
-from typing import Any, Optional, Union
+from typing import Optional
 
+from fastapi import Depends, HTTPException, Request, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
@@ -33,12 +35,7 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-from typing import Optional
-
-from fastapi import Depends, HTTPException, Request, status
-
 # OAuth2 scheme for token authentication
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordBearer
 
 reusable_oauth2 = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/login/access-token")
 
@@ -122,7 +119,7 @@ def get_current_user(
             "last_name": payload.get("last_name", ""),
             "is_admin": payload.get("is_admin", False),
         }
-    except JWTError:
+    except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Could not validate credentials",

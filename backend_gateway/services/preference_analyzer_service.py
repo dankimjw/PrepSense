@@ -4,7 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ class PreferenceAnalyzerService:
     def __init__(self, db_service):
         self.db_service = db_service
 
-    def analyze_user_preferences(self, user_id: int) -> Dict[str, Any]:
+    def analyze_user_preferences(self, user_id: int) -> dict[str, Any]:
         """
         Analyze user's preferences based on their saved recipes and cooking history
 
@@ -49,25 +49,25 @@ class PreferenceAnalyzerService:
             logger.error(f"Error analyzing preferences for user {user_id}: {str(e)}")
             return {}
 
-    def _get_liked_recipes(self, user_id: int) -> List[Dict[str, Any]]:
+    def _get_liked_recipes(self, user_id: int) -> list[dict[str, Any]]:
         """Get all recipes the user has rated positively"""
         query = """
-        SELECT 
+        SELECT
             recipe_title,
             recipe_data,
             source,
             created_at
         FROM user_recipes
-        WHERE user_id = %(user_id)s 
+        WHERE user_id = %(user_id)s
         AND (rating = 'thumbs_up' OR is_favorite = true)
         """
 
         return self.db_service.execute_query(query, {"user_id": user_id})
 
-    def _get_all_saved_recipes(self, user_id: int) -> List[Dict[str, Any]]:
+    def _get_all_saved_recipes(self, user_id: int) -> list[dict[str, Any]]:
         """Get all saved recipes for the user"""
         query = """
-        SELECT 
+        SELECT
             recipe_title,
             recipe_data,
             rating,
@@ -79,16 +79,16 @@ class PreferenceAnalyzerService:
 
         return self.db_service.execute_query(query, {"user_id": user_id})
 
-    def _get_cooking_history(self, user_id: int) -> List[Dict[str, Any]]:
+    def _get_cooking_history(self, user_id: int) -> list[dict[str, Any]]:
         """Get cooking history from pantry_history"""
         query = """
-        SELECT 
+        SELECT
             recipe_name,
             recipe_id,
             changed_at,
             COUNT(*) as times_cooked
         FROM pantry_history
-        WHERE user_id = %(user_id)s 
+        WHERE user_id = %(user_id)s
         AND recipe_name IS NOT NULL
         GROUP BY recipe_name, recipe_id, changed_at
         ORDER BY changed_at DESC
@@ -96,7 +96,7 @@ class PreferenceAnalyzerService:
 
         return self.db_service.execute_query(query, {"user_id": user_id})
 
-    def _analyze_recipe_patterns(self, liked_recipes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_recipe_patterns(self, liked_recipes: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze patterns in liked recipes"""
         patterns = {
             "common_ingredients": defaultdict(int),
@@ -148,7 +148,7 @@ class PreferenceAnalyzerService:
 
         return patterns
 
-    def _analyze_cooking_frequency(self, cooking_history: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def _analyze_cooking_frequency(self, cooking_history: list[dict[str, Any]]) -> dict[str, Any]:
         """Analyze cooking frequency patterns"""
         frequency = {"most_cooked_recipes": [], "recent_recipes": [], "cooking_days": set()}
 
@@ -179,8 +179,8 @@ class PreferenceAnalyzerService:
         return frequency
 
     def _extract_preference_insights(
-        self, patterns: Dict[str, Any], cooking_frequency: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, patterns: dict[str, Any], cooking_frequency: dict[str, Any]
+    ) -> dict[str, Any]:
         """Extract actionable insights from patterns"""
         insights = {
             "favorite_ingredients": [],
@@ -229,7 +229,7 @@ class PreferenceAnalyzerService:
 
         return insights
 
-    def _extract_ingredients(self, recipe_data: Dict[str, Any]) -> List[str]:
+    def _extract_ingredients(self, recipe_data: dict[str, Any]) -> list[str]:
         """Extract ingredient names from recipe data"""
         ingredients = []
 
@@ -295,7 +295,7 @@ class PreferenceAnalyzerService:
         return "other"
 
     def calculate_recipe_preference_score(
-        self, recipe: Dict[str, Any], user_insights: Dict[str, Any]
+        self, recipe: dict[str, Any], user_insights: dict[str, Any]
     ) -> float:
         """
         Calculate how well a recipe matches user preferences
@@ -326,11 +326,14 @@ class PreferenceAnalyzerService:
         recipe_time = recipe_data.get("time", recipe_data.get("readyInMinutes", 30))
         time_pref = user_insights.get("cooking_time_preference", "medium")
 
-        if time_pref == "quick" and recipe_time < 20:
-            score += 20
-        elif time_pref == "medium" and 20 <= recipe_time <= 45:
-            score += 20
-        elif time_pref == "long" and recipe_time > 45:
+        if (
+            time_pref == "quick"
+            and recipe_time < 20
+            or time_pref == "medium"
+            and 20 <= recipe_time <= 45
+            or time_pref == "long"
+            and recipe_time > 45
+        ):
             score += 20
         else:
             score += 10  # Partial credit

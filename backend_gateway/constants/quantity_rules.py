@@ -3,7 +3,7 @@ Quantity validation rules for different types of items
 """
 
 import re
-from typing import Dict, Optional, Tuple
+from typing import Optional
 
 # Items that must have whole number quantities only
 WHOLE_NUMBER_ITEMS = [
@@ -221,15 +221,10 @@ def should_allow_decimals(item_name: str, unit: str) -> bool:
         return False
 
     # Check if item name contains any whole number keywords
-    for item in WHOLE_NUMBER_ITEMS:
-        if item in normalized_name:
-            return False
-
-    # Default to allowing decimals for weight/volume units
-    return True
+    return all(item not in normalized_name for item in WHOLE_NUMBER_ITEMS)
 
 
-def get_quantity_rules(item_name: str, unit: str) -> Dict:
+def get_quantity_rules(item_name: str, unit: str) -> dict:
     """
     Gets quantity validation rules for an item
     """
@@ -242,7 +237,7 @@ def get_quantity_rules(item_name: str, unit: str) -> Dict:
     }
 
 
-def validate_quantity(quantity: float, item_name: str, unit: str) -> Tuple[bool, Optional[str]]:
+def validate_quantity(quantity: float, item_name: str, unit: str) -> tuple[bool, Optional[str]]:
     """
     Validates a quantity value against the rules
     Returns (is_valid, error_message)

@@ -10,6 +10,7 @@ __pycache__/
 *.so
 .Python
 venv/
+.venv/
 env/
 ENV/
 build/
@@ -36,6 +37,30 @@ htmlcov/
 coverage.xml
 *.cover
 .hypothesis/
+*.pyc
+*.pyo
+
+# ---- Repo Janitor additions ----
+# Node modules (should never be committed)
+/node_modules/
+/ios-app/node_modules/
+/backend_gateway/node_modules/
+**/node_modules/
+
+# Expo
+/.expo/
+/.expo-shared/
+/ios-app/.expo/
+/ios-app/.expo-shared/
+
+# Build artifacts
+dist/
+build/
+
+# Generated files
+.health_check_results.json
+phase2_analysis_results.json
+bandit-report.json
 
 # IDE specific files
 .vscode/

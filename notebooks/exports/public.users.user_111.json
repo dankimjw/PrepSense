@@ -1,0 +1,13 @@
+[
+  {
+    "user_id":111,
+    "username":"lily",
+    "email":"demo@prepsense.com",
+    "first_name":"Lily",
+    "last_name":"User",
+    "password_hash":null,
+    "role":"user",
+    "created_at":"2025-07-04T05:09:16.749",
+    "updated_at":"2025-07-28T04:31:25.761"
+  }
+]

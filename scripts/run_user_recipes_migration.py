@@ -7,7 +7,6 @@ from pathlib import Path
 
 import psycopg2
 from dotenv import load_dotenv
-from psycopg2 import sql
 
 # Load environment variables from main project .env
 env_path = Path(__file__).parent / ".env"
@@ -50,7 +49,7 @@ def run_migration():
         cursor = conn.cursor()
 
         # Read migration SQL
-        with open(migration_file, "r") as f:
+        with open(migration_file) as f:
             migration_sql = f.read()
 
         print("Running migration...")
@@ -75,7 +74,7 @@ def run_migration():
         # Check how many records were updated
         cursor.execute(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_recipes,
                 COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
                 COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cooked_recipes
@@ -84,7 +83,7 @@ def run_migration():
         )
 
         stats = cursor.fetchone()
-        print(f"\nRecipe statistics after migration:")
+        print("\nRecipe statistics after migration:")
         print(f"  - Total recipes: {stats[0]}")
         print(f"  - Saved recipes: {stats[1]}")
         print(f"  - Cooked recipes: {stats[2]}")

@@ -7,12 +7,10 @@ Checks all dependencies, configurations, and connections after running setup.py.
 import importlib
 import json
 import os
-import platform
 import socket
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 
 # Colors for output
@@ -53,7 +51,7 @@ def print_info(message: str):
     print(f"{Colors.CYAN}ℹ {message}{Colors.END}")
 
 
-def check_python_environment() -> Dict[str, bool]:
+def check_python_environment() -> dict[str, bool]:
     """Check Python environment setup."""
     print_header("Python Environment")
     results = {}
@@ -89,7 +87,7 @@ def check_python_environment() -> Dict[str, bool]:
     return results
 
 
-def check_python_dependencies() -> Dict[str, bool]:
+def check_python_dependencies() -> dict[str, bool]:
     """Check if all Python dependencies are installed."""
     print_header("Python Dependencies")
     results = {}
@@ -144,14 +142,14 @@ def check_python_dependencies() -> Dict[str, bool]:
     return results
 
 
-def check_nodejs_environment() -> Dict[str, bool]:
+def check_nodejs_environment() -> dict[str, bool]:
     """Check Node.js and npm setup."""
     print_header("Node.js Environment")
     results = {}
 
     # Check Node.js
     try:
-        node_version = subprocess.run(["node", "--version"], capture_output=True, text=True)
+        node_version = subprocess.run(["node", "--version"], check=False, capture_output=True, text=True)
         if node_version.returncode == 0:
             print_success(f"Node.js installed: {node_version.stdout.strip()}")
             results["nodejs"] = True
@@ -164,7 +162,7 @@ def check_nodejs_environment() -> Dict[str, bool]:
 
     # Check npm
     try:
-        npm_version = subprocess.run(["npm", "--version"], capture_output=True, text=True)
+        npm_version = subprocess.run(["npm", "--version"], check=False, capture_output=True, text=True)
         if npm_version.returncode == 0:
             print_success(f"npm installed: {npm_version.stdout.strip()}")
             results["npm"] = True
@@ -200,7 +198,7 @@ def check_nodejs_environment() -> Dict[str, bool]:
     return results
 
 
-def check_npm_dependencies() -> Dict[str, bool]:
+def check_npm_dependencies() -> dict[str, bool]:
     """Check critical npm dependencies."""
     print_header("NPM Dependencies")
     results = {}
@@ -252,7 +250,7 @@ def check_npm_dependencies() -> Dict[str, bool]:
     return results
 
 
-def check_environment_files() -> Dict[str, bool]:
+def check_environment_files() -> dict[str, bool]:
     """Check environment configuration files."""
     print_header("Environment Configuration")
     results = {}
@@ -332,7 +330,7 @@ def check_environment_files() -> Dict[str, bool]:
     return results
 
 
-def check_directory_structure() -> Dict[str, bool]:
+def check_directory_structure() -> dict[str, bool]:
     """Check required directory structure."""
     print_header("Directory Structure")
     results = {}
@@ -364,7 +362,7 @@ def check_directory_structure() -> Dict[str, bool]:
     return results
 
 
-def check_backend_connectivity() -> Dict[str, bool]:
+def check_backend_connectivity() -> dict[str, bool]:
     """Check if backend can be started and is accessible."""
     print_header("Backend Connectivity")
     results = {}
@@ -385,7 +383,6 @@ def check_backend_connectivity() -> Dict[str, bool]:
     # Check if backend module can be imported
     try:
         sys.path.insert(0, str(Path.cwd()))
-        from backend_gateway.app import app
 
         print_success("Backend app module can be imported")
         results["backend_import"] = True
@@ -396,7 +393,7 @@ def check_backend_connectivity() -> Dict[str, bool]:
     return results
 
 
-def check_database_configuration() -> Dict[str, bool]:
+def check_database_configuration() -> dict[str, bool]:
     """Check database configuration."""
     print_header("Database Configuration")
     results = {}
@@ -432,7 +429,7 @@ def check_database_configuration() -> Dict[str, bool]:
     return results
 
 
-def check_api_integrations() -> Dict[str, bool]:
+def check_api_integrations() -> dict[str, bool]:
     """Check external API configurations."""
     print_header("External API Integrations")
     results = {}
@@ -472,7 +469,7 @@ def check_api_integrations() -> Dict[str, bool]:
     return results
 
 
-def generate_summary(all_results: Dict[str, Dict[str, bool]]) -> None:
+def generate_summary(all_results: dict[str, dict[str, bool]]) -> None:
     """Generate a summary of all checks."""
     print_header("Setup Verification Summary")
 

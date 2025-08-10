@@ -1,7 +1,7 @@
 """Pantry-related Pydantic models."""
 
 from datetime import date
-from typing import List, Optional
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -19,4 +19,4 @@ class PantryItem(BaseModel):
 
 
 class PantryDB(BaseModel):
-    items: List[PantryItem]  # A list of PantryItem objects
+    items: list[PantryItem]  # A list of PantryItem objects

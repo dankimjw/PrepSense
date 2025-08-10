@@ -18,7 +18,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +212,7 @@ class RecipeDeduplicationService:
                 return category
         return "unknown"
 
-    def extract_ingredients_hash(self, recipe: Dict[str, Any]) -> str:
+    def extract_ingredients_hash(self, recipe: dict[str, Any]) -> str:
         """
         Extract and hash recipe ingredients for comparison.
 
@@ -251,7 +251,7 @@ class RecipeDeduplicationService:
 
         return hashlib.md5(ingredient_string.encode()).hexdigest()[:12]
 
-    def generate_recipe_fingerprint(self, recipe: Dict[str, Any]) -> str:
+    def generate_recipe_fingerprint(self, recipe: dict[str, Any]) -> str:
         """
         Generate a unique fingerprint for a recipe based on key characteristics.
 
@@ -297,7 +297,7 @@ class RecipeDeduplicationService:
             recipe_id = recipe.get("id", 0)
             return hashlib.md5(f"fallback:{recipe_id}".encode()).hexdigest()[:16]
 
-    def calculate_similarity(self, recipe1: Dict[str, Any], recipe2: Dict[str, Any]) -> float:
+    def calculate_similarity(self, recipe1: dict[str, Any], recipe2: dict[str, Any]) -> float:
         """
         Calculate similarity score between two recipes - IMPROVED VERSION.
 
@@ -367,7 +367,7 @@ class RecipeDeduplicationService:
             return 0.0
 
     def _calculate_ingredient_overlap(
-        self, recipe1: Dict[str, Any], recipe2: Dict[str, Any]
+        self, recipe1: dict[str, Any], recipe2: dict[str, Any]
     ) -> float:
         """Calculate ingredient list overlap between two recipes - IMPROVED VERSION."""
         try:
@@ -410,7 +410,7 @@ class RecipeDeduplicationService:
             return -1  # Return -1 to indicate calculation failed
 
     def is_duplicate(
-        self, recipe1: Dict[str, Any], recipe2: Dict[str, Any], threshold: float = None
+        self, recipe1: dict[str, Any], recipe2: dict[str, Any], threshold: float = None
     ) -> bool:
         """
         Determine if two recipes are duplicates.
@@ -434,8 +434,8 @@ class RecipeDeduplicationService:
         return similarity >= threshold
 
     def deduplicate_recipes(
-        self, recipes: List[Dict[str, Any]], threshold: float = None
-    ) -> Tuple[List[Dict[str, Any]], List[int]]:
+        self, recipes: list[dict[str, Any]], threshold: float = None
+    ) -> tuple[list[dict[str, Any]], list[int]]:
         """
         Remove duplicate recipes from a list.
 
@@ -480,7 +480,7 @@ class RecipeDeduplicationService:
 
         return unique_recipes, duplicate_ids
 
-    def analyze_recipe_batch(self, recipes: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def analyze_recipe_batch(self, recipes: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Analyze a batch of recipes for deduplication insights.
 

@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 # Assuming PantryItem is a Pydantic model or similar, define it or import it
 # For now, let's assume it's a Dict for add_pantry_item simplicity in this refactor step.
@@ -16,7 +16,7 @@ class PantryService:
         """
         self.db_service = db_service
 
-    async def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+    async def get_user_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """
         Retrieves all pantry items for a specific user from the database.
         """
@@ -27,7 +27,7 @@ class PantryService:
 
     async def add_pantry_item(
         self, item_data: Any, user_id: int
-    ) -> Dict[str, Any]:  # Modified signature
+    ) -> dict[str, Any]:  # Modified signature
         """
         Adds a new pantry item to the database for a given pantry_id.
         NOTE: This is a basic adaptation and might need further review based on
@@ -148,7 +148,7 @@ class PantryService:
 
     async def delete_user_pantry_items(
         self, user_id: int, hours_ago: int = None, delete_all: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Deletes pantry items for a specific user.
 
@@ -202,7 +202,7 @@ class PantryService:
 
         # Execute the deletion
         try:
-            result = self.db_service.execute_query(delete_query, delete_params)
+            self.db_service.execute_query(delete_query, delete_params)
             # For DML operations like DELETE, the result typically contains statistics
             # about the operation rather than deleted rows
             return {
@@ -215,7 +215,7 @@ class PantryService:
             print(f"Error deleting pantry items: {str(e)}")
             return {"message": f"Error deleting pantry items: {str(e)}", "deleted_count": 0}
 
-    async def delete_detected_items(self, user_id: int, hours_ago: int = None) -> Dict[str, Any]:
+    async def delete_detected_items(self, user_id: int, hours_ago: int = None) -> dict[str, Any]:
         """
         Deletes ONLY pantry items that were added via vision detection.
         This is safer than delete_user_pantry_items as it preserves manually added items.
@@ -263,7 +263,7 @@ class PantryService:
 
         # Execute the deletion
         try:
-            result = self.db_service.execute_query(delete_query, delete_params)
+            self.db_service.execute_query(delete_query, delete_params)
             return {
                 "message": "Vision detected items deleted successfully",
                 "deleted_count": "Items deleted",
@@ -277,7 +277,7 @@ class PantryService:
                 "deleted_count": 0,
             }
 
-    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
+    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> dict[str, Any]:
         """
         Updates an existing pantry item - delegates to the database service
 
@@ -304,7 +304,7 @@ class PantryService:
         # Delegate to the database service (PostgreSQL)
         return await self.db_service.delete_single_pantry_item(pantry_item_id)
 
-    async def get_pantry_item_by_id(self, pantry_item_id: int) -> Dict[str, Any]:
+    async def get_pantry_item_by_id(self, pantry_item_id: int) -> dict[str, Any]:
         """
         Get a specific pantry item by its ID
 
@@ -330,7 +330,7 @@ class PantryService:
 
     async def update_pantry_item_quantity(
         self, pantry_item_id: int, new_quantity: float
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Update the quantity of a pantry item
 
@@ -350,7 +350,7 @@ class PantryService:
         params = {"pantry_item_id": pantry_item_id, "new_quantity": new_quantity}
 
         try:
-            result = self.db_service.execute_query(update_query, params)
+            self.db_service.execute_query(update_query, params)
             return {
                 "success": True,
                 "pantry_item_id": pantry_item_id,

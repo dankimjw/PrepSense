@@ -4,15 +4,12 @@ AI-powered unit conversion and validation service
 
 import logging
 import os
-from decimal import Decimal
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import openai
 from crewai import Agent, Crew, Task
 
 from backend_gateway.constants.units import (
-    UNIT_INFO,
-    UnitCategory,
     convert_quantity,
     get_unit_category,
     normalize_unit,
@@ -35,7 +32,6 @@ class UnitConversionService:
     def _setup_openai(self):
         """Setup OpenAI API key"""
         try:
-            from backend_gateway.core.config_utils import get_openai_api_key
 
             os.environ["OPENAI_API_KEY"] = openai.api_key
         except Exception as e:
@@ -47,8 +43,8 @@ class UnitConversionService:
         source_amount: Optional[float],
         source_unit: Optional[str],
         target_unit: str,
-        pantry_context: Optional[Dict] = None,
-    ) -> Dict[str, Any]:
+        pantry_context: Optional[dict] = None,
+    ) -> dict[str, Any]:
         """
         Convert ingredient amounts with multiple fallback strategies
 
@@ -90,7 +86,7 @@ class UnitConversionService:
             # For countable items with descriptive units, default to "each"
             if self._is_countable_item(ingredient_name):
                 source_unit = "each"
-                logger.info(f"Converting descriptive unit to 'each' for countable item")
+                logger.info("Converting descriptive unit to 'each' for countable item")
 
         # Step 2: Try Spoonacular conversion first
         try:
@@ -178,7 +174,7 @@ class UnitConversionService:
         source_amount: Optional[float],
         source_unit: Optional[str],
         target_unit: str,
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Try conversion using internal unit system"""
         source_norm = normalize_unit(source_unit)
         target_norm = normalize_unit(target_unit)
@@ -209,17 +205,17 @@ class UnitConversionService:
         source_amount: float,
         source_unit: str,
         target_unit: str,
-        pantry_context: Optional[Dict] = None,
-    ) -> Optional[Dict[str, Any]]:
+        pantry_context: Optional[dict] = None,
+    ) -> Optional[dict[str, Any]]:
         """Use AI agent for complex unit conversions"""
 
         # Create specialized conversion agent
         conversion_agent = Agent(
             role="Culinary Unit Conversion Expert",
             goal="Convert ingredient quantities between different units accurately",
-            backstory="""You are an expert chef and food scientist with deep knowledge 
-            of ingredient densities, common cooking measurements, and unit conversions. 
-            You understand that different ingredients have different densities and that 
+            backstory="""You are an expert chef and food scientist with deep knowledge
+            of ingredient densities, common cooking measurements, and unit conversions.
+            You understand that different ingredients have different densities and that
             some conversions require specific knowledge about the ingredient.""",
             verbose=False,
             allow_delegation=False,
@@ -235,19 +231,19 @@ class UnitConversionService:
         conversion_task = Task(
             description=f"""
             Convert {source_amount} {source_unit} of {ingredient_name} to {target_unit}.
-            
+
             Consider:
             1. If "{source_unit}" is a descriptor (large, medium, small), interpret it appropriately
             2. Common cooking conversions and typical ingredient densities
             3. Whether the ingredient is countable (like eggs) or measurable by weight/volume
-            
+
             Return a JSON object with these exact fields:
             {{
                 "target_amount": <number>,
                 "explanation": "<brief explanation of conversion>",
                 "confidence": <0.0 to 1.0>
             }}
-            
+
             Be precise with the target_amount. If conversion is not possible, set target_amount to null.
             """,
             agent=conversion_agent,
@@ -288,7 +284,7 @@ class UnitConversionService:
 
     def validate_and_suggest_units(
         self, ingredient_name: str, current_unit: str, quantity: Optional[float] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Validate if a unit is appropriate and suggest better alternatives
 
@@ -320,13 +316,13 @@ class UnitConversionService:
 
     def _ai_unit_suggestion(
         self, ingredient_name: str, current_unit: str, quantity: Optional[float] = None
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get AI suggestions for better units"""
 
         suggestion_agent = Agent(
             role="Culinary Measurement Expert",
             goal="Suggest appropriate units for ingredients",
-            backstory="""You are a professional chef who understands the best ways 
+            backstory="""You are a professional chef who understands the best ways
             to measure different ingredients for accuracy and convenience in cooking.""",
             verbose=False,
             allow_delegation=False,
@@ -337,9 +333,9 @@ class UnitConversionService:
         suggestion_task = Task(
             description=f"""
             The user is trying to measure {quantity_str}{current_unit} of {ingredient_name}.
-            
+
             Analyze if this is a reasonable unit for this ingredient and suggest better alternatives if needed.
-            
+
             Return a JSON object with:
             {{
                 "is_reasonable": <true/false>,

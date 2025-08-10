@@ -7,9 +7,9 @@ import json
 import logging
 import os
 from decimal import ROUND_HALF_UP, Decimal
-from typing import Any, Dict, Optional, Tuple
+from typing import Optional
 
-from ..constants.food_category_unit_rules import UnitCategory
+from backend_gateway.constants.food_category_unit_rules import UnitCategory
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,7 @@ class SmartUnitConversionService:
         density_file = os.path.join(
             os.path.dirname(__file__), "../constants/common_food_densities.json"
         )
-        with open(density_file, "r") as f:
+        with open(density_file) as f:
             self.density_data = json.load(f)
 
         # Base unit conversions (everything converts to these)
@@ -126,7 +126,7 @@ class SmartUnitConversionService:
 
     def convert(
         self, quantity: float, from_unit: str, to_unit: str, item_name: Optional[str] = None
-    ) -> Tuple[float, str, Optional[str]]:
+    ) -> tuple[float, str, Optional[str]]:
         """
         Convert quantity from one unit to another
         Returns: (converted_quantity, status, message)
@@ -154,7 +154,7 @@ class SmartUnitConversionService:
 
     def _convert_same_category(
         self, quantity: float, from_unit: str, to_unit: str
-    ) -> Tuple[float, str, Optional[str]]:
+    ) -> tuple[float, str, Optional[str]]:
         """Convert within the same category"""
         # Get conversion factors to base unit
         from_factor = self.to_base_conversions.get(from_unit, 1.0)
@@ -171,7 +171,7 @@ class SmartUnitConversionService:
 
     def _convert_cross_category(
         self, quantity: float, from_unit: str, to_unit: str, item_name: str
-    ) -> Tuple[float, str, Optional[str]]:
+    ) -> tuple[float, str, Optional[str]]:
         """Convert between different categories using density data"""
         item_key = self._normalize_item_name(item_name)
 
@@ -183,19 +183,13 @@ class SmartUnitConversionService:
             if from_unit == "cup" and to_unit in ["g", "kg"]:
                 if "cup_to_grams" in item_data:
                     grams = quantity * item_data["cup_to_grams"]
-                    if to_unit == "kg":
-                        result = grams / 1000
-                    else:
-                        result = grams
+                    result = grams / 1000 if to_unit == "kg" else grams
                     return (result, "success", f"Using density for {item_data['name']}")
 
             elif from_unit == "tbsp" and to_unit in ["g", "kg"]:
                 if "tablespoon_to_grams" in item_data:
                     grams = quantity * item_data["tablespoon_to_grams"]
-                    if to_unit == "kg":
-                        result = grams / 1000
-                    else:
-                        result = grams
+                    result = grams / 1000 if to_unit == "kg" else grams
                     return (result, "success", f"Using density for {item_data['name']}")
 
             # Mass to Volume conversions (reverse)
@@ -233,16 +227,16 @@ class SmartUnitConversionService:
             item_data = self.density_data["density_conversions"][item_key]
 
             # Check if we have the needed conversion factors
-            if from_category == UnitCategory.VOLUME and to_category == UnitCategory.MASS:
-                return any(key in item_data for key in ["cup_to_grams", "density_g_per_ml"])
-            elif from_category == UnitCategory.MASS and to_category == UnitCategory.VOLUME:
+            if (
+                from_category == UnitCategory.VOLUME
+                and to_category == UnitCategory.MASS
+                or from_category == UnitCategory.MASS
+                and to_category == UnitCategory.VOLUME
+            ):
                 return any(key in item_data for key in ["cup_to_grams", "density_g_per_ml"])
 
         # Check common conversions
-        if item_key in self.density_data["common_conversions"]:
-            return True
-
-        return False
+        return item_key in self.density_data["common_conversions"]
 
     def _normalize_item_name(self, item_name: str) -> str:
         """Normalize item name for lookup"""
@@ -277,7 +271,7 @@ class SmartUnitConversionService:
         # Replace spaces with underscores for keys
         return normalized.replace(" ", "_")
 
-    def get_suggested_unit(self, item_name: str, food_category: str) -> Tuple[str, UnitCategory]:
+    def get_suggested_unit(self, item_name: str, food_category: str) -> tuple[str, UnitCategory]:
         """Get suggested unit for an item based on its name and category"""
         # This would integrate with the food_category_unit_rules
         # For now, return sensible defaults

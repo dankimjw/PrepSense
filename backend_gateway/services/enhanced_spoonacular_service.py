@@ -14,9 +14,8 @@ Features:
 - 🔴 Full analytics integration
 """
 
-import asyncio
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from backend_gateway.services.recipe_deduplication_service import RecipeDeduplicationService
 from backend_gateway.services.spoonacular_api_tracker import SpoonacularAPITracker
@@ -78,14 +77,14 @@ class EnhancedSpoonacularService(SpoonacularService):
 
     async def search_recipes_by_ingredients(
         self,
-        ingredients: List[str],
+        ingredients: list[str],
         number: int = 10,
         ranking: int = 1,
         ignore_pantry: bool = False,
-        intolerances: Optional[List[str]] = None,
+        intolerances: Optional[list[str]] = None,
         user_id: Optional[int] = None,
         enable_deduplication: Optional[bool] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Enhanced search with tracking and deduplication.
 
@@ -187,7 +186,7 @@ class EnhancedSpoonacularService(SpoonacularService):
 
     async def get_recipe_information(
         self, recipe_id: int, include_nutrition: bool = True, user_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Enhanced recipe information retrieval with tracking.
 
@@ -229,16 +228,16 @@ class EnhancedSpoonacularService(SpoonacularService):
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         diet: Optional[str] = None,
-        include_ingredients: Optional[List[str]] = None,
-        exclude_ingredients: Optional[List[str]] = None,
-        intolerances: Optional[List[str]] = None,
+        include_ingredients: Optional[list[str]] = None,
+        exclude_ingredients: Optional[list[str]] = None,
+        intolerances: Optional[list[str]] = None,
         max_ready_time: Optional[int] = None,
         sort: Optional[str] = None,
         number: int = 10,
         offset: int = 0,
         user_id: Optional[int] = None,
         enable_deduplication: Optional[bool] = None,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Enhanced complex search with tracking and deduplication.
 
@@ -373,8 +372,8 @@ class EnhancedSpoonacularService(SpoonacularService):
             return result
 
     async def get_random_recipes(
-        self, number: int = 10, tags: Optional[List[str]] = None, user_id: Optional[int] = None
-    ) -> Dict[str, Any]:
+        self, number: int = 10, tags: Optional[list[str]] = None, user_id: Optional[int] = None
+    ) -> dict[str, Any]:
         """
         Enhanced random recipe retrieval with tracking.
 
@@ -419,7 +418,7 @@ class EnhancedSpoonacularService(SpoonacularService):
             # No tracking - just call parent method
             return await super().get_random_recipes(number, tags)
 
-    def get_usage_analytics(self, user_id: Optional[int] = None, days: int = 7) -> Dict[str, Any]:
+    def get_usage_analytics(self, user_id: Optional[int] = None, days: int = 7) -> dict[str, Any]:
         """
         Get usage analytics for this service instance.
 
@@ -439,7 +438,7 @@ class EnhancedSpoonacularService(SpoonacularService):
                 "deduplication_enabled": self.enable_deduplication,
             }
 
-    def get_service_status(self) -> Dict[str, Any]:
+    def get_service_status(self) -> dict[str, Any]:
         """
         Get the current status of enhanced service features.
 

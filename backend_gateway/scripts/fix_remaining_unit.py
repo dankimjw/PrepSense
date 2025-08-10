@@ -4,7 +4,6 @@ Fix the last remaining invalid unit in pantry items
 """
 
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -39,7 +38,7 @@ def fix_remaining_unit():
                 SELECT pi.pantry_item_id, pi.product_name, pi.unit_of_measurement, pi.quantity
                 FROM pantry_items pi
                 LEFT JOIN units u ON pi.unit_of_measurement = u.id
-                WHERE pi.unit_of_measurement IS NOT NULL 
+                WHERE pi.unit_of_measurement IS NOT NULL
                 AND u.id IS NULL
             """
             )
@@ -57,19 +56,19 @@ def fix_remaining_unit():
                 if unit == "package":
                     cursor.execute(
                         """
-                        UPDATE pantry_items 
-                        SET unit_of_measurement = 'ea' 
+                        UPDATE pantry_items
+                        SET unit_of_measurement = 'ea'
                         WHERE pantry_item_id = %s
                     """,
                         (item_id,),
                     )
-                    print(f"    → Fixed: 'package' → 'ea'")
+                    print("    → Fixed: 'package' → 'ea'")
                 else:
                     # Default to 'ea' for any other invalid unit
                     cursor.execute(
                         """
-                        UPDATE pantry_items 
-                        SET unit_of_measurement = 'ea' 
+                        UPDATE pantry_items
+                        SET unit_of_measurement = 'ea'
                         WHERE pantry_item_id = %s
                     """,
                         (item_id,),
@@ -85,7 +84,7 @@ def fix_remaining_unit():
                 SELECT COUNT(*) as invalid_count
                 FROM pantry_items pi
                 LEFT JOIN units u ON pi.unit_of_measurement = u.id
-                WHERE pi.unit_of_measurement IS NOT NULL 
+                WHERE pi.unit_of_measurement IS NOT NULL
                 AND u.id IS NULL
             """
             )

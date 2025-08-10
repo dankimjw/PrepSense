@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """Main entry point for the PrepSense backend application."""
 
-import asyncio
 import logging
 import os
 import signal
 import sys
 from datetime import datetime
-from typing import Any, Dict
+from typing import Any
 
 import uvicorn
 
@@ -24,10 +23,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Import the FastAPI app
-from app import app
 
 
-def check_system_health() -> Dict[str, Any]:
+def check_system_health() -> dict[str, Any]:
     """Check system health and dependencies"""
     health_status = {"status": "healthy", "timestamp": datetime.now().isoformat(), "checks": {}}
 
@@ -78,14 +76,14 @@ def setup_signal_handlers():
 
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, initiating graceful shutdown...")
-        print(f"\n🛑 Received shutdown signal, stopping server gracefully...")
+        print("\n🛑 Received shutdown signal, stopping server gracefully...")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
 
-def validate_environment() -> Dict[str, Any]:
+def validate_environment() -> dict[str, Any]:
     """Validate environment configuration"""
     # Import here to avoid circular imports
     from core.config import settings
@@ -201,7 +199,7 @@ def validate_environment() -> Dict[str, Any]:
 def display_startup_banner(host: str, port: int, reload: bool):
     """Display startup banner with system information"""
     print(f"\n{'='*80}")
-    print(f"🚀 PREPSENSE BACKEND SERVER")
+    print("🚀 PREPSENSE BACKEND SERVER")
     print(f"{'='*80}")
     print(f"📍 Host: {host}")
     print(f"🔌 Port: {port}")
@@ -214,7 +212,7 @@ def display_startup_banner(host: str, port: int, reload: bool):
 
 def display_api_endpoints(port: int):
     """Display available API endpoints"""
-    print(f"📚 API DOCUMENTATION:")
+    print("📚 API DOCUMENTATION:")
     print(f"   - Swagger UI: http://localhost:{port}/docs")
     print(f"   - ReDoc: http://localhost:{port}/redoc")
     print(f"   - OpenAPI JSON: http://localhost:{port}/api/v1/openapi.json")
@@ -223,34 +221,34 @@ def display_api_endpoints(port: int):
 
 def display_multi_agent_info(port: int):
     """Display multi-agent system information"""
-    print(f"🤖 MULTI-AGENT SYSTEM:")
-    print(f"   Status: ✅ Enabled")
-    print(f"   Agents: 8 specialized AI agents")
-    print(f"   Architecture: Sequential processing with tool delegation")
-    print(f"   ")
-    print(f"   📡 Endpoints:")
-    print(f"   - POST /api/v1/chat/multi-agent/recommend - Get recipe recommendations")
-    print(f"   - GET  /api/v1/chat/multi-agent/status    - Check system status")
-    print(f"   - POST /api/v1/chat/multi-agent/test      - Test system functionality")
-    print(f"   ")
-    print(f"   🔧 Agent Roles:")
-    print(f"   - Pantry Scanner: Database inventory access")
-    print(f"   - Ingredient Filter: Expiration date validation")
-    print(f"   - Preference Specialist: User dietary restrictions")
-    print(f"   - Recipe Researcher: Recipe database search")
-    print(f"   - Nutritional Analyst: Health and nutrition scoring")
-    print(f"   - Recipe Scorer: Relevance and preference ranking")
-    print(f"   - Recipe Evaluator: Feasibility validation")
-    print(f"   - Response Formatter: User-friendly output")
+    print("🤖 MULTI-AGENT SYSTEM:")
+    print("   Status: ✅ Enabled")
+    print("   Agents: 8 specialized AI agents")
+    print("   Architecture: Sequential processing with tool delegation")
+    print("   ")
+    print("   📡 Endpoints:")
+    print("   - POST /api/v1/chat/multi-agent/recommend - Get recipe recommendations")
+    print("   - GET  /api/v1/chat/multi-agent/status    - Check system status")
+    print("   - POST /api/v1/chat/multi-agent/test      - Test system functionality")
+    print("   ")
+    print("   🔧 Agent Roles:")
+    print("   - Pantry Scanner: Database inventory access")
+    print("   - Ingredient Filter: Expiration date validation")
+    print("   - Preference Specialist: User dietary restrictions")
+    print("   - Recipe Researcher: Recipe database search")
+    print("   - Nutritional Analyst: Health and nutrition scoring")
+    print("   - Recipe Scorer: Relevance and preference ranking")
+    print("   - Recipe Evaluator: Feasibility validation")
+    print("   - Response Formatter: User-friendly output")
     print(f"{'='*80}")
 
 
-def display_environment_status(env_status: Dict[str, Any]):
+def display_environment_status(env_status: dict[str, Any]):
     """Display environment configuration status"""
-    print(f"🔍 ENVIRONMENT STATUS:")
+    print("🔍 ENVIRONMENT STATUS:")
 
     # Critical variables
-    print(f"   Critical Configuration:")
+    print("   Critical Configuration:")
     for var, config in env_status["critical"].items():
         status = "✅" if config["configured"] else "❌"
         print(f"   {status} {var}: {config['description']}")
@@ -258,24 +256,24 @@ def display_environment_status(env_status: Dict[str, Any]):
     # Optional variables
     configured_optional = sum(1 for c in env_status["optional"].values() if c["configured"])
     total_optional = len(env_status["optional"])
-    print(f"   ")
+    print("   ")
     print(f"   Optional Configuration ({configured_optional}/{total_optional} configured):")
     for var, config in env_status["optional"].items():
         status = "✅" if config["configured"] else "⚪"
         print(f"   {status} {var}: {config['description']}")
 
     if not env_status["all_critical_configured"]:
-        print(f"   ")
-        print(f"   ⚠️  Warning: Some critical environment variables are missing.")
-        print(f"       The application may have limited functionality.")
-        print(f"       Please check the MULTI_AGENT_README.md for setup instructions.")
+        print("   ")
+        print("   ⚠️  Warning: Some critical environment variables are missing.")
+        print("       The application may have limited functionality.")
+        print("       Please check the MULTI_AGENT_README.md for setup instructions.")
 
     print(f"{'='*80}")
 
 
-def display_system_health(health: Dict[str, Any]):
+def display_system_health(health: dict[str, Any]):
     """Display system health status"""
-    print(f"🏥 SYSTEM HEALTH:")
+    print("🏥 SYSTEM HEALTH:")
     print(f"   Overall Status: {health['status'].upper()}")
 
     for check_name, check_result in health["checks"].items():
@@ -296,11 +294,11 @@ def display_system_health(health: Dict[str, Any]):
 
 def display_test_info():
     """Display testing information"""
-    print(f"🧪 TESTING:")
-    print(f"   - Unit Tests: python run_all_crew_ai_tests.py")
-    print(f"   - Integration Tests: python -m pytest tests/ -v")
-    print(f"   - Load Tests: python -m pytest tests/services/test_crew_ai_performance.py -v")
-    print(f"   - Test Coverage: 105 tests across 8 categories")
+    print("🧪 TESTING:")
+    print("   - Unit Tests: python run_all_crew_ai_tests.py")
+    print("   - Integration Tests: python -m pytest tests/ -v")
+    print("   - Load Tests: python -m pytest tests/services/test_crew_ai_performance.py -v")
+    print("   - Test Coverage: 105 tests across 8 categories")
     print(f"{'='*80}")
 
 
@@ -328,9 +326,9 @@ def main():
 
     # Check if all critical environment variables are configured
     if not env_status["all_critical_configured"]:
-        print(f"\n❌ CRITICAL CONFIGURATION ERROR")
+        print("\n❌ CRITICAL CONFIGURATION ERROR")
         print(f"{'='*80}")
-        print(f"The following required API keys are missing or invalid:\n")
+        print("The following required API keys are missing or invalid:\n")
 
         for var, config in env_status["critical"].items():
             if not config["configured"]:
@@ -340,29 +338,29 @@ def main():
                     print(f"     Error: {config['error']}")
                 print()
 
-        print(f"📚 Setup Instructions:")
+        print("📚 Setup Instructions:")
         print(f"{'='*80}")
-        print(f"1. Create a .env file in the project root (not in backend_gateway/)")
-        print(f"   Location: /path/to/PrepSense/.env\n")
-        print(f"2. Add the required configuration:")
-        print(f"   # Database Configuration (Google Cloud SQL)")
-        print(f"   POSTGRES_HOST=***REMOVED***")
-        print(f"   POSTGRES_PORT=5432")
-        print(f"   POSTGRES_DATABASE=prepsense")
-        print(f"   POSTGRES_USER=postgres")
-        print(f"   POSTGRES_PASSWORD=your-password-here\n")
-        print(f"   # API Keys")
-        print(f"   OPENAI_API_KEY=sk-your-openai-key-here")
-        print(f"   SPOONACULAR_API_KEY=your-spoonacular-key-here\n")
-        print(f"3. Get your credentials:")
-        print(f"   - Database password: Ask your team lead")
-        print(f"   - OpenAI: https://platform.openai.com/api-keys")
-        print(f"   - Spoonacular: https://spoonacular.com/food-api (free tier available)\n")
-        print(f"4. For detailed setup help, see:")
-        print(f"   - Automated setup: docs/BACKEND_SETUP_GUIDE.md")
-        print(f"   - Manual setup: docs/MANUAL_SETUP_GUIDE.md")
+        print("1. Create a .env file in the project root (not in backend_gateway/)")
+        print("   Location: /path/to/PrepSense/.env\n")
+        print("2. Add the required configuration:")
+        print("   # Database Configuration (Google Cloud SQL)")
+        print("   POSTGRES_HOST=***REMOVED***")
+        print("   POSTGRES_PORT=5432")
+        print("   POSTGRES_DATABASE=prepsense")
+        print("   POSTGRES_USER=postgres")
+        print("   POSTGRES_PASSWORD=your-password-here\n")
+        print("   # API Keys")
+        print("   OPENAI_API_KEY=sk-your-openai-key-here")
+        print("   SPOONACULAR_API_KEY=your-spoonacular-key-here\n")
+        print("3. Get your credentials:")
+        print("   - Database password: Ask your team lead")
+        print("   - OpenAI: https://platform.openai.com/api-keys")
+        print("   - Spoonacular: https://spoonacular.com/food-api (free tier available)\n")
+        print("4. For detailed setup help, see:")
+        print("   - Automated setup: docs/BACKEND_SETUP_GUIDE.md")
+        print("   - Manual setup: docs/MANUAL_SETUP_GUIDE.md")
         print(f"{'='*80}")
-        print(f"\n🛑 Server cannot start without required configuration.")
+        print("\n🛑 Server cannot start without required configuration.")
         sys.exit(1)
 
     # Display API information
@@ -370,9 +368,9 @@ def main():
     display_multi_agent_info(port)
     display_test_info()
 
-    print(f"🚀 SERVER STARTING...")
-    print(f"   Press Ctrl+C to stop the server")
-    print(f"   Logs will appear below")
+    print("🚀 SERVER STARTING...")
+    print("   Press Ctrl+C to stop the server")
+    print("   Logs will appear below")
     print(f"{'='*80}\n")
 
     try:
@@ -397,16 +395,16 @@ def main():
         uvicorn.run(**config)
 
     except KeyboardInterrupt:
-        print(f"\n🛑 Server stopped by user")
+        print("\n🛑 Server stopped by user")
         logger.info("Server stopped by user interrupt")
     except Exception as e:
         logger.error(f"Failed to start server: {e}")
         print(f"\n❌ Server failed to start: {e}")
-        print(f"   Check the logs above for more details")
+        print("   Check the logs above for more details")
         sys.exit(1)
     finally:
         print(f"\n{'='*80}")
-        print(f"🏁 PrepSense Backend Server Shutdown Complete")
+        print("🏁 PrepSense Backend Server Shutdown Complete")
         print(f"   Stopped at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"{'='*80}")
 

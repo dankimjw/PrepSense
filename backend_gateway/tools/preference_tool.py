@@ -1,7 +1,7 @@
 """User preference tool for CrewAI agents."""
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from backend_gateway.tools.database_tool import create_database_tool
 
@@ -23,7 +23,7 @@ class PreferenceTool:
     def __init__(self):
         self.db_tool = create_database_tool()
 
-    def _run(self, action: str, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _run(self, action: str, user_id: int, **kwargs) -> dict[str, Any]:
         """
         Execute a preference management action.
 
@@ -57,7 +57,7 @@ class PreferenceTool:
             logger.error(f"Preference tool error: {str(e)}")
             return {"error": f"Preference processing failed: {str(e)}"}
 
-    def _get_user_preferences(self, user_id: int) -> Dict[str, Any]:
+    def _get_user_preferences(self, user_id: int) -> dict[str, Any]:
         """Get user preferences from database."""
         prefs_data = self.db_tool._run("user_preferences", user_id)
 
@@ -78,7 +78,7 @@ class PreferenceTool:
             ),
         }
 
-    def _apply_dietary_filters(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _apply_dietary_filters(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Apply dietary restriction filters."""
         recipes = kwargs.get("recipes", [])
 
@@ -110,7 +110,7 @@ class PreferenceTool:
 
             # Check recipe dietary tags
             recipe_diets = recipe.get("dietary_tags", []) or recipe.get("diets", [])
-            recipe_diets_lower = [diet.lower() for diet in recipe_diets]
+            [diet.lower() for diet in recipe_diets]
 
             for restriction in dietary_restrictions:
                 restriction_lower = restriction.lower()
@@ -155,7 +155,7 @@ class PreferenceTool:
             "filtered_count": len(filtered_recipes),
         }
 
-    def _apply_allergen_filters(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _apply_allergen_filters(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Apply allergen filters."""
         recipes = kwargs.get("recipes", [])
 
@@ -207,7 +207,7 @@ class PreferenceTool:
             "filtered_count": len(filtered_recipes),
         }
 
-    def _apply_cuisine_filters(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _apply_cuisine_filters(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Apply cuisine preference filters."""
         recipes = kwargs.get("recipes", [])
         preference_weight = kwargs.get("preference_weight", 1.0)
@@ -271,7 +271,7 @@ class PreferenceTool:
             "preference_weight": preference_weight,
         }
 
-    def _score_recipe_preferences(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _score_recipe_preferences(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Score a recipe based on user preferences."""
         recipe = kwargs.get("recipe", {})
 
@@ -325,10 +325,10 @@ class PreferenceTool:
             "recommendation_level": self._get_recommendation_level(scores["total_score"]),
         }
 
-    def _filter_recipes_by_preferences(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _filter_recipes_by_preferences(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Filter recipes by all user preferences."""
         recipes = kwargs.get("recipes", [])
-        strict_mode = kwargs.get("strict_mode", True)
+        kwargs.get("strict_mode", True)
 
         if not recipes:
             return {"error": "No recipes provided"}
@@ -366,7 +366,7 @@ class PreferenceTool:
             },
         }
 
-    def _get_preference_matches(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _get_preference_matches(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Get preference matches for a recipe."""
         recipe = kwargs.get("recipe", {})
 
@@ -408,7 +408,7 @@ class PreferenceTool:
             "match_count": len(matches),
         }
 
-    def _is_vegetarian_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_vegetarian_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is vegetarian compatible."""
         ingredients = recipe.get("ingredients", [])
         ingredients_text = " ".join(ingredients).lower()
@@ -429,7 +429,7 @@ class PreferenceTool:
 
         return not any(keyword in ingredients_text for keyword in meat_keywords)
 
-    def _is_vegan_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_vegan_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is vegan compatible."""
         if not self._is_vegetarian_compatible(recipe):
             return False
@@ -441,7 +441,7 @@ class PreferenceTool:
 
         return not any(keyword in ingredients_text for keyword in animal_keywords)
 
-    def _is_gluten_free_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_gluten_free_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is gluten-free compatible."""
         ingredients = recipe.get("ingredients", [])
         ingredients_text = " ".join(ingredients).lower()
@@ -459,7 +459,7 @@ class PreferenceTool:
 
         return not any(keyword in ingredients_text for keyword in gluten_keywords)
 
-    def _is_dairy_free_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_dairy_free_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is dairy-free compatible."""
         ingredients = recipe.get("ingredients", [])
         ingredients_text = " ".join(ingredients).lower()
@@ -477,7 +477,7 @@ class PreferenceTool:
 
         return not any(keyword in ingredients_text for keyword in dairy_keywords)
 
-    def _is_keto_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_keto_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is keto compatible (low carb)."""
         nutrition = recipe.get("nutrition", {})
         carbs = nutrition.get("carbohydrates", 0)
@@ -490,7 +490,7 @@ class PreferenceTool:
         carb_percentage = (carbs * 4 / calories) * 100
         return carb_percentage < 15  # Slightly lenient
 
-    def _is_low_sodium_compatible(self, recipe: Dict[str, Any]) -> bool:
+    def _is_low_sodium_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is low sodium compatible."""
         nutrition = recipe.get("nutrition", {})
         sodium = nutrition.get("sodium", 0)

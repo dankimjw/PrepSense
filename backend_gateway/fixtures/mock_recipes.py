@@ -3,10 +3,10 @@ Provides Spoonacular-compatible mock recipes with rich data structure
 for testing and demonstration purposes.
 """
 
-from typing import Dict, List, Any
+from typing import Any
 
 
-def get_enhanced_mock_recipes() -> List[Dict[str, Any]]:
+def get_enhanced_mock_recipes() -> list[dict[str, Any]]:
     """Return list of enhanced mock recipes with full Spoonacular structure"""
     return ENHANCED_MOCK_RECIPES
 
@@ -40,8 +40,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 14.1, "unitShort": "oz", "unitLong": "ounces"},
-                    "metric": {"amount": 400.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 400.0, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 1123,
@@ -55,8 +55,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["large"],
                 "measures": {
                     "us": {"amount": 4.0, "unitShort": "large", "unitLong": "larges"},
-                    "metric": {"amount": 4.0, "unitShort": "large", "unitLong": "larges"}
-                }
+                    "metric": {"amount": 4.0, "unitShort": "large", "unitLong": "larges"},
+                },
             },
             {
                 "id": 4053,
@@ -70,8 +70,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["extra virgin"],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "Tbsps", "unitLong": "Tbsps"},
-                    "metric": {"amount": 29.6, "unitShort": "ml", "unitLong": "milliliters"}
-                }
+                    "metric": {"amount": 29.6, "unitShort": "ml", "unitLong": "milliliters"},
+                },
             },
             {
                 "id": 2047,
@@ -85,8 +85,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
-                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"}
-                }
+                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
+                },
             },
             {
                 "id": 1002030,
@@ -100,8 +100,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["freshly ground"],
                 "measures": {
                     "us": {"amount": 0.5, "unitShort": "tsps", "unitLong": "teaspoons"},
-                    "metric": {"amount": 0.5, "unitShort": "tsps", "unitLong": "teaspoons"}
-                }
+                    "metric": {"amount": 0.5, "unitShort": "tsps", "unitLong": "teaspoons"},
+                },
             },
             {
                 "id": 1033,
@@ -115,75 +115,157 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["freshly grated"],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "cup", "unitLong": "cup"},
-                    "metric": {"amount": 100.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 100.0, "unitShort": "g", "unitLong": "grams"},
+                },
+            },
+        ],
+        "analyzedInstructions": [
+            {
+                "name": "",
+                "steps": [
+                    {
+                        "number": 1,
+                        "step": "Bring a large pot of salted water to boil and cook pasta according to package directions.",
+                        "ingredients": [
+                            {
+                                "id": 14412,
+                                "name": "water",
+                                "localizedName": "water",
+                                "image": "water.png",
+                            },
+                            {
+                                "id": 20420,
+                                "name": "spaghetti",
+                                "localizedName": "spaghetti",
+                                "image": "spaghetti.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404752,
+                                "name": "pot",
+                                "localizedName": "pot",
+                                "image": "stock-pot.jpg",
+                            }
+                        ],
+                        "length": {"number": 10, "unit": "minutes"},
+                    },
+                    {
+                        "number": 2,
+                        "step": "While pasta cooks, whisk eggs with salt and pepper in a bowl.",
+                        "ingredients": [
+                            {
+                                "id": 1123,
+                                "name": "eggs",
+                                "localizedName": "eggs",
+                                "image": "egg.png",
+                            },
+                            {
+                                "id": 2047,
+                                "name": "salt",
+                                "localizedName": "salt",
+                                "image": "salt.jpg",
+                            },
+                            {
+                                "id": 1002030,
+                                "name": "pepper",
+                                "localizedName": "pepper",
+                                "image": "pepper.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404783,
+                                "name": "bowl",
+                                "localizedName": "bowl",
+                                "image": "bowl.jpg",
+                            },
+                            {
+                                "id": 404661,
+                                "name": "whisk",
+                                "localizedName": "whisk",
+                                "image": "whisk.png",
+                            },
+                        ],
+                        "length": {"number": 3, "unit": "minutes"},
+                    },
+                    {
+                        "number": 3,
+                        "step": "Heat olive oil in a large skillet over medium heat. Add pancetta and cook until crispy, about 5-7 minutes.",
+                        "ingredients": [
+                            {
+                                "id": 4053,
+                                "name": "olive oil",
+                                "localizedName": "olive oil",
+                                "image": "olive-oil.jpg",
+                            },
+                            {
+                                "id": 10410123,
+                                "name": "pancetta",
+                                "localizedName": "pancetta",
+                                "image": "pancetta.png",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404645,
+                                "name": "frying pan",
+                                "localizedName": "frying pan",
+                                "image": "pan.png",
+                            }
+                        ],
+                        "length": {"number": 7, "unit": "minutes"},
+                    },
+                    {
+                        "number": 4,
+                        "step": "Drain pasta, reserving 1 cup pasta water. Immediately toss hot pasta with egg mixture and pancetta.",
+                        "ingredients": [
+                            {
+                                "id": 20420,
+                                "name": "pasta",
+                                "localizedName": "pasta",
+                                "image": "spaghetti.jpg",
+                            },
+                            {
+                                "id": 14412,
+                                "name": "pasta water",
+                                "localizedName": "pasta water",
+                                "image": "water.png",
+                            },
+                        ],
+                        "equipment": [],
+                        "length": {"number": 3, "unit": "minutes"},
+                    },
+                    {
+                        "number": 5,
+                        "step": "Add Parmesan cheese and toss. Add pasta water as needed to create a creamy consistency. Season and serve immediately.",
+                        "ingredients": [
+                            {
+                                "id": 1033,
+                                "name": "parmesan cheese",
+                                "localizedName": "parmesan cheese",
+                                "image": "parmesan.jpg",
+                            },
+                            {
+                                "id": 1002030,
+                                "name": "black pepper",
+                                "localizedName": "black pepper",
+                                "image": "pepper.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404783,
+                                "name": "serving bowls",
+                                "localizedName": "serving bowls",
+                                "image": "bowl.jpg",
+                            }
+                        ],
+                        "length": {"number": 2, "unit": "minutes"},
+                    },
+                ],
             }
         ],
-        "analyzedInstructions": [{
-            "name": "",
-            "steps": [
-                {
-                    "number": 1,
-                    "step": "Bring a large pot of salted water to boil and cook pasta according to package directions.",
-                    "ingredients": [
-                        {"id": 14412, "name": "water", "localizedName": "water", "image": "water.png"},
-                        {"id": 20420, "name": "spaghetti", "localizedName": "spaghetti", "image": "spaghetti.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404752, "name": "pot", "localizedName": "pot", "image": "stock-pot.jpg"}
-                    ],
-                    "length": {"number": 10, "unit": "minutes"}
-                },
-                {
-                    "number": 2,
-                    "step": "While pasta cooks, whisk eggs with salt and pepper in a bowl.",
-                    "ingredients": [
-                        {"id": 1123, "name": "eggs", "localizedName": "eggs", "image": "egg.png"},
-                        {"id": 2047, "name": "salt", "localizedName": "salt", "image": "salt.jpg"},
-                        {"id": 1002030, "name": "pepper", "localizedName": "pepper", "image": "pepper.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404783, "name": "bowl", "localizedName": "bowl", "image": "bowl.jpg"},
-                        {"id": 404661, "name": "whisk", "localizedName": "whisk", "image": "whisk.png"}
-                    ],
-                    "length": {"number": 3, "unit": "minutes"}
-                },
-                {
-                    "number": 3,
-                    "step": "Heat olive oil in a large skillet over medium heat. Add pancetta and cook until crispy, about 5-7 minutes.",
-                    "ingredients": [
-                        {"id": 4053, "name": "olive oil", "localizedName": "olive oil", "image": "olive-oil.jpg"},
-                        {"id": 10410123, "name": "pancetta", "localizedName": "pancetta", "image": "pancetta.png"}
-                    ],
-                    "equipment": [
-                        {"id": 404645, "name": "frying pan", "localizedName": "frying pan", "image": "pan.png"}
-                    ],
-                    "length": {"number": 7, "unit": "minutes"}
-                },
-                {
-                    "number": 4,
-                    "step": "Drain pasta, reserving 1 cup pasta water. Immediately toss hot pasta with egg mixture and pancetta.",
-                    "ingredients": [
-                        {"id": 20420, "name": "pasta", "localizedName": "pasta", "image": "spaghetti.jpg"},
-                        {"id": 14412, "name": "pasta water", "localizedName": "pasta water", "image": "water.png"}
-                    ],
-                    "equipment": [],
-                    "length": {"number": 3, "unit": "minutes"}
-                },
-                {
-                    "number": 5,
-                    "step": "Add Parmesan cheese and toss. Add pasta water as needed to create a creamy consistency. Season and serve immediately.",
-                    "ingredients": [
-                        {"id": 1033, "name": "parmesan cheese", "localizedName": "parmesan cheese", "image": "parmesan.jpg"},
-                        {"id": 1002030, "name": "black pepper", "localizedName": "black pepper", "image": "pepper.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404783, "name": "serving bowls", "localizedName": "serving bowls", "image": "bowl.jpg"}
-                    ],
-                    "length": {"number": 2, "unit": "minutes"}
-                }
-            ]
-        }],
         "nutrition": {
             "nutrients": [
                 {"name": "Calories", "amount": 420, "unit": "kcal"},
@@ -194,15 +276,21 @@ ENHANCED_MOCK_RECIPES = [
                 {"name": "Sugar", "amount": 3, "unit": "g"},
                 {"name": "Protein", "amount": 18, "unit": "g"},
                 {"name": "Sodium", "amount": 850, "unit": "mg"},
-                {"name": "Cholesterol", "amount": 185, "unit": "mg"}
+                {"name": "Cholesterol", "amount": 185, "unit": "mg"},
             ]
         },
-        "ingredients": ["400g pasta (spaghetti)", "4 large eggs", "2 tablespoons olive oil", "1 teaspoon salt", "1/2 teaspoon black pepper"],
+        "ingredients": [
+            "400g pasta (spaghetti)",
+            "4 large eggs",
+            "2 tablespoons olive oil",
+            "1 teaspoon salt",
+            "1/2 teaspoon black pepper",
+        ],
         "instructions": [
             "Bring a large pot of salted water to boil and cook pasta according to package directions.",
             "While pasta cooks, whisk eggs with salt and pepper in a bowl.",
             "Drain pasta, reserving 1 cup pasta water.",
-            "Toss hot pasta with egg mixture and olive oil to create creamy sauce."
+            "Toss hot pasta with egg mixture and olive oil to create creamy sauce.",
         ],
         "available_ingredients": ["pasta", "eggs", "olive oil", "salt", "pepper"],
         "missing_ingredients": [],
@@ -213,7 +301,7 @@ ENHANCED_MOCK_RECIPES = [
         "safety_violations": [],
         "safety_warnings": [],
         "allergen_risks": ["eggs", "dairy (Parmesan)"],
-        "source": "enhanced_mock"
+        "source": "enhanced_mock",
     },
     {
         "id": 635675,
@@ -242,8 +330,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["all-purpose"],
                 "measures": {
                     "us": {"amount": 2.25, "unitShort": "cups", "unitLong": "cups"},
-                    "metric": {"amount": 281.25, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 281.25, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 1001,
@@ -257,8 +345,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["softened"],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "cup", "unitLong": "cup"},
-                    "metric": {"amount": 226.8, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 226.8, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 19335,
@@ -272,8 +360,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["granulated"],
                 "measures": {
                     "us": {"amount": 0.75, "unitShort": "cups", "unitLong": "cups"},
-                    "metric": {"amount": 150.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 150.0, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 19334,
@@ -287,8 +375,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["packed", "light"],
                 "measures": {
                     "us": {"amount": 0.75, "unitShort": "cups", "unitLong": "cups"},
-                    "metric": {"amount": 165.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 165.0, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 1123,
@@ -302,8 +390,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["large"],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "large", "unitLong": "larges"},
-                    "metric": {"amount": 2.0, "unitShort": "large", "unitLong": "larges"}
-                }
+                    "metric": {"amount": 2.0, "unitShort": "large", "unitLong": "larges"},
+                },
             },
             {
                 "id": 2050,
@@ -317,8 +405,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"},
-                    "metric": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"}
-                }
+                    "metric": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"},
+                },
             },
             {
                 "id": 18371,
@@ -332,8 +420,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
-                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"}
-                }
+                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
+                },
             },
             {
                 "id": 2047,
@@ -347,8 +435,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
-                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"}
-                }
+                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
+                },
             },
             {
                 "id": 19081,
@@ -362,90 +450,177 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["semi-sweet"],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "cups", "unitLong": "cups"},
-                    "metric": {"amount": 340.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 340.0, "unitShort": "g", "unitLong": "grams"},
+                },
+            },
+        ],
+        "analyzedInstructions": [
+            {
+                "name": "",
+                "steps": [
+                    {
+                        "number": 1,
+                        "step": "Preheat oven to 375°F (190°C). Line baking sheets with parchment paper.",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 404727,
+                                "name": "baking sheet",
+                                "localizedName": "baking sheet",
+                                "image": "baking-sheet.jpg",
+                            },
+                            {
+                                "id": 404770,
+                                "name": "baking paper",
+                                "localizedName": "parchment paper",
+                                "image": "baking-paper.jpg",
+                            },
+                        ],
+                        "length": {"number": 2, "unit": "minutes"},
+                    },
+                    {
+                        "number": 2,
+                        "step": "In a large bowl, cream together softened butter and both sugars until light and fluffy, about 4 minutes.",
+                        "ingredients": [
+                            {
+                                "id": 1001,
+                                "name": "butter",
+                                "localizedName": "butter",
+                                "image": "butter-sliced.jpg",
+                            },
+                            {
+                                "id": 19335,
+                                "name": "granulated sugar",
+                                "localizedName": "granulated sugar",
+                                "image": "sugar-in-bowl.png",
+                            },
+                            {
+                                "id": 19334,
+                                "name": "brown sugar",
+                                "localizedName": "brown sugar",
+                                "image": "light-brown-sugar.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404783,
+                                "name": "large bowl",
+                                "localizedName": "large bowl",
+                                "image": "bowl.jpg",
+                            },
+                            {
+                                "id": 404726,
+                                "name": "electric mixer",
+                                "localizedName": "electric mixer",
+                                "image": "hand-mixer.png",
+                            },
+                        ],
+                        "length": {"number": 4, "unit": "minutes"},
+                    },
+                    {
+                        "number": 3,
+                        "step": "Beat in eggs one at a time, then stir in vanilla extract.",
+                        "ingredients": [
+                            {
+                                "id": 1123,
+                                "name": "eggs",
+                                "localizedName": "eggs",
+                                "image": "egg.png",
+                            },
+                            {
+                                "id": 2050,
+                                "name": "vanilla extract",
+                                "localizedName": "vanilla extract",
+                                "image": "vanilla-extract.jpg",
+                            },
+                        ],
+                        "equipment": [],
+                        "length": {"number": 2, "unit": "minutes"},
+                    },
+                    {
+                        "number": 4,
+                        "step": "In a separate bowl, whisk together flour, baking soda, and salt.",
+                        "ingredients": [
+                            {
+                                "id": 20081,
+                                "name": "flour",
+                                "localizedName": "flour",
+                                "image": "flour.png",
+                            },
+                            {
+                                "id": 18371,
+                                "name": "baking soda",
+                                "localizedName": "baking soda",
+                                "image": "white-powder.jpg",
+                            },
+                            {
+                                "id": 2047,
+                                "name": "salt",
+                                "localizedName": "salt",
+                                "image": "salt.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404783,
+                                "name": "bowl",
+                                "localizedName": "bowl",
+                                "image": "bowl.jpg",
+                            },
+                            {
+                                "id": 404661,
+                                "name": "whisk",
+                                "localizedName": "whisk",
+                                "image": "whisk.png",
+                            },
+                        ],
+                        "length": {"number": 1, "unit": "minutes"},
+                    },
+                    {
+                        "number": 5,
+                        "step": "Gradually blend flour mixture into creamed mixture. Stir in chocolate chips.",
+                        "ingredients": [
+                            {
+                                "id": 19081,
+                                "name": "chocolate chips",
+                                "localizedName": "chocolate chips",
+                                "image": "chocolate-chips.jpg",
+                            }
+                        ],
+                        "equipment": [],
+                        "length": {"number": 2, "unit": "minutes"},
+                    },
+                    {
+                        "number": 6,
+                        "step": "Drop rounded tablespoons of dough onto prepared baking sheets. Bake for 9-11 minutes until golden brown.",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 404727,
+                                "name": "baking sheet",
+                                "localizedName": "baking sheet",
+                                "image": "baking-sheet.jpg",
+                            }
+                        ],
+                        "length": {"number": 11, "unit": "minutes"},
+                    },
+                    {
+                        "number": 7,
+                        "step": "Cool on baking sheets for 2 minutes, then remove to wire racks to cool completely.",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 405900,
+                                "name": "wire rack",
+                                "localizedName": "wire rack",
+                                "image": "wire-rack.jpg",
+                            }
+                        ],
+                        "length": {"number": 15, "unit": "minutes"},
+                    },
+                ],
             }
         ],
-        "analyzedInstructions": [{
-            "name": "",
-            "steps": [
-                {
-                    "number": 1,
-                    "step": "Preheat oven to 375°F (190°C). Line baking sheets with parchment paper.",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 404727, "name": "baking sheet", "localizedName": "baking sheet", "image": "baking-sheet.jpg"},
-                        {"id": 404770, "name": "baking paper", "localizedName": "parchment paper", "image": "baking-paper.jpg"}
-                    ],
-                    "length": {"number": 2, "unit": "minutes"}
-                },
-                {
-                    "number": 2,
-                    "step": "In a large bowl, cream together softened butter and both sugars until light and fluffy, about 4 minutes.",
-                    "ingredients": [
-                        {"id": 1001, "name": "butter", "localizedName": "butter", "image": "butter-sliced.jpg"},
-                        {"id": 19335, "name": "granulated sugar", "localizedName": "granulated sugar", "image": "sugar-in-bowl.png"},
-                        {"id": 19334, "name": "brown sugar", "localizedName": "brown sugar", "image": "light-brown-sugar.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404783, "name": "large bowl", "localizedName": "large bowl", "image": "bowl.jpg"},
-                        {"id": 404726, "name": "electric mixer", "localizedName": "electric mixer", "image": "hand-mixer.png"}
-                    ],
-                    "length": {"number": 4, "unit": "minutes"}
-                },
-                {
-                    "number": 3,
-                    "step": "Beat in eggs one at a time, then stir in vanilla extract.",
-                    "ingredients": [
-                        {"id": 1123, "name": "eggs", "localizedName": "eggs", "image": "egg.png"},
-                        {"id": 2050, "name": "vanilla extract", "localizedName": "vanilla extract", "image": "vanilla-extract.jpg"}
-                    ],
-                    "equipment": [],
-                    "length": {"number": 2, "unit": "minutes"}
-                },
-                {
-                    "number": 4,
-                    "step": "In a separate bowl, whisk together flour, baking soda, and salt.",
-                    "ingredients": [
-                        {"id": 20081, "name": "flour", "localizedName": "flour", "image": "flour.png"},
-                        {"id": 18371, "name": "baking soda", "localizedName": "baking soda", "image": "white-powder.jpg"},
-                        {"id": 2047, "name": "salt", "localizedName": "salt", "image": "salt.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404783, "name": "bowl", "localizedName": "bowl", "image": "bowl.jpg"},
-                        {"id": 404661, "name": "whisk", "localizedName": "whisk", "image": "whisk.png"}
-                    ],
-                    "length": {"number": 1, "unit": "minutes"}
-                },
-                {
-                    "number": 5,
-                    "step": "Gradually blend flour mixture into creamed mixture. Stir in chocolate chips.",
-                    "ingredients": [
-                        {"id": 19081, "name": "chocolate chips", "localizedName": "chocolate chips", "image": "chocolate-chips.jpg"}
-                    ],
-                    "equipment": [],
-                    "length": {"number": 2, "unit": "minutes"}
-                },
-                {
-                    "number": 6,
-                    "step": "Drop rounded tablespoons of dough onto prepared baking sheets. Bake for 9-11 minutes until golden brown.",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 404727, "name": "baking sheet", "localizedName": "baking sheet", "image": "baking-sheet.jpg"}
-                    ],
-                    "length": {"number": 11, "unit": "minutes"}
-                },
-                {
-                    "number": 7,
-                    "step": "Cool on baking sheets for 2 minutes, then remove to wire racks to cool completely.",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 405900, "name": "wire rack", "localizedName": "wire rack", "image": "wire-rack.jpg"}
-                    ],
-                    "length": {"number": 15, "unit": "minutes"}
-                }
-            ]
-        }],
         "nutrition": {
             "nutrients": [
                 {"name": "Calories", "amount": 195, "unit": "kcal"},
@@ -456,19 +631,35 @@ ENHANCED_MOCK_RECIPES = [
                 {"name": "Sugar", "amount": 18, "unit": "g"},
                 {"name": "Protein", "amount": 2.5, "unit": "g"},
                 {"name": "Sodium", "amount": 140, "unit": "mg"},
-                {"name": "Cholesterol", "amount": 25, "unit": "mg"}
+                {"name": "Cholesterol", "amount": 25, "unit": "mg"},
             ]
         },
-        "ingredients": ["2 1/4 cups flour", "1 cup butter", "3/4 cup granulated sugar", "3/4 cup brown sugar", "2 eggs", "2 tsp vanilla", "1 tsp baking soda", "1 tsp salt", "2 cups chocolate chips"],
+        "ingredients": [
+            "2 1/4 cups flour",
+            "1 cup butter",
+            "3/4 cup granulated sugar",
+            "3/4 cup brown sugar",
+            "2 eggs",
+            "2 tsp vanilla",
+            "1 tsp baking soda",
+            "1 tsp salt",
+            "2 cups chocolate chips",
+        ],
         "instructions": [
             "Preheat oven to 375°F and line baking sheets.",
             "Cream butter and sugars until fluffy.",
             "Beat in eggs and vanilla.",
             "Mix in dry ingredients and chocolate chips.",
-            "Drop dough on sheets and bake 9-11 minutes."
+            "Drop dough on sheets and bake 9-11 minutes.",
         ],
         "available_ingredients": ["flour", "butter", "eggs", "salt"],
-        "missing_ingredients": ["granulated sugar", "brown sugar", "vanilla extract", "baking soda", "chocolate chips"],
+        "missing_ingredients": [
+            "granulated sugar",
+            "brown sugar",
+            "vanilla extract",
+            "baking soda",
+            "chocolate chips",
+        ],
         "missing_count": 5,
         "available_count": 4,
         "match_score": 0.44,
@@ -476,7 +667,7 @@ ENHANCED_MOCK_RECIPES = [
         "safety_violations": [],
         "safety_warnings": [],
         "allergen_risks": ["eggs", "dairy (butter)", "gluten (flour)"],
-        "source": "enhanced_mock"
+        "source": "enhanced_mock",
     },
     {
         "id": 632665,
@@ -505,8 +696,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["boneless", "skinless"],
                 "measures": {
                     "us": {"amount": 1.5, "unitShort": "lb", "unitLong": "pounds"},
-                    "metric": {"amount": 680.0, "unitShort": "g", "unitLong": "grams"}
-                }
+                    "metric": {"amount": 680.0, "unitShort": "g", "unitLong": "grams"},
+                },
             },
             {
                 "id": 4053,
@@ -520,8 +711,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 3.0, "unitShort": "Tbsps", "unitLong": "Tbsps"},
-                    "metric": {"amount": 44.4, "unitShort": "ml", "unitLong": "milliliters"}
-                }
+                    "metric": {"amount": 44.4, "unitShort": "ml", "unitLong": "milliliters"},
+                },
             },
             {
                 "id": 9150,
@@ -535,8 +726,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["juiced", "zested"],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "", "unitLong": ""},
-                    "metric": {"amount": 2.0, "unitShort": "", "unitLong": ""}
-                }
+                    "metric": {"amount": 2.0, "unitShort": "", "unitLong": ""},
+                },
             },
             {
                 "id": 2027,
@@ -550,8 +741,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["dried"],
                 "measures": {
                     "us": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"},
-                    "metric": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"}
-                }
+                    "metric": {"amount": 2.0, "unitShort": "tsps", "unitLong": "teaspoons"},
+                },
             },
             {
                 "id": 2049,
@@ -565,8 +756,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["dried"],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
-                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"}
-                }
+                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
+                },
             },
             {
                 "id": 11215,
@@ -580,8 +771,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["minced"],
                 "measures": {
                     "us": {"amount": 4.0, "unitShort": "cloves", "unitLong": "cloves"},
-                    "metric": {"amount": 4.0, "unitShort": "cloves", "unitLong": "cloves"}
-                }
+                    "metric": {"amount": 4.0, "unitShort": "cloves", "unitLong": "cloves"},
+                },
             },
             {
                 "id": 2047,
@@ -595,8 +786,8 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": [],
                 "measures": {
                     "us": {"amount": 1.5, "unitShort": "tsps", "unitLong": "teaspoons"},
-                    "metric": {"amount": 1.5, "unitShort": "tsps", "unitLong": "teaspoons"}
-                }
+                    "metric": {"amount": 1.5, "unitShort": "tsps", "unitLong": "teaspoons"},
+                },
             },
             {
                 "id": 1002030,
@@ -610,87 +801,169 @@ ENHANCED_MOCK_RECIPES = [
                 "meta": ["freshly ground"],
                 "measures": {
                     "us": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
-                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"}
-                }
+                    "metric": {"amount": 1.0, "unitShort": "tsp", "unitLong": "teaspoon"},
+                },
+            },
+        ],
+        "analyzedInstructions": [
+            {
+                "name": "",
+                "steps": [
+                    {
+                        "number": 1,
+                        "step": "Preheat oven to 400°F (200°C).",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 404784,
+                                "name": "oven",
+                                "localizedName": "oven",
+                                "image": "oven.jpg",
+                            }
+                        ],
+                        "length": {"number": 5, "unit": "minutes"},
+                    },
+                    {
+                        "number": 2,
+                        "step": "In a small bowl, whisk together olive oil, lemon juice, lemon zest, oregano, thyme, minced garlic, salt, and pepper.",
+                        "ingredients": [
+                            {
+                                "id": 4053,
+                                "name": "olive oil",
+                                "localizedName": "olive oil",
+                                "image": "olive-oil.jpg",
+                            },
+                            {
+                                "id": 9152,
+                                "name": "lemon juice",
+                                "localizedName": "lemon juice",
+                                "image": "lemon-juice.jpg",
+                            },
+                            {
+                                "id": 9156,
+                                "name": "lemon zest",
+                                "localizedName": "lemon zest",
+                                "image": "zest-lemon.jpg",
+                            },
+                            {
+                                "id": 2027,
+                                "name": "oregano",
+                                "localizedName": "oregano",
+                                "image": "oregano.jpg",
+                            },
+                            {
+                                "id": 2049,
+                                "name": "thyme",
+                                "localizedName": "thyme",
+                                "image": "thyme.jpg",
+                            },
+                            {
+                                "id": 11215,
+                                "name": "garlic",
+                                "localizedName": "garlic",
+                                "image": "garlic.png",
+                            },
+                            {
+                                "id": 2047,
+                                "name": "salt",
+                                "localizedName": "salt",
+                                "image": "salt.jpg",
+                            },
+                            {
+                                "id": 1002030,
+                                "name": "black pepper",
+                                "localizedName": "black pepper",
+                                "image": "pepper.jpg",
+                            },
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404783,
+                                "name": "bowl",
+                                "localizedName": "bowl",
+                                "image": "bowl.jpg",
+                            },
+                            {
+                                "id": 404661,
+                                "name": "whisk",
+                                "localizedName": "whisk",
+                                "image": "whisk.png",
+                            },
+                        ],
+                        "length": {"number": 3, "unit": "minutes"},
+                    },
+                    {
+                        "number": 3,
+                        "step": "Place chicken breasts in a baking dish and pour the herb mixture over them, coating both sides.",
+                        "ingredients": [
+                            {
+                                "id": 5062,
+                                "name": "chicken breasts",
+                                "localizedName": "chicken breasts",
+                                "image": "chicken-breasts.png",
+                            }
+                        ],
+                        "equipment": [
+                            {
+                                "id": 404646,
+                                "name": "baking pan",
+                                "localizedName": "baking dish",
+                                "image": "roasting-pan.jpg",
+                            }
+                        ],
+                        "length": {"number": 2, "unit": "minutes"},
+                    },
+                    {
+                        "number": 4,
+                        "step": "Let chicken marinate for 15 minutes at room temperature.",
+                        "ingredients": [],
+                        "equipment": [],
+                        "length": {"number": 15, "unit": "minutes"},
+                    },
+                    {
+                        "number": 5,
+                        "step": "Roast for 20-25 minutes until internal temperature reaches 165°F.",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 404784,
+                                "name": "oven",
+                                "localizedName": "oven",
+                                "image": "oven.jpg",
+                            },
+                            {
+                                "id": 404789,
+                                "name": "kitchen thermometer",
+                                "localizedName": "thermometer",
+                                "image": "food-thermometer.jpg",
+                            },
+                        ],
+                        "length": {"number": 25, "unit": "minutes"},
+                    },
+                    {
+                        "number": 6,
+                        "step": "Rest under foil tent for 5 minutes before slicing.",
+                        "ingredients": [],
+                        "equipment": [
+                            {
+                                "id": 404765,
+                                "name": "aluminum foil",
+                                "localizedName": "foil",
+                                "image": "aluminum-foil.png",
+                            }
+                        ],
+                        "length": {"number": 5, "unit": "minutes"},
+                    },
+                    {
+                        "number": 7,
+                        "step": "Serve immediately with pan juices.",
+                        "ingredients": [],
+                        "equipment": [],
+                        "length": {"number": 1, "unit": "minutes"},
+                    },
+                ],
             }
         ],
-        "analyzedInstructions": [{
-            "name": "",
-            "steps": [
-                {
-                    "number": 1,
-                    "step": "Preheat oven to 400°F (200°C).",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 404784, "name": "oven", "localizedName": "oven", "image": "oven.jpg"}
-                    ],
-                    "length": {"number": 5, "unit": "minutes"}
-                },
-                {
-                    "number": 2,
-                    "step": "In a small bowl, whisk together olive oil, lemon juice, lemon zest, oregano, thyme, minced garlic, salt, and pepper.",
-                    "ingredients": [
-                        {"id": 4053, "name": "olive oil", "localizedName": "olive oil", "image": "olive-oil.jpg"},
-                        {"id": 9152, "name": "lemon juice", "localizedName": "lemon juice", "image": "lemon-juice.jpg"},
-                        {"id": 9156, "name": "lemon zest", "localizedName": "lemon zest", "image": "zest-lemon.jpg"},
-                        {"id": 2027, "name": "oregano", "localizedName": "oregano", "image": "oregano.jpg"},
-                        {"id": 2049, "name": "thyme", "localizedName": "thyme", "image": "thyme.jpg"},
-                        {"id": 11215, "name": "garlic", "localizedName": "garlic", "image": "garlic.png"},
-                        {"id": 2047, "name": "salt", "localizedName": "salt", "image": "salt.jpg"},
-                        {"id": 1002030, "name": "black pepper", "localizedName": "black pepper", "image": "pepper.jpg"}
-                    ],
-                    "equipment": [
-                        {"id": 404783, "name": "bowl", "localizedName": "bowl", "image": "bowl.jpg"},
-                        {"id": 404661, "name": "whisk", "localizedName": "whisk", "image": "whisk.png"}
-                    ],
-                    "length": {"number": 3, "unit": "minutes"}
-                },
-                {
-                    "number": 3,
-                    "step": "Place chicken breasts in a baking dish and pour the herb mixture over them, coating both sides.",
-                    "ingredients": [
-                        {"id": 5062, "name": "chicken breasts", "localizedName": "chicken breasts", "image": "chicken-breasts.png"}
-                    ],
-                    "equipment": [
-                        {"id": 404646, "name": "baking pan", "localizedName": "baking dish", "image": "roasting-pan.jpg"}
-                    ],
-                    "length": {"number": 2, "unit": "minutes"}
-                },
-                {
-                    "number": 4,
-                    "step": "Let chicken marinate for 15 minutes at room temperature.",
-                    "ingredients": [],
-                    "equipment": [],
-                    "length": {"number": 15, "unit": "minutes"}
-                },
-                {
-                    "number": 5,
-                    "step": "Roast for 20-25 minutes until internal temperature reaches 165°F.",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 404784, "name": "oven", "localizedName": "oven", "image": "oven.jpg"},
-                        {"id": 404789, "name": "kitchen thermometer", "localizedName": "thermometer", "image": "food-thermometer.jpg"}
-                    ],
-                    "length": {"number": 25, "unit": "minutes"}
-                },
-                {
-                    "number": 6,
-                    "step": "Rest under foil tent for 5 minutes before slicing.",
-                    "ingredients": [],
-                    "equipment": [
-                        {"id": 404765, "name": "aluminum foil", "localizedName": "foil", "image": "aluminum-foil.png"}
-                    ],
-                    "length": {"number": 5, "unit": "minutes"}
-                },
-                {
-                    "number": 7,
-                    "step": "Serve immediately with pan juices.",
-                    "ingredients": [],
-                    "equipment": [],
-                    "length": {"number": 1, "unit": "minutes"}
-                }
-            ]
-        }],
         "nutrition": {
             "nutrients": [
                 {"name": "Calories", "amount": 280, "unit": "kcal"},
@@ -701,17 +974,26 @@ ENHANCED_MOCK_RECIPES = [
                 {"name": "Sugar", "amount": 1, "unit": "g"},
                 {"name": "Protein", "amount": 38, "unit": "g"},
                 {"name": "Sodium", "amount": 890, "unit": "mg"},
-                {"name": "Cholesterol", "amount": 110, "unit": "mg"}
+                {"name": "Cholesterol", "amount": 110, "unit": "mg"},
             ]
         },
-        "ingredients": ["1.5 lbs chicken breast", "3 tbsp olive oil", "2 lemons", "2 tsp oregano", "1 tsp thyme", "4 cloves garlic", "1.5 tsp salt", "1 tsp black pepper"],
+        "ingredients": [
+            "1.5 lbs chicken breast",
+            "3 tbsp olive oil",
+            "2 lemons",
+            "2 tsp oregano",
+            "1 tsp thyme",
+            "4 cloves garlic",
+            "1.5 tsp salt",
+            "1 tsp black pepper",
+        ],
         "instructions": [
             "Preheat oven to 400°F.",
             "Whisk together marinade ingredients in a bowl.",
             "Coat chicken with marinade and let sit 15 minutes.",
             "Roast for 20-25 minutes until internal temperature reaches 165°F.",
             "Rest under foil tent for 5 minutes before slicing.",
-            "Serve immediately with pan juices."
+            "Serve immediately with pan juices.",
         ],
         "available_ingredients": ["chicken breast", "olive oil", "salt", "black pepper"],
         "missing_ingredients": ["lemon", "oregano", "thyme", "garlic"],
@@ -722,7 +1004,7 @@ ENHANCED_MOCK_RECIPES = [
         "safety_violations": [],
         "safety_warnings": [],
         "allergen_risks": [],
-        "source": "enhanced_mock"
+        "source": "enhanced_mock",
     },
     # Demo High-Protein Recipes (IDs 1001-1010)
     {
@@ -740,13 +1022,51 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["family dinner", "meal prep"],
         "extendedIngredients": [
-            {"id": 5006, "name": "chicken breast", "original": "4 boneless chicken breasts (6 oz each)", "amount": 4.0, "unit": "piece"},
-            {"id": 1033, "name": "parmesan cheese", "original": "1 cup grated parmesan", "amount": 1.0, "unit": "cup"},
-            {"id": 1036, "name": "ricotta cheese", "original": "1/2 cup ricotta cheese", "amount": 0.5, "unit": "cup"},
-            {"id": 1028, "name": "mozzarella cheese", "original": "1 cup shredded mozzarella", "amount": 1.0, "unit": "cup"},
-            {"id": 11549, "name": "marinara sauce", "original": "2 cups marinara sauce", "amount": 2.0, "unit": "cups"}
+            {
+                "id": 5006,
+                "name": "chicken breast",
+                "original": "4 boneless chicken breasts (6 oz each)",
+                "amount": 4.0,
+                "unit": "piece",
+            },
+            {
+                "id": 1033,
+                "name": "parmesan cheese",
+                "original": "1 cup grated parmesan",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 1036,
+                "name": "ricotta cheese",
+                "original": "1/2 cup ricotta cheese",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 1028,
+                "name": "mozzarella cheese",
+                "original": "1 cup shredded mozzarella",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 11549,
+                "name": "marinara sauce",
+                "original": "2 cups marinara sauce",
+                "amount": 2.0,
+                "unit": "cups",
+            },
         ],
-        "ingredients": ["4 chicken breasts (6 oz each)", "1 cup parmesan cheese", "1/2 cup ricotta cheese", "1 cup mozzarella cheese", "2 cups marinara sauce", "1 cup breadcrumbs", "2 eggs"],
+        "ingredients": [
+            "4 chicken breasts (6 oz each)",
+            "1 cup parmesan cheese",
+            "1/2 cup ricotta cheese",
+            "1 cup mozzarella cheese",
+            "2 cups marinara sauce",
+            "1 cup breadcrumbs",
+            "2 eggs",
+        ],
         "instructions": [
             "Pound chicken breasts to even thickness and season with salt and pepper.",
             "Set up breading station: beaten eggs in one dish, breadcrumb-parmesan mix in another.",
@@ -754,16 +1074,21 @@ ENHANCED_MOCK_RECIPES = [
             "Pan-fry chicken in olive oil until golden brown and cooked through (165°F).",
             "Mix ricotta into marinara sauce for extra protein boost.",
             "Top each chicken breast with protein marinara and mozzarella cheese.",
-            "Bake at 400°F for 10 minutes until cheese melts and bubbles."
+            "Bake at 400°F for 10 minutes until cheese melts and bubbles.",
         ],
         "nutrition": {"calories": 520, "protein": 45, "carbs": 15, "fat": 24},
         "available_ingredients": ["chicken breast", "mozzarella cheese", "eggs"],
-        "missing_ingredients": ["parmesan cheese", "ricotta cheese", "marinara sauce", "breadcrumbs"],
+        "missing_ingredients": [
+            "parmesan cheese",
+            "ricotta cheese",
+            "marinara sauce",
+            "breadcrumbs",
+        ],
         "available_count": 3,
         "missing_count": 4,
         "match_score": 0.43,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1002,
@@ -780,13 +1105,51 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein", "gluten-free"],
         "occasions": ["weeknight dinner", "healthy"],
         "extendedIngredients": [
-            {"id": 5091, "name": "chicken thighs", "original": "6 boneless chicken thighs", "amount": 6.0, "unit": "piece"},
-            {"id": 16058, "name": "white beans", "original": "2 cans cannellini beans", "amount": 2.0, "unit": "cans"},
-            {"id": 10011457, "name": "spinach", "original": "4 cups fresh spinach", "amount": 4.0, "unit": "cups"},
-            {"id": 11955, "name": "sun-dried tomatoes", "original": "1/2 cup sun-dried tomatoes", "amount": 0.5, "unit": "cup"},
-            {"id": 1001, "name": "heavy cream", "original": "1/2 cup heavy cream", "amount": 0.5, "unit": "cup"}
+            {
+                "id": 5091,
+                "name": "chicken thighs",
+                "original": "6 boneless chicken thighs",
+                "amount": 6.0,
+                "unit": "piece",
+            },
+            {
+                "id": 16058,
+                "name": "white beans",
+                "original": "2 cans cannellini beans",
+                "amount": 2.0,
+                "unit": "cans",
+            },
+            {
+                "id": 10011457,
+                "name": "spinach",
+                "original": "4 cups fresh spinach",
+                "amount": 4.0,
+                "unit": "cups",
+            },
+            {
+                "id": 11955,
+                "name": "sun-dried tomatoes",
+                "original": "1/2 cup sun-dried tomatoes",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 1001,
+                "name": "heavy cream",
+                "original": "1/2 cup heavy cream",
+                "amount": 0.5,
+                "unit": "cup",
+            },
         ],
-        "ingredients": ["6 boneless chicken thighs", "2 cans cannellini beans", "4 cups fresh spinach", "1/2 cup sun-dried tomatoes", "1/2 cup heavy cream", "3 cloves garlic", "1 onion"],
+        "ingredients": [
+            "6 boneless chicken thighs",
+            "2 cans cannellini beans",
+            "4 cups fresh spinach",
+            "1/2 cup sun-dried tomatoes",
+            "1/2 cup heavy cream",
+            "3 cloves garlic",
+            "1 onion",
+        ],
         "instructions": [
             "Season chicken thighs with Italian herbs, salt, and pepper.",
             "Heat olive oil in large skillet and sear chicken thighs until golden brown.",
@@ -794,7 +1157,7 @@ ENHANCED_MOCK_RECIPES = [
             "Add white beans, sun-dried tomatoes, and chicken broth.",
             "Return chicken to skillet and simmer 10 minutes.",
             "Stir in heavy cream and spinach until wilted.",
-            "Garnish with fresh basil and serve immediately."
+            "Garnish with fresh basil and serve immediately.",
         ],
         "nutrition": {"calories": 465, "protein": 38, "carbs": 22, "fat": 18},
         "available_ingredients": ["chicken thighs", "spinach", "heavy cream", "onion", "garlic"],
@@ -803,7 +1166,7 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 2,
         "match_score": 0.71,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1003,
@@ -820,13 +1183,51 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["meal prep", "family dinner"],
         "extendedIngredients": [
-            {"id": 5696, "name": "ground turkey", "original": "2 lbs lean ground turkey", "amount": 2.0, "unit": "lbs"},
-            {"id": 1036, "name": "ricotta cheese", "original": "2 cups ricotta cheese", "amount": 2.0, "unit": "cups"},
-            {"id": 1015, "name": "cottage cheese", "original": "1 cup cottage cheese", "amount": 1.0, "unit": "cup"},
-            {"id": 1028, "name": "mozzarella cheese", "original": "3 cups shredded mozzarella", "amount": 3.0, "unit": "cups"},
-            {"id": 20420, "name": "lasagna noodles", "original": "12 lasagna noodles", "amount": 12.0, "unit": "sheets"}
+            {
+                "id": 5696,
+                "name": "ground turkey",
+                "original": "2 lbs lean ground turkey",
+                "amount": 2.0,
+                "unit": "lbs",
+            },
+            {
+                "id": 1036,
+                "name": "ricotta cheese",
+                "original": "2 cups ricotta cheese",
+                "amount": 2.0,
+                "unit": "cups",
+            },
+            {
+                "id": 1015,
+                "name": "cottage cheese",
+                "original": "1 cup cottage cheese",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 1028,
+                "name": "mozzarella cheese",
+                "original": "3 cups shredded mozzarella",
+                "amount": 3.0,
+                "unit": "cups",
+            },
+            {
+                "id": 20420,
+                "name": "lasagna noodles",
+                "original": "12 lasagna noodles",
+                "amount": 12.0,
+                "unit": "sheets",
+            },
         ],
-        "ingredients": ["2 lbs ground turkey", "2 cups ricotta cheese", "1 cup cottage cheese", "3 cups mozzarella cheese", "12 lasagna noodles", "3 cups marinara sauce", "2 eggs"],
+        "ingredients": [
+            "2 lbs ground turkey",
+            "2 cups ricotta cheese",
+            "1 cup cottage cheese",
+            "3 cups mozzarella cheese",
+            "12 lasagna noodles",
+            "3 cups marinara sauce",
+            "2 eggs",
+        ],
         "instructions": [
             "Cook lasagna noodles according to package directions and set aside.",
             "Brown ground turkey with onion, garlic, and Italian seasonings.",
@@ -834,16 +1235,21 @@ ENHANCED_MOCK_RECIPES = [
             "Layer sauce, noodles, turkey mixture, and cheese blend in baking dish.",
             "Repeat layers ending with mozzarella cheese on top.",
             "Cover with foil and bake at 375°F for 45 minutes.",
-            "Remove foil and bake 15 more minutes until bubbly and golden."
+            "Remove foil and bake 15 more minutes until bubbly and golden.",
         ],
         "nutrition": {"calories": 485, "protein": 42, "carbs": 28, "fat": 19},
         "available_ingredients": ["ground turkey", "mozzarella cheese", "eggs"],
-        "missing_ingredients": ["ricotta cheese", "cottage cheese", "lasagna noodles", "marinara sauce"],
+        "missing_ingredients": [
+            "ricotta cheese",
+            "cottage cheese",
+            "lasagna noodles",
+            "marinara sauce",
+        ],
         "available_count": 3,
         "missing_count": 4,
         "match_score": 0.43,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1004,
@@ -860,13 +1266,52 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein", "gluten-free"],
         "occasions": ["healthy", "meal prep"],
         "extendedIngredients": [
-            {"id": 13229, "name": "flank steak", "original": "1.5 lbs flank steak", "amount": 1.5, "unit": "lbs"},
-            {"id": 16015, "name": "black beans", "original": "2 cups cooked black beans", "amount": 2.0, "unit": "cups"},
-            {"id": 1256, "name": "Greek yogurt", "original": "1 cup Greek yogurt", "amount": 1.0, "unit": "cup"},
-            {"id": 11143, "name": "cilantro", "original": "1/2 cup fresh cilantro", "amount": 0.5, "unit": "cup"},
-            {"id": 9160, "name": "lime", "original": "3 limes juiced", "amount": 3.0, "unit": "piece"}
+            {
+                "id": 13229,
+                "name": "flank steak",
+                "original": "1.5 lbs flank steak",
+                "amount": 1.5,
+                "unit": "lbs",
+            },
+            {
+                "id": 16015,
+                "name": "black beans",
+                "original": "2 cups cooked black beans",
+                "amount": 2.0,
+                "unit": "cups",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "1 cup Greek yogurt",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 11143,
+                "name": "cilantro",
+                "original": "1/2 cup fresh cilantro",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 9160,
+                "name": "lime",
+                "original": "3 limes juiced",
+                "amount": 3.0,
+                "unit": "piece",
+            },
         ],
-        "ingredients": ["1.5 lbs flank steak", "2 cups black beans", "1 cup Greek yogurt", "1/2 cup cilantro", "3 limes", "2 avocados", "1 red onion", "brown rice"],
+        "ingredients": [
+            "1.5 lbs flank steak",
+            "2 cups black beans",
+            "1 cup Greek yogurt",
+            "1/2 cup cilantro",
+            "3 limes",
+            "2 avocados",
+            "1 red onion",
+            "brown rice",
+        ],
         "instructions": [
             "Marinate flank steak in lime juice, garlic, cumin, and chili powder for 20 minutes.",
             "Grill or pan-sear steak to medium-rare (130°F), about 4-5 minutes per side.",
@@ -874,7 +1319,7 @@ ENHANCED_MOCK_RECIPES = [
             "Make crema by mixing Greek yogurt with lime juice and cilantro.",
             "Warm black beans with cumin and garlic.",
             "Serve over brown rice with sliced steak, beans, avocado, and yogurt crema.",
-            "Garnish with fresh cilantro, lime wedges, and diced red onion."
+            "Garnish with fresh cilantro, lime wedges, and diced red onion.",
         ],
         "nutrition": {"calories": 520, "protein": 40, "carbs": 35, "fat": 16},
         "available_ingredients": ["flank steak", "Greek yogurt", "cilantro", "lime", "red onion"],
@@ -883,7 +1328,7 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 3,
         "match_score": 0.63,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1005,
@@ -900,13 +1345,51 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["family dinner", "entertaining"],
         "extendedIngredients": [
-            {"id": 5091, "name": "chicken thighs", "original": "2 lbs chicken thighs", "amount": 2.0, "unit": "lbs"},
-            {"id": 16006, "name": "refried beans", "original": "2 cups refried beans", "amount": 2.0, "unit": "cups"},
-            {"id": 11979, "name": "chipotle peppers", "original": "3 chipotle peppers in adobo", "amount": 3.0, "unit": "peppers"},
-            {"id": 11887, "name": "tomatoes", "original": "2 large tomatoes", "amount": 2.0, "unit": "piece"},
-            {"id": 18364, "name": "corn tortillas", "original": "12 corn tortillas", "amount": 12.0, "unit": "tortillas"}
+            {
+                "id": 5091,
+                "name": "chicken thighs",
+                "original": "2 lbs chicken thighs",
+                "amount": 2.0,
+                "unit": "lbs",
+            },
+            {
+                "id": 16006,
+                "name": "refried beans",
+                "original": "2 cups refried beans",
+                "amount": 2.0,
+                "unit": "cups",
+            },
+            {
+                "id": 11979,
+                "name": "chipotle peppers",
+                "original": "3 chipotle peppers in adobo",
+                "amount": 3.0,
+                "unit": "peppers",
+            },
+            {
+                "id": 11887,
+                "name": "tomatoes",
+                "original": "2 large tomatoes",
+                "amount": 2.0,
+                "unit": "piece",
+            },
+            {
+                "id": 18364,
+                "name": "corn tortillas",
+                "original": "12 corn tortillas",
+                "amount": 12.0,
+                "unit": "tortillas",
+            },
         ],
-        "ingredients": ["2 lbs chicken thighs", "2 cups refried beans", "3 chipotle peppers", "2 large tomatoes", "12 corn tortillas", "1 large onion", "4 cloves garlic"],
+        "ingredients": [
+            "2 lbs chicken thighs",
+            "2 cups refried beans",
+            "3 chipotle peppers",
+            "2 large tomatoes",
+            "12 corn tortillas",
+            "1 large onion",
+            "4 cloves garlic",
+        ],
         "instructions": [
             "Season chicken thighs and brown in Dutch oven until golden.",
             "Add diced onion, garlic, and chipotle peppers with adobo sauce.",
@@ -914,7 +1397,7 @@ ENHANCED_MOCK_RECIPES = [
             "Cover and braise chicken for 30 minutes until tender.",
             "Remove chicken and shred, return to sauce to absorb flavors.",
             "Warm refried beans and tortillas.",
-            "Serve chicken tinga in warm tortillas with beans, onion, and cilantro."
+            "Serve chicken tinga in warm tortillas with beans, onion, and cilantro.",
         ],
         "nutrition": {"calories": 425, "protein": 35, "carbs": 32, "fat": 14},
         "available_ingredients": ["chicken thighs", "tomatoes", "onion", "garlic"],
@@ -923,7 +1406,7 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 3,
         "match_score": 0.57,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1006,
@@ -940,13 +1423,51 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["breakfast", "meal prep"],
         "extendedIngredients": [
-            {"id": 1124, "name": "egg whites", "original": "8 egg whites", "amount": 8.0, "unit": "piece"},
-            {"id": 7916, "name": "turkey sausage", "original": "4 oz turkey sausage", "amount": 4.0, "unit": "oz"},
-            {"id": 16015, "name": "black beans", "original": "1/2 cup black beans", "amount": 0.5, "unit": "cup"},
-            {"id": 1256, "name": "Greek yogurt", "original": "1/4 cup Greek yogurt", "amount": 0.25, "unit": "cup"},
-            {"id": 18364, "name": "whole wheat tortillas", "original": "2 large tortillas", "amount": 2.0, "unit": "tortillas"}
+            {
+                "id": 1124,
+                "name": "egg whites",
+                "original": "8 egg whites",
+                "amount": 8.0,
+                "unit": "piece",
+            },
+            {
+                "id": 7916,
+                "name": "turkey sausage",
+                "original": "4 oz turkey sausage",
+                "amount": 4.0,
+                "unit": "oz",
+            },
+            {
+                "id": 16015,
+                "name": "black beans",
+                "original": "1/2 cup black beans",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "1/4 cup Greek yogurt",
+                "amount": 0.25,
+                "unit": "cup",
+            },
+            {
+                "id": 18364,
+                "name": "whole wheat tortillas",
+                "original": "2 large tortillas",
+                "amount": 2.0,
+                "unit": "tortillas",
+            },
         ],
-        "ingredients": ["8 egg whites", "4 oz turkey sausage", "1/2 cup black beans", "1/4 cup Greek yogurt", "2 whole wheat tortillas", "1/4 cup salsa", "2 tbsp cheese"],
+        "ingredients": [
+            "8 egg whites",
+            "4 oz turkey sausage",
+            "1/2 cup black beans",
+            "1/4 cup Greek yogurt",
+            "2 whole wheat tortillas",
+            "1/4 cup salsa",
+            "2 tbsp cheese",
+        ],
         "instructions": [
             "Cook turkey sausage in non-stick pan until browned and cooked through.",
             "Add egg whites and scramble until fluffy and set.",
@@ -954,7 +1475,7 @@ ENHANCED_MOCK_RECIPES = [
             "Warm tortillas in microwave for 30 seconds.",
             "Spread Greek yogurt down center of each tortilla.",
             "Add egg mixture, turkey sausage, black beans, and salsa.",
-            "Roll tightly and serve immediately, or wrap for meal prep."
+            "Roll tightly and serve immediately, or wrap for meal prep.",
         ],
         "nutrition": {"calories": 380, "protein": 32, "carbs": 28, "fat": 12},
         "available_ingredients": ["eggs", "turkey sausage", "Greek yogurt"],
@@ -963,7 +1484,7 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 4,
         "match_score": 0.43,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1007,
@@ -980,13 +1501,52 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein", "gluten-free"],
         "occasions": ["dinner", "entertaining"],
         "extendedIngredients": [
-            {"id": 5006, "name": "chicken breast", "original": "4 chicken breasts", "amount": 4.0, "unit": "piece"},
-            {"id": 16070, "name": "black lentils", "original": "1 cup black lentils", "amount": 1.0, "unit": "cup"},
-            {"id": 1256, "name": "Greek yogurt", "original": "1 cup Greek yogurt", "amount": 1.0, "unit": "cup"},
-            {"id": 2023, "name": "garam masala", "original": "2 tbsp garam masala", "amount": 2.0, "unit": "tbsp"},
-            {"id": 1001, "name": "heavy cream", "original": "1/2 cup heavy cream", "amount": 0.5, "unit": "cup"}
+            {
+                "id": 5006,
+                "name": "chicken breast",
+                "original": "4 chicken breasts",
+                "amount": 4.0,
+                "unit": "piece",
+            },
+            {
+                "id": 16070,
+                "name": "black lentils",
+                "original": "1 cup black lentils",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "1 cup Greek yogurt",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 2023,
+                "name": "garam masala",
+                "original": "2 tbsp garam masala",
+                "amount": 2.0,
+                "unit": "tbsp",
+            },
+            {
+                "id": 1001,
+                "name": "heavy cream",
+                "original": "1/2 cup heavy cream",
+                "amount": 0.5,
+                "unit": "cup",
+            },
         ],
-        "ingredients": ["4 chicken breasts", "1 cup black lentils", "1 cup Greek yogurt", "2 tbsp garam masala", "1/2 cup heavy cream", "2 tbsp tandoori spice", "4 cloves garlic", "1 inch ginger"],
+        "ingredients": [
+            "4 chicken breasts",
+            "1 cup black lentils",
+            "1 cup Greek yogurt",
+            "2 tbsp garam masala",
+            "1/2 cup heavy cream",
+            "2 tbsp tandoori spice",
+            "4 cloves garlic",
+            "1 inch ginger",
+        ],
         "instructions": [
             "Marinate chicken in Greek yogurt, tandoori spices, garlic, and ginger for 2 hours.",
             "Soak black lentils overnight, then pressure cook until tender.",
@@ -994,16 +1554,22 @@ ENHANCED_MOCK_RECIPES = [
             "For dal: sauté onion, garlic, ginger with spices until fragrant.",
             "Add cooked lentils, tomatoes, and simmer 20 minutes.",
             "Finish dal with heavy cream and butter for richness.",
-            "Serve tandoori chicken over dal with naan and fresh cilantro."
+            "Serve tandoori chicken over dal with naan and fresh cilantro.",
         ],
         "nutrition": {"calories": 510, "protein": 44, "carbs": 25, "fat": 18},
-        "available_ingredients": ["chicken breast", "Greek yogurt", "heavy cream", "garlic", "ginger"],
+        "available_ingredients": [
+            "chicken breast",
+            "Greek yogurt",
+            "heavy cream",
+            "garlic",
+            "ginger",
+        ],
         "missing_ingredients": ["black lentils", "garam masala", "tandoori spice"],
         "available_count": 5,
         "missing_count": 3,
         "match_score": 0.63,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1008,
@@ -1020,13 +1586,52 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein", "vegetarian"],
         "occasions": ["dinner", "healthy"],
         "extendedIngredients": [
-            {"id": 1081, "name": "paneer", "original": "8 oz paneer cheese", "amount": 8.0, "unit": "oz"},
-            {"id": 10011457, "name": "spinach", "original": "1 lb fresh spinach", "amount": 1.0, "unit": "lb"},
-            {"id": 16098, "name": "chickpea flour", "original": "1 cup chickpea flour", "amount": 1.0, "unit": "cup"},
-            {"id": 1256, "name": "Greek yogurt", "original": "1/2 cup Greek yogurt", "amount": 0.5, "unit": "cup"},
-            {"id": 1001, "name": "heavy cream", "original": "1/4 cup heavy cream", "amount": 0.25, "unit": "cup"}
+            {
+                "id": 1081,
+                "name": "paneer",
+                "original": "8 oz paneer cheese",
+                "amount": 8.0,
+                "unit": "oz",
+            },
+            {
+                "id": 10011457,
+                "name": "spinach",
+                "original": "1 lb fresh spinach",
+                "amount": 1.0,
+                "unit": "lb",
+            },
+            {
+                "id": 16098,
+                "name": "chickpea flour",
+                "original": "1 cup chickpea flour",
+                "amount": 1.0,
+                "unit": "cup",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "1/2 cup Greek yogurt",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 1001,
+                "name": "heavy cream",
+                "original": "1/4 cup heavy cream",
+                "amount": 0.25,
+                "unit": "cup",
+            },
         ],
-        "ingredients": ["8 oz paneer cheese", "1 lb fresh spinach", "1 cup chickpea flour", "1/2 cup Greek yogurt", "1/4 cup heavy cream", "2 onions", "4 cloves garlic", "1 inch ginger"],
+        "ingredients": [
+            "8 oz paneer cheese",
+            "1 lb fresh spinach",
+            "1 cup chickpea flour",
+            "1/2 cup Greek yogurt",
+            "1/4 cup heavy cream",
+            "2 onions",
+            "4 cloves garlic",
+            "1 inch ginger",
+        ],
         "instructions": [
             "Blanch spinach in boiling water, then blend with ginger and green chilies.",
             "Cut paneer into cubes and lightly pan-fry until golden.",
@@ -1034,16 +1639,23 @@ ENHANCED_MOCK_RECIPES = [
             "Add spinach puree and Greek yogurt, simmer 10 minutes.",
             "Gently fold in paneer cubes and finish with cream.",
             "Make roti by mixing chickpea flour with water and spices into dough.",
-            "Roll and cook rotis on hot griddle until spotted and cooked through."
+            "Roll and cook rotis on hot griddle until spotted and cooked through.",
         ],
         "nutrition": {"calories": 420, "protein": 36, "carbs": 20, "fat": 22},
-        "available_ingredients": ["spinach", "Greek yogurt", "heavy cream", "onion", "garlic", "ginger"],
+        "available_ingredients": [
+            "spinach",
+            "Greek yogurt",
+            "heavy cream",
+            "onion",
+            "garlic",
+            "ginger",
+        ],
         "missing_ingredients": ["paneer", "chickpea flour"],
         "available_count": 6,
         "missing_count": 2,
         "match_score": 0.75,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1009,
@@ -1060,13 +1672,52 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["special occasion", "entertaining"],
         "extendedIngredients": [
-            {"id": 5091, "name": "chicken thighs", "original": "2 lbs chicken thighs", "amount": 2.0, "unit": "lbs"},
-            {"id": 20444, "name": "basmati rice", "original": "2 cups basmati rice", "amount": 2.0, "unit": "cups"},
-            {"id": 1256, "name": "Greek yogurt", "original": "1.5 cups Greek yogurt", "amount": 1.5, "unit": "cups"},
-            {"id": 2043, "name": "biryani masala", "original": "3 tbsp biryani masala", "amount": 3.0, "unit": "tbsp"},
-            {"id": 2028, "name": "saffron", "original": "1/4 tsp saffron", "amount": 0.25, "unit": "tsp"}
+            {
+                "id": 5091,
+                "name": "chicken thighs",
+                "original": "2 lbs chicken thighs",
+                "amount": 2.0,
+                "unit": "lbs",
+            },
+            {
+                "id": 20444,
+                "name": "basmati rice",
+                "original": "2 cups basmati rice",
+                "amount": 2.0,
+                "unit": "cups",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "1.5 cups Greek yogurt",
+                "amount": 1.5,
+                "unit": "cups",
+            },
+            {
+                "id": 2043,
+                "name": "biryani masala",
+                "original": "3 tbsp biryani masala",
+                "amount": 3.0,
+                "unit": "tbsp",
+            },
+            {
+                "id": 2028,
+                "name": "saffron",
+                "original": "1/4 tsp saffron",
+                "amount": 0.25,
+                "unit": "tsp",
+            },
         ],
-        "ingredients": ["2 lbs chicken thighs", "2 cups basmati rice", "1.5 cups Greek yogurt", "3 tbsp biryani masala", "1/4 tsp saffron", "2 onions", "1/2 cup almonds", "mint leaves"],
+        "ingredients": [
+            "2 lbs chicken thighs",
+            "2 cups basmati rice",
+            "1.5 cups Greek yogurt",
+            "3 tbsp biryani masala",
+            "1/4 tsp saffron",
+            "2 onions",
+            "1/2 cup almonds",
+            "mint leaves",
+        ],
         "instructions": [
             "Marinate chicken in yogurt, biryani masala, and aromatics for 2 hours.",
             "Parboil basmati rice with whole spices until 70% cooked.",
@@ -1074,7 +1725,7 @@ ENHANCED_MOCK_RECIPES = [
             "Cook marinated chicken until tender and well-spiced.",
             "Layer rice and chicken in heavy-bottomed pot with fried onions.",
             "Add saffron soaked in milk and cook on dum (low heat) for 45 minutes.",
-            "Make raita by mixing yogurt with cucumber, mint, and roasted cumin."
+            "Make raita by mixing yogurt with cucumber, mint, and roasted cumin.",
         ],
         "nutrition": {"calories": 480, "protein": 39, "carbs": 42, "fat": 15},
         "available_ingredients": ["chicken thighs", "Greek yogurt", "onion", "mint"],
@@ -1083,7 +1734,7 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 4,
         "match_score": 0.50,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
+        "source": "demo_recipe",
     },
     {
         "id": 1010,
@@ -1100,13 +1751,52 @@ ENHANCED_MOCK_RECIPES = [
         "diets": ["high-protein"],
         "occasions": ["dinner", "entertaining"],
         "extendedIngredients": [
-            {"id": 17069, "name": "ground lamb", "original": "1.5 lbs ground lamb", "amount": 1.5, "unit": "lbs"},
-            {"id": 20081, "name": "bread flour", "original": "2 cups bread flour", "amount": 2.0, "unit": "cups"},
-            {"id": 16098, "name": "chickpea flour", "original": "1/2 cup chickpea flour", "amount": 0.5, "unit": "cup"},
-            {"id": 1256, "name": "Greek yogurt", "original": "3/4 cup Greek yogurt", "amount": 0.75, "unit": "cup"},
-            {"id": 11549, "name": "diced tomatoes", "original": "1 can diced tomatoes", "amount": 1.0, "unit": "can"}
+            {
+                "id": 17069,
+                "name": "ground lamb",
+                "original": "1.5 lbs ground lamb",
+                "amount": 1.5,
+                "unit": "lbs",
+            },
+            {
+                "id": 20081,
+                "name": "bread flour",
+                "original": "2 cups bread flour",
+                "amount": 2.0,
+                "unit": "cups",
+            },
+            {
+                "id": 16098,
+                "name": "chickpea flour",
+                "original": "1/2 cup chickpea flour",
+                "amount": 0.5,
+                "unit": "cup",
+            },
+            {
+                "id": 1256,
+                "name": "Greek yogurt",
+                "original": "3/4 cup Greek yogurt",
+                "amount": 0.75,
+                "unit": "cup",
+            },
+            {
+                "id": 11549,
+                "name": "diced tomatoes",
+                "original": "1 can diced tomatoes",
+                "amount": 1.0,
+                "unit": "can",
+            },
         ],
-        "ingredients": ["1.5 lbs ground lamb", "2 cups bread flour", "1/2 cup chickpea flour", "3/4 cup Greek yogurt", "1 can diced tomatoes", "2 onions", "4 cloves garlic", "garam masala"],
+        "ingredients": [
+            "1.5 lbs ground lamb",
+            "2 cups bread flour",
+            "1/2 cup chickpea flour",
+            "3/4 cup Greek yogurt",
+            "1 can diced tomatoes",
+            "2 onions",
+            "4 cloves garlic",
+            "garam masala",
+        ],
         "instructions": [
             "Brown ground lamb with onions until meat is cooked and aromatic.",
             "Add garlic, ginger, and spices, cook until fragrant.",
@@ -1114,7 +1804,7 @@ ENHANCED_MOCK_RECIPES = [
             "For naan: mix flours with Greek yogurt, salt, and baking powder.",
             "Knead into soft dough and rest 30 minutes.",
             "Roll naan and cook on hot griddle until puffed and spotted.",
-            "Serve hot keema with fresh protein naan and yogurt on the side."
+            "Serve hot keema with fresh protein naan and yogurt on the side.",
         ],
         "nutrition": {"calories": 545, "protein": 41, "carbs": 35, "fat": 20},
         "available_ingredients": ["ground lamb", "Greek yogurt", "onion", "garlic"],
@@ -1123,12 +1813,12 @@ ENHANCED_MOCK_RECIPES = [
         "missing_count": 4,
         "match_score": 0.50,
         "safety_status": "SAFE",
-        "source": "demo_recipe"
-    }
+        "source": "demo_recipe",
+    },
 ]
 
 
-def get_mock_recipe_by_id(recipe_id: int) -> Dict[str, Any]:
+def get_mock_recipe_by_id(recipe_id: int) -> dict[str, Any]:
     """Get a specific mock recipe by ID"""
     for recipe in ENHANCED_MOCK_RECIPES:
         if recipe["id"] == recipe_id:
@@ -1136,25 +1826,29 @@ def get_mock_recipe_by_id(recipe_id: int) -> Dict[str, Any]:
     return {}
 
 
-def get_mock_recipes_matching_ingredients(available_ingredients: List[str], limit: int = 5) -> List[Dict[str, Any]]:
+def get_mock_recipes_matching_ingredients(
+    available_ingredients: list[str], limit: int = 5
+) -> list[dict[str, Any]]:
     """Get mock recipes that best match available ingredients"""
     scored_recipes = []
-    
+
     for recipe in ENHANCED_MOCK_RECIPES:
-        available = set(ing.lower().strip() for ing in available_ingredients)
-        recipe_ingredients = set(ing.lower().strip() for ing in recipe.get("available_ingredients", []))
-        
+        available = {ing.lower().strip() for ing in available_ingredients}
+        recipe_ingredients = {
+            ing.lower().strip() for ing in recipe.get("available_ingredients", [])
+        }
+
         # Calculate match score
         matches = len(available.intersection(recipe_ingredients))
         total = len(recipe_ingredients)
         score = matches / total if total > 0 else 0
-        
+
         if score > 0:  # Only include recipes with some ingredient matches
             recipe_copy = recipe.copy()
             recipe_copy["match_score"] = round(score, 2)
             recipe_copy["matched_ingredients"] = list(available.intersection(recipe_ingredients))
             scored_recipes.append(recipe_copy)
-    
+
     # Sort by match score (highest first) and return top recipes
     scored_recipes.sort(key=lambda x: x["match_score"], reverse=True)
     return scored_recipes[:limit]

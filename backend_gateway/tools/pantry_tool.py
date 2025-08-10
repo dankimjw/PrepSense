@@ -1,8 +1,8 @@
 """Pantry analysis tool for CrewAI agents."""
 
 import logging
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import date, datetime
+from typing import Any
 
 from backend_gateway.tools.database_tool import create_database_tool
 
@@ -24,7 +24,7 @@ class PantryTool:
     def __init__(self):
         self.db_tool = create_database_tool()
 
-    def _run(self, action: str, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _run(self, action: str, user_id: int, **kwargs) -> dict[str, Any]:
         """
         Execute a pantry analysis action.
 
@@ -57,7 +57,7 @@ class PantryTool:
             logger.error(f"Pantry tool error: {str(e)}")
             return {"error": f"Pantry analysis failed: {str(e)}"}
 
-    def _analyze_pantry(self, user_id: int) -> Dict[str, Any]:
+    def _analyze_pantry(self, user_id: int) -> dict[str, Any]:
         """Comprehensive pantry analysis."""
         # Get pantry items
         pantry_data = self.db_tool._run("pantry_items", user_id)
@@ -172,7 +172,7 @@ class PantryTool:
 
         return analysis
 
-    def _get_expiring_items(self, user_id: int, days: int = 7) -> Dict[str, Any]:
+    def _get_expiring_items(self, user_id: int, days: int = 7) -> dict[str, Any]:
         """Get items expiring within specified days."""
         analysis = self._analyze_pantry(user_id)
 
@@ -192,7 +192,7 @@ class PantryTool:
             "count": len(expiring_items),
         }
 
-    def _categorize_items(self, user_id: int) -> Dict[str, Any]:
+    def _categorize_items(self, user_id: int) -> dict[str, Any]:
         """Get pantry items organized by category."""
         analysis = self._analyze_pantry(user_id)
 
@@ -205,7 +205,7 @@ class PantryTool:
             "category_counts": {cat: len(items) for cat, items in analysis["categories"].items()},
         }
 
-    def _get_protein_sources(self, user_id: int) -> Dict[str, Any]:
+    def _get_protein_sources(self, user_id: int) -> dict[str, Any]:
         """Get available protein sources."""
         analysis = self._analyze_pantry(user_id)
 
@@ -218,7 +218,7 @@ class PantryTool:
             "count": len(analysis["protein_sources"]),
         }
 
-    def _get_staple_items(self, user_id: int) -> Dict[str, Any]:
+    def _get_staple_items(self, user_id: int) -> dict[str, Any]:
         """Get available staple items."""
         analysis = self._analyze_pantry(user_id)
 
@@ -231,7 +231,7 @@ class PantryTool:
             "count": len(analysis["staples"]),
         }
 
-    def _get_available_ingredients(self, user_id: int) -> Dict[str, Any]:
+    def _get_available_ingredients(self, user_id: int) -> dict[str, Any]:
         """Get all available (non-expired) ingredients."""
         analysis = self._analyze_pantry(user_id)
 

@@ -4,12 +4,11 @@ Generates vector embeddings for semantic search using OpenAI's embedding models
 """
 
 import asyncio
-import json
 import logging
 import os
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import httpx
 import numpy as np
@@ -20,10 +19,10 @@ logger = logging.getLogger(__name__)
 @dataclass
 class EmbeddingResult:
     text: str
-    embedding: List[float]
+    embedding: list[float]
     model: str
     dimensions: int
-    metadata: Optional[Dict[str, Any]] = None
+    metadata: Optional[dict[str, Any]] = None
 
 
 class EmbeddingService:
@@ -57,7 +56,7 @@ class EmbeddingService:
         self._request_times = []
 
     async def generate_embedding(
-        self, text: str, metadata: Optional[Dict[str, Any]] = None
+        self, text: str, metadata: Optional[dict[str, Any]] = None
     ) -> EmbeddingResult:
         """
         Generate embedding for a single text
@@ -99,7 +98,7 @@ class EmbeddingService:
             logger.error(f"Error generating embedding: {e}")
             raise
 
-    async def generate_embeddings_batch(self, texts: List[str]) -> List[EmbeddingResult]:
+    async def generate_embeddings_batch(self, texts: list[str]) -> list[EmbeddingResult]:
         """
         Generate embeddings for multiple texts in batch
 
@@ -148,7 +147,7 @@ class EmbeddingService:
 
         return results
 
-    async def generate_recipe_embedding(self, recipe: Dict[str, Any]) -> List[float]:
+    async def generate_recipe_embedding(self, recipe: dict[str, Any]) -> list[float]:
         """
         Generate embedding for a recipe by combining relevant fields
 
@@ -192,10 +191,7 @@ class EmbeddingService:
         # Add dietary info
         if recipe.get("dietary_preferences"):
             dietary = recipe["dietary_preferences"]
-            if isinstance(dietary, list):
-                dietary_text = ", ".join(dietary)
-            else:
-                dietary_text = str(dietary)
+            dietary_text = ", ".join(dietary) if isinstance(dietary, list) else str(dietary)
             text_parts.append(f"Dietary: {dietary_text}")
 
         # Combine all parts
@@ -207,7 +203,7 @@ class EmbeddingService:
         )
         return result.embedding
 
-    async def generate_product_embedding(self, product: Dict[str, Any]) -> List[float]:
+    async def generate_product_embedding(self, product: dict[str, Any]) -> list[float]:
         """
         Generate embedding for a product
 
@@ -249,7 +245,7 @@ class EmbeddingService:
         )
         return result.embedding
 
-    async def generate_pantry_item_embedding(self, item: Dict[str, Any]) -> List[float]:
+    async def generate_pantry_item_embedding(self, item: dict[str, Any]) -> list[float]:
         """
         Generate embedding for a pantry item
 
@@ -294,7 +290,7 @@ class EmbeddingService:
 
     async def generate_query_embedding(
         self, query: str, query_type: str = "general"
-    ) -> List[float]:
+    ) -> list[float]:
         """
         Generate embedding for a search query
 
@@ -338,7 +334,7 @@ class EmbeddingService:
         # Record this request
         self._request_times.append(current_time)
 
-    def calculate_similarity(self, embedding1: List[float], embedding2: List[float]) -> float:
+    def calculate_similarity(self, embedding1: list[float], embedding2: list[float]) -> float:
         """
         Calculate cosine similarity between two embeddings
 

@@ -5,10 +5,9 @@ Compatible with Spoonacular API format for seamless fallback integration.
 🟡 PARTIAL - API router implementation (requires app.py registration)
 """
 
-import json
 import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Path, Query
@@ -47,7 +46,7 @@ class BackupRecipeSearchResult:
 class BackupRecipeDetail:
     """Detailed recipe information compatible with Spoonacular API."""
 
-    def __init__(self, db_row: dict, ingredients: List[dict]):
+    def __init__(self, db_row: dict, ingredients: list[dict]):
         self.id = db_row.get("backup_recipe_id")
         self.title = db_row.get("title")
         self.image = (
@@ -71,7 +70,7 @@ class BackupRecipeDetail:
         self.creditsText = "Recipe Dataset"
         self.sourceName = "Backup Recipe Database"
 
-    def _parse_instructions(self, instructions_text: str) -> List[dict]:
+    def _parse_instructions(self, instructions_text: str) -> list[dict]:
         """Parse instructions into Spoonacular-compatible format."""
         if not instructions_text:
             return []
@@ -91,7 +90,7 @@ class BackupRecipeDetail:
             for i, step in enumerate(steps)
         ]
 
-    def _format_ingredients(self, ingredients: List[dict]) -> List[dict]:
+    def _format_ingredients(self, ingredients: list[dict]) -> list[dict]:
         """Format ingredients into Spoonacular-compatible format."""
         return [
             {
@@ -169,7 +168,7 @@ async def search_backup_recipes(
     number: int = Query(10, description="Number of results to return"),
     limitLicense: bool = Query(True, description="Whether to limit to recipes with a license"),
     pool: asyncpg.Pool = Depends(get_db_pool),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Search backup recipes with filters.
     Compatible with Spoonacular complexSearch API.
@@ -249,7 +248,7 @@ async def search_backup_recipes(
 
         # Build final query
         search_query = f"""
-            SELECT 
+            SELECT
                 br.backup_recipe_id,
                 br.title,
                 br.image_name,
@@ -295,7 +294,7 @@ async def search_backup_recipes(
 
     except Exception as e:
         logger.error(f"Error searching backup recipes: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}") from e
 
 
 @router.get("/{recipe_id}")
@@ -303,7 +302,7 @@ async def get_backup_recipe_details(
     recipe_id: int = Path(..., description="Backup recipe ID"),
     includeNutrition: bool = Query(False, description="Include nutrition information"),
     pool: asyncpg.Pool = Depends(get_db_pool),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get detailed backup recipe information.
     Compatible with Spoonacular recipe information API.
@@ -313,7 +312,7 @@ async def get_backup_recipe_details(
             # Get recipe details
             recipe = await conn.fetchrow(
                 """
-                SELECT * FROM backup_recipes 
+                SELECT * FROM backup_recipes
                 WHERE backup_recipe_id = $1
             """,
                 recipe_id,
@@ -325,7 +324,7 @@ async def get_backup_recipe_details(
             # Get ingredients
             ingredients = await conn.fetch(
                 """
-                SELECT * FROM backup_recipe_ingredients 
+                SELECT * FROM backup_recipe_ingredients
                 WHERE backup_recipe_id = $1
                 ORDER BY ingredient_name
             """,
@@ -341,7 +340,7 @@ async def get_backup_recipe_details(
         raise
     except Exception as e:
         logger.error(f"Error getting recipe {recipe_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get recipe: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get recipe: {str(e)}") from e
 
 
 @router.get("/images/{image_name}")
@@ -362,7 +361,7 @@ async def serve_recipe_image(
         raise
     except Exception as e:
         logger.error(f"Error serving image {image_name}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to serve image")
+        raise HTTPException(status_code=500, detail="Failed to serve image") from e
 
 
 @router.get("/random")
@@ -370,7 +369,7 @@ async def get_random_backup_recipes(
     tags: Optional[str] = Query(None, description="Comma-separated tags"),
     number: int = Query(1, description="Number of random recipes"),
     pool: asyncpg.Pool = Depends(get_db_pool),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get random backup recipes."""
     try:
         # Build tag filter if provided
@@ -385,7 +384,7 @@ async def get_random_backup_recipes(
             )
 
         query = f"""
-            SELECT 
+            SELECT
                 backup_recipe_id,
                 title,
                 image_name,
@@ -413,17 +412,19 @@ async def get_random_backup_recipes(
 
     except Exception as e:
         logger.error(f"Error getting random recipes: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get random recipes: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get random recipes: {str(e)}"
+        ) from e
 
 
 @router.get("/stats")
-async def get_backup_recipe_stats(pool: asyncpg.Pool = Depends(get_db_pool)) -> Dict[str, Any]:
+async def get_backup_recipe_stats(pool: asyncpg.Pool = Depends(get_db_pool)) -> dict[str, Any]:
     """Get statistics about the backup recipe database."""
     try:
         async with pool.acquire() as conn:
             stats = await conn.fetchrow(
                 """
-                SELECT 
+                SELECT
                     COUNT(*) as total_recipes,
                     COUNT(DISTINCT cuisine_type) as cuisine_count,
                     COUNT(CASE WHEN image_name IS NOT NULL THEN 1 END) as recipes_with_images,
@@ -437,7 +438,7 @@ async def get_backup_recipe_stats(pool: asyncpg.Pool = Depends(get_db_pool)) -> 
 
             ingredient_stats = await conn.fetchrow(
                 """
-                SELECT 
+                SELECT
                     COUNT(DISTINCT ingredient_name) as unique_ingredients,
                     AVG(ingredient_count.cnt) as avg_ingredients_per_recipe
                 FROM (
@@ -467,11 +468,11 @@ async def get_backup_recipe_stats(pool: asyncpg.Pool = Depends(get_db_pool)) -> 
 
     except Exception as e:
         logger.error(f"Error getting backup recipe stats: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get stats: {str(e)}") from e
 
 
 @router.post("/reindex")
-async def reindex_search_vectors(pool: asyncpg.Pool = Depends(get_db_pool)) -> Dict[str, str]:
+async def reindex_search_vectors(pool: asyncpg.Pool = Depends(get_db_pool)) -> dict[str, str]:
     """Manually trigger search vector reindexing."""
     try:
         async with pool.acquire() as conn:
@@ -486,4 +487,4 @@ async def reindex_search_vectors(pool: asyncpg.Pool = Depends(get_db_pool)) -> D
 
     except Exception as e:
         logger.error(f"Error reindexing search vectors: {e}")
-        raise HTTPException(status_code=500, detail=f"Reindexing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Reindexing failed: {str(e)}") from e

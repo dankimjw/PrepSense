@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Temporarily disable CrewAI to get the backend running."""
 
-import os
 from pathlib import Path
 
 
@@ -39,10 +38,10 @@ def comment_out_nutrient_aware_imports():
     for file_info in files_to_modify:
         file_path = Path(file_info["path"])
         if file_path.exists():
-            with open(file_path, "r") as f:
+            with open(file_path) as f:
                 content = f.read()
 
-            if file_info["old"] in content and not file_info["new"] in content:
+            if file_info["old"] in content and file_info["new"] not in content:
                 content = content.replace(file_info["old"], file_info["new"])
                 with open(file_path, "w") as f:
                     f.write(content)
@@ -56,7 +55,7 @@ def comment_out_nutrient_endpoints():
 
     # Read chat_router.py
     chat_router_path = Path("backend_gateway/routers/chat_router.py")
-    with open(chat_router_path, "r") as f:
+    with open(chat_router_path) as f:
         lines = f.readlines()
 
     # Find and comment out the nutrient endpoint
