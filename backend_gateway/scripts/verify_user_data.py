@@ -35,7 +35,7 @@ def verify_users():
         users = db.execute_query(
             """
             SELECT user_id, username, email, first_name, last_name, created_at
-            FROM users 
+            FROM users
             WHERE username IN (@u1, @u2, @u3, @u4, @u5) OR user_id = @source_id
             ORDER BY user_id
             """,
@@ -79,8 +79,8 @@ def verify_users():
                     {"user_id": user["user_id"]},
                 )[0]["count"]
                 logger.info(f"    - Shopping list items: {shopping_count}")
-            except:
-                logger.info(f"    - Shopping list items: N/A (table may not exist)")
+            except Exception:
+                logger.info("    - Shopping list items: N/A (table may not exist)")
 
             try:
                 # Check for user_recipes table instead
@@ -89,8 +89,8 @@ def verify_users():
                     {"user_id": user["user_id"]},
                 )[0]["count"]
                 logger.info(f"    - User recipes: {recipe_count}")
-            except:
-                logger.info(f"    - User recipes: N/A (table may not exist)")
+            except Exception:
+                logger.info("    - User recipes: N/A (table may not exist)")
             logger.info("")
 
     except Exception as e:

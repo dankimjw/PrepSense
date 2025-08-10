@@ -6,12 +6,11 @@ This script handles the large CSV files efficiently using chunked reading.
 
 import asyncio
 import csv
-import json
 import logging
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import asyncpg
 from tqdm import tqdm
@@ -190,7 +189,7 @@ class USDADataImporter:
         # Import branded foods with additional fields
         await self._import_branded_foods(zip_file, chunk_size)
 
-    async def _insert_foods(self, foods: List[tuple]):
+    async def _insert_foods(self, foods: list[tuple]):
         """Insert food records."""
         await self.conn.executemany(
             """
@@ -243,7 +242,7 @@ class USDADataImporter:
 
         logger.info(f"Updated {total_imported} branded foods")
 
-    async def _update_branded_foods(self, foods: List[tuple]):
+    async def _update_branded_foods(self, foods: list[tuple]):
         """Update food records with branded food information."""
         await self.conn.executemany(
             """
@@ -313,7 +312,7 @@ class USDADataImporter:
 
         logger.info(f"Imported {total_imported} nutrient values")
 
-    async def _insert_nutrients(self, nutrients: List[tuple]):
+    async def _insert_nutrients(self, nutrients: list[tuple]):
         """Insert nutrient records."""
         await self.conn.executemany(
             """

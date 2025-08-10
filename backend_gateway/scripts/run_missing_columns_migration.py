@@ -57,7 +57,7 @@ def run_migration():
         # Add product_id column if it doesn't exist
         cursor.execute(
             """
-            ALTER TABLE pantry_items 
+            ALTER TABLE pantry_items
             ADD COLUMN IF NOT EXISTS product_id INTEGER;
         """
         )
@@ -82,9 +82,9 @@ def run_migration():
         # Verify the columns exist
         cursor.execute(
             """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'pantry_items' 
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_name = 'pantry_items'
             ORDER BY ordinal_position;
         """
         )

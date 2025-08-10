@@ -1,10 +1,10 @@
 """Mock data and fixtures for testing"""
 
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 
-def get_mock_pantry_items(user_id: int = 111) -> List[Dict[str, Any]]:
+def get_mock_pantry_items(user_id: int = 111) -> list[dict[str, Any]]:
     """Get mock pantry items for testing"""
     today = datetime.now().date()
     return [
@@ -71,7 +71,7 @@ def get_mock_pantry_items(user_id: int = 111) -> List[Dict[str, Any]]:
     ]
 
 
-def get_mock_user_preferences(user_id: int = 111) -> Dict[str, Any]:
+def get_mock_user_preferences(user_id: int = 111) -> dict[str, Any]:
     """Get mock user preferences"""
     return {
         "user_id": user_id,
@@ -85,7 +85,7 @@ def get_mock_user_preferences(user_id: int = 111) -> Dict[str, Any]:
     }
 
 
-def get_mock_spoonacular_recipes() -> List[Dict[str, Any]]:
+def get_mock_spoonacular_recipes() -> list[dict[str, Any]]:
     """Get mock Spoonacular API response"""
     return [
         {
@@ -115,7 +115,7 @@ def get_mock_spoonacular_recipes() -> List[Dict[str, Any]]:
     ]
 
 
-def get_mock_spoonacular_recipe_details(recipe_id: int) -> Dict[str, Any]:
+def get_mock_spoonacular_recipe_details(recipe_id: int) -> dict[str, Any]:
     """Get mock detailed recipe information from Spoonacular"""
     recipes = {
         12345: {
@@ -224,7 +224,7 @@ def get_mock_spoonacular_recipe_details(recipe_id: int) -> Dict[str, Any]:
     return recipes.get(recipe_id, {})
 
 
-def get_mock_saved_recipes(user_id: int = 111) -> List[Dict[str, Any]]:
+def get_mock_saved_recipes(user_id: int = 111) -> list[dict[str, Any]]:
     """Get mock saved recipes for a user"""
     return [
         {
@@ -286,7 +286,7 @@ class MockDatabaseService:
         self.user_preferences = get_mock_user_preferences()
         self.saved_recipes = get_mock_saved_recipes()
 
-    def execute_query(self, query: str, params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def execute_query(self, query: str, params: dict[str, Any]) -> list[dict[str, Any]]:
         """Mock execute_query method"""
         if "user_pantry_full" in query:
             user_id = params.get("user_id", 111)

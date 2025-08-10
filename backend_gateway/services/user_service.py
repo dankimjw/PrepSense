@@ -1,18 +1,14 @@
 import logging
-import os
-import uuid
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.core.config import settings
 from backend_gateway.core.security import get_password_hash
 from backend_gateway.models.user import (
     UserCreate,
     UserInDB,
     UserProfilePreference,
     UserProfileResponse,
-    UserResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -92,7 +88,7 @@ class UserService:
         username = user.email.split("@")[0]
 
         query = f"""
-            INSERT INTO {self.users_table} 
+            INSERT INTO {self.users_table}
             (username, email, first_name, last_name, password_hash, role, created_at, updated_at)
             VALUES (%(username)s, %(email)s, %(first_name)s, %(last_name)s, %(password_hash)s, %(role)s, %(created_at)s, %(updated_at)s)
             RETURNING user_id
@@ -215,3 +211,7 @@ class UserService:
         except Exception as e:
             logger.error(f"Failed to create default user: {e}")
             return None
+
+    async def create_default_user_if_not_exists(self) -> Optional[UserInDB]:
+        """Create default user if it doesn't exist (alias for create_default_user)"""
+        return await self.create_default_user()

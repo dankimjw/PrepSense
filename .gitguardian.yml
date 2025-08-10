@@ -1,0 +1,25 @@
+version: 1
+verbose: false
+# Limit scope to real source; ignore vendor, large, and private dirs/files
+paths:
+  - .
+paths-ignore:
+  - venv/**
+  - .venv/**
+  - node_modules/**
+  - ios-app/node_modules/**
+  - '**/site-packages/**'
+  - .local_private/**
+  - logs/**
+  - ios-app/logs/**
+  - '**/dist/**'
+  - '**/build/**'
+  - '**/.cache/**'
+  - '**/.mypy_cache/**'
+  - '**/.pytest_cache/**'
+  - '**/.mcp-cache/**'
+  - notebooks/**
+  - '**/*.ipynb'
+  - '**/*.pdf'
+  - '**/*.svg'
+  - backend_gateway/openapi.json

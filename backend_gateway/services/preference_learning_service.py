@@ -7,7 +7,7 @@ import json
 import logging
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +47,8 @@ class PreferenceLearningService:
         user_id: int,
         recipe_id: str,
         action: str,
-        context: Optional[Dict] = None,
-        metadata: Optional[Dict] = None,
+        context: Optional[dict] = None,
+        metadata: Optional[dict] = None,
     ) -> bool:
         """
         Track user interactions with recipes
@@ -76,9 +76,9 @@ class PreferenceLearningService:
 
             # Store in database
             query = """
-                INSERT INTO user_recipe_interactions 
+                INSERT INTO user_recipe_interactions
                 (user_id, recipe_id, action, timestamp, context, metadata)
-                VALUES (%(user_id)s, %(recipe_id)s, %(action)s, %(timestamp)s, 
+                VALUES (%(user_id)s, %(recipe_id)s, %(action)s, %(timestamp)s,
                         %(context)s, %(metadata)s)
             """
 
@@ -97,7 +97,7 @@ class PreferenceLearningService:
             logger.error(f"Error tracking interaction: {str(e)}")
             return False
 
-    async def get_personalized_weights(self, user_id: int) -> Dict[str, float]:
+    async def get_personalized_weights(self, user_id: int) -> dict[str, float]:
         """
         Get personalized scoring weights based on user history
 
@@ -153,7 +153,7 @@ class PreferenceLearningService:
 
         return weights
 
-    async def suggest_new_preferences(self, user_id: int) -> List[Dict]:
+    async def suggest_new_preferences(self, user_id: int) -> list[dict]:
         """
         Suggest new preferences based on user behavior
 
@@ -241,7 +241,7 @@ class PreferenceLearningService:
 
         return suggestions[:10]  # Return top 10 suggestions
 
-    async def get_disliked_patterns(self, user_id: int) -> Dict:
+    async def get_disliked_patterns(self, user_id: int) -> dict:
         """
         Identify patterns in recipes the user dislikes or dismisses
 
@@ -321,11 +321,11 @@ class PreferenceLearningService:
         return patterns
 
     async def _get_user_history(
-        self, user_id: int, days: int = 30, actions: Optional[List[str]] = None
-    ) -> List[Dict]:
+        self, user_id: int, days: int = 30, actions: Optional[list[str]] = None
+    ) -> list[dict]:
         """Get user's interaction history"""
         query = """
-            SELECT 
+            SELECT
                 uri.*,
                 ur.recipe_data,
                 ur.recipe_title,
@@ -346,13 +346,13 @@ class PreferenceLearningService:
 
         return self.db_service.execute_query(query, params)
 
-    async def _get_negative_interactions(self, user_id: int) -> List[Dict]:
+    async def _get_negative_interactions(self, user_id: int) -> list[dict]:
         """Get recipes the user disliked or dismissed"""
         return await self._get_user_history(
             user_id, days=90, actions=["dismissed", "rated_negative", "removed"]
         )
 
-    async def _analyze_user_patterns(self, history: List[Dict]) -> Dict:
+    async def _analyze_user_patterns(self, history: list[dict]) -> dict:
         """Analyze user behavior patterns"""
         patterns = {
             "health_score": 0.0,
@@ -407,7 +407,7 @@ class PreferenceLearningService:
 
         return patterns
 
-    async def _analyze_ingredient_frequency(self, user_id: int, history: List[Dict]) -> Counter:
+    async def _analyze_ingredient_frequency(self, user_id: int, history: list[dict]) -> Counter:
         """Analyze frequency of ingredients in user's recipes"""
         ingredient_counter = Counter()
 
@@ -421,7 +421,7 @@ class PreferenceLearningService:
 
         return ingredient_counter
 
-    async def _analyze_cuisine_frequency(self, user_id: int, history: List[Dict]) -> Counter:
+    async def _analyze_cuisine_frequency(self, user_id: int, history: list[dict]) -> Counter:
         """Analyze frequency of cuisines in user's recipes"""
         cuisine_counter = Counter()
 
@@ -434,7 +434,7 @@ class PreferenceLearningService:
         return cuisine_counter
 
     async def _analyze_cooking_time_preference(
-        self, user_id: int, history: List[Dict]
+        self, user_id: int, history: list[dict]
     ) -> Optional[float]:
         """Analyze average cooking time preference"""
         cook_times = []
@@ -447,7 +447,7 @@ class PreferenceLearningService:
 
         return sum(cook_times) / len(cook_times) if cook_times else None
 
-    async def _detect_dietary_patterns(self, history: List[Dict]) -> Dict[str, float]:
+    async def _detect_dietary_patterns(self, history: list[dict]) -> dict[str, float]:
         """Detect dietary patterns from recipe history"""
         patterns = {
             "vegetarian": 0.0,
@@ -473,11 +473,11 @@ class PreferenceLearningService:
 
         return patterns
 
-    async def _get_current_preferences(self, user_id: int) -> Dict:
+    async def _get_current_preferences(self, user_id: int) -> dict:
         """Get user's current preferences"""
         query = """
-            SELECT preferences 
-            FROM user_preferences 
+            SELECT preferences
+            FROM user_preferences
             WHERE user_id = %(user_id)s
         """
 
@@ -488,7 +488,7 @@ class PreferenceLearningService:
         return {}
 
     async def _update_preferences_from_interaction(
-        self, user_id: int, recipe_id: str, action: str, metadata: Optional[Dict]
+        self, user_id: int, recipe_id: str, action: str, metadata: Optional[dict]
     ):
         """Update user preferences based on a significant interaction"""
         # This would implement the actual preference updates
@@ -536,7 +536,7 @@ class PreferenceLearningService:
 
         return None
 
-    async def export_user_profile(self, user_id: int) -> Dict:
+    async def export_user_profile(self, user_id: int) -> dict:
         """
         Export comprehensive user profile for debugging or analysis
 
@@ -558,7 +558,7 @@ class PreferenceLearningService:
 
         return profile
 
-    async def _get_interaction_summary(self, user_id: int) -> Dict:
+    async def _get_interaction_summary(self, user_id: int) -> dict:
         """Get summary of user interactions"""
         history = await self._get_user_history(user_id, days=90)
 

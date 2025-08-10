@@ -4,13 +4,11 @@ Service for managing FAO Food Loss and Waste data
 
 import json
 import logging
-import os
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 import pandas as pd
-import requests
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +147,7 @@ class FoodWasteService:
         cache_file = self.data_dir / "processed_flw_data.json"
         if cache_file.exists():
             try:
-                with open(cache_file, "r") as f:
+                with open(cache_file) as f:
                     data = json.load(f)
                     for item in data:
                         cpc = item["cpc_code"]
@@ -224,7 +222,7 @@ class FoodWasteService:
         days_until_expiry: int,
         quantity: float = 1.0,
         storage_quality: str = "good",  # 'excellent', 'good', 'fair', 'poor'
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """
         Calculate waste risk score for a pantry item
 
@@ -285,7 +283,7 @@ class FoodWasteService:
             "quantity_at_risk": quantity,
         }
 
-    def prioritize_pantry_by_waste_risk(self, pantry_items: List[Dict]) -> List[Dict]:
+    def prioritize_pantry_by_waste_risk(self, pantry_items: list[dict]) -> list[dict]:
         """
         Sort pantry items by waste risk priority
 
@@ -325,8 +323,8 @@ class FoodWasteService:
         return items_with_risk
 
     def suggest_waste_reduction_recipes(
-        self, high_risk_items: List[str], available_recipes: List[Dict]
-    ) -> List[Tuple[Dict, float]]:
+        self, high_risk_items: list[str], available_recipes: list[dict]
+    ) -> list[tuple[dict, float]]:
         """
         Prioritize recipes that use high-waste-risk ingredients
 
@@ -367,7 +365,7 @@ class FoodWasteService:
         quantity_kg: float,
         price_per_kg: Optional[float] = None,
         include_supply_chain: bool = True,
-    ) -> Dict[str, float]:
+    ) -> dict[str, float]:
         """
         Calculate economic and environmental impact of potential waste
 

@@ -14,14 +14,11 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
-
-import asyncpg
+from typing import Any, Optional
 
 # Add the backend_gateway directory to Python path
 sys.path.append(str(Path(__file__).parent.parent))
 
-from core.config import settings
 from core.database import get_db_pool
 
 # Configure logging
@@ -38,10 +35,10 @@ class RecipeData:
     """Structured recipe data from CSV."""
 
     title: str
-    ingredients: List[str]
+    ingredients: list[str]
     instructions: str
     image_name: Optional[str]
-    cleaned_ingredients: List[str]
+    cleaned_ingredients: list[str]
     recipe_hash: str
 
 
@@ -53,7 +50,7 @@ class ImportStats:
     successful_imports: int = 0
     skipped_duplicates: int = 0
     failed_imports: int = 0
-    errors: List[str] = None
+    errors: list[str] = None
 
     def __post_init__(self):
         if self.errors is None:
@@ -82,7 +79,7 @@ class RecipeImporter:
             logger.error(f"Failed to initialize database connection: {e}")
             raise
 
-    def parse_ingredients(self, ingredients_str: str) -> List[str]:
+    def parse_ingredients(self, ingredients_str: str) -> list[str]:
         """Parse ingredients string into list."""
         if not ingredients_str or ingredients_str.strip() == "":
             return []
@@ -117,7 +114,7 @@ class RecipeImporter:
 
         return cleaned[:255]  # Ensure it fits in database field
 
-    def extract_recipe_metadata(self, title: str, instructions: str) -> Dict[str, Any]:
+    def extract_recipe_metadata(self, title: str, instructions: str) -> dict[str, Any]:
         """Extract metadata from recipe title and instructions."""
         metadata = {
             "cuisine_type": None,
@@ -174,12 +171,12 @@ class RecipeImporter:
 
         return metadata
 
-    def generate_recipe_hash(self, title: str, ingredients: List[str]) -> str:
+    def generate_recipe_hash(self, title: str, ingredients: list[str]) -> str:
         """Generate hash for duplicate detection."""
         content = f"{title.lower()}{''.join(sorted([ing.lower() for ing in ingredients]))}"
         return hashlib.md5(content.encode()).hexdigest()
 
-    def parse_csv_row(self, row: Dict[str, str]) -> Optional[RecipeData]:
+    def parse_csv_row(self, row: dict[str, str]) -> Optional[RecipeData]:
         """Parse a single CSV row into RecipeData."""
         try:
             title = row.get("Title", "").strip()
@@ -228,7 +225,7 @@ class RecipeImporter:
             )
             return result is not None
 
-    async def insert_recipe_batch(self, recipes: List[RecipeData]) -> Tuple[int, int]:
+    async def insert_recipe_batch(self, recipes: list[RecipeData]) -> tuple[int, int]:
         """Insert a batch of recipes into the database."""
         successful = 0
         skipped = 0
@@ -249,8 +246,8 @@ class RecipeImporter:
                         recipe_id = await conn.fetchval(
                             """
                             INSERT INTO recipes (
-                                recipe_name, cuisine_type, prep_time, cook_time, 
-                                servings, difficulty, instructions, source, 
+                                recipe_name, cuisine_type, prep_time, cook_time,
+                                servings, difficulty, instructions, source,
                                 image_path, backup_recipe_id, recipe_data
                             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                             RETURNING recipe_id
@@ -311,7 +308,7 @@ class RecipeImporter:
         row_count = 0
 
         try:
-            with open(self.csv_file_path, "r", encoding="utf-8") as csvfile:
+            with open(self.csv_file_path, encoding="utf-8") as csvfile:
                 reader = csv.DictReader(csvfile)
 
                 for row in reader:

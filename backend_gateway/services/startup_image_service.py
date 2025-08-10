@@ -11,7 +11,7 @@ Runs on application startup to:
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any
 
 from backend_gateway.services.recipe_image_manager import RecipeImageManager
 from backend_gateway.services.spoonacular_service import SpoonacularService
@@ -35,7 +35,7 @@ class StartupImageService:
             999999,  # Smoked Gouda and Garlic Mashed Potatoes
         ]
 
-    async def run_startup_checks(self, max_concurrent_downloads: int = 3) -> Dict[str, Any]:
+    async def run_startup_checks(self, max_concurrent_downloads: int = 3) -> dict[str, Any]:
         """
         Run comprehensive startup image checks
 
@@ -101,11 +101,11 @@ class StartupImageService:
 
         return results
 
-    async def _generate_priority_images(self, max_concurrent: int) -> Dict[str, Any]:
+    async def _generate_priority_images(self, max_concurrent: int) -> dict[str, Any]:
         """Generate images for priority recipes with concurrency control"""
         semaphore = asyncio.Semaphore(max_concurrent)
 
-        async def generate_single_image(recipe_id: int) -> Dict[str, Any]:
+        async def generate_single_image(recipe_id: int) -> dict[str, Any]:
             async with semaphore:
                 try:
                     print(f"   🔍 Processing recipe {recipe_id}...")
@@ -182,7 +182,7 @@ class StartupImageService:
 
         return stats
 
-    def _print_summary(self, results: Dict[str, Any]):
+    def _print_summary(self, results: dict[str, Any]):
         """Print comprehensive startup summary"""
         print("\n📈 Startup Summary")
         print("-" * 30)
@@ -227,7 +227,7 @@ class StartupImageService:
 
         print("✅ Image management startup complete!")
 
-    async def quick_health_check(self) -> Dict[str, Any]:
+    async def quick_health_check(self) -> dict[str, Any]:
         """Quick health check for image system"""
         try:
             stats = await self.image_manager.get_image_statistics()

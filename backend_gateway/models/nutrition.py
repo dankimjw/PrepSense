@@ -2,7 +2,7 @@
 
 from datetime import date, datetime
 from enum import Enum
-from typing import Dict, List, Optional, Union
+from typing import Optional
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -75,7 +75,7 @@ class NutrientProfile(BaseModel):
             setattr(result, field, getattr(self, field) * factor)
         return result
 
-    def to_dict(self) -> Dict[str, float]:
+    def to_dict(self) -> dict[str, float]:
         """Convert to dictionary for JSON storage."""
         return {field: getattr(self, field) for field in self.__fields__}
 
@@ -115,7 +115,7 @@ class DailyIntakeLog(BaseModel):
 
     user_id: str
     date: date
-    meals: List[MealEntry] = Field(default_factory=list)
+    meals: list[MealEntry] = Field(default_factory=list)
     total_water: float = 0.0  # liters
     created_at: datetime = Field(default_factory=datetime.now)
     updated_at: datetime = Field(default_factory=datetime.now)
@@ -164,9 +164,9 @@ class NutrientGapAnalysis(BaseModel):
     user_id: str
     analysis_date: date
     period_days: int = 1  # Analysis period (1 = single day, 7 = weekly average)
-    gaps: List[NutrientGap] = Field(default_factory=list)
-    priority_deficiencies: List[str] = Field(default_factory=list)
-    priority_excesses: List[str] = Field(default_factory=list)
+    gaps: list[NutrientGap] = Field(default_factory=list)
+    priority_deficiencies: list[str] = Field(default_factory=list)
+    priority_excesses: list[str] = Field(default_factory=list)
     overall_score: float = 0.0  # 0-100 nutritional completeness score
     created_at: datetime = Field(default_factory=datetime.now)
 
@@ -177,13 +177,13 @@ class NutrientGapAnalysis(BaseModel):
                 return gap
         return None
 
-    def get_significant_deficiencies(self, threshold: float = 0.7) -> List[NutrientGap]:
+    def get_significant_deficiencies(self, threshold: float = 0.7) -> list[NutrientGap]:
         """Get nutrients with significant deficiencies."""
         return [
             gap for gap in self.gaps if gap.is_deficient and gap.percentage_met < (threshold * 100)
         ]
 
-    def get_significant_excesses(self) -> List[NutrientGap]:
+    def get_significant_excesses(self) -> list[NutrientGap]:
         """Get nutrients with significant excesses."""
         return [gap for gap in self.gaps if gap.is_excessive]
 
@@ -195,8 +195,8 @@ class RecipeNutrientScore(BaseModel):
     gap_closure_score: float = 0.0  # How well recipe addresses nutrient gaps
     balance_score: float = 0.0  # How balanced the recipe is nutritionally
     health_score: float = 0.0  # Overall health score
-    addressed_deficiencies: List[str] = Field(default_factory=list)
-    created_excesses: List[str] = Field(default_factory=list)
+    addressed_deficiencies: list[str] = Field(default_factory=list)
+    created_excesses: list[str] = Field(default_factory=list)
     total_score: float = 0.0
 
     def calculate_total_score(self) -> float:
@@ -243,7 +243,7 @@ class GetNutrientGapsResponse(BaseModel):
     """Response with nutrient gap analysis."""
 
     analysis: NutrientGapAnalysis
-    recommendations: List[str] = Field(default_factory=list)
+    recommendations: list[str] = Field(default_factory=list)
     priority_message: Optional[str] = None
 
 
@@ -252,6 +252,6 @@ class NutrientAwareRecipeRequest(BaseModel):
 
     user_id: str
     include_nutrient_gaps: bool = True
-    focus_nutrients: Optional[List[str]] = None
+    focus_nutrients: Optional[list[str]] = None
     meal_type: Optional[MealType] = None
     max_recipes: int = 5

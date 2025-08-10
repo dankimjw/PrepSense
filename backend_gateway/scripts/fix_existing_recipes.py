@@ -4,7 +4,6 @@ Fix existing saved recipes that have empty recipe_data
 """
 
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -26,7 +25,7 @@ def fix_existing_recipes():
         query = """
             SELECT id, recipe_id, recipe_title, recipe_image, recipe_data, source
             FROM user_recipes
-            WHERE user_id = 111 
+            WHERE user_id = 111
             AND source = 'spoonacular'
             AND (recipe_data = '{}' OR recipe_data IS NULL)
         """
@@ -46,7 +45,7 @@ def fix_existing_recipes():
                     parts = image_url.split("/recipes/")[1].split("-")[0]
                     external_recipe_id = int(parts)
                     print(f"Extracted recipe ID {external_recipe_id} from image URL")
-                except:
+                except Exception:
                     print(f"Could not extract recipe ID from URL: {image_url}")
 
             if external_recipe_id:

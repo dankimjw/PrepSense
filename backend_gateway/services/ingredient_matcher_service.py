@@ -7,7 +7,7 @@ import difflib
 import logging
 import re
 from collections import defaultdict
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -356,10 +356,10 @@ class IngredientMatcherService:
 
     def match_recipe_to_pantry(
         self,
-        recipe_ingredients: List[str],
-        pantry_items: List[Dict],
+        recipe_ingredients: list[str],
+        pantry_items: list[dict],
         allow_substitutions: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Match recipe ingredients to pantry with substitution suggestions
 
@@ -468,7 +468,7 @@ class IngredientMatcherService:
 
         return results
 
-    def _create_pantry_search_index(self, pantry_items: List[Dict]) -> Dict:
+    def _create_pantry_search_index(self, pantry_items: list[dict]) -> dict:
         """Create searchable index of pantry items"""
         index = {"by_name": {}, "by_category": defaultdict(list), "normalized": {}}
 
@@ -491,7 +491,7 @@ class IngredientMatcherService:
 
         return index
 
-    def _parse_ingredient(self, ingredient_string: str) -> Dict:
+    def _parse_ingredient(self, ingredient_string: str) -> dict:
         """Parse ingredient string to extract components"""
         result = {
             "original": ingredient_string,
@@ -574,8 +574,8 @@ class IngredientMatcherService:
         return None
 
     def _find_best_match(
-        self, ingredient_name: str, pantry_index: Dict, pantry_items: List[Dict]
-    ) -> Dict:
+        self, ingredient_name: str, pantry_index: dict, pantry_items: list[dict]
+    ) -> dict:
         """Find the best match for an ingredient in the pantry"""
         ingredient_lower = ingredient_name.lower()
         normalized_ingredient = self._normalize_ingredient_name(ingredient_name)
@@ -611,7 +611,7 @@ class IngredientMatcherService:
         # No match found
         return {"match_type": "none", "pantry_item": None, "confidence": 0.0}
 
-    def _fuzzy_match_ingredient(self, ingredient: str, pantry_names: List[str]) -> Optional[Dict]:
+    def _fuzzy_match_ingredient(self, ingredient: str, pantry_names: list[str]) -> Optional[dict]:
         """Perform fuzzy matching for ingredients"""
         if not pantry_names:
             return None
@@ -627,7 +627,7 @@ class IngredientMatcherService:
 
         return None
 
-    def _find_substitution(self, ingredient_name: str, pantry_index: Dict) -> Optional[Dict]:
+    def _find_substitution(self, ingredient_name: str, pantry_index: dict) -> Optional[dict]:
         """Find substitution for missing ingredient"""
         ingredient_lower = ingredient_name.lower()
 
@@ -647,7 +647,7 @@ class IngredientMatcherService:
 
         return None
 
-    def _suggest_alternatives(self, ingredient_name: str) -> List[str]:
+    def _suggest_alternatives(self, ingredient_name: str) -> list[str]:
         """Suggest alternative ingredients that might work"""
         suggestions = []
 
@@ -666,7 +666,7 @@ class IngredientMatcherService:
 
         return list(set(suggestions))[:5]  # Return up to 5 unique suggestions
 
-    def calculate_quantity_match(self, recipe_quantity: Dict, pantry_quantity: Dict) -> Dict:
+    def calculate_quantity_match(self, recipe_quantity: dict, pantry_quantity: dict) -> dict:
         """
         Calculate if pantry has enough quantity for recipe
 
@@ -717,8 +717,7 @@ class IngredientMatcherService:
                 return quantity * self.unit_conversions[from_unit][to_unit]
 
         # Try reverse conversion
-        if to_unit in self.unit_conversions:
-            if from_unit in self.unit_conversions[to_unit]:
-                return quantity / self.unit_conversions[to_unit][from_unit]
+        if to_unit in self.unit_conversions and from_unit in self.unit_conversions[to_unit]:
+            return quantity / self.unit_conversions[to_unit][from_unit]
 
         return None

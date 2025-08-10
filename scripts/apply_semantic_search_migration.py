@@ -59,7 +59,7 @@ def apply_migration():
 
         # Read and execute migration
         print("\n📝 Reading migration file...")
-        with open(migration_file, "r") as f:
+        with open(migration_file) as f:
             migration_sql = f.read()
 
         # Split by semicolons but be careful with functions
@@ -81,9 +81,9 @@ def apply_migration():
         # Check tables
         cursor.execute(
             """
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name IN ('food_item_embeddings', 'search_query_embeddings')
         """
         )
@@ -93,9 +93,9 @@ def apply_migration():
         # Check if vector columns were added
         cursor.execute(
             """
-            SELECT column_name, data_type 
-            FROM information_schema.columns 
-            WHERE table_name = 'recipes' 
+            SELECT column_name, data_type
+            FROM information_schema.columns
+            WHERE table_name = 'recipes'
             AND column_name = 'embedding'
         """
         )
@@ -105,8 +105,8 @@ def apply_migration():
         # Check functions
         cursor.execute(
             """
-            SELECT routine_name 
-            FROM information_schema.routines 
+            SELECT routine_name
+            FROM information_schema.routines
             WHERE routine_type = 'FUNCTION'
             AND routine_name IN ('find_similar_recipes', 'find_similar_products', 'hybrid_recipe_search')
         """
@@ -117,8 +117,8 @@ def apply_migration():
         # Check indexes
         cursor.execute(
             """
-            SELECT indexname 
-            FROM pg_indexes 
+            SELECT indexname
+            FROM pg_indexes
             WHERE tablename IN ('recipes', 'products', 'pantry_items')
             AND indexname LIKE '%embedding%'
         """

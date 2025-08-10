@@ -3,13 +3,14 @@ Enhanced OpenAPI configuration for PrepSense backend API
 Provides comprehensive schema documentation, validation, and contract testing support
 """
 
-from typing import Dict, List, Optional, Any
-from fastapi import FastAPI
-from fastapi.openapi.utils import get_openapi
-from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
-from fastapi.responses import HTMLResponse
 import json
 import logging
+from typing import Any
+
+from fastapi import FastAPI
+from fastapi.openapi.docs import get_redoc_html, get_swagger_ui_html
+from fastapi.openapi.utils import get_openapi
+from fastapi.responses import HTMLResponse
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +29,7 @@ OPENAPI_TAGS = [
         "description": "Pantry management and inventory tracking",
     },
     {
-        "name": "recipes", 
+        "name": "recipes",
         "description": "Recipe management and AI-powered recommendations",
     },
     {
@@ -72,7 +73,7 @@ SERVERS = [
         "description": "Development server",
     },
     {
-        "url": "http://localhost:8002", 
+        "url": "http://localhost:8002",
         "description": "Testing server",
     },
     {
@@ -104,7 +105,7 @@ COMMON_RESPONSES = {
         "content": {
             "application/json": {
                 "schema": {
-                    "type": "object", 
+                    "type": "object",
                     "properties": {
                         "detail": {"type": "string", "example": "Authentication required"},
                         "error_code": {"type": "string", "example": "UNAUTHORIZED"},
@@ -210,11 +211,11 @@ SECURITY_SCHEMES = {
 }
 
 
-def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
+def custom_openapi_schema(app: FastAPI) -> dict[str, Any]:
     """Generate custom OpenAPI schema with enhanced documentation."""
     if app.openapi_schema:
         return app.openapi_schema
-    
+
     # Generate base schema
     openapi_schema = get_openapi(
         title=app.title,
@@ -224,13 +225,15 @@ def custom_openapi_schema(app: FastAPI) -> Dict[str, Any]:
         tags=OPENAPI_TAGS,
         servers=SERVERS,
     )
-    
+
     # Add contact and license information
     openapi_schema["info"]["contact"] = API_CONTACT
     openapi_schema["info"]["license"] = API_LICENSE
-    
+
     # Add extended description with examples
-    openapi_schema["info"]["description"] = f"""
+    openapi_schema["info"][
+        "description"
+    ] = f"""
 {app.description}
 
 ## Features
@@ -259,7 +262,7 @@ X-API-Key: <your-api-key>
 
 API endpoints are rate limited to ensure fair usage:
 - Authentication endpoints: 5 requests per minute
-- General endpoints: 100 requests per minute  
+- General endpoints: 100 requests per minute
 - File upload endpoints: 10 requests per minute
 
 ## Error Handling
@@ -282,21 +285,21 @@ This API includes comprehensive monitoring:
 
 For questions or issues, please contact the development team or visit our GitHub repository.
     """
-    
+
     # Add security schemes
     openapi_schema["components"]["securitySchemes"] = SECURITY_SCHEMES
-    
+
     # Add common response schemas
     if "responses" not in openapi_schema["components"]:
         openapi_schema["components"]["responses"] = {}
     openapi_schema["components"]["responses"].update(COMMON_RESPONSES)
-    
+
     # Add external documentation
     openapi_schema["externalDocs"] = {
         "description": "PrepSense GitHub Repository",
         "url": "https://github.com/dankimjw/PrepSense",
     }
-    
+
     # Add custom extensions for contract testing
     openapi_schema["x-api-version"] = app.version
     openapi_schema["x-api-stability"] = "stable"
@@ -305,7 +308,7 @@ For questions or issues, please contact the development team or visit our GitHub
         "tools": ["schemathesis", "spectral"],
         "validation_rules": ["spectral:.spectral.yml"],
     }
-    
+
     # Cache the schema
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -313,7 +316,7 @@ For questions or issues, please contact the development team or visit our GitHub
 
 def setup_enhanced_docs(app: FastAPI) -> None:
     """Setup enhanced API documentation with custom styling."""
-    
+
     # Custom Swagger UI
     @app.get("/docs", include_in_schema=False)
     async def custom_swagger_ui_html():
@@ -334,7 +337,7 @@ def setup_enhanced_docs(app: FastAPI) -> None:
                 "docExpansion": "list",
             },
         )
-    
+
     # Custom ReDoc documentation
     @app.get("/redoc", include_in_schema=False)
     async def custom_redoc_html():
@@ -344,16 +347,17 @@ def setup_enhanced_docs(app: FastAPI) -> None:
             redoc_js_url="https://unpkg.com/redoc@2.1.0/bundles/redoc.standalone.js",
             with_google_fonts=True,
         )
-    
+
     # OpenAPI schema endpoint with custom metadata
     @app.get("/openapi.json", include_in_schema=False)
     async def get_openapi_schema():
         return custom_openapi_schema(app)
-    
+
     # API status page
     @app.get("/api/status", include_in_schema=False)
     async def api_status():
-        return HTMLResponse(f"""
+        return HTMLResponse(
+            f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -376,21 +380,21 @@ def setup_enhanced_docs(app: FastAPI) -> None:
                 <p>{app.description}</p>
                 <span class="status healthy">● OPERATIONAL</span>
             </div>
-            
+
             <div class="section">
                 <h2>📚 API Documentation</h2>
                 <p><a href="/docs">Interactive API Documentation (Swagger UI)</a></p>
                 <p><a href="/redoc">API Reference Documentation (ReDoc)</a></p>
                 <p><a href="/openapi.json">OpenAPI Schema (JSON)</a></p>
             </div>
-            
+
             <div class="section">
                 <h2>🔍 Monitoring & Health</h2>
                 <p><a href="/api/v1/health">Health Check Endpoint</a></p>
                 <p><a href="/metrics">Prometheus Metrics</a></p>
                 <p><a href="/monitoring/health">Detailed Health Dashboard</a></p>
             </div>
-            
+
             <div class="section">
                 <h2>📝 Version Information</h2>
                 <p><strong>Version:</strong> {app.version}</p>
@@ -399,8 +403,9 @@ def setup_enhanced_docs(app: FastAPI) -> None:
             </div>
         </body>
         </html>
-        """)
-    
+        """
+        )
+
     logger.info("Enhanced API documentation endpoints configured")
 
 
@@ -408,18 +413,18 @@ def export_openapi_schema(app: FastAPI, output_file: str = "openapi.json") -> No
     """Export OpenAPI schema to file for contract testing."""
     try:
         schema = custom_openapi_schema(app)
-        
-        with open(output_file, 'w', encoding='utf-8') as f:
+
+        with open(output_file, "w", encoding="utf-8") as f:
             json.dump(schema, f, indent=2, ensure_ascii=False)
-            
+
         logger.info(f"OpenAPI schema exported to {output_file}")
-        
+
     except Exception as e:
         logger.error(f"Failed to export OpenAPI schema: {e}")
         raise
 
 
-def validate_openapi_schema(app: FastAPI) -> Dict[str, Any]:
+def validate_openapi_schema(app: FastAPI) -> dict[str, Any]:
     """Validate OpenAPI schema structure and completeness."""
     schema = custom_openapi_schema(app)
     validation_results = {
@@ -431,9 +436,9 @@ def validate_openapi_schema(app: FastAPI) -> Dict[str, Any]:
             "total_schemas": len(schema.get("components", {}).get("schemas", {})),
             "documented_responses": 0,
             "undocumented_responses": 0,
-        }
+        },
     }
-    
+
     # Check for missing documentation
     paths = schema.get("paths", {})
     for path, methods in paths.items():
@@ -444,13 +449,13 @@ def validate_openapi_schema(app: FastAPI) -> Dict[str, Any]:
                     validation_results["warnings"].append(
                         f"Missing summary for {method.upper()} {path}"
                     )
-                
+
                 # Check for missing descriptions
                 if not operation.get("description"):
                     validation_results["warnings"].append(
                         f"Missing description for {method.upper()} {path}"
                     )
-                
+
                 # Check for response documentation
                 responses = operation.get("responses", {})
                 if responses:
@@ -460,16 +465,16 @@ def validate_openapi_schema(app: FastAPI) -> Dict[str, Any]:
                     validation_results["warnings"].append(
                         f"Missing response documentation for {method.upper()} {path}"
                     )
-    
+
     # Check for security scheme usage
     security_schemes = schema.get("components", {}).get("securitySchemes", {})
     if not security_schemes:
         validation_results["warnings"].append("No security schemes defined")
-    
+
     # Set validation status
     if validation_results["errors"]:
         validation_results["valid"] = False
-    
+
     logger.info(f"OpenAPI schema validation completed: {validation_results['stats']}")
-    
+
     return validation_results

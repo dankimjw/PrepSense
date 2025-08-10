@@ -3,7 +3,7 @@ USDA Food Database Router - API endpoints for USDA food data
 """
 
 import logging
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -26,7 +26,7 @@ async def search_foods(
     query: str = Query(..., description="Search query for food items"),
     limit: int = Query(10, ge=1, le=50, description="Maximum number of results"),
     usda_service: USDAFoodService = Depends(get_usda_service),
-) -> List[dict]:
+) -> list[dict]:
     """
     Search USDA food database
 
@@ -42,7 +42,7 @@ async def search_foods(
         return results
     except Exception as e:
         logger.error(f"Error searching USDA database: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/food/{fdc_id}")
@@ -67,7 +67,7 @@ async def get_food_details(
         raise
     except Exception as e:
         logger.error(f"Error getting food details: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/nutrients/{food_name}")
@@ -95,4 +95,4 @@ async def get_nutrients_by_name(
         raise
     except Exception as e:
         logger.error(f"Error getting nutrients: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

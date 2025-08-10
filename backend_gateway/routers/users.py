@@ -1,31 +1,21 @@
 import logging
 import os
-import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import timedelta
+from typing import Optional
 
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer, OAuth2PasswordRequestForm
+from fastapi.security import HTTPBearer, OAuth2PasswordRequestForm
 
-from ..config.database import get_database_service
-from ..core.config import settings
-from ..core.security import (
+from backend_gateway.config.database import get_database_service
+from backend_gateway.core.config import settings
+from backend_gateway.core.security import (
     create_access_token,
-    get_password_hash,
     oauth2_scheme_optional,
-    reusable_oauth2,
     verify_password,
 )
-from ..models.user import (
-    UserCreate,
-    UserInDB,
-    UserProfilePreference,
-    UserProfileResponse,
-    UserResponse,
-)
-from ..services.recipe_service import RecipeService
-from ..services.user_service import UserService
+from backend_gateway.models.user import UserInDB, UserProfileResponse, UserResponse
+from backend_gateway.services.user_service import UserService
 
 logger = logging.getLogger(__name__)
 
@@ -116,10 +106,10 @@ async def get_current_user(
             raise credentials_exception
     except jwt.ExpiredSignatureError:
         logger.warning("Get_current_user: Token has expired.")
-        raise credentials_exception
+        raise credentials_exception from None
     except jwt.PyJWTError as e:
         logger.warning(f"Get_current_user: Token validation error: {e}")
-        raise credentials_exception
+        raise credentials_exception from e
 
     user = await user_service.get_user_by_email(email=email)
     if user is None:
@@ -146,7 +136,7 @@ async def read_users_me(current_user: UserInDB = Depends(get_current_active_user
     return current_user
 
 
-@router.get("/users/", response_model=List[UserResponse])
+@router.get("/users/", response_model=list[UserResponse])
 async def list_users(
     skip: int = 0,
     limit: int = 100,

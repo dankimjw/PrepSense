@@ -54,7 +54,7 @@ def debug_credentials():
         print("\n4. Refreshing token:")
         try:
             credentials.refresh(Request())
-            print(f"   ✓ Token refreshed successfully")
+            print("   ✓ Token refreshed successfully")
             print(f"   Token (first 20 chars): {credentials.token[:20]}...")
         except Exception as e:
             print(f"   ✗ Failed to refresh: {e}")
@@ -71,11 +71,11 @@ def debug_credentials():
         import json
 
         try:
-            with open(adc_path, "r") as f:
+            with open(adc_path) as f:
                 adc_data = json.load(f)
                 print(f"   Type: {adc_data.get('type', 'unknown')}")
                 print(f"   Client ID: {adc_data.get('client_id', 'N/A')[:30]}...")
-        except:
+        except Exception:
             print("   ✗ Could not read ADC file")
     else:
         print(f"   ✗ ADC file not found at: {adc_path}")

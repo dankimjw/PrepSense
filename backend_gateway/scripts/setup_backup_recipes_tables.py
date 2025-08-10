@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS backup_recipes (
     cleaned_ingredients TEXT,   -- Processed ingredients if available
     source VARCHAR(50) DEFAULT 'csv_dataset',
     prep_time INTEGER,          -- Estimated prep time (to be calculated)
-    cook_time INTEGER,          -- Estimated cook time (to be calculated) 
+    cook_time INTEGER,          -- Estimated cook time (to be calculated)
     servings INTEGER,           -- Estimated servings (to be calculated)
     difficulty VARCHAR(20) DEFAULT 'medium' CHECK (difficulty IN ('easy', 'medium', 'hard')),
     cuisine_type VARCHAR(100),  -- To be inferred from title/ingredients
@@ -102,7 +102,7 @@ CREATE TRIGGER backup_search_metadata_updated_at_trigger
 CREATE OR REPLACE FUNCTION update_backup_recipe_search_vector()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.search_vector := 
+    NEW.search_vector :=
         setweight(to_tsvector('english', COALESCE(NEW.title, '')), 'A') ||
         setweight(to_tsvector('english', COALESCE(NEW.cuisine_type, '')), 'B') ||
         setweight(to_tsvector('english', COALESCE(NEW.ingredients, '')), 'C') ||
@@ -118,7 +118,7 @@ CREATE TRIGGER backup_recipes_search_vector_trigger
 
 -- View for easy recipe searching with ingredient matching
 CREATE OR REPLACE VIEW backup_recipes_with_ingredients AS
-SELECT 
+SELECT
     br.backup_recipe_id,
     br.title,
     br.cuisine_type,
@@ -154,7 +154,7 @@ CREATE OR REPLACE FUNCTION search_backup_recipes_by_ingredients(
 BEGIN
     RETURN QUERY
     WITH recipe_matches AS (
-        SELECT 
+        SELECT
             br.backup_recipe_id,
             br.title,
             array_agg(DISTINCT bri.ingredient_name) as recipe_ingredients
@@ -163,20 +163,20 @@ BEGIN
         GROUP BY br.backup_recipe_id, br.title
     ),
     ingredient_analysis AS (
-        SELECT 
+        SELECT
             rm.backup_recipe_id,
             rm.title,
             rm.recipe_ingredients,
             available_ingredients & rm.recipe_ingredients as matched,
             rm.recipe_ingredients - available_ingredients as missing,
-            CASE 
-                WHEN array_length(rm.recipe_ingredients, 1) > 0 
+            CASE
+                WHEN array_length(rm.recipe_ingredients, 1) > 0
                 THEN ROUND((array_length(available_ingredients & rm.recipe_ingredients, 1)::DECIMAL / array_length(rm.recipe_ingredients, 1)::DECIMAL), 3)
                 ELSE 0
             END as match_ratio
         FROM recipe_matches rm
     )
-    SELECT 
+    SELECT
         ia.backup_recipe_id,
         ia.title,
         ia.match_ratio,
@@ -209,9 +209,9 @@ async def run_migration():
         # Verify tables exist
         tables = await conn.fetch(
             """
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name LIKE '%backup%'
         """
         )

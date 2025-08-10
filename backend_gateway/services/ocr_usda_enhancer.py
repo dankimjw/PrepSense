@@ -6,7 +6,7 @@ Improves OCR results by matching extracted text to known food products.
 import logging
 import re
 from difflib import SequenceMatcher
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import asyncpg
 
@@ -42,7 +42,7 @@ class OCRUSDAEnhancer:
             "NONFAT": "NON FAT",
         }
 
-    async def enhance_ocr_results(self, ocr_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def enhance_ocr_results(self, ocr_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Enhance OCR extracted items with USDA data.
 
@@ -77,7 +77,7 @@ class OCRUSDAEnhancer:
 
         return enhanced_items
 
-    async def _enhance_single_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def _enhance_single_item(self, item: dict[str, Any]) -> dict[str, Any]:
         """Enhance a single OCR item."""
 
         raw_name = item.get("item_name", "")
@@ -136,8 +136,8 @@ class OCRUSDAEnhancer:
         return cleaned
 
     def _find_best_match(
-        self, query: str, results: List[Dict[str, Any]]
-    ) -> Tuple[Optional[Dict[str, Any]], float]:
+        self, query: str, results: list[dict[str, Any]]
+    ) -> tuple[Optional[dict[str, Any]], float]:
         """Find the best matching result based on string similarity."""
 
         best_match = None
@@ -171,11 +171,11 @@ class OCRUSDAEnhancer:
 
     def _build_enhanced_item(
         self,
-        original: Dict[str, Any],
-        usda_match: Dict[str, Any],
+        original: dict[str, Any],
+        usda_match: dict[str, Any],
         confidence: float,
         match_type: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Build the enhanced item dictionary."""
 
         # Get detailed food info
@@ -202,7 +202,7 @@ class OCRUSDAEnhancer:
 
         return enhanced
 
-    async def get_nutrition_for_item(self, fdc_id: int) -> Optional[Dict[str, Any]]:
+    async def get_nutrition_for_item(self, fdc_id: int) -> Optional[dict[str, Any]]:
         """
         Get nutritional information for an enhanced item.
 

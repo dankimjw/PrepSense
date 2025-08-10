@@ -6,13 +6,11 @@ Handles category name to ID mapping correctly.
 
 import asyncio
 import csv
-import json
 import logging
-import re
 import zipfile
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 import asyncpg
 from tqdm import tqdm
@@ -53,7 +51,7 @@ class USDADataImporter:
         self.db_url = db_url
         self.zip_path = Path(zip_path)
         self.conn: Optional[asyncpg.Connection] = None
-        self.category_map: Dict[str, int] = {}  # Maps category names to IDs
+        self.category_map: dict[str, int] = {}  # Maps category names to IDs
 
     async def connect(self):
         """Establish database connection."""
@@ -245,7 +243,7 @@ class USDADataImporter:
         logger.info("Importing branded food details...")
         await self._import_branded_foods(zip_file, chunk_size)
 
-    async def _insert_foods(self, chunk: List[tuple]):
+    async def _insert_foods(self, chunk: list[tuple]):
         """Insert a chunk of foods."""
         await self.conn.executemany(
             """
@@ -295,7 +293,7 @@ class USDADataImporter:
         except KeyError as e:
             logger.warning(f"Branded food file not found in zip: {e}")
 
-    async def _update_branded_foods(self, updates: List[tuple]):
+    async def _update_branded_foods(self, updates: list[tuple]):
         """Update branded food details."""
         await self.conn.executemany(
             """
@@ -358,7 +356,7 @@ class USDADataImporter:
 
             logger.info(f"Imported {total_imported} nutrient values")
 
-    async def _insert_nutrients(self, nutrients: List[tuple]):
+    async def _insert_nutrients(self, nutrients: list[tuple]):
         """Insert nutrient data."""
         await self.conn.executemany(
             """
@@ -408,11 +406,11 @@ class USDADataImporter:
 
             logger.info(f"Imported {total_imported} portions")
 
-    async def _insert_portions(self, portions: List[tuple]):
+    async def _insert_portions(self, portions: list[tuple]):
         """Insert portion data."""
         await self.conn.executemany(
             """
-            INSERT INTO usda_food_portions 
+            INSERT INTO usda_food_portions
             (fdc_id, seq_num, amount, measure_unit_id, portion_description, modifier, gram_weight)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             ON CONFLICT (id) DO UPDATE SET

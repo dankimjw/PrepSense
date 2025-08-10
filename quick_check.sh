@@ -106,7 +106,6 @@ TOTAL_CHECKS=$((CHECKS_PASSED + CHECKS_FAILED))
 if [ $CHECKS_FAILED -eq 0 ]; then
     echo -e "${GREEN}✅ All checks passed! ($CHECKS_PASSED/$TOTAL_CHECKS)${NC}"
     echo -e "${GREEN}PrepSense appears to be running correctly.${NC}"
-    exit 0
 else
     echo -e "${RED}❌ Some checks failed! ($CHECKS_PASSED/$TOTAL_CHECKS passed)${NC}"
     
@@ -120,5 +119,41 @@ else
         echo "  • Start iOS app: python run_app.py --ios (or cd ios-app && npm start)"
     fi
     echo -e "\nFor detailed diagnostics, run: ${YELLOW}python check_app_health.py${NC}"
+fi
+
+# ---- Repo Janitor: Additional health checks (non-blocking) ----
+echo -e "\n${YELLOW}5️⃣  Running additional health checks...${NC}"
+echo "======================================="
+
+# Python health check
+if [ -f scripts/py_health.sh ]; then 
+    echo -e "${YELLOW}Running Python health check...${NC}"
+    bash scripts/py_health.sh 2>/dev/null || echo -e "${YELLOW}Python health check completed with warnings${NC}"
+fi
+
+# JavaScript health check  
+if [ -f scripts/js_health.sh ]; then 
+    echo -e "\n${YELLOW}Running JavaScript health check...${NC}"
+    (cd ios-app && bash ../scripts/js_health.sh 2>/dev/null) || echo -e "${YELLOW}JavaScript health check completed with warnings${NC}"
+fi
+
+# List FastAPI routes
+if [ -f scripts/list_fastapi_routes.py ]; then 
+    echo -e "\n${YELLOW}Listing FastAPI routes...${NC}"
+    python scripts/list_fastapi_routes.py 2>/dev/null || echo -e "${YELLOW}Could not list routes (backend may not be configured)${NC}"
+fi
+
+# Find orphaned files
+if [ -f scripts/find_orphans.sh ]; then 
+    echo -e "\n${YELLOW}Finding orphaned files...${NC}"
+    bash scripts/find_orphans.sh 2>/dev/null || echo -e "${YELLOW}Orphan file check completed${NC}"
+fi
+
+echo -e "\n${GREEN}Additional health checks complete!${NC}"
+
+# Exit with original status
+if [ $CHECKS_FAILED -eq 0 ]; then
+    exit 0
+else
     exit 1
 fi

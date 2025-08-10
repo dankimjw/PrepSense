@@ -10,23 +10,27 @@ import logging
 import os
 import traceback
 from contextlib import asynccontextmanager
-from typing import Optional
 
 import openai
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 
 from backend_gateway.core.logging_config import get_logger, setup_logging
 
 # Import monitoring and logging configuration
 from backend_gateway.core.monitoring import setup_monitoring
-# from backend_gateway.core.observability import setup_observability  # Temporarily disabled
 
 # Import enhanced OpenAPI configuration
-from backend_gateway.core.openapi_config import custom_openapi_schema, setup_enhanced_docs, export_openapi_schema
+from backend_gateway.core.openapi_config import (
+    custom_openapi_schema,
+    export_openapi_schema,
+    setup_enhanced_docs,
+)
+
+# from backend_gateway.core.observability import setup_observability  # Temporarily disabled
+
 
 # Setup structured logging first
 setup_logging(
@@ -58,8 +62,7 @@ except Exception as e:
     # Consider if the application should fail to start if the .env or key is critical
     # raise RuntimeError(f"Error loading environment variables: {str(e)}")
 
-# Set OpenAI API key
-client = openai  #  use the openai module directly
+# OpenAI module is imported; use directly where needed
 
 
 @asynccontextmanager
@@ -81,7 +84,7 @@ async def lifespan(app: FastAPI):
     try:
         setup_enhanced_docs(app)
         logger.info("Enhanced OpenAPI documentation configured")
-        
+
         # Export OpenAPI schema for contract testing
         if os.getenv("EXPORT_OPENAPI_SCHEMA", "true").lower() == "true":
             try:
@@ -89,7 +92,7 @@ async def lifespan(app: FastAPI):
                 logger.info("OpenAPI schema exported for contract testing")
             except Exception as e:
                 logger.warning(f"Failed to export OpenAPI schema: {e}")
-                
+
     except Exception as e:
         logger.error("Failed to setup enhanced OpenAPI documentation", error=str(e), exc_info=True)
 
@@ -141,7 +144,7 @@ app = FastAPI(
             "description": "Development server",
         },
         {
-            "url": "http://localhost:8002", 
+            "url": "http://localhost:8002",
             "description": "Testing server",
         },
         {
@@ -181,7 +184,7 @@ else:
         app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
         logger.info(f"Mounted static directory at {static_path.absolute()}")
     else:
-        logger.warning(f"Static directory not found")
+        logger.warning("Static directory not found")
 
 # Also mount old Recipe Images directory if it exists
 recipe_images_path = Path("Recipe Images")
@@ -195,9 +198,7 @@ if recipe_images_path.exists():
 # Health endpoint without prefix for readiness probes
 app.include_router(health_router)
 app.include_router(users_router, prefix=f"{settings.API_V1_STR}", tags=["users"])
-app.include_router(
-    images_router, prefix=f"{settings.API_V1_STR}/images", tags=["images"]
-)
+app.include_router(images_router, prefix=f"{settings.API_V1_STR}/images", tags=["images"])
 # BigQuery router removed - using PostgreSQL instead
 
 # Import pantry router after other routers to avoid circular imports
@@ -214,16 +215,12 @@ app.include_router(chat_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"
 # Import spoonacular router
 from backend_gateway.routers.spoonacular_router import router as spoonacular_router
 
-app.include_router(
-    spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"]
-)
+app.include_router(spoonacular_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"])
 
 # Import recipe consumption router
 from backend_gateway.routers.recipe_consumption_router import router as recipe_consumption_router
 
-app.include_router(
-    recipe_consumption_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"]
-)
+app.include_router(recipe_consumption_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"])
 
 # Import user recipes router (PostgreSQL version)
 from backend_gateway.routers.user_recipes_router import router as user_recipes_router
@@ -243,9 +240,7 @@ app.include_router(demo_router, prefix=f"{settings.API_V1_STR}", tags=["admin"])
 # Import cooking history router
 from backend_gateway.routers.cooking_history_router import router as cooking_history_router
 
-app.include_router(
-    cooking_history_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"]
-)
+app.include_router(cooking_history_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"])
 
 # Import units router
 from backend_gateway.routers.units_router import router as units_router
@@ -261,12 +256,12 @@ app.include_router(ocr_router, prefix=f"{settings.API_V1_STR}", tags=["ocr"])
 from backend_gateway.routers.stats_router import router as stats_router
 
 app.include_router(stats_router, prefix=f"{settings.API_V1_STR}", tags=["monitoring"])
-app.include_router(admin_router, tags=["admin"])
+app.include_router(admin_router, prefix=f"{settings.API_V1_STR}", tags=["admin"])
 
 # Import nutrition router
 from backend_gateway.routers.nutrition_router import router as nutrition_router
 
-app.include_router(nutrition_router, tags=["pantry"])
+app.include_router(nutrition_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # Import preferences router
 from backend_gateway.routers.preferences_router import router as preferences_router
@@ -286,37 +281,37 @@ app.include_router(remote_control_router, prefix=f"{settings.API_V1_STR}", tags=
 # Import sustainability router for environmental impact
 from backend_gateway.routers.sustainability_router import router as sustainability_router
 
-app.include_router(sustainability_router, tags=["pantry"])
+app.include_router(sustainability_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # Import waste reduction router for food waste prevention
 from backend_gateway.routers.waste_reduction_router import router as waste_reduction_router
 
-app.include_router(waste_reduction_router, tags=["pantry"])
+app.include_router(waste_reduction_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # Import semantic search router
 from backend_gateway.routers.semantic_search_router import router as semantic_search_router
 
-app.include_router(semantic_search_router, tags=["recipes"])
+app.include_router(semantic_search_router, prefix=f"{settings.API_V1_STR}", tags=["recipes"])
 
 # Import supply chain impact router
 from backend_gateway.routers.supply_chain_impact_router import router as supply_chain_router
 
-app.include_router(supply_chain_router, tags=["pantry"])
+app.include_router(supply_chain_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # Import USDA router for nutritional data
 from backend_gateway.routers.usda_router import router as usda_router
 
-app.include_router(usda_router, tags=["pantry"])
+app.include_router(usda_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # USDA unit validation router
 from backend_gateway.routers.usda_unit_router import router as usda_unit_router
 
-app.include_router(usda_unit_router, tags=["pantry"])
+app.include_router(usda_unit_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # Unit validation for smart unit checking
 from backend_gateway.routers.unit_validation_router import router as unit_validation_router
 
-app.include_router(unit_validation_router, tags=["pantry"])
+app.include_router(unit_validation_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
 # CrewAI intelligent recipe recommendation system - TEMPORARILY DISABLED
 # from backend_gateway.routers.crewai_router import router as crewai_router
@@ -341,7 +336,7 @@ async def root():
         "api_reference": "/redoc",
         "health_check": "/api/v1/health",
         "status_page": "/api/status",
-        "metrics": "/metrics"
+        "metrics": "/metrics",
     }
 
 
@@ -352,7 +347,7 @@ async def root():
 async def health_check():
     """
     Comprehensive health check endpoint.
-    
+
     Returns detailed system status including:
     - API service health
     - External service configurations
@@ -378,7 +373,7 @@ async def health_check():
             "sentry_enabled": bool(os.getenv("SENTRY_DSN")),
             "metrics_enabled": True,
             "logging_enabled": True,
-        }
+        },
     }
 
     # Check OpenAI configuration
@@ -387,13 +382,14 @@ async def health_check():
         if openai_key:
             health_status["services"]["openai"]["configured"] = True
             health_status["services"]["openai"]["status"] = "configured"
-            
+
             # Test OpenAI API (basic validation)
             try:
                 import openai
+
                 client = openai.OpenAI(api_key=openai_key)
                 # Quick test call (doesn't count against quota much)
-                response = client.models.list()
+                client.models.list()
                 health_status["services"]["openai"]["valid"] = True
                 health_status["services"]["openai"]["status"] = "healthy"
             except Exception as e:

@@ -37,13 +37,13 @@ def run_migration():
         print("\nChecking for existing foreign key constraint...")
         cur.execute(
             """
-            SELECT 
+            SELECT
                 tc.constraint_name,
                 tc.table_name,
                 kcu.column_name
             FROM information_schema.table_constraints tc
             JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-            WHERE tc.table_name = 'user_recipes' 
+            WHERE tc.table_name = 'user_recipes'
             AND tc.constraint_type = 'FOREIGN KEY'
             AND kcu.column_name = 'recipe_id';
         """
@@ -63,7 +63,7 @@ def run_migration():
             # Add comment
             cur.execute(
                 """
-                COMMENT ON COLUMN user_recipes.recipe_id IS 
+                COMMENT ON COLUMN user_recipes.recipe_id IS
                 'Recipe ID - can be NULL for custom recipes, or contain external IDs (e.g., Spoonacular). No FK constraint since we support external recipes.';
             """
             )
@@ -81,7 +81,7 @@ def run_migration():
             SELECT COUNT(*) as fk_count
             FROM information_schema.table_constraints tc
             JOIN information_schema.key_column_usage kcu ON tc.constraint_name = kcu.constraint_name
-            WHERE tc.table_name = 'user_recipes' 
+            WHERE tc.table_name = 'user_recipes'
             AND tc.constraint_type = 'FOREIGN KEY'
             AND kcu.column_name = 'recipe_id';
         """
@@ -97,7 +97,7 @@ def run_migration():
         print("\nChecking user_recipes table...")
         cur.execute(
             """
-            SELECT 
+            SELECT
                 COUNT(*) as total_recipes,
                 COUNT(DISTINCT source) as sources,
                 COUNT(recipe_id) as with_recipe_id,
@@ -107,7 +107,7 @@ def run_migration():
         )
 
         stats = cur.fetchone()
-        print(f"\nUser recipes statistics:")
+        print("\nUser recipes statistics:")
         print(f"  Total recipes: {stats['total_recipes']}")
         print(f"  Recipe sources: {stats['sources']}")
         print(f"  With recipe_id: {stats['with_recipe_id']}")

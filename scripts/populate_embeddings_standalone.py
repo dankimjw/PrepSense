@@ -8,7 +8,6 @@ import json
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List
 
 import httpx
 import psycopg2
@@ -38,7 +37,7 @@ class SimpleEmbeddingService:
         )
         self.model = "text-embedding-3-small"
 
-    async def generate_embedding(self, text: str) -> List[float]:
+    async def generate_embedding(self, text: str) -> list[float]:
         """Generate embedding for text"""
         response = await self.client.post(
             "https://api.openai.com/v1/embeddings", json={"input": text, "model": self.model}
@@ -88,7 +87,7 @@ class EmbeddingPopulator:
         cursor.execute(
             """
             SELECT recipe_id, recipe_name, cuisine_type, recipe_data
-            FROM recipes 
+            FROM recipes
             WHERE embedding IS NULL
             ORDER BY recipe_id
         """
@@ -126,7 +125,7 @@ class EmbeddingPopulator:
                 embedding_str = "[" + ",".join(map(str, embedding)) + "]"
                 cursor.execute(
                     """
-                    UPDATE recipes 
+                    UPDATE recipes
                     SET embedding = %s::vector,
                         embedding_updated_at = CURRENT_TIMESTAMP
                     WHERE recipe_id = %s
@@ -157,7 +156,7 @@ class EmbeddingPopulator:
         cursor.execute(
             """
             SELECT product_id, product_name, brand_name, category
-            FROM products 
+            FROM products
             WHERE embedding IS NULL
             ORDER BY product_id
         """
@@ -186,7 +185,7 @@ class EmbeddingPopulator:
                 embedding_str = "[" + ",".join(map(str, embedding)) + "]"
                 cursor.execute(
                     """
-                    UPDATE products 
+                    UPDATE products
                     SET embedding = %s::vector,
                         embedding_updated_at = CURRENT_TIMESTAMP
                     WHERE product_id = %s
@@ -216,7 +215,7 @@ class EmbeddingPopulator:
         # Get pantry items without embeddings
         cursor.execute(
             """
-            SELECT 
+            SELECT
                 pi.id,
                 pi.item_name,
                 pi.category,
@@ -258,7 +257,7 @@ class EmbeddingPopulator:
                 embedding_str = "[" + ",".join(map(str, embedding)) + "]"
                 cursor.execute(
                     """
-                    UPDATE pantry_items 
+                    UPDATE pantry_items
                     SET embedding = %s::vector,
                         embedding_updated_at = CURRENT_TIMESTAMP
                     WHERE id = %s

@@ -6,11 +6,10 @@ that don't already have embeddings.
 
 import asyncio
 import logging
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 # Add parent directory to path for imports
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -85,7 +84,7 @@ class EmbeddingPopulator:
             cursor.execute(
                 """
                 SELECT recipe_id, recipe_name, cuisine_type, recipe_data
-                FROM recipes 
+                FROM recipes
                 WHERE embedding IS NULL
                 ORDER BY recipe_id
             """
@@ -105,7 +104,7 @@ class EmbeddingPopulator:
             processed = min(i + batch_size, len(recipes))
             logger.info(f"Processed {processed}/{len(recipes)} recipes")
 
-    async def _process_recipe_batch(self, recipes: List[Dict[str, Any]]):
+    async def _process_recipe_batch(self, recipes: list[dict[str, Any]]):
         """Process a batch of recipes"""
         for recipe in recipes:
             try:
@@ -128,7 +127,7 @@ class EmbeddingPopulator:
                         recipe_info["description"] = data.get("description", "")
                         recipe_info["ingredients"] = data.get("ingredients", [])
                         recipe_info["tags"] = data.get("tags", [])
-                    except:
+                    except Exception:
                         pass
 
                 # Generate embedding
@@ -141,7 +140,7 @@ class EmbeddingPopulator:
                 with self.db_service.get_cursor() as cursor:
                     cursor.execute(
                         """
-                        UPDATE recipes 
+                        UPDATE recipes
                         SET embedding = %s::vector,
                             embedding_updated_at = CURRENT_TIMESTAMP
                         WHERE recipe_id = %s
@@ -164,7 +163,7 @@ class EmbeddingPopulator:
             cursor.execute(
                 """
                 SELECT id, name, brand, category, description, barcode
-                FROM products 
+                FROM products
                 WHERE embedding IS NULL
                 ORDER BY id
             """
@@ -184,7 +183,7 @@ class EmbeddingPopulator:
             processed = min(i + batch_size, len(products))
             logger.info(f"Processed {processed}/{len(products)} products")
 
-    async def _process_product_batch(self, products: List[Dict[str, Any]]):
+    async def _process_product_batch(self, products: list[dict[str, Any]]):
         """Process a batch of products"""
         for product in products:
             try:
@@ -198,7 +197,7 @@ class EmbeddingPopulator:
                 with self.db_service.get_cursor() as cursor:
                     cursor.execute(
                         """
-                        UPDATE products 
+                        UPDATE products
                         SET embedding = %s::vector,
                             embedding_updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
@@ -220,7 +219,7 @@ class EmbeddingPopulator:
         with self.db_service.get_cursor() as cursor:
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     pi.id,
                     pi.item_name,
                     pi.category,
@@ -249,7 +248,7 @@ class EmbeddingPopulator:
             processed = min(i + batch_size, len(items))
             logger.info(f"Processed {processed}/{len(items)} pantry items")
 
-    async def _process_pantry_item_batch(self, items: List[Dict[str, Any]]):
+    async def _process_pantry_item_batch(self, items: list[dict[str, Any]]):
         """Process a batch of pantry items"""
         for item in items:
             try:
@@ -280,7 +279,7 @@ class EmbeddingPopulator:
                 with self.db_service.get_cursor() as cursor:
                     cursor.execute(
                         """
-                        UPDATE pantry_items 
+                        UPDATE pantry_items
                         SET embedding = %s::vector,
                             embedding_updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
@@ -370,7 +369,7 @@ def print_usage():
         """
 Usage:
     python populate_embeddings.py [command] [args]
-    
+
 Commands:
     (no command)     - Populate embeddings for all entities
     recipes          - Populate embeddings for all recipes
@@ -378,7 +377,7 @@ Commands:
     pantry           - Populate embeddings for all pantry items
     recipe <id>      - Populate embedding for specific recipe
     product <id>     - Populate embedding for specific product
-    
+
 Examples:
     python populate_embeddings.py
     python populate_embeddings.py recipes

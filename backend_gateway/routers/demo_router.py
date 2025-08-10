@@ -1,12 +1,11 @@
 """Demo router for testing recipe completion"""
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.services.user_recipes_service import UserRecipesService
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +104,7 @@ DEMO_RECIPES = [
 
 
 @router.get("/recipes", summary="Get demo recipes for testing")
-async def get_demo_recipes() -> Dict[str, Any]:
+async def get_demo_recipes() -> dict[str, Any]:
     """
     Returns demo recipes formatted for the chat interface.
     These recipes are designed to test various unit conversion scenarios.
@@ -124,12 +123,12 @@ async def get_demo_recipes() -> Dict[str, Any]:
 @router.get("/pantry-status", summary="Get current pantry quantities for demo")
 async def get_pantry_status(
     user_id: int = 111, db_service=Depends(get_database_service)
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get current pantry quantities to verify ingredient subtraction
     """
     query = """
-    SELECT 
+    SELECT
         product_name,
         quantity,
         unit_of_measurement,
@@ -167,7 +166,7 @@ async def get_pantry_status(
 
 
 @router.post("/reset-demo", summary="Reset demo data to original values")
-async def reset_demo_data_old(db_service=Depends(get_database_service)) -> Dict[str, Any]:
+async def reset_demo_data_old(db_service=Depends(get_database_service)) -> dict[str, Any]:
     """
     Reset all demo pantry items to their original quantities (legacy endpoint)
     """
@@ -193,7 +192,7 @@ async def reset_demo_data_old(db_service=Depends(get_database_service)) -> Dict[
 
 
 @router.post("/reset-data", summary="Reset demo data (new endpoint)")
-async def reset_demo_data(db_service=Depends(get_database_service)) -> Dict[str, Any]:
+async def reset_demo_data(db_service=Depends(get_database_service)) -> dict[str, Any]:
     """
     Reset demo pantry items and recipes to default state
     """
@@ -209,7 +208,9 @@ async def reset_demo_data(db_service=Depends(get_database_service)) -> Dict[str,
             "setup_demo_data.py",
         )
 
-        result = subprocess.run([sys.executable, script_path], capture_output=True, text=True)
+        result = subprocess.run(
+            [sys.executable, script_path], check=False, capture_output=True, text=True
+        )
 
         if result.returncode == 0:
             # Parse output to get counts
@@ -243,7 +244,7 @@ async def reset_demo_data(db_service=Depends(get_database_service)) -> Dict[str,
 
 
 @router.post("/test-subtraction", summary="Run ingredient subtraction tests")
-async def run_subtraction_tests(db_service=Depends(get_database_service)) -> Dict[str, Any]:
+async def run_subtraction_tests(db_service=Depends(get_database_service)) -> dict[str, Any]:
     """
     Run automated tests for ingredient subtraction
     """
@@ -271,6 +272,7 @@ async def run_subtraction_tests(db_service=Depends(get_database_service)) -> Dic
 
         result = subprocess.run(
             [sys.executable, test_script],
+            check=False,
             capture_output=True,
             text=True,
             cwd=os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))),

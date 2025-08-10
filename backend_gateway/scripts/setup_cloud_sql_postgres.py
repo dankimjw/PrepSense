@@ -26,7 +26,7 @@ if not ROOT_PASSWORD:
 def run_command(cmd, check=True):
     """Run a command and return the result"""
     print(f"Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, check=False, shell=True, capture_output=True, text=True)
     if check and result.returncode != 0:
         print(f"Error: {result.stderr}")
         sys.exit(1)
@@ -107,16 +107,16 @@ def get_connection_info():
     ip_result = run_command(ip_cmd)
     ip_address = ip_result.stdout.strip()
 
-    print(f"\nConnection Information:")
+    print("\nConnection Information:")
     print(f"  Instance: {INSTANCE_NAME}")
     print(f"  Database: {DATABASE_NAME}")
     print(f"  Connection Name: {connection_name}")
     print(f"  Public IP: {ip_address}")
     print(f"  Root Password: {ROOT_PASSWORD}")
-    print(f"\nTo connect locally:")
-    print(f"  Option 1 - Direct connection:")
+    print("\nTo connect locally:")
+    print("  Option 1 - Direct connection:")
     print(f"    psql -h {ip_address} -U postgres -d {DATABASE_NAME}")
-    print(f"  Option 2 - Cloud SQL Proxy (more secure):")
+    print("  Option 2 - Cloud SQL Proxy (more secure):")
     print(f"    cloud_sql_proxy -instances={connection_name}=tcp:5432")
     print(f"    psql -h 127.0.0.1 -U postgres -d {DATABASE_NAME}")
 
@@ -127,7 +127,7 @@ def create_sql_schema():
     """Create SQL schema file"""
     print("\n4. Creating SQL schema...")
 
-    schema = """-- PrepSense Cloud SQL PostgreSQL Schema
+    schema = r"""-- PrepSense Cloud SQL PostgreSQL Schema
 -- Optimized for transactional operations with PostgreSQL features
 
 -- Create database (if not exists)
@@ -306,7 +306,7 @@ WHERE NOT EXISTS (
 
 -- Create view for user pantry items (similar to BigQuery view)
 CREATE OR REPLACE VIEW user_pantry_full AS
-SELECT 
+SELECT
     pi.pantry_item_id,
     pi.pantry_id,
     p.user_id,
@@ -404,28 +404,22 @@ def main():
         f"   PGPASSWORD=$POSTGRES_ROOT_PASSWORD psql -h {ip_address} -U postgres -d {DATABASE_NAME} < {schema_file}"
     )
     print("\n4. Update your .env file with:")
-    print(f"   # PostgreSQL connection")
-    print(f"   DB_TYPE=postgres")
+    print("   # PostgreSQL connection")
+    print("   DB_TYPE=postgres")
     print(f"   POSTGRES_HOST={ip_address}")
-    print(f"   POSTGRES_PORT=5432")
+    print("   POSTGRES_PORT=5432")
     print(f"   POSTGRES_DATABASE={DATABASE_NAME}")
-    print(f"   POSTGRES_USER=postgres")
-    print(f"   POSTGRES_PASSWORD=$POSTGRES_ROOT_PASSWORD")
+    print("   POSTGRES_USER=postgres")
+    print("   POSTGRES_PASSWORD=$POSTGRES_ROOT_PASSWORD")
     print(f"   CLOUD_SQL_CONNECTION_NAME={connection_name}")
-    print(f"\n   # Or for Cloud SQL Proxy (more secure):")
-    print(f"   # POSTGRES_HOST=127.0.0.1")
+    print("\n   # Or for Cloud SQL Proxy (more secure):")
+    print("   # POSTGRES_HOST=127.0.0.1")
     print("\n5. For IAM authentication (team members):")
     print(
-        "   gcloud sql users create [USER_EMAIL] --instance={} --type=CLOUD_IAM_USER".format(
-            INSTANCE_NAME
-        )
+        f"   gcloud sql users create [USER_EMAIL] --instance={INSTANCE_NAME} --type=CLOUD_IAM_USER"
     )
     print("\n6. To connect with IAM auth:")
-    print(
-        "   gcloud sql connect {} --user=[USER_EMAIL] --database={}".format(
-            INSTANCE_NAME, DATABASE_NAME
-        )
-    )
+    print(f"   gcloud sql connect {INSTANCE_NAME} --user=[USER_EMAIL] --database={DATABASE_NAME}")
 
 
 if __name__ == "__main__":

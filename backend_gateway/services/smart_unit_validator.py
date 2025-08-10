@@ -4,8 +4,7 @@ Fixes the core issue of inappropriate units for produce and other items.
 """
 
 import logging
-import re
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Optional
 
 import asyncpg
 
@@ -173,7 +172,7 @@ class SmartUnitValidator:
 
     async def validate_and_suggest_unit(
         self, item_name: str, current_unit: str, quantity: Optional[float] = None
-    ) -> Dict[str, any]:
+    ) -> dict[str, any]:
         """
         Validate unit and suggest corrections based on food category.
 
@@ -232,7 +231,7 @@ class SmartUnitValidator:
 
         return result
 
-    async def bulk_validate_pantry(self, user_id: int) -> Dict[str, any]:
+    async def bulk_validate_pantry(self, user_id: int) -> dict[str, any]:
         """
         Validate all pantry items and find unit problems.
         """
@@ -240,7 +239,7 @@ class SmartUnitValidator:
             # Get all pantry items
             items = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     pi.id,
                     pi.name,
                     pi.quantity_amount,
@@ -278,7 +277,7 @@ class SmartUnitValidator:
                 "validation_results": validation_results,
             }
 
-    async def fix_pantry_units(self, user_id: int, auto_fix: bool = False) -> Dict[str, any]:
+    async def fix_pantry_units(self, user_id: int, auto_fix: bool = False) -> dict[str, any]:
         """
         Fix unit issues in pantry items.
         """
@@ -294,7 +293,7 @@ class SmartUnitValidator:
                         # Update the unit
                         await conn.execute(
                             """
-                            UPDATE pantry_items 
+                            UPDATE pantry_items
                             SET quantity_unit = $1
                             WHERE id = $2
                         """,
@@ -328,7 +327,7 @@ class SmartUnitValidator:
         clean = unit.lower().strip()
         return self.unit_corrections.get(clean, clean)
 
-    async def _detect_food_category(self, item_name: str) -> Dict[str, any]:
+    async def _detect_food_category(self, item_name: str) -> dict[str, any]:
         """Detect food category for an item."""
 
         # Check specific patterns first
@@ -370,7 +369,7 @@ class SmartUnitValidator:
         # Default
         return {"category": "Unknown", "subcategory": "default", "confidence": 0.3}
 
-    def _get_unit_rules(self, category_info: Dict[str, any]) -> Dict[str, List[str]]:
+    def _get_unit_rules(self, category_info: dict[str, any]) -> dict[str, list[str]]:
         """Get unit rules for a food category."""
 
         category = category_info.get("category", "Unknown")
@@ -395,7 +394,7 @@ class SmartUnitValidator:
         self,
         item_name: str,
         current_unit: str,
-        unit_rules: Dict[str, List[str]],
+        unit_rules: dict[str, list[str]],
         quantity: Optional[float],
     ) -> str:
         """Suggest the best unit for an item."""

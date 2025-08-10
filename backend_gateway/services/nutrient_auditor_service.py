@@ -2,21 +2,20 @@
 
 import json
 import logging
-from datetime import date, datetime, timedelta
+from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
-from ..config.nutrient_config import (
+from backend_gateway.config.nutrient_config import (
     ESSENTIAL_NUTRIENTS,
     RDA_VALUES,
     UPPER_LIMIT_NUTRIENTS,
     format_nutrient_value,
     get_nutrient_gap,
-    get_priority_nutrients,
     is_nutrient_deficient,
     is_nutrient_excessive,
 )
-from ..models.nutrition import (
+from backend_gateway.models.nutrition import (
     DailyIntakeLog,
     NutrientGap,
     NutrientGapAnalysis,
@@ -97,7 +96,7 @@ class NutrientAuditorService:
         return analysis
 
     def analyze_weekly_gaps(
-        self, user_id: str, daily_logs: List[DailyIntakeLog]
+        self, user_id: str, daily_logs: list[DailyIntakeLog]
     ) -> NutrientGapAnalysis:
         """Analyze nutrient gaps over a week period."""
         logger.info(f"Analyzing weekly nutrient gaps for user {user_id}")
@@ -193,7 +192,7 @@ class NutrientAuditorService:
 
         try:
             if file_path.exists():
-                with open(file_path, "r") as f:
+                with open(file_path) as f:
                     data = json.load(f)
                     return NutrientGapAnalysis.parse_obj(data)
         except Exception as e:
@@ -201,7 +200,7 @@ class NutrientAuditorService:
 
         return None
 
-    def get_nutrient_recommendations(self, gap_analysis: NutrientGapAnalysis) -> List[str]:
+    def get_nutrient_recommendations(self, gap_analysis: NutrientGapAnalysis) -> list[str]:
         """Generate nutrient recommendations based on gap analysis."""
         recommendations = []
 
@@ -250,7 +249,7 @@ class NutrientAuditorService:
         weights = {"high": 3.0, "medium": 2.0, "low": 1.0}
         return weights.get(priority, 1.0)
 
-    def _calculate_overall_score(self, gaps: List[NutrientGap]) -> float:
+    def _calculate_overall_score(self, gaps: list[NutrientGap]) -> float:
         """Calculate overall nutritional completeness score (0-100)."""
         if not gaps:
             return 0.0

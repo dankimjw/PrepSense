@@ -2,7 +2,7 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 
@@ -22,7 +22,7 @@ async def get_cooking_trends(
     user_id: int = Query(111, description="User ID"),
     days: int = Query(30, description="Number of days to look back"),
     db_service=Depends(get_database_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get cooking trends data from pantry history
 
@@ -35,7 +35,7 @@ async def get_cooking_trends(
 
         # Query for recipe-based pantry changes
         query = """
-        SELECT 
+        SELECT
             DATE(changed_at) as cook_date,
             recipe_name,
             recipe_id,
@@ -159,7 +159,7 @@ async def get_cooking_calendar(
     year: int = Query(datetime.now().year, description="Year"),
     month: int = Query(datetime.now().month, description="Month"),
     db_service=Depends(get_database_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get cooking calendar data for a specific month
     """
@@ -172,7 +172,7 @@ async def get_cooking_calendar(
             end_date = datetime(year, month + 1, 1) - timedelta(days=1)
 
         query = """
-        SELECT 
+        SELECT
             DATE(changed_at) as cook_date,
             recipe_name,
             COUNT(*) as ingredients_used

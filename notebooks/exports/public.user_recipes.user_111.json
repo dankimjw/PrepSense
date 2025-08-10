@@ -1,0 +1,1325 @@
+[
+  {
+    "id":316,
+    "user_id":111,
+    "recipe_id":2001,
+    "recipe_title":"Mexican-Style Turkey & Avocado Lettuce Wraps",
+    "recipe_image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2001-turkey-wraps.jpg",
+    "recipe_data":{
+      "id":2001,
+      "diets":[
+        "high-protein",
+        "low-carb",
+        "gluten-free"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2001-turkey-wraps.jpg",
+      "title":"Mexican-Style Turkey & Avocado Lettuce Wraps",
+      "source":"demo_recipe",
+      "summary":"Fresh Mexican-style lettuce wraps with seasoned turkey, creamy avocado, and vibrant cilantro. High-protein, low-carb meal perfect for lunch.",
+      "cuisines":[
+        "Mexican"
+      ],
+      "servings":2,
+      "allergens":[
+
+      ],
+      "dishTypes":[
+        "main course",
+        "lunch"
+      ],
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":451,
+            "percentOfDailyNeeds":22.6
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":35,
+            "percentOfDailyNeeds":70.0
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":12,
+            "percentOfDailyNeeds":4.0
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":28,
+            "percentOfDailyNeeds":43.1
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":8,
+            "percentOfDailyNeeds":32.0
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":3,
+            "percentOfDailyNeeds":3.3
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":420,
+            "percentOfDailyNeeds":18.3
+          }
+        ]
+      },
+      "sourceUrl":"https:\/\/prepsense.com\/demo-recipe-2001",
+      "readyInMinutes":15,
+      "pricePerServing":5.65,
+      "extendedIngredients":[
+        {
+          "id":1,
+          "meta":[
+            "lean"
+          ],
+          "name":"ground turkey",
+          "unit":"g",
+          "aisle":"Meat",
+          "amount":300.0,
+          "measures":{
+            "us":{
+              "amount":10.6,
+              "unitLong":"ounces",
+              "unitShort":"oz"
+            },
+            "metric":{
+              "amount":300.0,
+              "unitLong":"grams",
+              "unitShort":"g"
+            }
+          },
+          "original":"300g ground turkey",
+          "consistency":"solid",
+          "originalName":"ground turkey"
+        },
+        {
+          "id":2,
+          "meta":[
+            "large",
+            "sliced"
+          ],
+          "name":"avocado",
+          "unit":"large",
+          "aisle":"Produce",
+          "amount":1.0,
+          "original":"1 large avocado, sliced",
+          "consistency":"solid",
+          "originalName":"avocado, sliced"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Heat a large skillet over medium-high heat. Add ground turkey and cook for 5-7 minutes, breaking it up with a spoon until browned and cooked through.",
+              "length":{
+                "unit":"minutes",
+                "number":7
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404645,
+                  "name":"frying pan",
+                  "image":"pan.png",
+                  "localizedName":"frying pan"
+                }
+              ],
+              "ingredients":[
+                {
+                  "id":1,
+                  "name":"ground turkey",
+                  "image":"ground-turkey.jpg",
+                  "localizedName":"ground turkey"
+                }
+              ]
+            },
+            {
+              "step":"Season turkey with cumin, chili powder, salt, and pepper. Cook for another 2 minutes until fragrant.",
+              "length":{
+                "unit":"minutes",
+                "number":2
+              },
+              "number":2,
+              "equipment":[
+
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Arrange lettuce leaves on plates. Fill each with turkey mixture, avocado slices, and cilantro. Serve immediately.",
+              "length":{
+                "unit":"minutes",
+                "number":3
+              },
+              "number":3,
+              "equipment":[
+
+              ],
+              "ingredients":[
+                {
+                  "id":2,
+                  "name":"avocado",
+                  "image":"avocado.jpg",
+                  "localizedName":"avocado"
+                },
+                {
+                  "id":3,
+                  "name":"lettuce",
+                  "image":"butter-lettuce.jpg",
+                  "localizedName":"lettuce"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":true,
+    "source":"demo_recipe",
+    "created_at":"2025-08-07T19:45:13.906",
+    "updated_at":"2025-08-07T19:45:13.906",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":317,
+    "user_id":111,
+    "recipe_id":2002,
+    "recipe_title":"Spinach-&-Cottage-Cheese Stuffed Chicken Breast",
+    "recipe_image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2002-stuffed-chicken.jpg",
+    "recipe_data":{
+      "id":2002,
+      "diets":[
+        "high-protein",
+        "low-carb",
+        "gluten-free"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2002-stuffed-chicken.jpg",
+      "title":"Spinach-&-Cottage-Cheese Stuffed Chicken Breast",
+      "source":"demo_recipe",
+      "summary":"Tender chicken breasts stuffed with creamy cottage cheese and fresh spinach. High-protein, restaurant-quality meal.",
+      "cuisines":[
+        "Italian"
+      ],
+      "servings":2,
+      "allergens":[
+        "milk"
+      ],
+      "dishTypes":[
+        "main course",
+        "dinner"
+      ],
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":567,
+            "percentOfDailyNeeds":28.4
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":84,
+            "percentOfDailyNeeds":168.0
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":8,
+            "percentOfDailyNeeds":2.7
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":19,
+            "percentOfDailyNeeds":29.2
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":3,
+            "percentOfDailyNeeds":12.0
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":4,
+            "percentOfDailyNeeds":4.4
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":520,
+            "percentOfDailyNeeds":22.6
+          }
+        ]
+      },
+      "sourceUrl":"https:\/\/prepsense.com\/demo-recipe-2002",
+      "readyInMinutes":35,
+      "pricePerServing":8.45,
+      "extendedIngredients":[
+        {
+          "id":1,
+          "meta":[
+            "large"
+          ],
+          "name":"chicken breast",
+          "unit":"g",
+          "aisle":"Meat",
+          "amount":600.0,
+          "original":"2 large chicken breasts (600g total)",
+          "consistency":"solid",
+          "originalName":"chicken breasts"
+        },
+        {
+          "id":2,
+          "meta":[
+            "low-fat"
+          ],
+          "name":"cottage cheese",
+          "unit":"g",
+          "aisle":"Dairy",
+          "amount":120.0,
+          "original":"120g low-fat cottage cheese",
+          "consistency":"solid",
+          "originalName":"low-fat cottage cheese"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Preheat oven to 190\u00b0C (375\u00b0F). Cut a pocket in each chicken breast, being careful not to cut all the way through.",
+              "length":{
+                "unit":"minutes",
+                "number":5
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404784,
+                  "name":"oven",
+                  "image":"oven.jpg",
+                  "localizedName":"oven"
+                },
+                {
+                  "id":404745,
+                  "name":"knife",
+                  "image":"chefs-knife.jpg",
+                  "localizedName":"knife"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Mix cottage cheese with chopped spinach, garlic, salt, and pepper in a bowl.",
+              "length":{
+                "unit":"minutes",
+                "number":3
+              },
+              "number":2,
+              "equipment":[
+                {
+                  "id":404783,
+                  "name":"bowl",
+                  "image":"bowl.jpg",
+                  "localizedName":"bowl"
+                }
+              ],
+              "ingredients":[
+                {
+                  "id":2,
+                  "name":"cottage cheese",
+                  "image":"cottage-cheese.jpg",
+                  "localizedName":"cottage cheese"
+                },
+                {
+                  "id":3,
+                  "name":"spinach",
+                  "image":"spinach.jpg",
+                  "localizedName":"spinach"
+                }
+              ]
+            },
+            {
+              "step":"Stuff each chicken breast with the cottage cheese mixture. Secure with toothpicks if needed.",
+              "length":{
+                "unit":"minutes",
+                "number":5
+              },
+              "number":3,
+              "equipment":[
+
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Heat oil in an oven-safe skillet. Sear chicken breasts for 3-4 minutes per side until golden.",
+              "length":{
+                "unit":"minutes",
+                "number":8
+              },
+              "number":4,
+              "equipment":[
+                {
+                  "id":404645,
+                  "name":"frying pan",
+                  "image":"pan.png",
+                  "localizedName":"frying pan"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Transfer skillet to oven and bake for 15-18 minutes until chicken reaches internal temperature of 74\u00b0C (165\u00b0F).",
+              "length":{
+                "unit":"minutes",
+                "number":18
+              },
+              "number":5,
+              "equipment":[
+                {
+                  "id":404784,
+                  "name":"oven",
+                  "image":"oven.jpg",
+                  "localizedName":"oven"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":true,
+    "source":"demo_recipe",
+    "created_at":"2025-08-07T19:45:14.440",
+    "updated_at":"2025-08-07T19:45:14.440",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":318,
+    "user_id":111,
+    "recipe_id":2003,
+    "recipe_title":"Caprese Portobello Pizzas",
+    "recipe_image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2003-portobello-pizza.jpg",
+    "recipe_data":{
+      "id":2003,
+      "diets":[
+        "vegetarian",
+        "low-carb",
+        "gluten-free"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/recipe-2003-portobello-pizza.jpg",
+      "title":"Caprese Portobello Pizzas",
+      "source":"demo_recipe",
+      "summary":"Individual portobello mushroom pizzas topped with fresh mozzarella, tomatoes, and basil. Light, flavorful, and vegetarian-friendly.",
+      "cuisines":[
+        "Italian"
+      ],
+      "servings":2,
+      "allergens":[
+        "milk"
+      ],
+      "dishTypes":[
+        "main course",
+        "lunch",
+        "dinner"
+      ],
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":256,
+            "percentOfDailyNeeds":12.8
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":17,
+            "percentOfDailyNeeds":34.0
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":12,
+            "percentOfDailyNeeds":4.0
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":16,
+            "percentOfDailyNeeds":24.6
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":3,
+            "percentOfDailyNeeds":12.0
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":8,
+            "percentOfDailyNeeds":8.9
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":380,
+            "percentOfDailyNeeds":16.5
+          }
+        ]
+      },
+      "sourceUrl":"https:\/\/prepsense.com\/demo-recipe-2003",
+      "readyInMinutes":20,
+      "pricePerServing":4.25,
+      "extendedIngredients":[
+        {
+          "id":1,
+          "meta":[
+            "large",
+            "caps"
+          ],
+          "name":"portobello mushrooms",
+          "unit":"large",
+          "aisle":"Produce",
+          "amount":4.0,
+          "original":"4 large portobello mushroom caps",
+          "consistency":"solid",
+          "originalName":"portobello mushroom caps"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Preheat oven to 200\u00b0C (400\u00b0F). Remove stems from mushrooms and scrape out gills with a spoon.",
+              "length":{
+                "unit":"minutes",
+                "number":5
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404784,
+                  "name":"oven",
+                  "image":"oven.jpg",
+                  "localizedName":"oven"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Brush mushroom caps with olive oil and season with salt and pepper. Place on baking sheet.",
+              "length":{
+                "unit":"minutes",
+                "number":3
+              },
+              "number":2,
+              "equipment":[
+                {
+                  "id":404727,
+                  "name":"baking sheet",
+                  "image":"baking-sheet.jpg",
+                  "localizedName":"baking sheet"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            },
+            {
+              "step":"Top each mushroom with sliced tomatoes, mozzarella, and fresh basil. Bake for 12-15 minutes until cheese melts.",
+              "length":{
+                "unit":"minutes",
+                "number":15
+              },
+              "number":3,
+              "equipment":[
+
+              ],
+              "ingredients":[
+
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":true,
+    "source":"demo_recipe",
+    "created_at":"2025-08-07T19:45:14.936",
+    "updated_at":"2025-08-07T19:45:14.936",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":310,
+    "user_id":111,
+    "recipe_id":2001,
+    "recipe_title":"Mexican-Style Turkey & Avocado Lettuce Wraps",
+    "recipe_image":"https:\/\/img.spoonacular.com\/recipes\/2001-312x231.jpg",
+    "recipe_data":{
+      "id":2001,
+      "diets":[
+        "gluten free",
+        "dairy free",
+        "high protein",
+        "low carb"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/turkey_lettuce_wraps.jpg",
+      "title":"Mexican-Style Turkey & Avocado Lettuce Wraps",
+      "summary":"Fresh and healthy Mexican-style turkey lettuce wraps with creamy avocado. Perfect for a quick, low-carb lunch or dinner that's packed with protein and flavor.",
+      "cuisines":[
+        "Mexican",
+        "American"
+      ],
+      "servings":4,
+      "allergens":[
+
+      ],
+      "dishTypes":[
+        "lunch",
+        "main course",
+        "dinner"
+      ],
+      "imageType":"jpg",
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":451,
+            "percentOfDailyNeeds":22.55
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":28.5,
+            "percentOfDailyNeeds":43.85
+          },
+          {
+            "name":"Saturated Fat",
+            "unit":"g",
+            "amount":6.2,
+            "percentOfDailyNeeds":38.75
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":12.8,
+            "percentOfDailyNeeds":4.27
+          },
+          {
+            "name":"Net Carbohydrates",
+            "unit":"g",
+            "amount":3.2,
+            "percentOfDailyNeeds":1.16
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":4.1,
+            "percentOfDailyNeeds":4.56
+          },
+          {
+            "name":"Cholesterol",
+            "unit":"mg",
+            "amount":84,
+            "percentOfDailyNeeds":28.0
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":425,
+            "percentOfDailyNeeds":18.48
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":35.2,
+            "percentOfDailyNeeds":70.4
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":9.6,
+            "percentOfDailyNeeds":38.4
+          }
+        ]
+      },
+      "occasions":[
+        "lunch",
+        "dinner"
+      ],
+      "sourceUrl":"https:\/\/prepsense.app\/recipes\/turkey-lettuce-wraps",
+      "winePairing":{
+        "pairedWines":[
+          "sauvignon blanc",
+          "pinot grigio"
+        ],
+        "pairingText":"Light white wines complement the fresh flavors"
+      },
+      "instructions":[
+        "Heat oil in large skillet over medium-high heat",
+        "Add ground turkey and cook, breaking up with spoon, until browned (8-10 minutes)",
+        "Add onion, garlic, cumin, chili powder, salt and pepper. Cook 2 minutes",
+        "Add tomatoes and cook until heated through, about 2 minutes",
+        "Remove from heat and stir in lime juice and cilantro",
+        "Separate lettuce leaves and arrange on platter",
+        "Spoon turkey mixture into lettuce cups",
+        "Top with avocado slices, cheese, and additional cilantro if desired"
+      ],
+      "cookingMinutes":10,
+      "readyInMinutes":15,
+      "pricePerServing":3.25,
+      "preparationMinutes":5,
+      "extendedIngredients":[
+        {
+          "id":5165,
+          "meta":[
+
+          ],
+          "name":"ground turkey",
+          "unit":"lb",
+          "aisle":"Meat",
+          "image":"ground-turkey.jpg",
+          "amount":1.0,
+          "measures":{
+            "us":{
+              "amount":1.0,
+              "unitLong":"pound",
+              "unitShort":"lb"
+            },
+            "metric":{
+              "amount":453.592,
+              "unitLong":"grams",
+              "unitShort":"g"
+            }
+          },
+          "original":"1 lb ground turkey",
+          "nameClean":"ground turkey",
+          "consistency":"SOLID",
+          "originalName":"ground turkey"
+        },
+        {
+          "id":9037,
+          "meta":[
+            "sliced"
+          ],
+          "name":"avocados",
+          "unit":"large",
+          "aisle":"Produce",
+          "image":"avocado.jpg",
+          "amount":2.0,
+          "measures":{
+            "us":{
+              "amount":2.0,
+              "unitLong":"larges",
+              "unitShort":"large"
+            },
+            "metric":{
+              "amount":2.0,
+              "unitLong":"larges",
+              "unitShort":"large"
+            }
+          },
+          "original":"2 large avocados, sliced",
+          "nameClean":"avocado",
+          "consistency":"SOLID",
+          "originalName":"avocados, sliced"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Heat oil in large skillet over medium-high heat",
+              "length":{
+                "unit":"minutes",
+                "number":2
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404645,
+                  "name":"frying pan",
+                  "image":"pan.png",
+                  "localizedName":"frying pan"
+                }
+              ],
+              "ingredients":[
+                {
+                  "id":4582,
+                  "name":"cooking oil",
+                  "image":"vegetable-oil.jpg",
+                  "localizedName":"cooking oil"
+                }
+              ]
+            },
+            {
+              "step":"Add ground turkey and cook, breaking up with spoon, until browned (8-10 minutes)",
+              "length":{
+                "unit":"minutes",
+                "number":9
+              },
+              "number":2,
+              "equipment":[
+                {
+                  "id":404642,
+                  "name":"spoon",
+                  "image":"spoon.jpg",
+                  "localizedName":"spoon"
+                }
+              ],
+              "ingredients":[
+                {
+                  "id":5165,
+                  "name":"ground turkey",
+                  "image":"ground-turkey.jpg",
+                  "localizedName":"ground turkey"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":false,
+    "source":"demo",
+    "created_at":"2025-08-07T00:10:27.419",
+    "updated_at":"2025-08-07T19:53:33.468",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":311,
+    "user_id":111,
+    "recipe_id":2002,
+    "recipe_title":"Spinach-&-Cottage-Cheese Stuffed Chicken Breast",
+    "recipe_image":"https:\/\/img.spoonacular.com\/recipes\/2002-312x231.jpg",
+    "recipe_data":{
+      "id":2002,
+      "diets":[
+        "gluten free",
+        "high protein",
+        "low carb",
+        "keto friendly"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/stuffed_chicken_breast.jpg",
+      "title":"Spinach-&-Cottage-Cheese Stuffed Chicken Breast",
+      "summary":"Juicy chicken breasts stuffed with a creamy spinach and cottage cheese filling. This high-protein, low-carb dish is perfect for a healthy dinner that doesn't compromise on flavor.",
+      "cuisines":[
+        "American",
+        "Mediterranean"
+      ],
+      "servings":4,
+      "allergens":[
+        "milk"
+      ],
+      "dishTypes":[
+        "dinner",
+        "main course"
+      ],
+      "imageType":"jpg",
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":567,
+            "percentOfDailyNeeds":28.35
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":18.2,
+            "percentOfDailyNeeds":28.0
+          },
+          {
+            "name":"Saturated Fat",
+            "unit":"g",
+            "amount":7.8,
+            "percentOfDailyNeeds":48.75
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":8.4,
+            "percentOfDailyNeeds":2.8
+          },
+          {
+            "name":"Net Carbohydrates",
+            "unit":"g",
+            "amount":6.1,
+            "percentOfDailyNeeds":2.22
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":3.2,
+            "percentOfDailyNeeds":3.56
+          },
+          {
+            "name":"Cholesterol",
+            "unit":"mg",
+            "amount":165,
+            "percentOfDailyNeeds":55.0
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":680,
+            "percentOfDailyNeeds":29.57
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":84.1,
+            "percentOfDailyNeeds":168.2
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":2.3,
+            "percentOfDailyNeeds":9.2
+          }
+        ]
+      },
+      "occasions":[
+        "dinner",
+        "date night"
+      ],
+      "sourceUrl":"https:\/\/prepsense.app\/recipes\/stuffed-chicken-breast",
+      "winePairing":{
+        "pairedWines":[
+          "chardonnay",
+          "pinot noir"
+        ],
+        "pairingText":"Rich whites or light reds complement the creamy filling"
+      },
+      "instructions":[
+        "Preheat oven to 375\u00b0F",
+        "Butterfly chicken breasts and pound to even thickness",
+        "Saut\u00e9 spinach and garlic until wilted",
+        "Mix cottage cheese, parmesan, herbs, and cooked spinach",
+        "Stuff chicken breasts with mixture and secure with toothpicks",
+        "Heat olive oil in oven-safe skillet and sear chicken",
+        "Transfer to oven and bake 25-30 minutes until cooked through"
+      ],
+      "cookingMinutes":25,
+      "readyInMinutes":35,
+      "pricePerServing":4.75,
+      "preparationMinutes":10,
+      "extendedIngredients":[
+        {
+          "id":5062,
+          "meta":[
+            "boneless"
+          ],
+          "name":"chicken breasts",
+          "unit":"",
+          "aisle":"Meat",
+          "image":"chicken-breasts.png",
+          "amount":4.0,
+          "measures":{
+            "us":{
+              "amount":4.0,
+              "unitLong":"",
+              "unitShort":""
+            },
+            "metric":{
+              "amount":4.0,
+              "unitLong":"",
+              "unitShort":""
+            }
+          },
+          "original":"4 boneless chicken breasts",
+          "nameClean":"chicken breast",
+          "consistency":"SOLID",
+          "originalName":"boneless chicken breasts"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Preheat oven to 375\u00b0F",
+              "length":{
+                "unit":"minutes",
+                "number":10
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404784,
+                  "name":"oven",
+                  "image":"oven.jpg",
+                  "temperature":{
+                    "unit":"Fahrenheit",
+                    "number":375
+                  },
+                  "localizedName":"oven"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":false,
+    "source":"demo",
+    "created_at":"2025-08-07T00:11:47.194",
+    "updated_at":"2025-08-07T19:53:33.923",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":312,
+    "user_id":111,
+    "recipe_id":2003,
+    "recipe_title":"Caprese Portobello Pizzas",
+    "recipe_image":"https:\/\/img.spoonacular.com\/recipes\/2003-312x231.jpg",
+    "recipe_data":{
+      "id":2003,
+      "diets":[
+        "vegetarian",
+        "gluten free",
+        "low carb",
+        "keto friendly"
+      ],
+      "image":"http:\/\/127.0.0.1:8004\/Recipe Images\/DemoImages\/portobello_pizza.jpg",
+      "title":"Caprese Portobello Pizzas",
+      "summary":"Fresh and flavorful Caprese-style portobello mushroom pizzas topped with mozzarella, tomatoes, and basil. A perfect low-carb alternative to traditional pizza that's ready in just 20 minutes.",
+      "cuisines":[
+        "Italian",
+        "Mediterranean"
+      ],
+      "servings":4,
+      "allergens":[
+        "milk"
+      ],
+      "dishTypes":[
+        "lunch",
+        "dinner",
+        "appetizer",
+        "main course"
+      ],
+      "imageType":"jpg",
+      "lifecycle":"demo",
+      "nutrition":{
+        "nutrients":[
+          {
+            "name":"Calories",
+            "unit":"kcal",
+            "amount":256,
+            "percentOfDailyNeeds":12.8
+          },
+          {
+            "name":"Fat",
+            "unit":"g",
+            "amount":18.4,
+            "percentOfDailyNeeds":28.31
+          },
+          {
+            "name":"Saturated Fat",
+            "unit":"g",
+            "amount":8.2,
+            "percentOfDailyNeeds":51.25
+          },
+          {
+            "name":"Carbohydrates",
+            "unit":"g",
+            "amount":12.1,
+            "percentOfDailyNeeds":4.03
+          },
+          {
+            "name":"Net Carbohydrates",
+            "unit":"g",
+            "amount":8.8,
+            "percentOfDailyNeeds":3.2
+          },
+          {
+            "name":"Sugar",
+            "unit":"g",
+            "amount":8.5,
+            "percentOfDailyNeeds":9.44
+          },
+          {
+            "name":"Cholesterol",
+            "unit":"mg",
+            "amount":44,
+            "percentOfDailyNeeds":14.67
+          },
+          {
+            "name":"Sodium",
+            "unit":"mg",
+            "amount":445,
+            "percentOfDailyNeeds":19.35
+          },
+          {
+            "name":"Protein",
+            "unit":"g",
+            "amount":17.2,
+            "percentOfDailyNeeds":34.4
+          },
+          {
+            "name":"Fiber",
+            "unit":"g",
+            "amount":3.3,
+            "percentOfDailyNeeds":13.2
+          }
+        ]
+      },
+      "occasions":[
+        "lunch",
+        "dinner",
+        "appetizer"
+      ],
+      "sourceUrl":"https:\/\/prepsense.app\/recipes\/portobello-pizzas",
+      "winePairing":{
+        "pairedWines":[
+          "chianti",
+          "pinot grigio"
+        ],
+        "pairingText":"Italian wines pair beautifully with these Caprese flavors"
+      },
+      "instructions":[
+        "Preheat oven to 400\u00b0F",
+        "Remove stems from mushrooms and scrape out gills",
+        "Brush mushrooms with olive oil and garlic, season with salt and pepper",
+        "Bake mushrooms gill-side up for 10 minutes",
+        "Top with mozzarella and tomato slices",
+        "Bake another 8-10 minutes until cheese melts",
+        "Top with fresh basil and drizzle with balsamic glaze"
+      ],
+      "cookingMinutes":18,
+      "readyInMinutes":20,
+      "pricePerServing":2.85,
+      "preparationMinutes":2,
+      "extendedIngredients":[
+        {
+          "id":11265,
+          "meta":[
+            "large"
+          ],
+          "name":"portobello mushroom caps",
+          "unit":"large",
+          "aisle":"Produce",
+          "image":"portobello-mushrooms.jpg",
+          "amount":4.0,
+          "measures":{
+            "us":{
+              "amount":4.0,
+              "unitLong":"larges",
+              "unitShort":"large"
+            },
+            "metric":{
+              "amount":4.0,
+              "unitLong":"larges",
+              "unitShort":"large"
+            }
+          },
+          "original":"4 large portobello mushroom caps",
+          "nameClean":"portobello mushrooms",
+          "consistency":"SOLID",
+          "originalName":"portobello mushroom caps"
+        }
+      ],
+      "analyzedInstructions":[
+        {
+          "name":"",
+          "steps":[
+            {
+              "step":"Preheat oven to 400\u00b0F",
+              "length":{
+                "unit":"minutes",
+                "number":10
+              },
+              "number":1,
+              "equipment":[
+                {
+                  "id":404784,
+                  "name":"oven",
+                  "image":"oven.jpg",
+                  "temperature":{
+                    "unit":"Fahrenheit",
+                    "number":400
+                  },
+                  "localizedName":"oven"
+                }
+              ],
+              "ingredients":[
+
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "rating":"neutral",
+    "is_favorite":false,
+    "source":"demo",
+    "created_at":"2025-08-07T00:11:47.855",
+    "updated_at":"2025-08-07T19:53:34.374",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":313,
+    "user_id":111,
+    "recipe_id":2004,
+    "recipe_title":"Paneer & Spinach Coconut Curry on Cauliflower Rice",
+    "recipe_image":"https:\/\/img.spoonacular.com\/recipes\/2004-312x231.jpg",
+    "recipe_data":{
+      "id":2004,
+      "diets":[
+        "vegetarian",
+        "gluten free"
+      ],
+      "image":"https:\/\/img.spoonacular.com\/recipes\/2004-312x231.jpg",
+      "title":"Paneer & Spinach Coconut Curry on Cauliflower Rice",
+      "cuisines":[
+        "Indian"
+      ],
+      "servings":4,
+      "dishTypes":[
+        "dinner",
+        "main course"
+      ],
+      "ingredients":[
+        "8 oz paneer cheese, cubed",
+        "4 cups fresh spinach",
+        "1 can (14oz) coconut milk",
+        "1 large onion, diced",
+        "3 cloves garlic, minced",
+        "1 inch ginger, minced",
+        "2 tsp curry powder",
+        "1 tsp turmeric",
+        "1 tsp garam masala",
+        "1 head cauliflower, riced",
+        "2 tbsp coconut oil",
+        "Salt to taste"
+      ],
+      "instructions":[
+        "Heat coconut oil in large pan, saut\u00e9 onion until soft.",
+        "Add garlic, ginger, and spices, cook 1 minute.",
+        "Add coconut milk and simmer 5 minutes.",
+        "Add paneer and spinach, cook until spinach wilts.",
+        "Season with salt and simmer 10 minutes.",
+        "Steam cauliflower rice for 5 minutes.",
+        "Serve curry over cauliflower rice."
+      ],
+      "readyInMinutes":35
+    },
+    "rating":"neutral",
+    "is_favorite":false,
+    "source":"demo",
+    "created_at":"2025-08-07T00:11:48.507",
+    "updated_at":"2025-08-07T12:38:03.131",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  },
+  {
+    "id":314,
+    "user_id":111,
+    "recipe_id":2005,
+    "recipe_title":"Strawberry-Banana Protein Shake",
+    "recipe_image":"https:\/\/img.spoonacular.com\/recipes\/2005-312x231.jpg",
+    "recipe_data":{
+      "id":2005,
+      "diets":[
+        "vegetarian",
+        "high protein"
+      ],
+      "image":"https:\/\/img.spoonacular.com\/recipes\/2005-312x231.jpg",
+      "title":"Strawberry-Banana Protein Shake",
+      "cuisines":[
+        "American"
+      ],
+      "servings":2,
+      "dishTypes":[
+        "drink",
+        "breakfast"
+      ],
+      "ingredients":[
+        "1 cup frozen strawberries",
+        "1 frozen banana",
+        "1 scoop vanilla protein powder",
+        "1 cup almond milk",
+        "1 tbsp honey",
+        "1 tsp vanilla extract",
+        "1\/2 cup ice cubes"
+      ],
+      "instructions":[
+        "Add all ingredients to a high-speed blender.",
+        "Blend on high for 60-90 seconds until smooth and creamy.",
+        "Add more almond milk if needed for desired consistency.",
+        "Taste and adjust sweetness with additional honey if desired.",
+        "Pour into glasses and serve immediately.",
+        "Garnish with fresh strawberry slices if desired."
+      ],
+      "readyInMinutes":5
+    },
+    "rating":"neutral",
+    "is_favorite":false,
+    "source":"demo",
+    "created_at":"2025-08-07T00:11:49.158",
+    "updated_at":"2025-08-07T12:38:03.131",
+    "status":"saved",
+    "cooked_at":null,
+    "is_demo":true
+  }
+]

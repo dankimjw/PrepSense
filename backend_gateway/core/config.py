@@ -2,16 +2,26 @@
 Configuration settings for PrepSense backend application.
 """
 
-from typing import List, Optional
+from pathlib import Path
+from typing import Optional
 
-from pydantic import ConfigDict, ValidationError, field_validator
+from dotenv import load_dotenv
+from pydantic import ConfigDict, field_validator
 from pydantic_settings import BaseSettings
+
+# Load .env file from project root
+project_root = Path(__file__).parent.parent.parent
+env_file = project_root / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+else:
+    # Fallback to current directory
+    load_dotenv()
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    model_config = ConfigDict(extra="ignore")
     # Allow direct OpenAI key if present (run_app may persist it)
     OPENAI_API_KEY: Optional[str] = None
 
@@ -24,7 +34,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
 
     # CORS Configuration
-    BACKEND_CORS_ORIGINS: List[str] = [
+    BACKEND_CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost:8082",
@@ -135,7 +145,7 @@ class Settings(BaseSettings):
             )
         return v.strip()
 
-    model_config = ConfigDict(env_file="../.env", case_sensitive=True)
+    model_config = ConfigDict(extra="ignore", env_file=".env", case_sensitive=True)
 
 
 # Create settings instance

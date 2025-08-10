@@ -3,7 +3,6 @@
 Check all table names in the database
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -23,8 +22,8 @@ def check_tables():
     try:
         # Get all tables
         tables_query = """
-            SELECT table_name 
-            FROM information_schema.tables 
+            SELECT table_name
+            FROM information_schema.tables
             WHERE table_schema = 'public'
             ORDER BY table_name;
         """

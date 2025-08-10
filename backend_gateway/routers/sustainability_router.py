@@ -3,9 +3,8 @@ Sustainability and Environmental Impact Router
 """
 
 import logging
-from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from backend_gateway.agents.sustainability_coach_agent import create_sustainability_coach_agent
 from backend_gateway.config.database import get_database_service
@@ -47,12 +46,12 @@ async def get_food_environmental_impact(food_name: str):
         raise
     except Exception as e:
         logger.error(f"Error getting food impact: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/recipe-impact")
 async def calculate_recipe_environmental_impact(
-    ingredients: List[str] = Query(..., description="List of ingredients with quantities"),
+    ingredients: list[str] = Query(..., description="List of ingredients with quantities"),
     servings: int = Query(4, description="Number of servings"),
 ):
     """
@@ -102,7 +101,7 @@ async def calculate_recipe_environmental_impact(
 
     except Exception as e:
         logger.error(f"Error calculating recipe impact: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/sustainable-swaps/{ingredient}")
@@ -134,7 +133,7 @@ async def get_sustainable_swaps(
 
     except Exception as e:
         logger.error(f"Error getting sustainable swaps: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/pantry-analysis")
@@ -153,7 +152,7 @@ async def analyze_pantry_sustainability(user_id: str):
         postgres_service = get_database_service()
 
         query = """
-            SELECT 
+            SELECT
                 p.product_name,
                 pi.quantity,
                 p.ghg_kg_co2e_per_kg,
@@ -183,7 +182,7 @@ async def analyze_pantry_sustainability(user_id: str):
 
     except Exception as e:
         logger.error(f"Error analyzing pantry sustainability: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/eco-score/{product_id}")
@@ -201,7 +200,7 @@ async def get_product_eco_score(product_id: str):
         postgres_service = get_database_service()
 
         query = """
-            SELECT 
+            SELECT
                 product_name,
                 ghg_kg_co2e_per_kg,
                 land_m2_per_kg,
@@ -251,4 +250,4 @@ async def get_product_eco_score(product_id: str):
         raise
     except Exception as e:
         logger.error(f"Error getting eco-score: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

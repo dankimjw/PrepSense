@@ -7,8 +7,8 @@ Tests all endpoints and integration points to ensure production readiness
 import asyncio
 import json
 import time
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List
+from datetime import datetime
+from typing import Any
 
 import aiohttp
 
@@ -199,7 +199,7 @@ class QuickCompleteVerifier:
                             self.log_test(
                                 "Quick Complete Endpoint",
                                 True,
-                                f"Correctly handled missing item error",
+                                "Correctly handled missing item error",
                                 duration,
                             )
                             return True
@@ -332,7 +332,7 @@ class QuickCompleteVerifier:
             self.log_test("Spoonacular Service Integration", False, f"Error: {e}")
             return False
 
-    async def run_all_tests(self) -> Dict[str, Any]:
+    async def run_all_tests(self) -> dict[str, Any]:
         """Run comprehensive verification suite"""
         print("=" * 80)
         print("🧪 QUICK COMPLETE DEPLOYMENT VERIFICATION")

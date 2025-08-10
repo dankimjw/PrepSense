@@ -3,7 +3,6 @@
 Check the existing database schema
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -23,8 +22,8 @@ def check_schema():
     try:
         # Check what tables exist
         tables_query = """
-            SELECT table_name 
-            FROM information_schema.tables 
+            SELECT table_name
+            FROM information_schema.tables
             WHERE table_schema = 'public'
             ORDER BY table_name;
         """

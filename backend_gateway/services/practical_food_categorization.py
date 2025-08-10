@@ -7,7 +7,7 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from backend_gateway.services.spoonacular_service import SpoonacularService
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 class FoodCategorization:
     item_name: str
     category: str
-    allowed_units: List[str]
+    allowed_units: list[str]
     default_unit: str
     confidence: float
     source: str
@@ -396,7 +396,7 @@ class PracticalFoodCategorizationService:
             return "produce_countable"
         return "produce_measurable"
 
-    async def validate_unit_for_item(self, item_name: str, unit: str) -> Dict[str, Any]:
+    async def validate_unit_for_item(self, item_name: str, unit: str) -> dict[str, Any]:
         """
         Validate if a unit is appropriate for a given item
         """
@@ -442,7 +442,7 @@ class PracticalFoodCategorizationService:
         """Cache categorization result in memory"""
         self.cache[item_name] = {"categorization": categorization, "timestamp": datetime.now()}
 
-    def get_suggested_units_for_category(self, category: str) -> List[str]:
+    def get_suggested_units_for_category(self, category: str) -> list[str]:
         """Get suggested units for a given category"""
         return self.category_patterns.get(category, {}).get("allowed", ["each", "g", "oz", "cup"])
 

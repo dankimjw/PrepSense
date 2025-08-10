@@ -4,8 +4,7 @@ Provides integration with USDA FoodData Central for nutritional information and 
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import asyncpg
 
@@ -20,7 +19,7 @@ class USDAFoodService:
 
     async def search_foods(
         self, query: str = None, barcode: str = None, category_id: int = None, limit: int = 20
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search USDA foods by text query, barcode, or category.
 
@@ -46,7 +45,7 @@ class USDAFoodService:
 
             return [dict(row) for row in results]
 
-    async def get_food_details(self, fdc_id: int) -> Optional[Dict[str, Any]]:
+    async def get_food_details(self, fdc_id: int) -> Optional[dict[str, Any]]:
         """
         Get detailed information about a specific food.
 
@@ -60,7 +59,7 @@ class USDAFoodService:
             # Get basic food info
             food = await conn.fetchrow(
                 """
-                SELECT 
+                SELECT
                     f.*,
                     fc.description as category_name
                 FROM usda_foods f
@@ -78,7 +77,7 @@ class USDAFoodService:
             # Get nutrients
             nutrients = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     n.name,
                     n.unit_name,
                     fn.amount
@@ -95,7 +94,7 @@ class USDAFoodService:
             # Get portions
             portions = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     p.*,
                     mu.name as unit_name
                 FROM usda_food_portions p
@@ -110,7 +109,7 @@ class USDAFoodService:
 
             return food_dict
 
-    async def match_pantry_item(self, name: str, barcode: str = None) -> List[Dict[str, Any]]:
+    async def match_pantry_item(self, name: str, barcode: str = None) -> list[dict[str, Any]]:
         """
         Find best USDA food matches for a pantry item.
 
@@ -136,7 +135,7 @@ class USDAFoodService:
                 # Get additional food details
                 food = await conn.fetchrow(
                     """
-                    SELECT 
+                    SELECT
                         brand_owner,
                         brand_name,
                         food_category_id,
@@ -172,7 +171,7 @@ class USDAFoodService:
             try:
                 await conn.execute(
                     """
-                    INSERT INTO pantry_item_usda_mapping 
+                    INSERT INTO pantry_item_usda_mapping
                     (pantry_item_id, fdc_id, confidence_score, mapping_source)
                     VALUES ($1, $2, $3, $4)
                     ON CONFLICT (pantry_item_id, fdc_id) DO UPDATE SET
@@ -189,7 +188,7 @@ class USDAFoodService:
                 logger.error(f"Failed to link pantry item: {e}")
                 return False
 
-    async def get_pantry_item_nutrition(self, pantry_item_id: int) -> Optional[Dict[str, Any]]:
+    async def get_pantry_item_nutrition(self, pantry_item_id: int) -> Optional[dict[str, Any]]:
         """
         Get nutritional information for a pantry item via USDA mapping.
 
@@ -203,7 +202,7 @@ class USDAFoodService:
             # Get best matching USDA food
             mapping = await conn.fetchrow(
                 """
-                SELECT 
+                SELECT
                     m.fdc_id,
                     m.confidence_score,
                     f.description,
@@ -226,7 +225,7 @@ class USDAFoodService:
             # Get key nutrients
             nutrients = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     n.name,
                     n.unit_name,
                     fn.amount
@@ -243,7 +242,7 @@ class USDAFoodService:
 
             return result
 
-    async def get_categories(self) -> List[Dict[str, Any]]:
+    async def get_categories(self) -> list[dict[str, Any]]:
         """Get all food categories."""
         async with self.db_pool.acquire() as conn:
             categories = await conn.fetch(
@@ -254,7 +253,7 @@ class USDAFoodService:
             )
             return [dict(c) for c in categories]
 
-    async def get_units(self, unit_type: str = None) -> List[Dict[str, Any]]:
+    async def get_units(self, unit_type: str = None) -> list[dict[str, Any]]:
         """
         Get measure units, optionally filtered by type.
 

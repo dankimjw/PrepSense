@@ -3,19 +3,15 @@ Units API Router
 Provides endpoints for unit management and food category rules
 """
 
-from typing import Dict, List, Optional
+from typing import Optional
 
-import asyncpg
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
-from ..constants.food_category_unit_rules import (
+from backend_gateway.constants.food_category_unit_rules import (
     FOOD_CATEGORY_UNIT_RULES,
     UnitCategory,
-    get_allowed_unit_categories,
-    get_default_unit_category,
     get_preferred_unit,
-    validate_unit_for_food_category,
 )
 
 router = APIRouter(prefix="/units", tags=["units"])
@@ -39,13 +35,13 @@ class UnitConversion(BaseModel):
 
 class FoodCategoryRules(BaseModel):
     category: str
-    allowed_unit_categories: List[str]
+    allowed_unit_categories: list[str]
     default_unit_category: str
     default_unit: str
-    available_units: Dict[str, List[Unit]]
+    available_units: dict[str, list[Unit]]
 
 
-@router.get("/", response_model=List[Unit])
+@router.get("/", response_model=list[Unit])
 async def get_units(
     category: Optional[str] = Query(
         None, description="Filter by unit category (mass, volume, count)"
@@ -227,7 +223,7 @@ async def get_units(
         return units
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/food-category-rules/{category}", response_model=FoodCategoryRules)

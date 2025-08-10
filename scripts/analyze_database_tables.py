@@ -6,8 +6,6 @@ Analyze pantry_history and user_preferences tables
 import json
 import os
 import sys
-from datetime import datetime
-from typing import Any, Dict
 
 from dotenv import load_dotenv
 
@@ -34,9 +32,9 @@ def analyze_pantry_history(postgres_service: PostgresService):
 
     # 1. Operations being tracked
     query = """
-        SELECT operation, COUNT(*) as count 
-        FROM pantry_history 
-        GROUP BY operation 
+        SELECT operation, COUNT(*) as count
+        FROM pantry_history
+        GROUP BY operation
         ORDER BY count DESC
     """
     results = postgres_service.execute_query(query)
@@ -53,7 +51,7 @@ def analyze_pantry_history(postgres_service: PostgresService):
 
     # 3. Date range
     query = """
-        SELECT 
+        SELECT
             MIN(timestamp) as earliest,
             MAX(timestamp) as latest,
             COUNT(*) as total_records
@@ -80,7 +78,7 @@ def analyze_pantry_history(postgres_service: PostgresService):
 
     # 5. Sample recent entries
     query = """
-        SELECT 
+        SELECT
             ph.operation,
             ph.timestamp,
             ph.details,
@@ -104,7 +102,7 @@ def analyze_pantry_history(postgres_service: PostgresService):
 
     # Additional analysis: Operations by pantry item
     query = """
-        SELECT 
+        SELECT
             pi.name as item_name,
             ph.pantry_item_id,
             COUNT(*) as history_count,
@@ -144,7 +142,7 @@ def analyze_user_preferences(postgres_service: PostgresService):
 
     # 2. Which users have preferences
     query = """
-        SELECT 
+        SELECT
             up.user_id,
             u.username,
             up.preference_type,
@@ -200,12 +198,12 @@ def analyze_user_preferences(postgres_service: PostgresService):
 
     # 5. Check if there are any unique constraints
     query = """
-        SELECT 
+        SELECT
             tc.constraint_name,
             tc.constraint_type,
             STRING_AGG(kcu.column_name, ', ' ORDER BY kcu.ordinal_position) as columns
         FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu 
+        JOIN information_schema.key_column_usage kcu
             ON tc.constraint_name = kcu.constraint_name
             AND tc.table_schema = kcu.table_schema
         WHERE tc.table_name = 'user_preferences'

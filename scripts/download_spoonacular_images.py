@@ -13,7 +13,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 import requests
 
@@ -81,7 +81,7 @@ class SpoonacularImageDownloader:
             logger.error(f"❌ Failed to download {url}: {e}")
             return False
 
-    async def download_recipe_image(self, recipe_id: int) -> Dict[str, Any]:
+    async def download_recipe_image(self, recipe_id: int) -> dict[str, Any]:
         """Download image for a single recipe"""
         try:
             # Get recipe info from Spoonacular
@@ -115,18 +115,18 @@ class SpoonacularImageDownloader:
             logger.error(f"Error processing recipe {recipe_id}: {e}")
             return {"recipe_id": recipe_id, "status": "error", "error": str(e)}
 
-    async def download_popular_recipes(self, limit: int = 50) -> List[Dict[str, Any]]:
+    async def download_popular_recipes(self, limit: int = 50) -> list[dict[str, Any]]:
         """Download images for popular recipes from pantry searches"""
         results = []
 
         try:
             # Get recently searched recipes from database
             query = """
-                SELECT DISTINCT recipe_data->>'id' as recipe_id, 
+                SELECT DISTINCT recipe_data->>'id' as recipe_id,
                        recipe_data->>'title' as title,
                        recipe_data->>'image' as image_url
-                FROM user_recipes 
-                WHERE recipe_data IS NOT NULL 
+                FROM user_recipes
+                WHERE recipe_data IS NOT NULL
                   AND recipe_data->>'image' IS NOT NULL
                   AND recipe_data->>'id' IS NOT NULL
                 ORDER BY created_at DESC
@@ -187,7 +187,7 @@ class SpoonacularImageDownloader:
         success_count = len([r for r in all_results if r.get("status") == "success"])
         failed_count = len([r for r in all_results if r.get("status") == "failed"])
 
-        print(f"\n✅ Summary:")
+        print("\n✅ Summary:")
         print(f"   • Total processed: {len(all_results)}")
         print(f"   • Downloaded: {success_count}")
         print(f"   • Failed: {failed_count}")

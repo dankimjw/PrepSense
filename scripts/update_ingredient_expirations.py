@@ -102,8 +102,8 @@ def update_ingredient_expirations():
         # First, get all current ingredients to reset quantities
         cur.execute(
             """
-            SELECT pantry_item_id, product_name, quantity, unit_of_measurement 
-            FROM pantry_items 
+            SELECT pantry_item_id, product_name, quantity, unit_of_measurement
+            FROM pantry_items
             WHERE pantry_id = %s
         """,
             (PANTRY_ID,),
@@ -170,7 +170,7 @@ def update_ingredient_expirations():
                         # Update the item with correct unit
                         cur.execute(
                             """
-                            UPDATE pantry_items 
+                            UPDATE pantry_items
                             SET quantity = %s,
                                 unit_of_measurement = %s,
                                 expiration_date = %s,
@@ -189,7 +189,7 @@ def update_ingredient_expirations():
                         new_quantity = original_qty * multiplier * random.uniform(0.9, 1.1)
                         cur.execute(
                             """
-                            UPDATE pantry_items 
+                            UPDATE pantry_items
                             SET quantity = %s,
                                 expiration_date = %s,
                                 updated_at = CURRENT_TIMESTAMP
@@ -241,7 +241,7 @@ def verify_updates():
         cur.execute(
             """
             SELECT product_name, quantity, unit_of_measurement, expiration_date
-            FROM pantry_items 
+            FROM pantry_items
             WHERE pantry_id = %s
             ORDER BY expiration_date ASC
             LIMIT 20

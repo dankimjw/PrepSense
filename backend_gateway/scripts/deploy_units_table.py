@@ -4,7 +4,6 @@ Deploy units table to GCP Cloud SQL database
 This script should be run from the backend to use the correct database connection
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -27,11 +26,11 @@ def deploy_units_table():
 
     # Read the SQL script
     script_path = Path(__file__).parent / "create_units_table.sql"
-    with open(script_path, "r") as f:
+    with open(script_path) as f:
         sql_script = f.read()
 
     try:
-        print(f"Connecting to database...")
+        print("Connecting to database...")
 
         # Split the script into individual statements
         statements = sql_script.split(";")
@@ -46,9 +45,9 @@ def deploy_units_table():
         # Verify tables were created
         tables = db_service.execute_query(
             """
-            SELECT tablename 
-            FROM pg_tables 
-            WHERE schemaname = 'public' 
+            SELECT tablename
+            FROM pg_tables
+            WHERE schemaname = 'public'
             AND tablename IN ('units', 'item_unit_mappings')
         """
         )

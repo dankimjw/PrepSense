@@ -4,7 +4,6 @@ Import Kaggle recipe dataset into PostgreSQL database
 Matches images with our selected 256 recipes and uploads to GCS
 """
 
-import csv
 import json
 import os
 import re
@@ -12,10 +11,9 @@ import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Optional
 
 import psycopg2
-from google.cloud import storage
 from psycopg2.extras import RealDictCursor
 
 # Add parent directory to path
@@ -98,7 +96,7 @@ def upload_to_gcs(bucket, local_path: str, gcs_path: str) -> str:
         return f"local://{local_path}"
 
 
-def categorize_recipe(recipe: Dict) -> Dict:
+def categorize_recipe(recipe: dict) -> dict:
     """Categorize recipe by meal type, cuisine, and dietary restrictions"""
     title = recipe["title"].lower()
     ingredients = recipe["ingredients"].lower()
@@ -147,7 +145,7 @@ def categorize_recipe(recipe: Dict) -> Dict:
     return {"meal_type": meal_type, "dietary_tags": dietary_tags, "allergens": allergens}
 
 
-def process_ingredients(ingredients_str: str) -> List[Dict]:
+def process_ingredients(ingredients_str: str) -> list[dict]:
     """Parse ingredients string into structured format"""
     try:
         # Try to parse as Python list
@@ -165,7 +163,7 @@ def process_ingredients(ingredients_str: str) -> List[Dict]:
 def import_recipes():
     """Import selected recipes with images into database"""
     # Load selected recipes
-    with open(SELECTED_RECIPES_PATH, "r") as f:
+    with open(SELECTED_RECIPES_PATH) as f:
         selected_recipes = json.load(f)
 
     print(f"Loading {len(selected_recipes)} selected recipes...")
@@ -259,7 +257,7 @@ def import_recipes():
             # First check if recipe already exists
             cur.execute(
                 """
-                SELECT id FROM user_recipes 
+                SELECT id FROM user_recipes
                 WHERE user_id = %s AND recipe_id = %s
             """,
                 (111, recipe_id),
@@ -271,7 +269,7 @@ def import_recipes():
                 # Update existing recipe
                 cur.execute(
                     """
-                    UPDATE user_recipes 
+                    UPDATE user_recipes
                     SET recipe_title = %s,
                         recipe_image = %s,
                         recipe_data = %s,
@@ -285,7 +283,7 @@ def import_recipes():
                 cur.execute(
                     """
                     INSERT INTO user_recipes (
-                        user_id, recipe_id, recipe_title, recipe_image, 
+                        user_id, recipe_id, recipe_title, recipe_image,
                         recipe_data, source, rating, is_favorite, created_at, status
                     )
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
@@ -319,8 +317,8 @@ def import_recipes():
         # Verify import
         cur.execute(
             """
-            SELECT COUNT(*) as count 
-            FROM user_recipes 
+            SELECT COUNT(*) as count
+            FROM user_recipes
             WHERE user_id = 111 AND source = 'kaggle_dataset'
         """
         )

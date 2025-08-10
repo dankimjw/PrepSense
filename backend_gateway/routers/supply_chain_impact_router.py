@@ -4,9 +4,8 @@ Supply Chain Impact Router - API endpoints for showing full supply chain waste i
 
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Query
 
@@ -23,7 +22,7 @@ SUPPLY_CHAIN_DATA = {}
 try:
     supply_chain_file = Path("data/food_loss_waste/supply_chain_analysis.json")
     if supply_chain_file.exists():
-        with open(supply_chain_file, "r") as f:
+        with open(supply_chain_file) as f:
             SUPPLY_CHAIN_DATA = json.load(f)
 except Exception as e:
     logger.warning(f"Could not load supply chain data: {e}")
@@ -41,7 +40,7 @@ async def get_today_impact(user_id: str):
         db_service = get_database_service()
 
         query = """
-            SELECT 
+            SELECT
                 pi.product_name,
                 pi.quantity,
                 pi.unit_of_measurement,
@@ -70,8 +69,8 @@ async def get_today_impact(user_id: str):
             }
 
         # Calculate supply chain impact
-        waste_service = get_food_waste_service()
-        env_service = get_environmental_impact_service()
+        get_food_waste_service()
+        get_environmental_impact_service()
 
         total_co2e = 0
         total_value = 0
@@ -130,7 +129,7 @@ async def get_today_impact(user_id: str):
 
     except Exception as e:
         logger.error(f"Error calculating today's impact: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/supply-chain-guide")
@@ -220,7 +219,7 @@ async def get_supply_chain_guide():
 
     except Exception as e:
         logger.error(f"Error getting supply chain guide: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/weekly-trends/{user_id}")
@@ -235,7 +234,7 @@ async def get_weekly_trends(
 
         # Get waste tracking data
         query = """
-            SELECT 
+            SELECT
                 DATE_TRUNC('week', recorded_at) as week,
                 COUNT(*) as items_wasted,
                 SUM(quantity_wasted) as total_kg_wasted,
@@ -251,7 +250,7 @@ async def get_weekly_trends(
 
         # Calculate prevented waste (items that expired but weren't recorded as waste)
         prevented_query = """
-            SELECT 
+            SELECT
                 DATE_TRUNC('week', expiration_date) as week,
                 COUNT(*) as items_expired,
                 AVG(quantity) as avg_quantity
@@ -332,7 +331,7 @@ async def get_weekly_trends(
 
     except Exception as e:
         logger.error(f"Error getting weekly trends: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 def get_supply_chain_multiplier(food_name: str) -> float:

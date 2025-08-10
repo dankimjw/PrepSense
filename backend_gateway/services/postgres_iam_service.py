@@ -3,13 +3,10 @@ PostgreSQL Service with IAM Authentication for PrepSense
 Uses Google Cloud IAM tokens instead of passwords
 """
 
-import json
 import logging
-import os
 import threading
 from contextlib import contextmanager
-from datetime import date, datetime
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Optional
 
 import psycopg2
 from google.auth import default
@@ -21,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 class PostgresIAMService:
-    def __init__(self, connection_params: Dict[str, Any]):
+    def __init__(self, connection_params: dict[str, Any]):
         """
         Initialize PostgreSQL service with IAM authentication
 
@@ -128,8 +125,8 @@ class PostgresIAMService:
                 conn.close()
 
     def execute_query(
-        self, query: str, params: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, params: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
         """
         Execute a query and return results
 
@@ -157,7 +154,7 @@ class PostgresIAMService:
                 return [{"affected_rows": cursor.rowcount}]
 
     def execute_batch_insert(
-        self, table: str, data: List[Dict[str, Any]], conflict_resolution: Optional[str] = None
+        self, table: str, data: list[dict[str, Any]], conflict_resolution: Optional[str] = None
     ) -> int:
         """
         Batch insert data into a table
@@ -198,12 +195,12 @@ class PostgresIAMService:
     # Include all the pantry-specific methods from postgres_service.py
     # (Same methods, just using IAM authentication internally)
 
-    def get_user_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_user_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """Get all pantry items for a user with full BigQuery-compatible schema"""
         # Query that matches the BigQuery user_pantry_full view structure
         # Adjusted for PostgreSQL schema differences
         query = """
-        SELECT 
+        SELECT
             u.user_id,
             u.username as user_name,
             p.pantry_id,
@@ -250,9 +247,8 @@ class PostgresIAMService:
 
         return results
 
-    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> Dict[str, Any]:
+    async def update_pantry_item(self, pantry_item_id: int, item_data: Any) -> dict[str, Any]:
         """Updates an existing pantry item"""
-        from datetime import datetime
 
         try:
             # Build dynamic update query
@@ -348,7 +344,7 @@ class PostgresIAMService:
         result = self.execute_query(query, {"pantry_item_id": pantry_item_id})
         return result[0]["affected_rows"] > 0 if result else False
 
-    async def add_pantry_item(self, item_data: Any, user_id: int) -> Dict[str, Any]:
+    async def add_pantry_item(self, item_data: Any, user_id: int) -> dict[str, Any]:
         """Add a new pantry item"""
         # First get the user's pantry
         pantry_query = """

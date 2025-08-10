@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Fix CrewAI import issues to get the backend running."""
 
-import os
 import re
 from pathlib import Path
 
@@ -17,7 +16,7 @@ def fix_nutrient_auditor_imports():
         return False
 
     # Read the file
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         content = f.read()
 
     # Comment out the problematic import
@@ -81,7 +80,7 @@ def update_nutrient_auditor_to_use_mocks():
     """Update the import to use mock classes."""
     file_path = Path("backend_gateway/agents/nutrient_auditor_agent.py")
 
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         lines = f.readlines()
 
     # Find and update the import line
@@ -107,7 +106,7 @@ def check_other_crewai_usage():
 
     # Search for CrewAI imports in all Python files
     for py_file in Path("backend_gateway").rglob("*.py"):
-        with open(py_file, "r") as f:
+        with open(py_file) as f:
             content = f.read()
 
         # Check for newer CrewAI features

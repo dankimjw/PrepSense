@@ -7,11 +7,11 @@ import hashlib
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 from fastapi import HTTPException
 from fastapi.responses import FileResponse
-from PIL import Image, ImageOps
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -146,9 +146,9 @@ class RecipeImageService:
             raise
         except Exception as e:
             logger.error(f"Error serving image {image_name}: {e}")
-            raise HTTPException(status_code=500, detail="Internal server error")
+            raise HTTPException(status_code=500, detail="Internal server error") from e
 
-    async def get_image_info(self, image_name: str) -> Dict[str, Any]:
+    async def get_image_info(self, image_name: str) -> dict[str, Any]:
         """Get information about a recipe image."""
         try:
             image_path = await self.get_image_path(image_name, optimize=False)
@@ -172,9 +172,9 @@ class RecipeImageService:
 
         except Exception as e:
             logger.error(f"Error getting image info for {image_name}: {e}")
-            raise HTTPException(status_code=404, detail="Image not found")
+            raise HTTPException(status_code=404, detail="Image not found") from e
 
-    async def clear_cache(self, image_name: Optional[str] = None) -> Dict[str, Any]:
+    async def clear_cache(self, image_name: Optional[str] = None) -> dict[str, Any]:
         """Clear image cache."""
         try:
             if image_name:
@@ -196,9 +196,9 @@ class RecipeImageService:
 
         except Exception as e:
             logger.error(f"Error clearing cache: {e}")
-            raise HTTPException(status_code=500, detail="Failed to clear cache")
+            raise HTTPException(status_code=500, detail="Failed to clear cache") from e
 
-    def get_cache_stats(self) -> Dict[str, Any]:
+    def get_cache_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         try:
             cache_files = list(self.cache_dir.glob("*"))

@@ -2,9 +2,8 @@
 
 import logging
 import random
-import uuid
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class PantryItemManager:
         self._pantry_cache[user_id] = next_pantry_id
         return next_pantry_id
 
-    def add_items_batch_fast(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_items_batch_fast(self, user_id: int, items: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Fast version that returns immediately with generated IDs.
         Actual database writes happen asynchronously.
@@ -114,7 +113,7 @@ class PantryItemManager:
             "time_taken": total_time,
         }
 
-    def add_items_batch(self, user_id: int, items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def add_items_batch(self, user_id: int, items: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Add multiple items to pantry in a single operation.
 
@@ -165,7 +164,7 @@ class PantryItemManager:
                     try:
                         # Handle MM/DD/YYYY format
                         exp_date_obj = datetime.strptime(exp_date, "%m/%d/%Y").date()
-                    except:
+                    except Exception:
                         # Fallback to 30 days from now
                         exp_date_obj = (datetime.now() + timedelta(days=30)).date()
                 else:
@@ -174,12 +173,12 @@ class PantryItemManager:
                 # Insert into pantry_items
                 pantry_item_query = """
                     INSERT INTO pantry_items
-                    (pantry_item_id, pantry_id, product_name, category, quantity, unit_of_measurement, 
-                     expiration_date, unit_price, total_price, created_at, 
+                    (pantry_item_id, pantry_id, product_name, category, quantity, unit_of_measurement,
+                     expiration_date, unit_price, total_price, created_at,
                      used_quantity, status)
                     VALUES
-                    (%(pantry_item_id)s, %(pantry_id)s, %(product_name)s, %(category)s, %(quantity)s, %(unit)s, 
-                     %(exp_date)s, %(unit_price)s, %(total_price)s, CURRENT_TIMESTAMP, 
+                    (%(pantry_item_id)s, %(pantry_id)s, %(product_name)s, %(category)s, %(quantity)s, %(unit)s,
+                     %(exp_date)s, %(unit_price)s, %(total_price)s, CURRENT_TIMESTAMP,
                      %(used_qty)s, %(status)s)
                 """
 
@@ -206,10 +205,10 @@ class PantryItemManager:
                 # Insert into products
                 product_query = """
                     INSERT INTO products
-                    (product_id, pantry_item_id, product_name, brand_name, 
+                    (product_id, pantry_item_id, product_name, brand_name,
                      category, created_at)
                     VALUES
-                    (%(product_id)s, %(pantry_item_id)s, %(product_name)s, %(brand)s, 
+                    (%(product_id)s, %(pantry_item_id)s, %(product_name)s, %(brand)s,
                      %(category)s, CURRENT_TIMESTAMP)
                 """
 
@@ -257,7 +256,7 @@ class PantryItemManager:
             "time_taken": total_time,
         }
 
-    def delete_recent_items(self, user_id: int, hours: Optional[float] = None) -> Dict[str, Any]:
+    def delete_recent_items(self, user_id: int, hours: Optional[float] = None) -> dict[str, Any]:
         """
         Delete recently added items for a user.
 
@@ -353,7 +352,7 @@ class PantryItemManager:
             logger.error(f"Error in delete_recent_items: {str(e)}")
             return {"deleted_count": 0, "message": f"Error deleting items: {str(e)}"}
 
-    def delete_item(self, user_id: int, pantry_item_id: int) -> Dict[str, Any]:
+    def delete_item(self, user_id: int, pantry_item_id: int) -> dict[str, Any]:
         """
         Delete a specific pantry item for a user.
 
@@ -404,4 +403,3 @@ class PantryItemManager:
 
 
 # Add missing import
-from datetime import timedelta

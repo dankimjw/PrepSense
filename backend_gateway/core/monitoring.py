@@ -10,7 +10,7 @@ import logging
 import os
 import time
 from functools import wraps
-from typing import Any, Dict, Optional
+from typing import Any, Optional
 
 import sentry_sdk
 from fastapi import FastAPI, Request, Response
@@ -348,7 +348,7 @@ class SentryTransaction:
 
 
 # Utility function for manual error reporting
-def report_error(error: Exception, context: Optional[Dict[str, Any]] = None) -> None:
+def report_error(error: Exception, context: Optional[dict[str, Any]] = None) -> None:
     """Manually report an error to Sentry with context."""
     with sentry_sdk.configure_scope() as scope:
         if context:

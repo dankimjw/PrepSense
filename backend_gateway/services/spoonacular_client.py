@@ -4,8 +4,7 @@ Spoonacular API client wrapper for centralized API interaction.
 
 import os
 import time
-from typing import Any, Dict, List, Optional, Union
-from urllib.parse import quote
+from typing import Any, Optional, Union
 
 import httpx
 
@@ -37,12 +36,12 @@ class SpoonacularClient:
 
     def search_recipes_by_ingredients(
         self,
-        ingredients: List[str],
+        ingredients: list[str],
         number: int = 10,
         ranking: int = 1,
         ignore_pantry: bool = True,
         retry_count: int = 0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for recipes by ingredients.
 
@@ -73,7 +72,7 @@ class SpoonacularClient:
 
     def get_recipe_information(
         self, recipe_id: int, include_nutrition: bool = False
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get detailed information about a specific recipe.
 
@@ -90,7 +89,7 @@ class SpoonacularClient:
             method="GET", endpoint=f"/recipes/{recipe_id}/information", params=params
         )
 
-    def analyze_recipe_instructions(self, recipe_id: int) -> List[Dict[str, Any]]:
+    def analyze_recipe_instructions(self, recipe_id: int) -> list[dict[str, Any]]:
         """
         Get analyzed recipe instructions with steps broken down.
 
@@ -106,7 +105,7 @@ class SpoonacularClient:
             method="GET", endpoint=f"/recipes/{recipe_id}/analyzedInstructions", params=params
         )
 
-    def get_similar_recipes(self, recipe_id: int, number: int = 10) -> List[Dict[str, Any]]:
+    def get_similar_recipes(self, recipe_id: int, number: int = 10) -> list[dict[str, Any]]:
         """
         Get similar recipes to a given recipe.
 
@@ -123,7 +122,7 @@ class SpoonacularClient:
             method="GET", endpoint=f"/recipes/{recipe_id}/similar", params=params
         )
 
-    def substitute_ingredients(self, ingredient_name: str) -> Dict[str, Any]:
+    def substitute_ingredients(self, ingredient_name: str) -> dict[str, Any]:
         """
         Get ingredient substitutes.
 
@@ -143,10 +142,10 @@ class SpoonacularClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict[str, Any]] = None,
-        data: Optional[Dict[str, Any]] = None,
+        params: Optional[dict[str, Any]] = None,
+        data: Optional[dict[str, Any]] = None,
         retry_count: int = 0,
-    ) -> Union[Dict[str, Any], List[Dict[str, Any]]]:
+    ) -> Union[dict[str, Any], list[dict[str, Any]]]:
         """
         Make HTTP request to Spoonacular API.
 
@@ -184,7 +183,7 @@ class SpoonacularClient:
                     continue
                 raise
 
-            except (httpx.HTTPStatusError, httpx.ConnectError) as e:
+            except (httpx.HTTPStatusError, httpx.ConnectError):
                 # Don't retry on HTTP errors (4xx, 5xx) or other connection errors
                 raise
 

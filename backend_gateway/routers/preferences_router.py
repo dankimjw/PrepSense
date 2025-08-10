@@ -3,7 +3,7 @@ User preferences router - manages user dietary preferences, allergens, and cuisi
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -22,9 +22,9 @@ router = APIRouter(
 
 
 class UserPreferences(BaseModel):
-    allergens: List[str] = []
-    dietary_restrictions: List[str] = []
-    cuisine_preferences: List[str] = []
+    allergens: list[str] = []
+    dietary_restrictions: list[str] = []
+    cuisine_preferences: list[str] = []
     household_size: Optional[int] = 1
 
 
@@ -74,7 +74,7 @@ async def get_user_preferences(current_user: UserInDB = Depends(get_current_acti
 
     except Exception as e:
         logger.error(f"Error getting user preferences: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get preferences: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get preferences: {str(e)}") from e
 
 
 @router.post("/", response_model=PreferencesResponse)
@@ -96,8 +96,8 @@ async def save_user_preferences(
         query = """
             INSERT INTO user_preferences (user_id, preferences, household_size, updated_at)
             VALUES (%(user_id)s, %(preferences)s, %(household_size)s, CURRENT_TIMESTAMP)
-            ON CONFLICT (user_id) 
-            DO UPDATE SET 
+            ON CONFLICT (user_id)
+            DO UPDATE SET
                 preferences = %(preferences)s,
                 household_size = %(household_size)s,
                 updated_at = CURRENT_TIMESTAMP
@@ -126,7 +126,7 @@ async def save_user_preferences(
 
     except Exception as e:
         logger.error(f"Error saving user preferences: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to save preferences: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to save preferences: {str(e)}") from e
 
 
 @router.delete("/")
@@ -147,4 +147,4 @@ async def clear_user_preferences(current_user: UserInDB = Depends(get_current_ac
 
     except Exception as e:
         logger.error(f"Error clearing user preferences: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to clear preferences: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to clear preferences: {str(e)}") from e

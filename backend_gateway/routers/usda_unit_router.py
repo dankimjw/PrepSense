@@ -3,7 +3,7 @@ USDA Unit Validation Router - API endpoints for unit validation using USDA data
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -27,7 +27,7 @@ async def validate_unit_for_food(
     unit: str = Query(..., description="Unit to validate"),
     category_id: Optional[int] = Query(None, description="Optional food category ID"),
     usda_service: USDAFoodService = Depends(get_usda_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Validate if a unit is appropriate for a food item using USDA data.
 
@@ -72,7 +72,7 @@ async def validate_unit_for_food(
 
     except Exception as e:
         logger.error(f"Error validating unit: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/category/{category_id}/units")
@@ -80,7 +80,7 @@ async def get_units_for_category(
     category_id: int,
     preferred_only: bool = Query(False, description="Return only preferred units"),
     usda_service: USDAFoodService = Depends(get_usda_service),
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get appropriate units for a food category based on USDA data.
 
@@ -94,7 +94,7 @@ async def get_units_for_category(
     try:
         async with usda_service.db_pool.acquire() as conn:
             query = """
-                SELECT 
+                SELECT
                     um.id as unit_id,
                     um.name as unit_name,
                     um.abbreviation,
@@ -130,7 +130,7 @@ async def get_units_for_category(
 
     except Exception as e:
         logger.error(f"Error getting units for category: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/suggest-units")
@@ -138,7 +138,7 @@ async def suggest_units_for_food(
     food_name: str = Query(..., description="Name of the food item"),
     limit: int = Query(5, ge=1, le=10, description="Maximum number of suggestions"),
     usda_service: USDAFoodService = Depends(get_usda_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Suggest appropriate units for a food item based on USDA data patterns.
 
@@ -184,7 +184,7 @@ async def suggest_units_for_food(
         async with usda_service.db_pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     um.name as unit_name,
                     ucm.usage_percentage / 100.0 as confidence,
                     fc.description as category_name
@@ -224,11 +224,11 @@ async def suggest_units_for_food(
 
     except Exception as e:
         logger.error(f"Error suggesting units: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.get("/unit-types")
-async def get_unit_types(usda_service: USDAFoodService = Depends(get_usda_service)) -> List[str]:
+async def get_unit_types(usda_service: USDAFoodService = Depends(get_usda_service)) -> list[str]:
     """
     Get all available unit types from USDA data.
 
@@ -239,8 +239,8 @@ async def get_unit_types(usda_service: USDAFoodService = Depends(get_usda_servic
         async with usda_service.db_pool.acquire() as conn:
             rows = await conn.fetch(
                 """
-                SELECT DISTINCT unit_type 
-                FROM usda_measure_units 
+                SELECT DISTINCT unit_type
+                FROM usda_measure_units
                 WHERE unit_type IS NOT NULL
                 ORDER BY unit_type
                 """
@@ -250,4 +250,4 @@ async def get_unit_types(usda_service: USDAFoodService = Depends(get_usda_servic
 
     except Exception as e:
         logger.error(f"Error getting unit types: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e

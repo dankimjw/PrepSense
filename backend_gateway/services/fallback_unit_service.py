@@ -4,8 +4,7 @@ Provides intelligent unit fallbacks and validates extracted quantities/units.
 """
 
 import logging
-import re
-from typing import Dict, List, Optional, Tuple
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +241,7 @@ class FallbackUnitService:
 
     def validate_and_fix_quantity_unit(
         self, item_name: str, quantity: float, unit: str, category: Optional[str] = None
-    ) -> Tuple[float, str]:
+    ) -> tuple[float, str]:
         """
         Validate and fix quantity/unit pairs, applying fallbacks for invalid data.
         Returns (corrected_quantity, corrected_unit)

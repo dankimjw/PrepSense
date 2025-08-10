@@ -11,7 +11,6 @@ import os
 import random
 import sys
 from datetime import datetime, timedelta
-from typing import Any, Dict, List
 
 from dotenv import load_dotenv
 
@@ -353,15 +352,14 @@ async def add_mock_data():
                         "unit": ingredient["unit"],
                         "aisle": ingredient.get("aisle", "Other"),
                     }
-                else:
-                    # Accumulate quantities if ingredient appears in multiple recipes
-                    if isinstance(all_ingredients[key]["amount"], (int, float)) and isinstance(
-                        ingredient["amount"], (int, float)
-                    ):
-                        all_ingredients[key]["amount"] += ingredient["amount"]
+                # Accumulate quantities if ingredient appears in multiple recipes
+                elif isinstance(all_ingredients[key]["amount"], (int, float)) and isinstance(
+                    ingredient["amount"], (int, float)
+                ):
+                    all_ingredients[key]["amount"] += ingredient["amount"]
 
         # Add ingredients to pantry with expiration dates
-        for ingredient_key, ingredient_data in all_ingredients.items():
+        for _ingredient_key, ingredient_data in all_ingredients.items():
             # Set expiration dates based on food type
             if any(x in ingredient_data["aisle"].lower() for x in ["meat", "dairy", "produce"]):
                 days_until_expiry = random.randint(7, 14)  # Perishables
@@ -382,8 +380,8 @@ async def add_mock_data():
             query = """
                 INSERT INTO pantry_items (user_id, product_name, quantity, expiration_date, category)
                 VALUES ($1, $2, $3, $4, $5)
-                ON CONFLICT (user_id, product_name) 
-                DO UPDATE SET 
+                ON CONFLICT (user_id, product_name)
+                DO UPDATE SET
                     quantity = EXCLUDED.quantity,
                     expiration_date = EXCLUDED.expiration_date,
                     updated_at = CURRENT_TIMESTAMP

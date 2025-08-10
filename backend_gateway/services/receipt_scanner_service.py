@@ -3,11 +3,10 @@ Receipt Scanner Service using Agentic AI
 Uses OpenAI Vision API to intelligently extract and parse receipt data
 """
 
-import base64
 import logging
 import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import openai
 from pydantic import BaseModel, Field
@@ -32,7 +31,7 @@ class ReceiptData(BaseModel):
 
     store_name: Optional[str] = Field(default=None)
     date: Optional[str] = Field(default=None)
-    items: List[GroceryItem] = Field(default_factory=list)
+    items: list[GroceryItem] = Field(default_factory=list)
     total: Optional[float] = Field(default=None)
 
 
@@ -45,7 +44,7 @@ class ReceiptScannerService:
 
         self.client = openai.OpenAI()
 
-    async def scan_receipt(self, image_data: str) -> Dict[str, Any]:
+    async def scan_receipt(self, image_data: str) -> dict[str, Any]:
         """
         Scan a receipt image and extract structured data using AI agent.
 
@@ -97,7 +96,7 @@ Return data in the exact JSON format specified.""",
                 model="gpt-4o",
                 messages=messages,
                 response_format=ReceiptData,
-                max_tokens=1000,
+                max_completion_tokens=1000,
                 temperature=0.1,  # Low temperature for consistent parsing
             )
 
@@ -133,8 +132,8 @@ Return data in the exact JSON format specified.""",
             return {"success": False, "error": str(e), "data": None}
 
     async def add_items_to_pantry(
-        self, user_id: int, items: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, user_id: int, items: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """
         Add extracted items to user's pantry.
 
@@ -167,7 +166,7 @@ Return data in the exact JSON format specified.""",
                     }
 
                     # Add to pantry
-                    result = await pantry_service.add_item(user_id, pantry_item)
+                    await pantry_service.add_item(user_id, pantry_item)
                     added_items.append(item["name"])
 
                 except Exception as e:

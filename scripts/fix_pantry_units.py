@@ -12,8 +12,7 @@ import asyncio
 import logging
 import os
 import sys
-from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Optional
 
 import asyncpg
 from dotenv import load_dotenv
@@ -149,7 +148,7 @@ async def analyze_pantry_units(db_pool: asyncpg.Pool, user_id: Optional[int] = N
     async with db_pool.acquire() as conn:
         if user_id:
             query = """
-                SELECT 
+                SELECT
                     pi.pantry_item_id as id,
                     pi.product_name as name,
                     pi.quantity as quantity_amount,
@@ -165,7 +164,7 @@ async def analyze_pantry_units(db_pool: asyncpg.Pool, user_id: Optional[int] = N
             items = await conn.fetch(query, user_id)
         else:
             query = """
-                SELECT 
+                SELECT
                     pi.pantry_item_id as id,
                     pi.product_name as name,
                     pi.quantity as quantity_amount,
@@ -221,7 +220,7 @@ async def analyze_pantry_units(db_pool: asyncpg.Pool, user_id: Optional[int] = N
     return issues, category_fixes
 
 
-async def fix_units(db_pool: asyncpg.Pool, issues: List[Dict], dry_run: bool = True):
+async def fix_units(db_pool: asyncpg.Pool, issues: list[dict], dry_run: bool = True):
     """Fix unit issues in the database."""
 
     if dry_run:
@@ -253,7 +252,7 @@ async def fix_units(db_pool: asyncpg.Pool, issues: List[Dict], dry_run: bool = T
     return fixed_count
 
 
-async def fix_categories(db_pool: asyncpg.Pool, category_fixes: List[Dict], dry_run: bool = True):
+async def fix_categories(db_pool: asyncpg.Pool, category_fixes: list[dict], dry_run: bool = True):
     """Fix category issues in the database."""
 
     if dry_run:

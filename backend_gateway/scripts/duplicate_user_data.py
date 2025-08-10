@@ -9,7 +9,6 @@ sys.path.append(os.path.join(os.path.dirname(__file__), "../.."))
 
 import logging
 from datetime import datetime
-from typing import Any, Dict, List
 
 from backend_gateway.core.config import settings
 from backend_gateway.services.postgres_service import PostgresService
@@ -151,7 +150,7 @@ def duplicate_user_data():
                     # Check if item already exists by product name
                     existing_item = db.execute_query(
                         """
-                        SELECT pantry_item_id FROM pantry_items 
+                        SELECT pantry_item_id FROM pantry_items
                         WHERE pantry_id = @pantry_id AND product_name = @product_name
                         """,
                         {"pantry_id": new_pantry_id, "product_name": item["product_name"]},
@@ -169,8 +168,8 @@ def duplicate_user_data():
 
                         db.execute_query(
                             """
-                            INSERT INTO pantry_items 
-                            (pantry_id, product_name, brand_name, category, quantity, 
+                            INSERT INTO pantry_items
+                            (pantry_id, product_name, brand_name, category, quantity,
                              unit_of_measurement, expiration_date, unit_price, total_price,
                              source, status, metadata, created_at, updated_at)
                             VALUES (@pantry_id, @product_name, @brand_name, @category, @quantity,
@@ -210,7 +209,7 @@ def duplicate_user_data():
                 # Check if item already exists
                 existing_item = db.execute_query(
                     """
-                    SELECT item_id FROM shopping_list_items 
+                    SELECT item_id FROM shopping_list_items
                     WHERE user_id = @user_id AND product_id = @product_id
                     """,
                     {"user_id": new_user_id, "product_id": item["product_id"]},
@@ -219,7 +218,7 @@ def duplicate_user_data():
                 if not existing_item:
                     db.execute_query(
                         """
-                        INSERT INTO shopping_list_items 
+                        INSERT INTO shopping_list_items
                         (user_id, product_id, quantity, is_checked, added_date, updated_at)
                         VALUES (@user_id, @product_id, @quantity, @is_checked, @added_date, @updated_at)
                         """,
@@ -247,7 +246,7 @@ def duplicate_user_data():
             for completion in completions:
                 db.execute_query(
                     """
-                    INSERT INTO recipe_completions 
+                    INSERT INTO recipe_completions
                     (user_id, recipe_id, completed_at, rating, notes)
                     VALUES (@user_id, @recipe_id, @completed_at, @rating, @notes)
                     """,
@@ -275,7 +274,7 @@ def duplicate_user_data():
                 # Check if already favorited
                 existing_fav = db.execute_query(
                     """
-                    SELECT 1 FROM recipe_favorites 
+                    SELECT 1 FROM recipe_favorites
                     WHERE user_id = @user_id AND recipe_id = @recipe_id
                     """,
                     {"user_id": new_user_id, "recipe_id": favorite["recipe_id"]},
@@ -284,7 +283,7 @@ def duplicate_user_data():
                 if not existing_fav:
                     db.execute_query(
                         """
-                        INSERT INTO recipe_favorites 
+                        INSERT INTO recipe_favorites
                         (user_id, recipe_id, favorited_at)
                         VALUES (@user_id, @recipe_id, @favorited_at)
                         """,

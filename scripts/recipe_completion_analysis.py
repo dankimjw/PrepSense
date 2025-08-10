@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 """Detailed analysis of recipe completion data"""
 
-import json
 import os
 import sys
-from datetime import datetime
 
 import psycopg2
 from dotenv import load_dotenv
@@ -50,7 +48,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     COUNT(DISTINCT user_id) as total_users_with_recipes,
                     COUNT(*) as total_recipes,
                     COUNT(CASE WHEN status = 'saved' THEN 1 END) as saved_recipes,
@@ -75,11 +73,11 @@ def analyze_recipe_completions():
             print(
                 f"  - Cooked: {stats['cooked_recipes']} ({stats['cooked_recipes']/stats['total_recipes']*100:.1f}%)"
             )
-            print(f"\nRecipe ratings:")
+            print("\nRecipe ratings:")
             print(f"  - Liked: {stats['liked_recipes']}")
             print(f"  - Disliked: {stats['disliked_recipes']}")
             print(f"  - Favorites: {stats['favorite_recipes']}")
-            print(f"\nRecipe sources:")
+            print("\nRecipe sources:")
             print(f"  - Spoonacular: {stats['spoonacular_recipes']}")
             print(f"  - AI Generated: {stats['ai_generated_recipes']}")
             print(f"  - Generated: {stats['generated_recipes']}")
@@ -90,7 +88,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     u.first_name || ' ' || u.last_name as user_name,
                     ur.recipe_title,
                     ur.source,
@@ -101,7 +99,7 @@ def analyze_recipe_completions():
                     (ur.cooked_at - ur.created_at) as time_to_cook
                 FROM user_recipes ur
                 JOIN users u ON u.user_id = ur.user_id
-                WHERE ur.status = 'cooked' 
+                WHERE ur.status = 'cooked'
                 AND ur.cooked_at IS NOT NULL
                 ORDER BY ur.cooked_at DESC
             """
@@ -158,7 +156,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     u.user_id,
                     u.first_name || ' ' || u.last_name as user_name,
                     COUNT(ur.id) as total_recipes,
@@ -237,7 +235,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     recipe_title,
                     COUNT(*) as save_count,
                     COUNT(CASE WHEN status = 'cooked' THEN 1 END) as cook_count,
@@ -289,7 +287,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     TO_CHAR(cooked_at, 'Day') as day_of_week,
                     EXTRACT(DOW FROM cooked_at) as day_num,
                     COUNT(*) as recipes_cooked,
@@ -316,7 +314,7 @@ def analyze_recipe_completions():
 
             cursor.execute(
                 """
-                SELECT 
+                SELECT
                     source,
                     COUNT(*) as total_saved,
                     COUNT(CASE WHEN status = 'cooked' THEN 1 END) as total_cooked,

@@ -2,12 +2,11 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from backend_gateway.config.database import get_database_service
-from backend_gateway.core.security import get_current_user
 from backend_gateway.services.user_recipes_service import UserRecipesService
 
 logger = logging.getLogger(__name__)
@@ -25,7 +24,7 @@ def get_user_recipes_service(db_service=Depends(get_database_service)) -> UserRe
 
 
 @router.get(
-    "/comprehensive", response_model=Dict[str, Any], summary="Get comprehensive user statistics"
+    "/comprehensive", response_model=dict[str, Any], summary="Get comprehensive user statistics"
 )
 async def get_comprehensive_stats(
     user_id: int = Query(111, description="User ID"),
@@ -60,7 +59,7 @@ async def get_comprehensive_stats(
             WHERE p.user_id = %(user_id)s
         ),
         category_breakdown AS (
-            SELECT 
+            SELECT
                 pi.category,
                 COUNT(*) as count
             FROM pantry_items pi
@@ -71,7 +70,7 @@ async def get_comprehensive_stats(
             LIMIT 5
         ),
         frequent_items AS (
-            SELECT 
+            SELECT
                 pi.product_name,
                 COUNT(*) as purchase_count
             FROM pantry_items pi
@@ -82,7 +81,7 @@ async def get_comprehensive_stats(
             ORDER BY purchase_count DESC
             LIMIT 5
         )
-        SELECT 
+        SELECT
             ps.*,
             (SELECT json_agg(row_to_json(cb)) FROM category_breakdown cb) as top_categories,
             (SELECT json_agg(row_to_json(fi)) FROM frequent_items fi) as top_products
@@ -99,7 +98,7 @@ async def get_comprehensive_stats(
         # 3. Cooking History Statistics
         cooking_history_query = """
         WITH daily_cooking AS (
-            SELECT 
+            SELECT
                 DATE(changed_at) as cook_date,
                 COUNT(*) as recipes_cooked
             FROM pantry_history
@@ -109,13 +108,13 @@ async def get_comprehensive_stats(
             GROUP BY DATE(changed_at)
         ),
         cooking_streak AS (
-            SELECT 
+            SELECT
                 cook_date,
                 cook_date - (ROW_NUMBER() OVER (ORDER BY cook_date))::int AS grp
             FROM daily_cooking
         ),
         streak_groups AS (
-            SELECT 
+            SELECT
                 MIN(cook_date) as start_date,
                 MAX(cook_date) as end_date,
                 COUNT(*) as streak_length
@@ -124,7 +123,7 @@ async def get_comprehensive_stats(
             ORDER BY end_date DESC
             LIMIT 1
         )
-        SELECT 
+        SELECT
             COUNT(DISTINCT DATE(changed_at)) as days_cooked,
             COUNT(*) as total_recipes_cooked,
             COALESCE((SELECT streak_length FROM streak_groups), 0) as current_streak,
@@ -143,7 +142,7 @@ async def get_comprehensive_stats(
         # 4. Sustainability Metrics
         sustainability_query = """
         WITH waste_prevention AS (
-            SELECT 
+            SELECT
                 COUNT(CASE WHEN pi.expiration_date >= CURRENT_DATE THEN 1 END) as unexpired_items,
                 COUNT(CASE WHEN ph.change_source = 'recipe_completion' THEN 1 END) as items_used_in_recipes
             FROM pantry_items pi
@@ -151,7 +150,7 @@ async def get_comprehensive_stats(
             LEFT JOIN pantry_history ph ON pi.pantry_item_id = ph.pantry_item_id
             WHERE p.user_id = %(user_id)s
         )
-        SELECT 
+        SELECT
             unexpired_items * 0.3 as food_saved_kg,  -- Avg 0.3kg per item
             unexpired_items * 0.3 * 2.5 as co2_saved_kg,  -- 2.5kg CO2 per kg food
             items_used_in_recipes
@@ -162,7 +161,7 @@ async def get_comprehensive_stats(
 
         # 5. Shopping Patterns
         shopping_patterns_query = """
-        SELECT 
+        SELECT
             DATE_PART('dow', pi.created_at) as day_of_week,
             COUNT(*) as items_added
         FROM pantry_items pi
@@ -250,11 +249,11 @@ async def get_comprehensive_stats(
 
     except Exception as e:
         logger.error(f"Error getting comprehensive stats: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}") from e
 
 
 @router.get(
-    "/milestones", response_model=Dict[str, Any], summary="Get user milestones and achievements"
+    "/milestones", response_model=dict[str, Any], summary="Get user milestones and achievements"
 )
 async def get_user_milestones(
     user_id: int = Query(111, description="User ID"),
@@ -264,7 +263,7 @@ async def get_user_milestones(
     try:
         milestones_query = """
         WITH user_stats AS (
-            SELECT 
+            SELECT
                 (SELECT COUNT(*) FROM user_pantry_full WHERE user_id = %(user_id)s) as total_pantry_items,
                 (SELECT COUNT(*) FROM pantry_history WHERE user_id = %(user_id)s AND change_source = 'recipe_completion') as total_recipes_cooked,
                 (SELECT COUNT(DISTINCT DATE(changed_at)) FROM pantry_history WHERE user_id = %(user_id)s AND change_source = 'recipe_completion') as days_cooked,
@@ -280,7 +279,6 @@ async def get_user_milestones(
             return {"milestones": [], "achievements": []}
 
         stats = result[0]
-        milestones = []
 
         # Define milestone thresholds
         milestone_definitions = [
@@ -404,4 +402,4 @@ async def get_user_milestones(
 
     except Exception as e:
         logger.error(f"Error getting milestones: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get milestones: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get milestones: {str(e)}") from e

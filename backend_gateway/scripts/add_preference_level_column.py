@@ -16,9 +16,9 @@ def add_preference_level_column():
 
     # First check if the column already exists
     check_query = """
-        SELECT column_name 
-        FROM information_schema.columns 
-        WHERE table_name = 'user_cuisine_preferences' 
+        SELECT column_name
+        FROM information_schema.columns
+        WHERE table_name = 'user_cuisine_preferences'
         AND column_name = 'preference_level'
     """
 
@@ -30,7 +30,7 @@ def add_preference_level_column():
 
     # Add the column if it doesn't exist
     alter_query = """
-        ALTER TABLE user_cuisine_preferences 
+        ALTER TABLE user_cuisine_preferences
         ADD COLUMN preference_level INTEGER DEFAULT 1
     """
 
@@ -40,7 +40,7 @@ def add_preference_level_column():
 
         # Add a comment to explain the column
         comment_query = """
-            COMMENT ON COLUMN user_cuisine_preferences.preference_level IS 
+            COMMENT ON COLUMN user_cuisine_preferences.preference_level IS
             'Preference level: positive values = liked, negative = disliked, 0 = neutral'
         """
         db.execute_query(comment_query)
@@ -65,7 +65,7 @@ def add_preference_level_column():
         # Check sample data
         print("\n📊 Sample data:")
         sample_query = """
-            SELECT * FROM user_cuisine_preferences 
+            SELECT * FROM user_cuisine_preferences
             LIMIT 5
         """
 

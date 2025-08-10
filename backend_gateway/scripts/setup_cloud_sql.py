@@ -26,7 +26,7 @@ if not ROOT_PASSWORD:
 def run_command(cmd, check=True):
     """Run a command and return the result"""
     print(f"Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, check=False, shell=True, capture_output=True, text=True)
     if check and result.returncode != 0:
         print(f"Error: {result.stderr}")
         sys.exit(1)
@@ -101,16 +101,16 @@ def get_connection_info():
     ip_result = run_command(ip_cmd)
     ip_address = ip_result.stdout.strip()
 
-    print(f"\nConnection Information:")
+    print("\nConnection Information:")
     print(f"  Instance: {INSTANCE_NAME}")
     print(f"  Database: {DATABASE_NAME}")
     print(f"  Connection Name: {connection_name}")
     print(f"  Public IP: {ip_address}")
     print(f"  Root Password: {ROOT_PASSWORD}")
-    print(f"\nTo connect locally:")
-    print(f"  Option 1 - Direct connection:")
+    print("\nTo connect locally:")
+    print("  Option 1 - Direct connection:")
     print(f"    mysql -h {ip_address} -u root -p{ROOT_PASSWORD}")
-    print(f"  Option 2 - Cloud SQL Proxy (more secure):")
+    print("  Option 2 - Cloud SQL Proxy (more secure):")
     print(f"    cloud_sql_proxy -instances={connection_name}=tcp:3306")
     print(f"    mysql -h 127.0.0.1 -u root -p{ROOT_PASSWORD}")
 
@@ -309,15 +309,15 @@ def main():
     print("\n2. Import the schema:")
     print(f"   mysql -h {ip_address} -u root -p$MYSQL_ROOT_PASSWORD < {schema_file}")
     print("\n3. Update your .env file with:")
-    print(f"   # Direct connection (for development)")
+    print("   # Direct connection (for development)")
     print(f"   MYSQL_HOST={ip_address}")
-    print(f"   MYSQL_PORT=3306")
+    print("   MYSQL_PORT=3306")
     print(f"   MYSQL_DATABASE={DATABASE_NAME}")
-    print(f"   MYSQL_USER=root")
-    print(f"   MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD")
+    print("   MYSQL_USER=root")
+    print("   MYSQL_PASSWORD=$MYSQL_ROOT_PASSWORD")
     print(f"   CLOUD_SQL_CONNECTION_NAME={connection_name}")
-    print(f"\n   # Or for Cloud SQL Proxy (more secure):")
-    print(f"   # MYSQL_HOST=127.0.0.1")
+    print("\n   # Or for Cloud SQL Proxy (more secure):")
+    print("   # MYSQL_HOST=127.0.0.1")
 
 
 if __name__ == "__main__":

@@ -9,11 +9,8 @@ import os
 import re
 import sys
 from datetime import datetime
-from pathlib import Path
-from typing import Dict, List, Optional
 
 import psycopg2
-from psycopg2.extras import RealDictCursor
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -52,7 +49,7 @@ def clean_text(text: str) -> str:
     return text
 
 
-def parse_ingredients(ingredients_str: str) -> List[str]:
+def parse_ingredients(ingredients_str: str) -> list[str]:
     """Parse ingredients string into list"""
     if not ingredients_str:
         return []
@@ -81,7 +78,7 @@ def parse_ingredients(ingredients_str: str) -> List[str]:
     return ingredients
 
 
-def parse_instructions(instructions_str: str) -> List[str]:
+def parse_instructions(instructions_str: str) -> list[str]:
     """Parse instructions into steps"""
     if not instructions_str:
         return []
@@ -128,8 +125,7 @@ def estimate_cooking_time(title: str, instructions: str) -> int:
         for match in matches:
             try:
                 time_value = int(match) * multiplier
-                if time_value > total_minutes:
-                    total_minutes = time_value
+                total_minutes = max(total_minutes, time_value)
             except:
                 pass
 
@@ -137,7 +133,7 @@ def estimate_cooking_time(title: str, instructions: str) -> int:
     return min(total_minutes, 240)  # max 4 hours
 
 
-def categorize_recipe(title: str, ingredients: List[str]) -> Dict:
+def categorize_recipe(title: str, ingredients: list[str]) -> dict:
     """Categorize recipe by cuisine and difficulty"""
     title_lower = title.lower()
     ingredients_text = " ".join(ingredients).lower()
@@ -187,7 +183,7 @@ def import_recipes():
         # cur.execute("DELETE FROM recipes WHERE recipe_id > 10000")
 
         # Open CSV file
-        with open(CSV_PATH, "r", encoding="utf-8") as f:
+        with open(CSV_PATH, encoding="utf-8") as f:
             reader = csv.DictReader(f)
 
             # Start recipe ID from 20001 to avoid conflicts
@@ -232,8 +228,8 @@ def import_recipes():
                 cur.execute(
                     """
                     INSERT INTO recipes (
-                        recipe_id, recipe_name, cuisine_type, 
-                        prep_time, cook_time, servings, difficulty, 
+                        recipe_id, recipe_name, cuisine_type,
+                        prep_time, cook_time, servings, difficulty,
                         recipe_data, created_at
                     ) VALUES (
                         %s, %s, %s, %s, %s, %s, %s, %s, %s
@@ -305,7 +301,7 @@ def import_recipes():
         # Final commit
         conn.commit()
 
-        print(f"\n✅ Import complete!")
+        print("\n✅ Import complete!")
         print(f"Total recipes in CSV: {total_recipes}")
         print(f"Successfully imported: {imported_recipes}")
         print(f"Skipped (missing data): {skipped_recipes}")

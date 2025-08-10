@@ -21,7 +21,7 @@ def analyze_pantry_units():
 
     # Get all pantry items
     query = """
-    SELECT 
+    SELECT
         pi.pantry_item_id,
         pi.product_name,
         pi.category,
@@ -64,7 +64,6 @@ def analyze_pantry_units():
         "bagel",
     ]
 
-    weight_units = ["g", "gram", "grams", "kg", "kilogram", "oz", "ounce", "lb", "pound", "pounds"]
     count_units = [
         "each",
         "piece",
@@ -175,7 +174,7 @@ def generate_fix_script(invalid_items):
 
         sql = f"""
 -- Fix {len(items)} items: {change}
-UPDATE pantry_items 
+UPDATE pantry_items
 SET unit_of_measurement = '{suggested_unit}'
 WHERE pantry_item_id IN ({','.join(item_ids)})
 AND unit_of_measurement = '{current_unit}';
@@ -195,7 +194,7 @@ AND unit_of_measurement = '{current_unit}';
         f.write("-- COMMIT;\n")
         f.write("-- or ROLLBACK;\n")
 
-    print(f"Fix script written to fix_pantry_units.sql")
+    print("Fix script written to fix_pantry_units.sql")
     print(f"Total updates: {len(invalid_items)}")
     print("\nReview the script before running it on the database!")
 

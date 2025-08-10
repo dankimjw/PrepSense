@@ -6,7 +6,6 @@ Supports PostgreSQL backend only
 import logging
 import os
 from enum import Enum
-from typing import Any, Dict, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +49,14 @@ class DatabaseConfig:
 
                 try:
                     result = subprocess.run(
-                        ["gcloud", "config", "get-value", "account"], capture_output=True, text=True
+                        ["gcloud", "config", "get-value", "account"],
+                        check=False,
+                        capture_output=True,
+                        text=True,
                     )
                     if result.returncode == 0:
                         iam_user = result.stdout.strip()
-                except:
+                except Exception:
                     pass
 
             if not iam_user:

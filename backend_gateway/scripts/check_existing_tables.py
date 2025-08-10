@@ -3,7 +3,6 @@
 Check existing tables in the GCP Cloud SQL database
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -31,7 +30,7 @@ def check_existing_tables():
         tables = db_service.execute_query(
             """
             SELECT tablename, schemaname
-            FROM pg_tables 
+            FROM pg_tables
             WHERE schemaname = 'public'
             ORDER BY tablename
         """
@@ -45,8 +44,8 @@ def check_existing_tables():
         units_check = db_service.execute_query(
             """
             SELECT COUNT(*) as count
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name = 'units'
         """
         )

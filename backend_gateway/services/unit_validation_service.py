@@ -6,10 +6,8 @@ and intelligent suggestions based on food type.
 
 import logging
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
-from backend_gateway.constants.units import Unit, UnitCategory
 from backend_gateway.services.food_database_service import FoodDatabaseService
 
 logger = logging.getLogger(__name__)
@@ -69,7 +67,7 @@ class UnitValidationService:
 
     async def validate_unit(
         self, item_name: str, unit: str, quantity: Optional[float] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Comprehensive unit validation for a food item.
 
@@ -128,7 +126,7 @@ class UnitValidationService:
 
     async def suggest_best_unit(
         self, item_name: str, context: Optional[str] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Suggest the best unit for a food item based on context.
 
@@ -169,7 +167,7 @@ class UnitValidationService:
 
     async def convert_unit(
         self, item_name: str, amount: float, from_unit: str, to_unit: str
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """
         Convert between units for a specific food item.
 
@@ -280,8 +278,8 @@ class UnitValidationService:
         return mappings.get(unit_lower, unit_lower)
 
     def _apply_special_rules(
-        self, item_name: str, unit: str, food_info: Dict[str, Any]
-    ) -> Optional[Dict[str, Any]]:
+        self, item_name: str, unit: str, food_info: dict[str, Any]
+    ) -> Optional[dict[str, Any]]:
         """Apply special validation rules."""
         item_lower = item_name.lower()
 
@@ -341,8 +339,8 @@ class UnitValidationService:
         return None
 
     def _enhance_with_quantity_context(
-        self, validation_result: Dict[str, Any], item_name: str, unit: str, quantity: float
-    ) -> Dict[str, Any]:
+        self, validation_result: dict[str, Any], item_name: str, unit: str, quantity: float
+    ) -> dict[str, Any]:
         """Enhance validation with quantity context."""
         # Check for unreasonable quantities
         warnings = []
@@ -375,8 +373,8 @@ class UnitValidationService:
         return validation_result
 
     async def _suggest_conversions(
-        self, item_name: str, amount: float, from_unit: str, to_units: List[str]
-    ) -> List[Dict[str, Any]]:
+        self, item_name: str, amount: float, from_unit: str, to_units: list[str]
+    ) -> list[dict[str, Any]]:
         """Suggest conversions to recommended units."""
         conversions = []
 
@@ -396,7 +394,7 @@ class UnitValidationService:
 
         return conversions
 
-    def _get_unit_suggestions_by_category(self, category: str, item_name: str) -> Dict[str, Any]:
+    def _get_unit_suggestions_by_category(self, category: str, item_name: str) -> dict[str, Any]:
         """Get unit suggestions based on food category."""
         suggestions = {
             "produce_countable": {
@@ -455,8 +453,8 @@ class UnitValidationService:
         return suggestions.get(category, default)
 
     def _adjust_for_context(
-        self, suggestions: Dict[str, Any], context: str, category: str
-    ) -> Dict[str, Any]:
+        self, suggestions: dict[str, Any], context: str, category: str
+    ) -> dict[str, Any]:
         """Adjust unit suggestions based on usage context."""
         if context == "shopping":
             # Prefer units commonly used in stores
@@ -484,7 +482,7 @@ class UnitValidationService:
 
         return suggestions
 
-    async def _get_typical_quantities(self, item_name: str, unit: str) -> Dict[str, float]:
+    async def _get_typical_quantities(self, item_name: str, unit: str) -> dict[str, float]:
         """Get typical quantities for an item in different units."""
         # This would query historical data or use predefined values
         # For now, return common quantities
@@ -507,7 +505,7 @@ class UnitValidationService:
 
     async def _validate_conversion(
         self, item_name: str, from_unit: str, to_unit: str
-    ) -> Dict[str, bool]:
+    ) -> dict[str, bool]:
         """Validate if a conversion makes sense."""
         # Get unit categories
         from_category = self._get_unit_category(from_unit)
@@ -550,7 +548,7 @@ class UnitValidationService:
 
     def _get_generic_conversion(
         self, from_unit: str, to_unit: str, amount: float
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get generic conversions that don't depend on the item."""
         # Weight conversions
         weight_conversions = {

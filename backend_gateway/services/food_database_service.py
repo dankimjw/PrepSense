@@ -3,14 +3,13 @@ Enhanced food database service that integrates multiple external sources
 for better food categorization and unit validation
 """
 
-import asyncio
 import json
 import logging
 import os
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import httpx
 
@@ -23,11 +22,11 @@ logger = logging.getLogger(__name__)
 class FoodCategorization:
     item_name: str
     category: str
-    allowed_units: List[str]
+    allowed_units: list[str]
     default_unit: str
     confidence: float
     source: str
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
 
 class FoodDatabaseService:
@@ -167,10 +166,10 @@ class FoodDatabaseService:
         """Get USDA API key from file or environment"""
         try:
             if os.path.exists("config/usda_key.txt"):
-                with open("config/usda_key.txt", "r") as f:
+                with open("config/usda_key.txt") as f:
                     return f.read().strip()
             return os.environ.get("USDA_API_KEY")
-        except:
+        except Exception:
             return None
 
     async def categorize_food_item(
@@ -291,7 +290,7 @@ class FoodDatabaseService:
     async def _categorize_with_openfoodfacts(self, item_name: str) -> Optional[FoodCategorization]:
         """Categorize using OpenFoodFacts API"""
         try:
-            url = f"https://world.openfoodfacts.org/cgi/search.pl"
+            url = "https://world.openfoodfacts.org/cgi/search.pl"
             params = {
                 "search_terms": item_name,
                 "search_simple": 1,
@@ -409,7 +408,7 @@ class FoodDatabaseService:
             return "snacks_bars" if "bar" in item_name.lower() else "packaged_snacks"
         return "other"
 
-    async def validate_unit_for_item(self, item_name: str, unit: str) -> Dict[str, Any]:
+    async def validate_unit_for_item(self, item_name: str, unit: str) -> dict[str, Any]:
         """
         Validate if a unit is appropriate for a given item
         Returns validation result with suggestions
@@ -460,7 +459,7 @@ class FoodDatabaseService:
         try:
             query = """
             SELECT category, allowed_units, default_unit, confidence, source, metadata, updated_at
-            FROM food_categorization_cache 
+            FROM food_categorization_cache
             WHERE LOWER(item_name) = LOWER(%s)
             AND updated_at > %s
             """
@@ -491,7 +490,7 @@ class FoodDatabaseService:
         if self.db_service:
             try:
                 query = """
-                INSERT INTO food_categorization_cache 
+                INSERT INTO food_categorization_cache
                 (item_name, category, allowed_units, default_unit, confidence, source, metadata, updated_at)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                 ON DUPLICATE KEY UPDATE
@@ -529,7 +528,7 @@ class FoodDatabaseService:
 
         try:
             query = """
-            INSERT INTO food_categorization_corrections 
+            INSERT INTO food_categorization_corrections
             (item_name, old_category, new_category, user_id, correction_date)
             VALUES (%s, %s, %s, %s, %s)
             """

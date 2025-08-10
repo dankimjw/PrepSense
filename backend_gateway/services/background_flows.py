@@ -6,12 +6,11 @@ Handles deterministic tasks that can be pre-computed and cached
 import asyncio
 import json
 import logging
-import os
 import pickle
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -43,13 +42,13 @@ class ExpiringItem:
 class UserPreferenceVector:
     """User preference vector for fast matching"""
 
-    cuisine_weights: Dict[str, float]
-    ingredient_preferences: Dict[str, float]  # positive/negative scores
-    nutritional_goals: Dict[str, float]
+    cuisine_weights: dict[str, float]
+    ingredient_preferences: dict[str, float]  # positive/negative scores
+    nutritional_goals: dict[str, float]
     cooking_time_preference: float  # minutes
     complexity_preference: float  # 0-1, higher = more complex
-    dietary_restrictions: List[str]
-    allergens: List[str]
+    dietary_restrictions: list[str]
+    allergens: list[str]
     last_updated: datetime
 
 
@@ -66,7 +65,7 @@ class BackgroundFlowManager:
         self.preference_cache = self.cache_dir / "user_preferences.pkl"
         self.recipe_index_cache = self.cache_dir / "recipe_embeddings.pkl"
 
-    async def run_pantry_scan_flow(self, user_id: int, db_service) -> Dict[str, Any]:
+    async def run_pantry_scan_flow(self, user_id: int, db_service) -> dict[str, Any]:
         """
         Pantry Scan Flow - fetch & normalize items
         Triggers: User opens app, pantry updates
@@ -76,9 +75,9 @@ class BackgroundFlowManager:
 
             # Fetch raw pantry items
             query = """
-                SELECT product_name, category, quantity, unit_of_measurement, expiration_date, 
+                SELECT product_name, category, quantity, unit_of_measurement, expiration_date,
                        created_at, updated_at
-                FROM pantry_items 
+                FROM pantry_items
                 WHERE quantity > 0
             """
             raw_items = db_service.execute_query(query, {})
@@ -111,7 +110,7 @@ class BackgroundFlowManager:
             logger.error(f"Error in pantry scan flow: {str(e)}")
             raise
 
-    async def run_expiry_auditor_flow(self, user_id: int) -> Dict[str, Any]:
+    async def run_expiry_auditor_flow(self, user_id: int) -> dict[str, Any]:
         """
         Expiry Auditor Flow - compute days-left scores
         Triggers: Same as pantry scan
@@ -123,7 +122,7 @@ class BackgroundFlowManager:
             if not self.inventory_cache.exists():
                 raise FileNotFoundError("Inventory cache not found - run pantry scan first")
 
-            with open(self.inventory_cache, "r") as f:
+            with open(self.inventory_cache) as f:
                 inventory_data = json.load(f)
 
             # Calculate expiry urgency
@@ -194,7 +193,7 @@ class BackgroundFlowManager:
             try:
                 history_query = """
                     SELECT recipe_id, action, metadata, timestamp
-                    FROM user_recipe_interactions 
+                    FROM user_recipe_interactions
                     WHERE user_id = %(user_id)s AND timestamp >= %(since_date)s
                     ORDER BY timestamp DESC
                 """
@@ -224,7 +223,7 @@ class BackgroundFlowManager:
             logger.error(f"Error building preference vector: {str(e)}")
             raise
 
-    def _normalize_pantry_item(self, raw_item: Dict[str, Any]) -> InventoryItem:
+    def _normalize_pantry_item(self, raw_item: dict[str, Any]) -> InventoryItem:
         """Normalize a raw pantry item"""
         # Calculate days until expiry
         days_until_expiry = None
@@ -259,7 +258,7 @@ class BackgroundFlowManager:
             return 0.1  # Very low urgency
 
     def _build_preference_vector(
-        self, explicit_prefs: Dict, history: List[Dict]
+        self, explicit_prefs: dict, history: list[dict]
     ) -> UserPreferenceVector:
         """Build preference vector from explicit preferences and interaction history"""
 
@@ -328,17 +327,17 @@ class BackgroundFlowManager:
             last_updated=datetime.now(),
         )
 
-    def load_cached_inventory(self) -> Optional[Dict[str, Any]]:
+    def load_cached_inventory(self) -> Optional[dict[str, Any]]:
         """Load cached inventory data"""
         if self.inventory_cache.exists():
-            with open(self.inventory_cache, "r") as f:
+            with open(self.inventory_cache) as f:
                 return json.load(f)
         return None
 
-    def load_cached_expiry(self) -> Optional[Dict[str, Any]]:
+    def load_cached_expiry(self) -> Optional[dict[str, Any]]:
         """Load cached expiry data"""
         if self.expiry_cache.exists():
-            with open(self.expiry_cache, "r") as f:
+            with open(self.expiry_cache) as f:
                 return json.load(f)
         return None
 

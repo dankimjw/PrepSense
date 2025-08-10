@@ -11,10 +11,9 @@ import logging
 import os
 import sys
 import time
-import zipfile
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Optional
 
 import aiofiles
 import aiohttp
@@ -49,7 +48,7 @@ class FoodDatabaseImportPipeline:
         self.batch_size = 100
         self.max_concurrent_requests = 5
 
-    async def run_import_pipeline(self, sources: List[str] = None):
+    async def run_import_pipeline(self, sources: list[str] = None):
         """
         Run the import pipeline for specified sources
 
@@ -93,12 +92,12 @@ class FoodDatabaseImportPipeline:
 
         return results
 
-    async def _check_rate_limits(self, sources: List[str]):
+    async def _check_rate_limits(self, sources: list[str]):
         """Check and update API rate limits"""
         for source in sources:
             query = """
-                SELECT requests_today, daily_limit, last_reset 
-                FROM api_rate_limits 
+                SELECT requests_today, daily_limit, last_reset
+                FROM api_rate_limits
                 WHERE api_name = %s
             """
             result = self.db_service.fetch_one(query, (source,))
@@ -107,8 +106,8 @@ class FoodDatabaseImportPipeline:
                 # Reset if it's a new day
                 if result["last_reset"].date() < datetime.now().date():
                     reset_query = """
-                        UPDATE api_rate_limits 
-                        SET requests_today = 0, last_reset = %s 
+                        UPDATE api_rate_limits
+                        SET requests_today = 0, last_reset = %s
                         WHERE api_name = %s
                     """
                     self.db_service.execute_query(reset_query, (datetime.now(), source))
@@ -118,7 +117,7 @@ class FoodDatabaseImportPipeline:
                 if usage_percent > 90:
                     logger.warning(f"{source} API usage at {usage_percent:.1f}% of daily limit")
 
-    async def _import_usda_data(self) -> Dict[str, Any]:
+    async def _import_usda_data(self) -> dict[str, Any]:
         """Import data from USDA FoodData Central"""
         results = {"success": 0, "failed": 0, "skipped": 0, "errors": []}
 
@@ -186,8 +185,8 @@ class FoodDatabaseImportPipeline:
         return results
 
     async def _process_usda_batch(
-        self, foods: List[Dict], session: aiohttp.ClientSession
-    ) -> Dict[str, Any]:
+        self, foods: list[dict], session: aiohttp.ClientSession
+    ) -> dict[str, Any]:
         """Process a batch of USDA foods"""
         results = {"success": 0, "failed": 0, "skipped": 0, "errors": []}
 
@@ -231,7 +230,7 @@ class FoodDatabaseImportPipeline:
 
     async def _get_usda_nutrition(
         self, fdc_id: int, session: aiohttp.ClientSession
-    ) -> Optional[Dict]:
+    ) -> Optional[dict]:
         """Get nutrition information for a USDA food"""
         try:
             url = f"{self.usda_base_url}/food/{fdc_id}"
@@ -262,7 +261,7 @@ class FoodDatabaseImportPipeline:
 
         return None
 
-    async def _import_openfoodfacts_data(self) -> Dict[str, Any]:
+    async def _import_openfoodfacts_data(self) -> dict[str, Any]:
         """Import data from Open Food Facts"""
         results = {"success": 0, "failed": 0, "skipped": 0, "errors": []}
 
@@ -310,7 +309,7 @@ class FoodDatabaseImportPipeline:
 
         return results
 
-    async def _process_off_batch(self, products: List[Dict]) -> Dict[str, Any]:
+    async def _process_off_batch(self, products: list[dict]) -> dict[str, Any]:
         """Process a batch of Open Food Facts products"""
         results = {"success": 0, "failed": 0, "skipped": 0, "errors": []}
 
@@ -360,7 +359,7 @@ class FoodDatabaseImportPipeline:
 
         return results
 
-    def _is_quality_off_product(self, product: Dict) -> bool:
+    def _is_quality_off_product(self, product: dict) -> bool:
         """Check if an Open Food Facts product has good data quality"""
         # Must have a name
         if not product.get("product_name"):
@@ -377,13 +376,13 @@ class FoodDatabaseImportPipeline:
 
         return has_nutrition and (has_category or has_brand)
 
-    async def _save_food_item(self, food_data: Dict) -> bool:
+    async def _save_food_item(self, food_data: dict) -> bool:
         """Save a food item to the database"""
         try:
             # Check if item already exists
             check_query = """
-                SELECT item_id, confidence_score 
-                FROM food_items_cache 
+                SELECT item_id, confidence_score
+                FROM food_items_cache
                 WHERE normalized_name = %s AND (brand = %s OR (brand IS NULL AND %s IS NULL))
             """
             existing = self.db_service.fetch_one(
@@ -396,7 +395,7 @@ class FoodDatabaseImportPipeline:
                 new_confidence = self._calculate_confidence_score(food_data)
                 if new_confidence > float(existing["confidence_score"]):
                     update_query = """
-                        UPDATE food_items_cache 
+                        UPDATE food_items_cache
                         SET category = %s, data_source = %s, source_id = %s,
                             confidence_score = %s, metadata = %s, updated_at = CURRENT_TIMESTAMP,
                             calories_per_100g = COALESCE(%s, calories_per_100g),
@@ -427,7 +426,7 @@ class FoodDatabaseImportPipeline:
             confidence = self._calculate_confidence_score(food_data)
 
             insert_query = """
-                INSERT INTO food_items_cache 
+                INSERT INTO food_items_cache
                 (normalized_name, original_name, category, subcategory, brand, barcode,
                  calories_per_100g, protein_per_100g, carbs_per_100g, fat_per_100g,
                  data_source, source_id, confidence_score, metadata)
@@ -474,11 +473,11 @@ class FoodDatabaseImportPipeline:
             )
 
             # Insert unit mappings
-            for i, unit in enumerate(category_info["allowed"]):
+            for _i, unit in enumerate(category_info["allowed"]):
                 is_primary = unit == category_info["default"]
 
                 insert_query = """
-                    INSERT INTO food_unit_mappings 
+                    INSERT INTO food_unit_mappings
                     (item_id, unit, is_primary, confidence_score)
                     VALUES (%s, %s, %s, %s)
                     ON CONFLICT (item_id, unit) DO NOTHING
@@ -508,7 +507,7 @@ class FoodDatabaseImportPipeline:
 
         return normalized
 
-    def _map_usda_food_category(self, food: Dict) -> str:
+    def _map_usda_food_category(self, food: dict) -> str:
         """Map USDA food data to our categories"""
         food_category = food.get("foodCategory", "").lower()
         description = food.get("description", "").lower()
@@ -543,7 +542,7 @@ class FoodDatabaseImportPipeline:
 
         return "other"
 
-    def _map_off_category(self, product: Dict) -> str:
+    def _map_off_category(self, product: dict) -> str:
         """Map Open Food Facts categories to our categories"""
         categories = product.get("categories", "").lower()
         product_name = product.get("product_name", "").lower()
@@ -572,7 +571,7 @@ class FoodDatabaseImportPipeline:
 
         return "other"
 
-    def _calculate_confidence_score(self, food_data: Dict) -> float:
+    def _calculate_confidence_score(self, food_data: dict) -> float:
         """Calculate confidence score based on data completeness"""
         score = 0.5  # Base score
 
@@ -604,33 +603,32 @@ class FoodDatabaseImportPipeline:
 
     async def _download_file(self, url: str, destination: Path):
         """Download a file with progress tracking"""
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                response.raise_for_status()
+        async with aiohttp.ClientSession() as session, session.get(url) as response:
+            response.raise_for_status()
 
-                total_size = int(response.headers.get("Content-Length", 0))
-                downloaded = 0
+            total_size = int(response.headers.get("Content-Length", 0))
+            downloaded = 0
 
-                async with aiofiles.open(destination, "wb") as file:
-                    async for chunk in response.content.iter_chunked(8192):
-                        await file.write(chunk)
-                        downloaded += len(chunk)
+            async with aiofiles.open(destination, "wb") as file:
+                async for chunk in response.content.iter_chunked(8192):
+                    await file.write(chunk)
+                    downloaded += len(chunk)
 
-                        if total_size > 0:
-                            progress = (downloaded / total_size) * 100
-                            if downloaded % (1024 * 1024) == 0:  # Log every MB
-                                logger.info(f"Download progress: {progress:.1f}%")
+                    if total_size > 0:
+                        progress = (downloaded / total_size) * 100
+                        if downloaded % (1024 * 1024) == 0:  # Log every MB
+                            logger.info(f"Download progress: {progress:.1f}%")
 
     async def _increment_api_counter(self, api_name: str, count: int = 1):
         """Increment API request counter"""
         query = """
-            UPDATE api_rate_limits 
-            SET requests_today = requests_today + %s 
+            UPDATE api_rate_limits
+            SET requests_today = requests_today + %s
             WHERE api_name = %s
         """
         self.db_service.execute_query(query, (count, api_name))
 
-    async def _update_import_statistics(self, results: Dict):
+    async def _update_import_statistics(self, results: dict):
         """Update import statistics in the database"""
         try:
             # Create statistics table if not exists
@@ -649,7 +647,7 @@ class FoodDatabaseImportPipeline:
 
             # Insert statistics
             insert_query = """
-                INSERT INTO food_import_statistics 
+                INSERT INTO food_import_statistics
                 (items_imported, items_updated, items_failed, metadata)
                 VALUES (%s, %s, %s, %s)
             """
@@ -669,8 +667,8 @@ class FoodDatabaseImportPipeline:
         try:
             # Remove items not accessed in 6 months with low confidence
             cleanup_query = """
-                DELETE FROM food_items_cache 
-                WHERE confidence_score < 0.3 
+                DELETE FROM food_items_cache
+                WHERE confidence_score < 0.3
                 AND last_verified_at < %s
             """
             cutoff_date = datetime.now() - timedelta(days=180)
@@ -678,7 +676,7 @@ class FoodDatabaseImportPipeline:
 
             # Remove orphaned unit mappings
             orphan_query = """
-                DELETE FROM food_unit_mappings 
+                DELETE FROM food_unit_mappings
                 WHERE item_id NOT IN (SELECT item_id FROM food_items_cache)
             """
             self.db_service.execute_query(orphan_query)
@@ -686,7 +684,7 @@ class FoodDatabaseImportPipeline:
         except Exception as e:
             logger.error(f"Error cleaning up old data: {str(e)}")
 
-    def _merge_results(self, total: Dict, partial: Dict):
+    def _merge_results(self, total: dict, partial: dict):
         """Merge partial results into total results"""
         total["success"] += partial.get("success", 0)
         total["failed"] += partial.get("failed", 0)
@@ -763,13 +761,13 @@ async def main():
         results = await pipeline.run_import_pipeline(args.sources)
 
         # Print results
-        print(f"\n📊 Import Results:")
+        print("\n📊 Import Results:")
         print(f"   ✅ Imported: {results['success']} items")
         print(f"   ⏭️  Skipped: {results['skipped']} items (already up-to-date)")
         print(f"   ❌ Failed: {results['failed']} items")
 
         if results["errors"]:
-            print(f"\n⚠️  Errors encountered:")
+            print("\n⚠️  Errors encountered:")
             for error in results["errors"][:5]:  # Show first 5 errors
                 print(f"   - {error}")
 

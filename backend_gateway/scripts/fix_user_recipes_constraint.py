@@ -3,7 +3,6 @@
 Fix the user_recipes foreign key constraint to allow external recipes
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -25,7 +24,7 @@ def fix_constraint():
         get_constraint = """
             SELECT constraint_name
             FROM information_schema.table_constraints
-            WHERE table_name = 'user_recipes' 
+            WHERE table_name = 'user_recipes'
             AND constraint_type = 'FOREIGN KEY'
             AND constraint_name LIKE '%recipe_id%';
         """
@@ -38,7 +37,7 @@ def fix_constraint():
 
                 # Drop the foreign key constraint
                 drop_query = f"""
-                    ALTER TABLE user_recipes 
+                    ALTER TABLE user_recipes
                     DROP CONSTRAINT IF EXISTS {constraint_name};
                 """
 

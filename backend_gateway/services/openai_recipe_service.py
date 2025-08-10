@@ -2,11 +2,10 @@
 
 import json
 import logging
-import os
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
-from ..core.openai_client import get_openai_client
+from backend_gateway.core.openai_client import get_openai_client
 
 logger = logging.getLogger(__name__)
 
@@ -23,13 +22,13 @@ class OpenAIRecipeService:
 
     async def generate_allergen_free_recipes(
         self,
-        ingredients: List[str],
-        allergens: List[str],
-        dietary_preferences: Optional[List[str]] = None,
+        ingredients: list[str],
+        allergens: list[str],
+        dietary_preferences: Optional[list[str]] = None,
         number: int = 3,
         cuisine: Optional[str] = None,
         max_time: Optional[int] = None,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Generate recipes that are guaranteed to be allergen-free
 
@@ -65,7 +64,7 @@ class OpenAIRecipeService:
                     {"role": "user", "content": prompt},
                 ],
                 temperature=0.7,
-                max_tokens=2000,
+                max_completion_tokens=2000,
             )
 
             # Parse the response
@@ -89,9 +88,9 @@ class OpenAIRecipeService:
 
     def _build_allergen_free_prompt(
         self,
-        ingredients: List[str],
-        allergens: List[str],
-        dietary_preferences: Optional[List[str]],
+        ingredients: list[str],
+        allergens: list[str],
+        dietary_preferences: Optional[list[str]],
         number: int,
         cuisine: Optional[str],
         max_time: Optional[int],
@@ -152,7 +151,7 @@ Remember: ABSOLUTELY NO ingredients containing the specified allergens!
 
         return prompt
 
-    def _parse_recipe_response(self, response: str) -> List[Dict[str, Any]]:
+    def _parse_recipe_response(self, response: str) -> list[dict[str, Any]]:
         """Parse OpenAI response into recipe dictionaries"""
         try:
             # Try to extract JSON from the response
@@ -199,8 +198,8 @@ Remember: ABSOLUTELY NO ingredients containing the specified allergens!
             return []
 
     async def generate_single_recipe(
-        self, ingredients: List[str], allergens: List[str], recipe_type: Optional[str] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, ingredients: list[str], allergens: list[str], recipe_type: Optional[str] = None
+    ) -> Optional[dict[str, Any]]:
         """Generate a single allergen-free recipe"""
 
         recipes = await self.generate_allergen_free_recipes(

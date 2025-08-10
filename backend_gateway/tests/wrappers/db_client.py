@@ -5,11 +5,9 @@ This wrapper provides a clean interface for testing database operations
 without direct dependencies on PostgreSQL or connection management.
 """
 
-import random
-import string
 from contextlib import contextmanager
-from datetime import date, datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple, Union
+from datetime import datetime, timedelta
+from typing import Any, Optional
 
 
 class MockDatabaseClient:
@@ -52,7 +50,7 @@ class MockDatabaseClient:
                 self.description = None
                 self.rowcount = 0
 
-            def execute(self, query: str, params: Optional[Dict[str, Any]] = None):
+            def execute(self, query: str, params: Optional[dict[str, Any]] = None):
                 self.client.query_history.append((query, params))
 
             def fetchall(self):
@@ -71,8 +69,8 @@ class MockDatabaseClient:
             cursor.close()
 
     def execute_query(
-        self, query: str, params: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, params: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
         """
         Execute a query and return mock results
 
@@ -97,18 +95,14 @@ class MockDatabaseClient:
             return self._get_mock_users(params)
         elif "select * from recipes" in query_lower:
             return self._get_mock_recipes(params)
-        elif "insert into" in query_lower:
-            return [{"affected_rows": 1}]
-        elif "update" in query_lower:
-            return [{"affected_rows": 1}]
-        elif "delete" in query_lower:
+        elif "insert into" in query_lower or "update" in query_lower or "delete" in query_lower:
             return [{"affected_rows": 1}]
 
         # Default empty result
         return []
 
     def execute_batch_insert(
-        self, table: str, data: List[Dict[str, Any]], conflict_resolution: Optional[str] = None
+        self, table: str, data: list[dict[str, Any]], conflict_resolution: Optional[str] = None
     ) -> int:
         """
         Batch insert data into a table
@@ -148,7 +142,7 @@ class MockDatabaseClient:
 
         return inserted_count
 
-    def _get_mock_pantry_items(self, params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_mock_pantry_items(self, params: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
         """Generate mock pantry items"""
         user_id = params.get("user_id", 111) if params else 111
 
@@ -188,7 +182,7 @@ class MockDatabaseClient:
             },
         ]
 
-    def _get_mock_user_pantry_full(self, params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_mock_user_pantry_full(self, params: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
         """Generate mock full pantry view data"""
         items = self._get_mock_pantry_items(params)
         # Add additional fields that would come from joined tables
@@ -199,7 +193,7 @@ class MockDatabaseClient:
             item["barcode"] = f"123456789{item['product_id']}"
         return items
 
-    def _get_mock_users(self, params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_mock_users(self, params: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
         """Generate mock users"""
         return [
             {
@@ -211,7 +205,7 @@ class MockDatabaseClient:
             }
         ]
 
-    def _get_mock_recipes(self, params: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _get_mock_recipes(self, params: Optional[dict[str, Any]]) -> list[dict[str, Any]]:
         """Generate mock recipes"""
         return [
             {
@@ -277,31 +271,31 @@ class DatabaseClientWrapper:
                 yield cursor
 
     def execute_query(
-        self, query: str, params: Optional[Dict[str, Any]] = None
-    ) -> List[Dict[str, Any]]:
+        self, query: str, params: Optional[dict[str, Any]] = None
+    ) -> list[dict[str, Any]]:
         """Execute a query"""
         if self._service and hasattr(self._service, "execute_query"):
             return self._service.execute_query(query, params)
         return self._mock.execute_query(query, params)
 
     def execute_batch_insert(
-        self, table: str, data: List[Dict[str, Any]], conflict_resolution: Optional[str] = None
+        self, table: str, data: list[dict[str, Any]], conflict_resolution: Optional[str] = None
     ) -> int:
         """Batch insert data"""
         if self._service and hasattr(self._service, "execute_batch_insert"):
             return self._service.execute_batch_insert(table, data, conflict_resolution)
         return self._mock.execute_batch_insert(table, data, conflict_resolution)
 
-    def get_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+    def get_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """Get pantry items for a user"""
         query = """
-            SELECT * FROM pantry_items 
+            SELECT * FROM pantry_items
             WHERE user_id = %(user_id)s
             ORDER BY expiration_date ASC
         """
         return self.execute_query(query, {"user_id": user_id})
 
-    def get_user_preferences(self, user_id: int) -> Dict[str, Any]:
+    def get_user_preferences(self, user_id: int) -> dict[str, Any]:
         """Get user preferences"""
         # Simplified version - in real implementation this would join multiple tables
         return {
@@ -310,15 +304,15 @@ class DatabaseClientWrapper:
             "cuisine_preferences": ["italian", "asian"],
         }
 
-    def add_pantry_item(self, item_data: Dict[str, Any]) -> int:
+    def add_pantry_item(self, item_data: dict[str, Any]) -> int:
         """Add a single pantry item"""
         return self.execute_batch_insert("pantry_items", [item_data])
 
-    def update_pantry_item(self, item_id: int, updates: Dict[str, Any]) -> int:
+    def update_pantry_item(self, item_id: int, updates: dict[str, Any]) -> int:
         """Update a pantry item"""
-        set_clause = ", ".join([f"{k} = %({k})s" for k in updates.keys()])
+        set_clause = ", ".join([f"{k} = %({k})s" for k in updates])
         query = f"""
-            UPDATE pantry_items 
+            UPDATE pantry_items
             SET {set_clause}
             WHERE pantry_item_id = %(item_id)s
         """
@@ -334,10 +328,10 @@ class DatabaseClientWrapper:
         result = self.execute_query(query, {"item_id": item_id})
         return result[0]["affected_rows"] if result else 0
 
-    def search_products(self, search_term: str, limit: int = 10) -> List[Dict[str, Any]]:
+    def search_products(self, search_term: str, limit: int = 10) -> list[dict[str, Any]]:
         """Search for products"""
         query = """
-            SELECT * FROM products 
+            SELECT * FROM products
             WHERE LOWER(product_name) LIKE %(search_term)s
             LIMIT %(limit)s
         """

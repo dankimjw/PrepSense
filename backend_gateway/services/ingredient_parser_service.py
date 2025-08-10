@@ -3,7 +3,7 @@
 import logging
 import re
 from fractions import Fraction
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import httpx
 
@@ -20,7 +20,7 @@ class IngredientParserService:
         if not self.api_key:
             # Try to read from file as fallback
             try:
-                with open("config/spoonacular_key.txt", "r") as f:
+                with open("config/spoonacular_key.txt") as f:
                     self.api_key = f.read().strip()
             except FileNotFoundError:
                 logger.warning("Spoonacular API key not found")
@@ -97,7 +97,7 @@ class IngredientParserService:
         # Weight conversions to grams (for aggregation)
         self.to_grams = {"ounce": 28.3495, "pound": 453.592, "gram": 1, "kilogram": 1000}
 
-    async def parse_ingredients_bulk(self, ingredient_strings: List[str]) -> List[Dict[str, Any]]:
+    async def parse_ingredients_bulk(self, ingredient_strings: list[str]) -> list[dict[str, Any]]:
         """
         Parse multiple ingredient strings using Spoonacular API
 
@@ -140,7 +140,7 @@ class IngredientParserService:
             # Fallback to local parsing
             return [self._parse_ingredient_locally(ing) for ing in ingredient_strings]
 
-    def _parse_ingredient_locally(self, ingredient_string: str) -> Dict[str, Any]:
+    def _parse_ingredient_locally(self, ingredient_string: str) -> dict[str, Any]:
         """
         Parse ingredient string locally without API
 
@@ -172,17 +172,11 @@ class IngredientParserService:
                 unit_str = match[2]
 
                 # Parse quantity
-                if "/" in qty_str:
-                    quantity = float(Fraction(qty_str))
-                else:
-                    quantity = float(qty_str)
+                quantity = float(Fraction(qty_str)) if "/" in qty_str else float(qty_str)
 
                 # Handle ranges (take average)
                 if qty_str2:
-                    if "/" in qty_str2:
-                        quantity2 = float(Fraction(qty_str2))
-                    else:
-                        quantity2 = float(qty_str2)
+                    quantity2 = float(Fraction(qty_str2)) if "/" in qty_str2 else float(qty_str2)
                     quantity = (quantity + quantity2) / 2
 
                 # Normalize unit
@@ -298,7 +292,7 @@ class IngredientParserService:
 
         return normalized
 
-    def _aggregate_quantities(self, quantities_by_unit: Dict[str, float]) -> Tuple[str, float]:
+    def _aggregate_quantities(self, quantities_by_unit: dict[str, float]) -> tuple[str, float]:
         """
         Aggregate quantities with different units to a common unit
 
@@ -359,7 +353,7 @@ class IngredientParserService:
             # Mixed or no standard units, return the first one
             return list(quantities_by_unit.items())[0] if quantities_by_unit else (None, 0)
 
-    def _enhance_parsed_data(self, parsed_ingredient: Dict[str, Any]) -> Dict[str, Any]:
+    def _enhance_parsed_data(self, parsed_ingredient: dict[str, Any]) -> dict[str, Any]:
         """
         Enhance Spoonacular parsed data with aggregation info
 
@@ -380,7 +374,7 @@ class IngredientParserService:
 
         return {"quantity": amount, "unit": normalized_unit, "name": normalized_name}
 
-    def aggregate_ingredients(self, ingredients: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def aggregate_ingredients(self, ingredients: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Aggregate ingredients with the same name
 

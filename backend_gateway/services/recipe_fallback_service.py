@@ -5,21 +5,17 @@ Local Backup Recipes → Spoonacular API → OpenAI Generation
 🟡 PARTIAL - Fallback service implementation (requires service integration)
 """
 
-import asyncio
 import logging
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Union
-
-import asyncpg
+from typing import Any, Optional, Union
 
 from backend_gateway.core.database import get_db_pool
 from backend_gateway.routers.backup_recipes_router import (
     get_backup_recipe_details,
     search_backup_recipes,
 )
-from backend_gateway.services.spoonacular_service import SpoonacularService
 
 logger = logging.getLogger(__name__)
 
@@ -59,14 +55,14 @@ class RecipeResult:
     image_url: Optional[str] = None
     ready_in_minutes: Optional[int] = None
     servings: Optional[int] = None
-    used_ingredients: List[str] = None
-    missed_ingredients: List[str] = None
+    used_ingredients: list[str] = None
+    missed_ingredients: list[str] = None
     match_ratio: Optional[float] = None
     cuisine_type: Optional[str] = None
     difficulty: Optional[str] = None
     spoonacular_id: Optional[int] = None  # For compatibility
     backup_recipe_id: Optional[int] = None  # For local recipes
-    raw_data: Dict[str, Any] = None
+    raw_data: dict[str, Any] = None
 
 
 class RecipeFallbackService:
@@ -88,13 +84,13 @@ class RecipeFallbackService:
     async def search_recipes(
         self,
         user_id: Optional[int] = None,
-        ingredients: Optional[List[str]] = None,
+        ingredients: Optional[list[str]] = None,
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         diet_type: Optional[str] = None,
         max_ready_time: Optional[int] = None,
         config: Optional[RecipeSearchConfig] = None,
-    ) -> List[RecipeResult]:
+    ) -> list[RecipeResult]:
         """
         Search for recipes using fallback logic.
 
@@ -193,7 +189,7 @@ class RecipeFallbackService:
 
     async def get_recipe_details(
         self, recipe_id: Union[int, str], source: RecipeSource, include_nutrition: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get detailed recipe information from the appropriate source."""
         try:
             if source == RecipeSource.BACKUP_LOCAL:
@@ -210,13 +206,13 @@ class RecipeFallbackService:
 
     async def _search_backup_recipes(
         self,
-        ingredients: Optional[List[str]] = None,
+        ingredients: Optional[list[str]] = None,
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         max_ready_time: Optional[int] = None,
         max_results: int = 10,
         min_match_ratio: float = 0.3,
-    ) -> List[RecipeResult]:
+    ) -> list[RecipeResult]:
         """Search local backup recipes database."""
         try:
             pool = await get_db_pool()
@@ -266,13 +262,13 @@ class RecipeFallbackService:
     async def _search_spoonacular(
         self,
         user_id: Optional[int] = None,
-        ingredients: Optional[List[str]] = None,
+        ingredients: Optional[list[str]] = None,
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         diet_type: Optional[str] = None,
         max_ready_time: Optional[int] = None,
         max_results: int = 10,
-    ) -> List[RecipeResult]:
+    ) -> list[RecipeResult]:
         """Search Spoonacular API."""
         try:
             # Initialize Spoonacular service if needed
@@ -317,11 +313,11 @@ class RecipeFallbackService:
     async def _generate_ai_recipes(
         self,
         user_id: Optional[int] = None,
-        ingredients: Optional[List[str]] = None,
+        ingredients: Optional[list[str]] = None,
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         max_results: int = 3,
-    ) -> List[RecipeResult]:
+    ) -> list[RecipeResult]:
         """Generate recipes using AI (OpenAI/CrewAI)."""
         try:
             # This would integrate with existing AI recipe generation
@@ -335,7 +331,7 @@ class RecipeFallbackService:
 
     async def _get_backup_recipe_details(
         self, recipe_id: int, include_nutrition: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get detailed backup recipe information."""
         try:
             pool = await get_db_pool()
@@ -350,7 +346,7 @@ class RecipeFallbackService:
 
     async def _get_spoonacular_recipe_details(
         self, recipe_id: int, include_nutrition: bool = False
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get detailed Spoonacular recipe information."""
         try:
             if self.spoonacular_service is None:
@@ -367,8 +363,8 @@ class RecipeFallbackService:
             return None
 
     def _sort_and_prioritize_results(
-        self, results: List[RecipeResult], config: RecipeSearchConfig
-    ) -> List[RecipeResult]:
+        self, results: list[RecipeResult], config: RecipeSearchConfig
+    ) -> list[RecipeResult]:
         """Sort and prioritize results based on quality and preferences."""
 
         def sort_key(result: RecipeResult) -> tuple:
@@ -393,7 +389,7 @@ class RecipeFallbackService:
 
         return sorted(results, key=sort_key)
 
-    def _update_performance_stats(self, elapsed_time: float, results: List[RecipeResult]):
+    def _update_performance_stats(self, elapsed_time: float, results: list[RecipeResult]):
         """Update performance tracking statistics."""
         # Update average response time
         self._performance_stats["avg_response_time"] = (
@@ -418,7 +414,7 @@ class RecipeFallbackService:
                 1, self._performance_stats["spoonacular_queries"]
             )
 
-    def get_performance_stats(self) -> Dict[str, Any]:
+    def get_performance_stats(self) -> dict[str, Any]:
         """Get current performance statistics."""
         return self._performance_stats.copy()
 

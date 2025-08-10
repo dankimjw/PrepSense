@@ -6,7 +6,7 @@ Integrates backup recipes, Spoonacular, and AI generation.
 """
 
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -28,7 +28,7 @@ class EnhancedRecipeSearchRequest(BaseModel):
     """Enhanced recipe search with fallback options."""
 
     user_id: Optional[int] = Field(None, description="User ID for personalized search")
-    ingredients: Optional[List[str]] = Field(None, description="Available ingredients")
+    ingredients: Optional[list[str]] = Field(None, description="Available ingredients")
     query: Optional[str] = Field(None, description="Natural language search query")
     cuisine: Optional[str] = Field(None, description="Cuisine type preference")
     diet_type: Optional[str] = Field(None, description="Diet type (vegetarian, vegan, etc.)")
@@ -67,7 +67,7 @@ class RecipeFromPantryRequest(BaseModel):
 class RecipeSourceFilter(BaseModel):
     """Filter recipes by source."""
 
-    sources: List[RecipeSource] = Field(
+    sources: list[RecipeSource] = Field(
         default_factory=lambda: [RecipeSource.BACKUP_LOCAL, RecipeSource.SPOONACULAR]
     )
     prefer_local: bool = Field(True, description="Prefer local recipes over external APIs")
@@ -84,7 +84,7 @@ router = APIRouter(
 async def search_recipes_enhanced(
     request: EnhancedRecipeSearchRequest,
     fallback_service: RecipeFallbackService = Depends(get_recipe_fallback_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Enhanced recipe search using intelligent fallback logic.
 
@@ -158,7 +158,7 @@ async def search_recipes_enhanced(
 
     except Exception as e:
         logger.error(f"Enhanced recipe search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Search failed: {str(e)}") from e
 
 
 @router.post("/search/from-pantry", summary="Find recipes using pantry items with fallback")
@@ -166,7 +166,7 @@ async def search_recipes_from_pantry_enhanced(
     request: RecipeFromPantryRequest,
     fallback_service: RecipeFallbackService = Depends(get_recipe_fallback_service),
     pantry_service: PantryService = Depends(get_pantry_service_dep),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Find recipes using user's pantry items with intelligent fallback.
 
@@ -256,7 +256,7 @@ async def search_recipes_from_pantry_enhanced(
         raise
     except Exception as e:
         logger.error(f"Pantry recipe search failed: {e}")
-        raise HTTPException(status_code=500, detail=f"Pantry search failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Pantry search failed: {str(e)}") from e
 
 
 @router.get("/{recipe_id}", summary="Get recipe details with source auto-detection")
@@ -267,7 +267,7 @@ async def get_recipe_details_enhanced(
     ),
     include_nutrition: bool = Query(False, description="Include nutrition information"),
     fallback_service: RecipeFallbackService = Depends(get_recipe_fallback_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get detailed recipe information with intelligent source detection.
 
@@ -323,13 +323,15 @@ async def get_recipe_details_enhanced(
         raise
     except Exception as e:
         logger.error(f"Error getting recipe details for {recipe_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to get recipe details: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get recipe details: {str(e)}"
+        ) from e
 
 
 @router.get("/stats/performance", summary="Get fallback service performance statistics")
 async def get_performance_statistics(
     fallback_service: RecipeFallbackService = Depends(get_recipe_fallback_service),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get current performance statistics for the recipe fallback service."""
     stats = fallback_service.get_performance_stats()
 
@@ -346,7 +348,7 @@ async def get_performance_statistics(
 
 
 @router.get("/sources/available", summary="Check availability of recipe sources")
-async def check_source_availability() -> Dict[str, Any]:
+async def check_source_availability() -> dict[str, Any]:
     """Check the availability and health of different recipe sources."""
     try:
         source_status = {
@@ -386,4 +388,4 @@ async def check_source_availability() -> Dict[str, Any]:
 
     except Exception as e:
         logger.error(f"Error checking source availability: {e}")
-        raise HTTPException(status_code=500, detail="Failed to check source availability")
+        raise HTTPException(status_code=500, detail="Failed to check source availability") from e

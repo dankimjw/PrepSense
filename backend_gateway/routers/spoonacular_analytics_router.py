@@ -14,8 +14,8 @@ Endpoints:
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
@@ -48,14 +48,14 @@ def get_analytics_tracker():
         return SpoonacularAPITracker(db_service=db_service)
     except Exception as e:
         logger.error(f"Error creating analytics tracker: {str(e)}")
-        raise HTTPException(status_code=500, detail="Analytics service unavailable")
+        raise HTTPException(status_code=500, detail="Analytics service unavailable") from e
 
 
 @router.get("/usage/daily")
 async def get_daily_usage(
     date: Optional[str] = Query(None, description="Date in YYYY-MM-DD format, defaults to today"),
     tracker: SpoonacularAPITracker = Depends(get_analytics_tracker),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get daily Spoonacular API usage statistics.
 
@@ -78,7 +78,9 @@ async def get_daily_usage(
             try:
                 target_date = datetime.strptime(date, "%Y-%m-%d").date()
             except ValueError:
-                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+                raise HTTPException(
+                    status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
+                ) from None
         else:
             target_date = datetime.now().date()
 
@@ -86,7 +88,7 @@ async def get_daily_usage(
         days_back = (datetime.now().date() - target_date).days + 1
 
         # Get usage statistics for the specific day
-        stats = tracker.get_usage_stats(days=days_back)
+        tracker.get_usage_stats(days=days_back)
 
         # Get call history for detailed breakdown
         call_history = tracker.get_call_history(hours=24 * days_back, limit=1000)
@@ -151,9 +153,9 @@ async def get_daily_usage(
                     else 0
                 ),
                 "unique_users": len(
-                    set(call.get("user_id") for call in target_calls if call.get("user_id"))
+                    {call.get("user_id") for call in target_calls if call.get("user_id")}
                 ),
-                "unique_endpoints": len(set(call.get("endpoint") for call in target_calls)),
+                "unique_endpoints": len({call.get("endpoint") for call in target_calls}),
             },
             "endpoint_breakdown": endpoint_breakdown,
             "implementation_status": "🟡 PARTIAL - Endpoint working, database integration pending",
@@ -161,7 +163,9 @@ async def get_daily_usage(
 
     except Exception as e:
         logger.error(f"Error getting daily usage: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving daily usage: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error retrieving daily usage: {str(e)}"
+        ) from e
 
 
 @router.get("/usage/user/{user_id}")
@@ -169,7 +173,7 @@ async def get_user_usage(
     user_id: int,
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze (1-90)"),
     tracker: SpoonacularAPITracker = Depends(get_analytics_tracker),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get user-specific Spoonacular API usage analytics.
 
@@ -258,14 +262,14 @@ async def get_user_usage(
 
     except Exception as e:
         logger.error(f"Error getting user usage for {user_id}: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error retrieving user usage: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error retrieving user usage: {str(e)}") from e
 
 
 @router.get("/cost/projection")
 async def get_cost_projection(
     days_ahead: int = Query(30, ge=1, le=365, description="Days ahead to project (1-365)"),
     tracker: SpoonacularAPITracker = Depends(get_analytics_tracker),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get API cost projections based on usage patterns.
 
@@ -365,14 +369,16 @@ async def get_cost_projection(
 
     except Exception as e:
         logger.error(f"Error getting cost projection: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error calculating cost projection: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error calculating cost projection: {str(e)}"
+        ) from e
 
 
 @router.get("/deduplication/stats")
 async def get_deduplication_stats(
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
     tracker: SpoonacularAPITracker = Depends(get_analytics_tracker),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get recipe deduplication effectiveness statistics.
 
@@ -491,7 +497,7 @@ async def get_deduplication_stats(
 async def get_endpoint_performance(
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
     tracker: SpoonacularAPITracker = Depends(get_analytics_tracker),
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get performance metrics for different Spoonacular API endpoints.
 
@@ -642,7 +648,7 @@ async def get_endpoint_performance(
 
 
 @router.get("/health")
-async def analytics_health_check() -> Dict[str, Any]:
+async def analytics_health_check() -> dict[str, Any]:
     """
     Health check for the analytics service.
 
@@ -665,7 +671,7 @@ async def analytics_health_check() -> Dict[str, Any]:
                     table_check = db_service.execute_query(
                         """
                         SELECT EXISTS (
-                            SELECT FROM information_schema.tables 
+                            SELECT FROM information_schema.tables
                             WHERE table_name = 'spoonacular_api_calls'
                         )
                     """
@@ -679,7 +685,7 @@ async def analytics_health_check() -> Dict[str, Any]:
         # Test service availability
         tracker_available = False
         try:
-            tracker = SpoonacularAPITracker(db_service=None)
+            SpoonacularAPITracker(db_service=None)
             tracker_available = True
         except Exception:
             tracker_available = False

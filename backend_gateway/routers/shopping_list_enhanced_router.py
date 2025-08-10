@@ -1,6 +1,5 @@
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -31,7 +30,7 @@ class ShoppingListItem(BaseModel):
 class RecipeIngredientsRequest(BaseModel):
     user_id: int = Field(..., description="User ID")
     recipe_name: str = Field(..., description="Recipe name")
-    ingredients: List[str] = Field(..., description="List of ingredient strings from recipe")
+    ingredients: list[str] = Field(..., description="List of ingredient strings from recipe")
 
 
 class ParsedIngredient(BaseModel):
@@ -44,7 +43,7 @@ class ParsedIngredient(BaseModel):
 
 @router.post(
     "/add-from-recipe",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Add Recipe Ingredients to Shopping List",
 )
 async def add_recipe_ingredients_to_shopping_list(
@@ -72,7 +71,7 @@ async def add_recipe_ingredients_to_shopping_list(
             check_query = """
             SELECT shopping_list_item_id, quantity, unit
             FROM shopping_list_items
-            WHERE user_id = @user_id 
+            WHERE user_id = @user_id
             AND LOWER(item_name) = LOWER(@item_name)
             AND is_checked = false
             AND (recipe_name IS NULL OR recipe_name != @recipe_name)
@@ -95,7 +94,7 @@ async def add_recipe_ingredients_to_shopping_list(
                     update_query = """
                     UPDATE shopping_list_items
                     SET quantity = quantity + @additional_quantity,
-                        notes = CASE 
+                        notes = CASE
                             WHEN notes IS NULL THEN @note
                             ELSE notes || ', ' || @note
                         END,
@@ -116,7 +115,7 @@ async def add_recipe_ingredients_to_shopping_list(
                     # Different units, add as separate item with note
                     insert_query = """
                     INSERT INTO shopping_list_items (
-                        user_id, item_name, quantity, unit, category, 
+                        user_id, item_name, quantity, unit, category,
                         recipe_name, notes, is_checked, priority
                     ) VALUES (
                         @user_id, @item_name, @quantity, @unit, @category,
@@ -141,7 +140,7 @@ async def add_recipe_ingredients_to_shopping_list(
                 # Insert new item
                 insert_query = """
                 INSERT INTO shopping_list_items (
-                    user_id, item_name, quantity, unit, category, 
+                    user_id, item_name, quantity, unit, category,
                     recipe_name, notes, is_checked, priority
                 ) VALUES (
                     @user_id, @item_name, @quantity, @unit, @category,
@@ -182,12 +181,12 @@ async def add_recipe_ingredients_to_shopping_list(
 
     except Exception as e:
         logger.error(f"Error adding recipe ingredients: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to add ingredients: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to add ingredients: {str(e)}") from e
 
 
 @router.get(
     "/user/{user_id}/items/grouped",
-    response_model=Dict[str, List[Dict[str, Any]]],
+    response_model=dict[str, list[dict[str, Any]]],
     summary="Get Shopping List Grouped by Category",
 )
 async def get_shopping_list_grouped(user_id: int, db_service=Depends(get_database_service)):
@@ -196,7 +195,7 @@ async def get_shopping_list_grouped(user_id: int, db_service=Depends(get_databas
     """
     try:
         query = """
-        SELECT 
+        SELECT
             shopping_list_item_id,
             item_name,
             quantity,
@@ -210,7 +209,7 @@ async def get_shopping_list_grouped(user_id: int, db_service=Depends(get_databas
             updated_at
         FROM shopping_list_items
         WHERE user_id = @user_id
-        ORDER BY 
+        ORDER BY
             category,
             is_checked ASC,
             priority DESC,
@@ -262,13 +261,13 @@ async def get_shopping_list_grouped(user_id: int, db_service=Depends(get_databas
 
     except Exception as e:
         logger.error(f"Error getting grouped shopping list: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get shopping list: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get shopping list: {str(e)}") from e
 
 
 @router.post(
-    "/parse-ingredients", response_model=List[ParsedIngredient], summary="Parse Ingredient Strings"
+    "/parse-ingredients", response_model=list[ParsedIngredient], summary="Parse Ingredient Strings"
 )
-async def parse_ingredients(ingredients: List[str]):
+async def parse_ingredients(ingredients: list[str]):
     """
     Parse ingredient strings to extract quantities, units, and names.
     Useful for testing the parsing functionality.
@@ -299,12 +298,12 @@ async def parse_ingredients(ingredients: List[str]):
 
     except Exception as e:
         logger.error(f"Error parsing ingredients: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to parse ingredients: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse ingredients: {str(e)}") from e
 
 
 @router.post(
     "/check-pantry-availability",
-    response_model=Dict[str, Any],
+    response_model=dict[str, Any],
     summary="Check Shopping List Against Pantry",
 )
 async def check_shopping_list_pantry_availability(
@@ -316,7 +315,7 @@ async def check_shopping_list_pantry_availability(
     try:
         # Get shopping list items
         shopping_query = """
-        SELECT 
+        SELECT
             sli.shopping_list_item_id,
             sli.item_name,
             sli.quantity as needed_quantity,
@@ -331,7 +330,7 @@ async def check_shopping_list_pantry_availability(
 
         # Get pantry items
         pantry_query = """
-        SELECT 
+        SELECT
             pi.product_name,
             pi.quantity,
             pi.unit_of_measurement,
@@ -416,4 +415,6 @@ async def check_shopping_list_pantry_availability(
 
     except Exception as e:
         logger.error(f"Error checking pantry availability: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to check availability: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to check availability: {str(e)}"
+        ) from e

@@ -3,7 +3,7 @@ Unit constants and conversions for the PrepSense backend
 """
 
 from enum import Enum
-from typing import Dict, Optional
+from typing import Optional
 
 
 class UnitCategory(str, Enum):

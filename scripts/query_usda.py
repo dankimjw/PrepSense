@@ -7,7 +7,6 @@ A handy script for querying USDA food data, testing unit validations, and explor
 import argparse
 import asyncio
 import os
-import sys
 from pathlib import Path
 
 import asyncpg
@@ -39,7 +38,7 @@ async def search_foods(query: str, limit: int = 20):
     try:
         results = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 f.fdc_id,
                 f.description,
                 f.brand_owner,
@@ -104,7 +103,7 @@ async def list_categories():
     try:
         categories = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 fc.id,
                 fc.code,
                 fc.description,
@@ -142,7 +141,7 @@ async def category_units(category_id: int):
         # Get units
         units = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 mu.name as unit,
                 cum.usage_percentage,
                 cum.is_preferred,
@@ -176,7 +175,7 @@ async def food_details(fdc_id: int):
     try:
         food = await conn.fetchrow(
             """
-            SELECT 
+            SELECT
                 f.*,
                 fc.description as category_name
             FROM usda_foods f
@@ -208,7 +207,7 @@ async def food_details(fdc_id: int):
             print(f"\n  Valid units for {food['category_name']}:")
             units = await conn.fetch(
                 """
-                SELECT mu.name 
+                SELECT mu.name
                 FROM usda_category_unit_mappings cum
                 JOIN usda_measure_units mu ON cum.unit_id = mu.id
                 WHERE cum.category_id = $1 AND cum.is_preferred = TRUE
@@ -244,7 +243,7 @@ async def stats():
         print("\n  Top 5 Categories by Food Count:")
         top_cats = await conn.fetch(
             """
-            SELECT 
+            SELECT
                 fc.description,
                 COUNT(f.fdc_id) as count
             FROM usda_food_categories fc

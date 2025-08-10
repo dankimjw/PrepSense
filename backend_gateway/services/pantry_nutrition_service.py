@@ -4,8 +4,7 @@ Provides nutritional information for pantry items using USDA data.
 """
 
 import logging
-from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import asyncpg
 
@@ -21,7 +20,7 @@ class PantryNutritionService:
         self.db_pool = db_pool
         self.usda_service = USDAFoodService(db_pool)
 
-    async def get_pantry_nutrition_summary(self, user_id: int) -> Dict[str, Any]:
+    async def get_pantry_nutrition_summary(self, user_id: int) -> dict[str, Any]:
         """
         Get nutritional summary of all items in user's pantry.
 
@@ -32,7 +31,7 @@ class PantryNutritionService:
             # Get all pantry items with USDA mappings
             items = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     pi.id,
                     pi.name,
                     pi.quantity_amount,
@@ -106,7 +105,7 @@ class PantryNutritionService:
 
     async def match_pantry_items_to_usda(
         self, user_id: int, auto_match: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Match pantry items to USDA foods for nutritional data.
 
@@ -121,7 +120,7 @@ class PantryNutritionService:
             # Get unmapped pantry items
             unmapped_items = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     pi.id,
                     pi.name,
                     pi.brand,
@@ -192,7 +191,7 @@ class PantryNutritionService:
 
     async def get_item_nutrition_by_pantry_id(
         self, pantry_item_id: int
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[dict[str, Any]]:
         """Get nutritional information for a specific pantry item."""
 
         nutrition = await self.usda_service.get_pantry_item_nutrition(pantry_item_id)
@@ -212,14 +211,14 @@ class PantryNutritionService:
 
         return None
 
-    async def _get_item_nutrition(self, fdc_id: int) -> Dict[str, float]:
+    async def _get_item_nutrition(self, fdc_id: int) -> dict[str, float]:
         """Get simplified nutrition facts for calculations."""
 
         async with self.db_pool.acquire() as conn:
             # Get key nutrients
             nutrients = await conn.fetch(
                 """
-                SELECT 
+                SELECT
                     n.name,
                     fn.amount
                 FROM usda_food_nutrients fn

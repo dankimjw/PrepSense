@@ -5,11 +5,9 @@ Integrates multiple AI agents to provide personalized dinner suggestions.
 
 import json
 import logging
-import os
 import warnings
-from datetime import date, datetime
-from functools import lru_cache
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any, Optional
 
 warnings.filterwarnings("ignore")
 
@@ -18,13 +16,10 @@ from crewai.tools import BaseTool
 from crewai_tools import ScrapeWebsiteTool, SerperDevTool
 from pydantic import BaseModel, Field
 from sqlalchemy import text
-from sqlalchemy.orm import Session
 
 logger = logging.getLogger(__name__)
 
 from backend_gateway.core.config import get_settings
-from backend_gateway.models.pantry import PantryItem
-from backend_gateway.models.user import UserPreference
 from backend_gateway.services.ai_recipe_cache_service import AIRecipeCacheService
 from backend_gateway.services.environmental_impact_service import EnvironmentalImpactService
 from backend_gateway.services.food_waste_service import FoodWasteService
@@ -51,13 +46,13 @@ class PostgresPantryTool(BaseTool):
         super().__init__()
         self.db_service = db_service
 
-    def _run(self, user_id: int) -> List[Dict]:
+    def _run(self, user_id: int) -> list[dict]:
         """Fetch pantry items for user"""
         try:
             with self.db_service.get_session() as session:
                 query = text(
                     """
-                    SELECT 
+                    SELECT
                         pi.id as pantry_item_id,
                         pi.name as product_name,
                         pi.quantity,
@@ -108,13 +103,13 @@ class IngredientFilterTool(BaseTool):
         super().__init__()
         self.db_service = db_service
 
-    def _run(self, user_id: int) -> List[Dict]:
+    def _run(self, user_id: int) -> list[dict]:
         """Filter pantry items for non-expired, available items"""
         try:
             with self.db_service.get_session() as session:
                 query = text(
                     """
-                    SELECT 
+                    SELECT
                         pi.id as pantry_item_id,
                         pi.name as product_name,
                         pi.quantity,
@@ -172,13 +167,13 @@ class UserRestrictionTool(BaseTool):
         super().__init__()
         self.db_service = db_service
 
-    def _run(self, user_id: int) -> Dict:
+    def _run(self, user_id: int) -> dict:
         """Fetch user dietary preferences"""
         try:
             with self.db_service.get_session() as session:
                 query = text(
                     """
-                    SELECT 
+                    SELECT
                         dietary_preferences,
                         allergies,
                         household_size,
@@ -206,7 +201,7 @@ class UserRestrictionTool(BaseTool):
 class SustainabilityToolInput(BaseModel):
     """Input schema for sustainability evaluation tool"""
 
-    ingredients: List[Dict[str, Any]] = Field(..., description="List of ingredients to evaluate")
+    ingredients: list[dict[str, Any]] = Field(..., description="List of ingredients to evaluate")
 
 
 class FoodCategorizationToolInput(BaseModel):
@@ -260,7 +255,7 @@ class FoodCategorizationTool(BaseTool):
             "Spices and Herbs": ["oregano", "basil", "thyme", "cinnamon", "paprika", "spice"],
         }
 
-    def _run(self, food_name: str, current_category: Optional[str] = None) -> Dict:
+    def _run(self, food_name: str, current_category: Optional[str] = None) -> dict:
         """Categorize a food item"""
         try:
             food_lower = food_name.lower()
@@ -308,7 +303,7 @@ class UnitCorrectionToolInput(BaseModel):
 class RecipeSearchToolInput(BaseModel):
     """Input schema for recipe search tool"""
 
-    ingredients: List[str] = Field(..., description="List of available ingredients")
+    ingredients: list[str] = Field(..., description="List of available ingredients")
     max_recipes: int = Field(5, description="Maximum number of recipes to return")
 
 
@@ -331,7 +326,7 @@ class SpoonacularRecipeTool(BaseTool):
         self.spoonacular = SpoonacularService()
         self.recipe_service = RecipeService()
 
-    def _run(self, ingredients: List[str], max_recipes: int = 5) -> List[Dict]:
+    def _run(self, ingredients: list[str], max_recipes: int = 5) -> list[dict]:
         """Search for recipes using ingredients"""
         try:
             # First try Spoonacular API
@@ -351,7 +346,7 @@ class SpoonacularRecipeTool(BaseTool):
                 # Search recipes in database that use these ingredients
                 query = text(
                     """
-                    SELECT DISTINCT r.*, 
+                    SELECT DISTINCT r.*,
                            COUNT(DISTINCT ri.ingredient_name) as matched_ingredients
                     FROM recipes r
                     JOIN recipe_ingredients ri ON r.id = ri.recipe_id
@@ -386,7 +381,7 @@ class SpoonacularRecipeTool(BaseTool):
             logger.error(f"Recipe search error: {str(e)}")
             return []
 
-    def _format_spoonacular_recipe(self, recipe: Dict) -> Dict:
+    def _format_spoonacular_recipe(self, recipe: dict) -> dict:
         """Format Spoonacular recipe for consistency"""
         return {
             "id": recipe.get("id"),
@@ -410,7 +405,7 @@ class UnitCorrectionTool(BaseTool):
         super().__init__()
         self.validator = SmartUnitValidator(None)  # Uses rules without DB
 
-    def _run(self, food_name: str, category: str, current_unit: str) -> Dict:
+    def _run(self, food_name: str, category: str, current_unit: str) -> dict:
         """Suggest appropriate unit for food item"""
         try:
             # Get category rules
@@ -461,7 +456,7 @@ class SustainabilityTool(BaseTool):
         self.env_service = EnvironmentalImpactService()
         self.waste_service = FoodWasteService()
 
-    def _run(self, ingredients: List[Dict[str, Any]]) -> Dict:
+    def _run(self, ingredients: list[dict[str, Any]]) -> dict:
         """Evaluate sustainability metrics for ingredients"""
         try:
             sustainability_data = {
@@ -584,14 +579,14 @@ class CrewAIService:
             tools=[self.categorization_tool],
             verbose=True,
             backstory="""You are an expert in food classification with deep knowledge of grocery store layouts and food types.
-            
+
             Critical categorization rules:
             - 'Chicken Broth', 'Beef Stock' → Soups & Broths (NOT Meat)
             - 'Strawberries', 'Apples' → Produce (NOT Beverages)
             - 'Cheese', 'Yogurt' → Dairy (even if measured in slices)
             - 'Tomato Sauce' → Condiments (NOT Produce)
             - Consider the primary use and form of the item
-            
+
             You understand subtle differences like Pacific Organic Low Sodium Chicken Broth being a liquid soup base, not meat.""",
         )
 
@@ -602,14 +597,14 @@ class CrewAIService:
             tools=[self.unit_correction_tool],
             verbose=True,
             backstory="""You ensure foods are measured in sensible, retail-standard units.
-            
+
             Unit correction rules:
             - Produce: lb, oz, each, bunch (NEVER ml for strawberries)
             - Liquids/Broths: fl oz, quart, gallon (NEVER each)
             - Dairy liquids: gallon, quart (milk), solids: oz, lb (cheese)
             - Eggs: dozen, each (NEVER by weight)
             - Spices: tsp, tbsp, oz (NEVER gallons)
-            
+
             You fix common OCR/input errors and ensure units match how items are sold in stores.""",
         )
 
@@ -629,13 +624,13 @@ class CrewAIService:
             tools=[self.spoonacular_tool],
             verbose=True,
             backstory="""You search for recipes using the Spoonacular API or local database.
-            
+
             SEARCH STRATEGY:
             1. Use SpoonacularRecipeTool to find recipes by ingredients
             2. Prioritize recipes that use expiring ingredients
             3. Look for recipes that maximize ingredient usage
             4. The tool automatically tries Spoonacular first, then database
-            
+
             IMPORTANT UNIT GUIDELINES (for recipe output):
             - Produce (fruits/vegetables): Use lb, oz, each, container (NEVER ml or liters)
             - Dairy liquids: Use gallon, quart, pint, fl oz (milk, cream)
@@ -644,7 +639,7 @@ class CrewAIService:
             - Beverages: Use ml, l, bottle, can (NEVER lb or each)
             - Meat/Poultry: Use lb, oz, piece (NEVER ml or each)
             - Spices: Use tsp, tbsp, oz, jar (NEVER lb or gallon)
-            
+
             Focus on finding practical, cookable recipes from reliable sources.""",
         )
 
@@ -656,13 +651,13 @@ class CrewAIService:
             tools=nutrition_tools,
             verbose=True,
             backstory="""You ensure dinner suggestions are healthy and balanced.
-            
+
             When analyzing nutrition, use proper units:
             - Produce servings: 1 cup = ~4 oz for most vegetables, 1 medium fruit = ~6 oz
             - Protein portions: 3-4 oz cooked meat = 1 serving
             - Dairy: 1 cup milk = 8 fl oz, 1 oz cheese = 1 serving
             - Convert unusual units to standard nutritional portions
-            
+
             Example: "500 ml strawberries" should be analyzed as "~1 lb or 3 cups" for nutrition calculations.""",
         )
 
@@ -691,13 +686,13 @@ class CrewAIService:
             tools=[self.sustainability_tool],
             verbose=True,
             backstory="""You are an environmental and food waste expert who evaluates recipes for sustainability.
-            
+
             Your responsibilities:
             1. Calculate carbon footprint (GHG emissions) for each recipe
             2. Assess water and land usage impact
             3. Prioritize recipes using expiring ingredients to reduce waste
             4. Provide eco-friendly recommendations
-            
+
             Scoring guidelines:
             - Low emissions (<5 kg CO2e): Excellent eco-score
             - Medium emissions (5-15 kg CO2e): Moderate eco-score
@@ -705,7 +700,7 @@ class CrewAIService:
             - Add bonus points for using expiring ingredients
             - Favor plant-based over animal products
             - Consider seasonal and local ingredients
-            
+
             Always provide actionable sustainability tips with each recipe evaluation.""",
         )
 
@@ -716,20 +711,20 @@ class CrewAIService:
             tools=[],
             verbose=True,
             backstory="""You present recipes in a clear, appealing format with correct units.
-            
+
             FORMATTING RULES:
             - Always display produce in lb/oz/each (e.g., "2 lb strawberries" not "1000 ml")
             - Show dairy liquids in standard US units (gallon, quart, pint)
             - Display eggs as dozen/each, meat in lb/oz
             - Keep units consistent with how items are sold in stores
             - Round quantities to practical amounts (0.5 lb not 0.4823 lb)
-            
+
             SUSTAINABILITY FORMATTING:
             - Include eco_score (A-E rating based on emissions)
             - Show carbon_footprint in kg CO2e
             - Highlight waste_reduction_bonus if using expiring items
             - Add sustainability_tips array with actionable advice
-            
+
             Output recipes in JSON format with proper units and sustainability metrics.""",
         )
 
@@ -738,7 +733,7 @@ class CrewAIService:
         agent: Agent,
         description: str,
         expected_output: str,
-        input_variables: Optional[List[str]] = None,
+        input_variables: Optional[list[str]] = None,
     ) -> Task:
         """Create a task for an agent"""
         return Task(
@@ -749,7 +744,7 @@ class CrewAIService:
             input_variables=input_variables or [],
         )
 
-    def generate_recipes(self, user_id: int, max_recipes: int = 3) -> Dict[str, Any]:
+    def generate_recipes(self, user_id: int, max_recipes: int = 3) -> dict[str, Any]:
         """Generate recipe suggestions for a user based on their pantry"""
         try:
             # First get pantry items and preferences for cache key
@@ -868,7 +863,7 @@ class CrewAIService:
         except Exception as e:
             return {"success": False, "error": str(e), "user_id": user_id}
 
-    def _parse_crew_result(self, result: Any) -> List[Dict]:
+    def _parse_crew_result(self, result: Any) -> list[dict]:
         """Parse the crew result into structured recipe data"""
         # This is a placeholder - actual parsing depends on crew output format
         # In production, this would parse the formatted output from the crew
@@ -882,10 +877,10 @@ class CrewAIService:
                 if json_match:
                     return json.loads(json_match.group())
             return []
-        except:
+        except Exception:
             return []
 
-    def get_pantry_summary(self, user_id: int) -> Dict[str, Any]:
+    def get_pantry_summary(self, user_id: int) -> dict[str, Any]:
         """Get a summary of user's pantry for recipe generation"""
         try:
             # Get all items
@@ -906,7 +901,7 @@ class CrewAIService:
         except Exception as e:
             return {"success": False, "error": str(e), "user_id": user_id}
 
-    def _group_by_category(self, items: List[Dict]) -> Dict[str, List[str]]:
+    def _group_by_category(self, items: list[dict]) -> dict[str, list[str]]:
         """Group items by category"""
         grouped = {}
         for item in items:

@@ -8,7 +8,6 @@ Automates database setup, data import, and system verification.
 
 import asyncio
 import logging
-import os
 import sys
 import time
 from pathlib import Path
@@ -195,7 +194,7 @@ class BackupRecipeSystemSetup:
                 search_function_exists = await conn.fetchval(
                     """
                     SELECT EXISTS(
-                        SELECT 1 FROM pg_proc 
+                        SELECT 1 FROM pg_proc
                         WHERE proname = 'search_backup_recipes_by_ingredients'
                     )
                 """
@@ -229,7 +228,7 @@ class BackupRecipeSystemSetup:
                     "-v",
                     "--tb=short",
                 ],
-                capture_output=True,
+                check=False, capture_output=True,
                 text=True,
                 cwd=SCRIPT_DIR,
             )
@@ -259,7 +258,7 @@ class BackupRecipeSystemSetup:
             async with pool.acquire() as conn:
                 stats = await conn.fetchrow(
                     """
-                    SELECT 
+                    SELECT
                         COUNT(*) as total_recipes,
                         COUNT(DISTINCT cuisine_type) as cuisine_count,
                         COUNT(CASE WHEN image_name IS NOT NULL THEN 1 END) as recipes_with_images,
@@ -270,7 +269,7 @@ class BackupRecipeSystemSetup:
 
                 ingredient_count = await conn.fetchval(
                     """
-                    SELECT COUNT(DISTINCT ingredient_name) 
+                    SELECT COUNT(DISTINCT ingredient_name)
                     FROM backup_recipe_ingredients
                 """
                 )
@@ -307,7 +306,7 @@ DATABASE STATISTICS:
         else:
             report += "- Statistics unavailable\n"
 
-        report += f"""
+        report += """
 NEXT STEPS:
 1. Register routers in backend_gateway/app.py:
    ```python

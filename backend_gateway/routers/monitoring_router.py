@@ -3,23 +3,22 @@ API Monitoring Dashboard Router
 Provides comprehensive monitoring endpoints for health checks, metrics, and observability
 """
 
+import logging
 import os
-import json
-import asyncio
-from datetime import datetime, timedelta
-from typing import Dict, List, Any, Optional
-from fastapi import APIRouter, HTTPException, Query, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from datetime import datetime
+from typing import Any
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 
-from backend_gateway.core.crewai_observability import get_agent_metrics, get_agent_health, AgentType
-from backend_gateway.core.monitoring import REQUEST_COUNT, REQUEST_DURATION, CREWAI_REQUESTS, DATABASE_QUERIES
+from backend_gateway.core.crewai_observability import AgentType, get_agent_health, get_agent_metrics
 from config.monitoring import get_monitoring_config
-import logging
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
 
 # Response models
 class HealthCheckResponse(BaseModel):
@@ -27,15 +26,17 @@ class HealthCheckResponse(BaseModel):
     timestamp: str
     version: str
     environment: str
-    services: Dict[str, Any]
-    monitoring: Dict[str, Any]
+    services: dict[str, Any]
+    monitoring: dict[str, Any]
+
 
 class MetricsResponse(BaseModel):
-    api_requests: Dict[str, Any]
-    response_times: Dict[str, Any]
-    crewai_agents: Dict[str, Any]
-    database_queries: Dict[str, Any]
+    api_requests: dict[str, Any]
+    response_times: dict[str, Any]
+    crewai_agents: dict[str, Any]
+    database_queries: dict[str, Any]
     timestamp: str
+
 
 class SystemStatusResponse(BaseModel):
     overall_health: str
@@ -43,7 +44,8 @@ class SystemStatusResponse(BaseModel):
     active_connections: int
     memory_usage_mb: float
     cpu_usage_percent: float
-    services: Dict[str, str]
+    services: dict[str, str]
+
 
 # Store startup time for uptime calculation
 startup_time = datetime.utcnow()
@@ -53,7 +55,7 @@ startup_time = datetime.utcnow()
 async def detailed_health_check():
     """
     Comprehensive health check with detailed service status.
-    
+
     Returns the health status of all system components including:
     - API service health
     - Database connectivity
@@ -62,7 +64,7 @@ async def detailed_health_check():
     - Monitoring systems
     """
     config = get_monitoring_config()
-    
+
     health_status = {
         "status": "healthy",
         "timestamp": datetime.utcnow().isoformat(),
@@ -82,9 +84,9 @@ async def detailed_health_check():
             "metrics_enabled": config.prometheus.enabled,
             "logging_level": config.logging.level,
             "environment": config.environment.value,
-        }
+        },
     }
-    
+
     # Check database
     if config.health_check.check_database:
         try:
@@ -97,7 +99,7 @@ async def detailed_health_check():
             logger.error(f"Database health check failed: {e}")
             health_status["services"]["database"]["status"] = "error"
             health_status["services"]["database"]["error"] = str(e)
-    
+
     # Check OpenAI
     if config.health_check.check_external_apis:
         try:
@@ -108,7 +110,7 @@ async def detailed_health_check():
         except Exception as e:
             logger.error(f"OpenAI health check failed: {e}")
             health_status["services"]["openai"]["status"] = "error"
-    
+
     # Check Spoonacular
     try:
         spoonacular_key = os.getenv("SPOONACULAR_KEY")
@@ -118,14 +120,18 @@ async def detailed_health_check():
     except Exception as e:
         logger.error(f"Spoonacular health check failed: {e}")
         health_status["services"]["spoonacular"]["status"] = "error"
-    
+
     # Check CrewAI agents
     if config.health_check.check_crewai_agents:
         try:
             agent_health = get_agent_health()
             health_status["services"]["crewai"]["enabled"] = True
-            health_status["services"]["crewai"]["status"] = "healthy" if agent_health["healthy"] else "degraded"
-            health_status["services"]["crewai"]["active_executions"] = agent_health["active_executions"]
+            health_status["services"]["crewai"]["status"] = (
+                "healthy" if agent_health["healthy"] else "degraded"
+            )
+            health_status["services"]["crewai"]["active_executions"] = agent_health[
+                "active_executions"
+            ]
             health_status["services"]["crewai"]["success_rate"] = agent_health["success_rate"]
             if agent_health["issues"]:
                 health_status["services"]["crewai"]["issues"] = agent_health["issues"]
@@ -133,23 +139,25 @@ async def detailed_health_check():
             logger.error(f"CrewAI health check failed: {e}")
             health_status["services"]["crewai"]["status"] = "error"
             health_status["services"]["crewai"]["error"] = str(e)
-    
+
     # Check monitoring systems
     health_status["services"]["sentry"]["enabled"] = bool(config.sentry.dsn)
     health_status["services"]["sentry"]["status"] = "healthy" if config.sentry.dsn else "disabled"
-    
+
     health_status["services"]["prometheus"]["enabled"] = config.prometheus.enabled
-    health_status["services"]["prometheus"]["status"] = "healthy" if config.prometheus.enabled else "disabled"
-    
+    health_status["services"]["prometheus"]["status"] = (
+        "healthy" if config.prometheus.enabled else "disabled"
+    )
+
     # Determine overall health
     service_statuses = [service.get("status") for service in health_status["services"].values()]
-    if any(status == "error" for status in service_statuses):
-        health_status["status"] = "degraded"
-    elif any(status == "degraded" for status in service_statuses):
+    if any(status == "error" for status in service_statuses) or any(
+        status == "degraded" for status in service_statuses
+    ):
         health_status["status"] = "degraded"
     else:
         health_status["status"] = "healthy"
-    
+
     return health_status
 
 
@@ -157,7 +165,7 @@ async def detailed_health_check():
 async def get_metrics_summary():
     """
     Get comprehensive metrics summary for monitoring dashboards.
-    
+
     Returns aggregated metrics from Prometheus collectors including:
     - API request statistics
     - Response time percentiles
@@ -172,13 +180,13 @@ async def get_metrics_summary():
             "average_response_time": 0.0,
             "requests_per_minute": 0.0,
         }
-        
+
         # Get CrewAI agent metrics
         crewai_metrics = get_agent_metrics()
-        
+
         # Get system metrics
         uptime = (datetime.utcnow() - startup_time).total_seconds()
-        
+
         metrics = {
             "timestamp": datetime.utcnow().isoformat(),
             "uptime_seconds": uptime,
@@ -188,21 +196,21 @@ async def get_metrics_summary():
                 "environment": os.getenv("ENVIRONMENT", "development"),
                 "version": "1.4.0",
                 "startup_time": startup_time.isoformat(),
-            }
+            },
         }
-        
+
         return metrics
-        
+
     except Exception as e:
         logger.error(f"Failed to collect metrics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to collect metrics")
+        raise HTTPException(status_code=500, detail="Failed to collect metrics") from e
 
 
 @router.get("/system-status", tags=["monitoring"])
 async def get_system_status():
     """
     Get current system status and resource utilization.
-    
+
     Returns real-time system information including:
     - Memory usage
     - CPU utilization
@@ -211,17 +219,17 @@ async def get_system_status():
     """
     try:
         import psutil
-        
+
         # Get system metrics
         memory = psutil.virtual_memory()
         cpu_percent = psutil.cpu_percent(interval=1)
-        
+
         # Get process info
         process = psutil.Process()
         process_memory = process.memory_info().rss / 1024 / 1024  # MB
-        
+
         uptime = (datetime.utcnow() - startup_time).total_seconds()
-        
+
         status = {
             "overall_health": "healthy",
             "uptime_seconds": uptime,
@@ -238,9 +246,9 @@ async def get_system_status():
             },
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         return status
-        
+
     except ImportError:
         # Fallback if psutil not available
         uptime = (datetime.utcnow() - startup_time).total_seconds()
@@ -261,14 +269,14 @@ async def get_system_status():
         }
     except Exception as e:
         logger.error(f"Failed to get system status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get system status")
+        raise HTTPException(status_code=500, detail="Failed to get system status") from e
 
 
 @router.get("/agents", tags=["monitoring"])
 async def get_agent_status():
     """
     Get detailed CrewAI agent execution status and metrics.
-    
+
     Returns comprehensive agent information including:
     - Execution statistics per agent
     - Success rates and performance
@@ -278,23 +286,26 @@ async def get_agent_status():
     try:
         metrics = get_agent_metrics()
         health = get_agent_health()
-        
+
         # Enhance with per-agent details
         agent_details = {}
         for agent_type in AgentType:
-            agent_stats = metrics.get("agents", {}).get(agent_type.value, {
-                "executions": 0,
-                "success_rate": 1.0,
-                "average_duration": 0.0,
-                "total_tokens": 0,
-            })
-            
+            agent_stats = metrics.get("agents", {}).get(
+                agent_type.value,
+                {
+                    "executions": 0,
+                    "success_rate": 1.0,
+                    "average_duration": 0.0,
+                    "total_tokens": 0,
+                },
+            )
+
             agent_details[agent_type.value] = {
                 **agent_stats,
                 "status": "healthy" if agent_stats["success_rate"] > 0.8 else "degraded",
                 "description": _get_agent_description(agent_type),
             }
-        
+
         return {
             "overall_health": health["healthy"],
             "active_executions": health["active_executions"],
@@ -304,17 +315,17 @@ async def get_agent_status():
             "issues": health.get("issues", []),
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get agent status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get agent status")
+        raise HTTPException(status_code=500, detail="Failed to get agent status") from e
 
 
 @router.get("/dashboard", response_class=HTMLResponse, tags=["monitoring"])
 async def monitoring_dashboard():
     """
     Interactive monitoring dashboard with real-time metrics.
-    
+
     Returns an HTML page with:
     - System health overview
     - API performance charts
@@ -450,13 +461,13 @@ async def monitoring_dashboard():
                 try {
                     const response = await fetch('/monitoring/health');
                     const data = await response.json();
-                    
+
                     let html = '';
                     for (const [service, details] of Object.entries(data.services)) {
                         const status = details.status || 'unknown';
-                        const statusClass = status === 'healthy' ? 'healthy' : 
+                        const statusClass = status === 'healthy' ? 'healthy' :
                                           status === 'degraded' ? 'degraded' : 'error';
-                        
+
                         html += `
                             <div class="metric">
                                 <span>${service.charAt(0).toUpperCase() + service.slice(1)}</span>
@@ -464,7 +475,7 @@ async def monitoring_dashboard():
                             </div>
                         `;
                     }
-                    
+
                     document.getElementById('health-status').innerHTML = html;
                 } catch (error) {
                     document.getElementById('health-status').innerHTML = `<p class="error">Failed to load health status: ${error.message}</p>`;
@@ -475,7 +486,7 @@ async def monitoring_dashboard():
                 try {
                     const response = await fetch('/monitoring/metrics');
                     const data = await response.json();
-                    
+
                     const html = `
                         <div class="metric">
                             <span>Uptime</span>
@@ -494,7 +505,7 @@ async def monitoring_dashboard():
                             <span>${data.crewai_agents.active_executions}</span>
                         </div>
                     `;
-                    
+
                     document.getElementById('api-metrics').innerHTML = html;
                 } catch (error) {
                     document.getElementById('api-metrics').innerHTML = `<p class="error">Failed to load API metrics: ${error.message}</p>`;
@@ -505,24 +516,24 @@ async def monitoring_dashboard():
                 try {
                     const response = await fetch('/monitoring/agents');
                     const data = await response.json();
-                    
+
                     let html = `
                         <div class="metric">
                             <span>Overall Health</span>
                             <span class="status ${data.overall_health ? 'healthy' : 'degraded'}">${data.overall_health ? 'Healthy' : 'Degraded'}</span>
                         </div>
                     `;
-                    
+
                     for (const [agentType, details] of Object.entries(data.agents)) {
                         const statusClass = details.status === 'healthy' ? 'healthy' : 'degraded';
                         html += `
                             <div class="metric">
-                                <span>${agentType.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+                                <span>${agentType.replace('_', ' ').replace(/\b\\w/g, l => l.toUpperCase())}</span>
                                 <span class="status ${statusClass}">${details.executions} exec</span>
                             </div>
                         `;
                     }
-                    
+
                     document.getElementById('agent-status').innerHTML = html;
                 } catch (error) {
                     document.getElementById('agent-status').innerHTML = `<p class="error">Failed to load agent status: ${error.message}</p>`;
@@ -533,7 +544,7 @@ async def monitoring_dashboard():
                 try {
                     const response = await fetch('/monitoring/system-status');
                     const data = await response.json();
-                    
+
                     const html = `
                         <div class="metric">
                             <span>Memory Usage</span>
@@ -552,7 +563,7 @@ async def monitoring_dashboard():
                             <span class="status healthy">${data.overall_health}</span>
                         </div>
                     `;
-                    
+
                     document.getElementById('system-status').innerHTML = html;
                 } catch (error) {
                     document.getElementById('system-status').innerHTML = `<p class="error">Failed to load system status: ${error.message}</p>`;
@@ -568,7 +579,7 @@ async def monitoring_dashboard():
 
             // Initialize dashboard
             refreshDashboard();
-            
+
             // Auto-refresh every 30 seconds
             setInterval(refreshDashboard, 30000);
 
@@ -600,7 +611,7 @@ async def monitoring_dashboard():
     </body>
     </html>
     """
-    
+
     return HTMLResponse(content=html_content)
 
 
@@ -608,7 +619,7 @@ def _get_agent_description(agent_type: AgentType) -> str:
     """Get human-readable description for agent type."""
     descriptions = {
         AgentType.PANTRY_ANALYST: "Analyzes pantry contents and expiration dates",
-        AgentType.RECIPE_CURATOR: "Finds and curates personalized recipe recommendations", 
+        AgentType.RECIPE_CURATOR: "Finds and curates personalized recipe recommendations",
         AgentType.NUTRITION_EXPERT: "Provides nutritional analysis and dietary guidance",
         AgentType.MEAL_PLANNER: "Creates comprehensive meal plans and schedules",
         AgentType.INGREDIENT_OPTIMIZER: "Optimizes ingredient usage and substitutions",

@@ -3,7 +3,6 @@
 Setup users and user_preference tables in PostgreSQL
 """
 
-import os
 import sys
 from pathlib import Path
 
@@ -22,7 +21,7 @@ def setup_users_tables():
 
     # Read SQL file
     sql_file = Path(__file__).parent / "create_users_table.sql"
-    with open(sql_file, "r") as f:
+    with open(sql_file) as f:
         sql_content = f.read()
 
     # Execute SQL statements
@@ -39,9 +38,9 @@ def setup_users_tables():
 
         # Verify tables exist
         check_query = """
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
+            SELECT table_name
+            FROM information_schema.tables
+            WHERE table_schema = 'public'
             AND table_name IN ('users', 'user_preference')
             ORDER BY table_name;
         """

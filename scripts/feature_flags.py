@@ -3,7 +3,6 @@ Feature flags for safe deployment and testing of new features.
 Configured via environment variables with sensible defaults for development.
 """
 
-import os
 from typing import Any, Callable, Optional, TypeVar, cast
 
 from pydantic import ConfigDict, Field
@@ -70,7 +69,7 @@ def with_feature_flag(
         return enabled_fn(*args, **kwargs)
     elif disabled_fn is not None:
         return disabled_fn(*args, **kwargs)
-    return cast(T, None)
+    return cast("T", None)
 
 
 # Example usage:

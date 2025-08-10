@@ -4,8 +4,6 @@ Setup demo data for testing recipe completion with ingredient subtraction
 This script creates mock recipes and pantry items for demonstration purposes
 """
 
-import json
-import os
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -41,7 +39,7 @@ def setup_demo_pantry_items(db_service, pantry_service):
 
     # First, get or create pantry for user
     pantry_query = """
-    SELECT pantry_id FROM pantries 
+    SELECT pantry_id FROM pantries
     WHERE user_id = %(user_id)s
     LIMIT 1
     """
@@ -161,7 +159,7 @@ def setup_demo_pantry_items(db_service, pantry_service):
 
         # Check if item exists
         check_query = """
-        SELECT pantry_item_id FROM pantry_items 
+        SELECT pantry_item_id FROM pantry_items
         WHERE pantry_id = %(pantry_id)s AND product_name = %(product_name)s
         """
         existing = db_service.execute_query(
@@ -188,7 +186,7 @@ def setup_demo_pantry_items(db_service, pantry_service):
             # Insert new item
             insert_query = """
             INSERT INTO pantry_items (
-                pantry_id, product_name, quantity, unit_of_measurement, 
+                pantry_id, product_name, quantity, unit_of_measurement,
                 category, expiration_date, created_at, updated_at
             ) VALUES (
                 %(pantry_id)s, %(product_name)s, %(quantity)s, %(unit_of_measurement)s,
@@ -346,7 +344,7 @@ def setup_demo_recipes(db_service):
 
     for recipe in recipes:
         try:
-            result = recipes_service.save_recipe(
+            recipes_service.save_recipe(
                 user_id=DEMO_USER_ID,
                 recipe_id=None,  # External recipe
                 recipe_title=recipe["title"],
@@ -378,10 +376,10 @@ def reset_demo_data():
     items_count = setup_demo_pantry_items(db_service, pantry_service)
     recipes_count = setup_demo_recipes(db_service)
 
-    print(f"\n✅ Demo setup complete!")
+    print("\n✅ Demo setup complete!")
     print(f"   - {items_count} pantry items")
     print(f"   - {recipes_count} recipes")
-    print(f"\n📱 Ready for testing in the app!")
+    print("\n📱 Ready for testing in the app!")
 
 
 def show_current_quantities():
@@ -391,7 +389,7 @@ def show_current_quantities():
     db_service = get_database_service()
 
     query = """
-    SELECT 
+    SELECT
         product_name,
         quantity,
         unit_of_measurement,

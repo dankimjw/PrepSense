@@ -27,7 +27,7 @@ def fix_duplicate_pantry_items(dry_run=True):
 
     # Get all pantry items grouped by user and product
     query = """
-    SELECT 
+    SELECT
         p.user_id,
         p.pantry_id,
         pi.pantry_item_id,
@@ -133,7 +133,7 @@ def perform_consolidation(db_service, consolidations):
         try:
             # Update the kept item with new total quantity
             update_query = """
-            UPDATE pantry_items 
+            UPDATE pantry_items
             SET quantity = %(quantity)s
             WHERE pantry_item_id = %(item_id)s
             """
@@ -145,7 +145,7 @@ def perform_consolidation(db_service, consolidations):
             # Delete the duplicate items
             if cons["delete_item_ids"]:
                 delete_query = """
-                DELETE FROM pantry_items 
+                DELETE FROM pantry_items
                 WHERE pantry_item_id = ANY(%(item_ids)s)
                 """
 
@@ -157,7 +157,7 @@ def perform_consolidation(db_service, consolidations):
             logger.error(f"Error consolidating {cons['product_name']}: {e}")
             error_count += 1
 
-    print(f"\n=== Consolidation Complete ===")
+    print("\n=== Consolidation Complete ===")
     print(f"Successful: {success_count}")
     print(f"Errors: {error_count}")
 

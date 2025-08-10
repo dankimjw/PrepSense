@@ -5,7 +5,6 @@ This temporarily switches from IAM auth to password auth for table creation
 """
 
 import os
-import sys
 from pathlib import Path
 
 import psycopg2
@@ -47,7 +46,7 @@ def deploy_with_superuser():
         print("\n📦 Deploying units table...")
         units_file = Path(__file__).parent / "units_table_complete.sql"
         if units_file.exists():
-            with open(units_file, "r") as f:
+            with open(units_file) as f:
                 units_sql = f.read()
 
             with conn.cursor() as cursor:
@@ -61,7 +60,7 @@ def deploy_with_superuser():
         print("\n🍎 Deploying food categorization tables...")
         food_file = Path(__file__).parent / "create_food_categorization_tables.sql"
         if food_file.exists():
-            with open(food_file, "r") as f:
+            with open(food_file) as f:
                 food_sql = f.read()
 
             # Split by semicolon and execute each statement
@@ -78,7 +77,7 @@ def deploy_with_superuser():
             print("❌ Food categorization SQL file not found")
 
         # Grant permissions to IAM user
-        print(f"\n🔐 Granting permissions to IAM user...")
+        print("\n🔐 Granting permissions to IAM user...")
         iam_user = os.getenv("POSTGRES_IAM_USER", "danielk7@uchicago.edu")
 
         grant_sql = f"""
@@ -87,7 +86,7 @@ def deploy_with_superuser():
         GRANT USAGE ON SCHEMA public TO "{iam_user}";
         GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO "{iam_user}";
         GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO "{iam_user}";
-        
+
         -- Grant permissions on future tables
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO "{iam_user}";
         ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO "{iam_user}";
@@ -99,7 +98,7 @@ def deploy_with_superuser():
         print(f"✅ Permissions granted to {iam_user}")
 
         # Verify deployment
-        print(f"\n✅ Verifying deployment...")
+        print("\n✅ Verifying deployment...")
         with conn.cursor() as cursor:
             # Check units table
             cursor.execute("SELECT COUNT(*) FROM units")
@@ -124,11 +123,11 @@ def deploy_with_superuser():
                 except Exception as e:
                     print(f"  {table}: ❌ {str(e)}")
 
-        print(f"\n🎉 Database deployment completed successfully!")
-        print(f"\nNext steps:")
-        print(f"1. Test the units table: python backend_gateway/scripts/check_existing_tables.py")
-        print(f"2. Test food categorization: python backend_gateway/scripts/check_food_database.py")
-        print(f"3. Get USDA API key from: https://fdc.nal.usda.gov/api-key-signup.html")
+        print("\n🎉 Database deployment completed successfully!")
+        print("\nNext steps:")
+        print("1. Test the units table: python backend_gateway/scripts/check_existing_tables.py")
+        print("2. Test food categorization: python backend_gateway/scripts/check_food_database.py")
+        print("3. Get USDA API key from: https://fdc.nal.usda.gov/api-key-signup.html")
 
     except Exception as e:
         print(f"❌ Error during deployment: {str(e)}")

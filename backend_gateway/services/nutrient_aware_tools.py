@@ -1,13 +1,13 @@
 """Custom tools for nutrient-aware CrewAI agents."""
 
 import logging
-from typing import Any, Dict, List, Optional, Type
+from typing import Any, Optional
 
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from ..config.nutrient_config import ESSENTIAL_NUTRIENTS, UPPER_LIMIT_NUTRIENTS
-from ..models.nutrition import NutrientGapAnalysis, NutrientProfile
+from backend_gateway.config.nutrient_config import ESSENTIAL_NUTRIENTS, UPPER_LIMIT_NUTRIENTS
+
 from .food_lookup_tool import food_lookup_tool
 
 logger = logging.getLogger(__name__)
@@ -16,11 +16,11 @@ logger = logging.getLogger(__name__)
 class NutrientFilterInput(BaseModel):
     """Input for nutrient-based recipe filtering."""
 
-    recipes: List[Dict[str, Any]] = Field(..., description="List of recipes to filter")
-    nutrient_gaps: Dict[str, float] = Field(
+    recipes: list[dict[str, Any]] = Field(..., description="List of recipes to filter")
+    nutrient_gaps: dict[str, float] = Field(
         ..., description="Dictionary of nutrient gaps (negative=deficit, positive=excess)"
     )
-    focus_nutrients: Optional[List[str]] = Field(None, description="Specific nutrients to focus on")
+    focus_nutrients: Optional[list[str]] = Field(None, description="Specific nutrients to focus on")
     min_score_threshold: float = Field(
         0.0, description="Minimum nutrient score threshold for filtering"
     )
@@ -33,15 +33,15 @@ class NutrientFilterTool(BaseTool):
     description: str = (
         "Filters and ranks recipes based on how well they address nutrient gaps and deficiencies"
     )
-    args_schema: Type[BaseModel] = NutrientFilterInput
+    args_schema: type[BaseModel] = NutrientFilterInput
 
     def _run(
         self,
-        recipes: List[Dict[str, Any]],
-        nutrient_gaps: Dict[str, float],
-        focus_nutrients: Optional[List[str]] = None,
+        recipes: list[dict[str, Any]],
+        nutrient_gaps: dict[str, float],
+        focus_nutrients: Optional[list[str]] = None,
         min_score_threshold: float = 0.0,
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Filter recipes based on nutrient criteria."""
         logger.info(f"Filtering {len(recipes)} recipes based on nutrient gaps")
 
@@ -69,9 +69,9 @@ class NutrientFilterTool(BaseTool):
 
     def _calculate_nutrient_score(
         self,
-        recipe: Dict[str, Any],
-        nutrient_gaps: Dict[str, float],
-        focus_nutrients: Optional[List[str]] = None,
+        recipe: dict[str, Any],
+        nutrient_gaps: dict[str, float],
+        focus_nutrients: Optional[list[str]] = None,
     ) -> float:
         """Calculate nutrient score for a recipe."""
         score = 0.0
@@ -110,7 +110,7 @@ class NutrientFilterTool(BaseTool):
 
         return max(0.0, score)
 
-    def _estimate_nutrition_from_ingredients(self, ingredients: List[str]) -> Dict[str, float]:
+    def _estimate_nutrition_from_ingredients(self, ingredients: list[str]) -> dict[str, float]:
         """Estimate nutrition from ingredients."""
         nutrition = {
             "protein": 0.0,
@@ -167,11 +167,11 @@ class FoodNutritionLookupTool(BaseTool):
 
     name: str = "FoodNutritionLookupTool"
     description: str = "Looks up detailed nutrition information for food items using USDA database"
-    args_schema: Type[BaseModel] = FoodNutritionLookupInput
+    args_schema: type[BaseModel] = FoodNutritionLookupInput
 
     def _run(
         self, food_name: str, quantity: float = 1.0, serving_unit: str = "serving"
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Look up nutrition information for a food item."""
         logger.info(f"Looking up nutrition for: {food_name} ({quantity} {serving_unit})")
 
@@ -209,7 +209,7 @@ class NutrientGapAnalysisInput(BaseModel):
     """Input for nutrient gap analysis."""
 
     user_id: int = Field(..., description="User ID for the analysis")
-    target_nutrients: Optional[List[str]] = Field(None, description="Specific nutrients to analyze")
+    target_nutrients: Optional[list[str]] = Field(None, description="Specific nutrients to analyze")
     analysis_period: int = Field(1, description="Number of days to analyze (1=today, 7=weekly)")
 
 
@@ -218,15 +218,15 @@ class NutrientGapAnalysisTool(BaseTool):
 
     name: str = "NutrientGapAnalysisTool"
     description: str = "Analyzes current nutrient gaps and deficiencies for a user"
-    args_schema: Type[BaseModel] = NutrientGapAnalysisInput
+    args_schema: type[BaseModel] = NutrientGapAnalysisInput
 
     def __init__(self, nutrient_auditor_service):
         super().__init__()
         self.nutrient_service = nutrient_auditor_service
 
     def _run(
-        self, user_id: int, target_nutrients: Optional[List[str]] = None, analysis_period: int = 1
-    ) -> Dict[str, Any]:
+        self, user_id: int, target_nutrients: Optional[list[str]] = None, analysis_period: int = 1
+    ) -> dict[str, Any]:
         """Analyze nutrient gaps for a user."""
         logger.info(f"Analyzing nutrient gaps for user {user_id}")
 
@@ -236,7 +236,9 @@ class NutrientGapAnalysisTool(BaseTool):
 
             if not gap_analysis:
                 # Create sample analysis for demonstration
-                from ..services.nutrient_aware_crew_service import NutrientAwareCrewService
+                from backend_gateway.services.nutrient_aware_crew_service import (
+                    NutrientAwareCrewService,
+                )
 
                 crew_service = NutrientAwareCrewService()
                 gap_analysis = crew_service._create_sample_nutrient_analysis(user_id)
@@ -292,7 +294,7 @@ class NutrientGapAnalysisTool(BaseTool):
 class RecipeNutritionEnhancerInput(BaseModel):
     """Input for recipe nutrition enhancement."""
 
-    recipe: Dict[str, Any] = Field(..., description="Recipe to enhance with nutrition data")
+    recipe: dict[str, Any] = Field(..., description="Recipe to enhance with nutrition data")
     detailed_lookup: bool = Field(True, description="Whether to do detailed USDA lookup")
 
 
@@ -303,9 +305,9 @@ class RecipeNutritionEnhancerTool(BaseTool):
     description: str = (
         "Enhances recipes with detailed nutrition information by analyzing ingredients"
     )
-    args_schema: Type[BaseModel] = RecipeNutritionEnhancerInput
+    args_schema: type[BaseModel] = RecipeNutritionEnhancerInput
 
-    def _run(self, recipe: Dict[str, Any], detailed_lookup: bool = True) -> Dict[str, Any]:
+    def _run(self, recipe: dict[str, Any], detailed_lookup: bool = True) -> dict[str, Any]:
         """Enhance a recipe with nutrition information."""
         logger.info(f"Enhancing recipe '{recipe.get('name', 'unknown')}' with nutrition data")
 
@@ -346,7 +348,7 @@ class RecipeNutritionEnhancerTool(BaseTool):
             recipe["nutrition_error"] = str(e)
             return recipe
 
-    def _simple_nutrition_estimate(self, ingredients: List[str]) -> Dict[str, float]:
+    def _simple_nutrition_estimate(self, ingredients: list[str]) -> dict[str, float]:
         """Simple nutrition estimation from ingredients."""
         nutrition = {
             "calories": 0.0,

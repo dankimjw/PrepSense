@@ -1,9 +1,7 @@
 """Database tool for CrewAI agents to interact with the database."""
 
 import logging
-from typing import Any, Dict, List, Optional
-
-from pydantic import BaseModel, Field
+from typing import Any
 
 from backend_gateway.config.database import get_database_service
 
@@ -22,7 +20,7 @@ class DatabaseTool:
     def __init__(self):
         self.db_service = get_database_service()
 
-    def _run(self, query_type: str, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _run(self, query_type: str, user_id: int, **kwargs) -> dict[str, Any]:
         """
         Execute a database query based on the query type.
 
@@ -50,7 +48,7 @@ class DatabaseTool:
             logger.error(f"Database query error: {str(e)}")
             return {"error": f"Database query failed: {str(e)}"}
 
-    def _get_pantry_items(self, user_id: int) -> Dict[str, Any]:
+    def _get_pantry_items(self, user_id: int) -> dict[str, Any]:
         """Get pantry items for a user."""
         query = """
             SELECT *
@@ -69,7 +67,7 @@ class DatabaseTool:
             "items": results,
         }
 
-    def _get_user_preferences(self, user_id: int) -> Dict[str, Any]:
+    def _get_user_preferences(self, user_id: int) -> dict[str, Any]:
         """Get user preferences."""
         query = """
             SELECT *
@@ -93,7 +91,7 @@ class DatabaseTool:
 
         return {"query_type": "user_preferences", "user_id": user_id, "preferences": preferences}
 
-    def _get_saved_recipes(self, user_id: int, **kwargs) -> Dict[str, Any]:
+    def _get_saved_recipes(self, user_id: int, **kwargs) -> dict[str, Any]:
         """Get saved recipes for a user."""
         limit = kwargs.get("limit", 10)
 
@@ -115,7 +113,7 @@ class DatabaseTool:
             "recipes": results,
         }
 
-    def _execute_custom_query(self, query: str, params: Dict[str, Any]) -> Dict[str, Any]:
+    def _execute_custom_query(self, query: str, params: dict[str, Any]) -> dict[str, Any]:
         """Execute a custom SQL query."""
         results = self.db_service.execute_query(query, params)
 

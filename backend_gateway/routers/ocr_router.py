@@ -8,7 +8,6 @@ import hashlib
 import json
 import logging
 import re
-from typing import Any, Dict
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from openai import AuthenticationError
@@ -16,7 +15,6 @@ from openai import AuthenticationError
 from backend_gateway.core.openai_client import get_openai_client
 from backend_gateway.models.ocr_models import (
     BarcodeResponse,
-    Base64ImageRequest,
     DebugStatusResponse,
     MockDataConfig,
     OCRResponse,
@@ -32,13 +30,13 @@ router = APIRouter(prefix="/ocr", tags=["OCR"])
 
 def get_mime_type(image_data: bytes) -> str:
     """Detect MIME type of image data."""
-    if image_data.startswith(b'\xff\xd8\xff'):
+    if image_data.startswith(b"\xff\xd8\xff"):
         return "image/jpeg"
-    elif image_data.startswith(b'\x89PNG'):
+    elif image_data.startswith(b"\x89PNG"):
         return "image/png"
-    elif image_data.startswith(b'GIF8'):
+    elif image_data.startswith(b"GIF8"):
         return "image/gif"
-    elif image_data.startswith(b'RIFF') and b'WEBP' in image_data[:12]:
+    elif image_data.startswith(b"RIFF") and b"WEBP" in image_data[:12]:
         return "image/webp"
     else:
         return "image/jpeg"  # Default fallback
@@ -82,13 +80,13 @@ async def scan_items(file: UploadFile = File(...)):
 
     except AuthenticationError:
         logger.error("OpenAI authentication failed")
-        raise HTTPException(status_code=401, detail="OpenAI authentication failed")
+        raise HTTPException(status_code=401, detail="OpenAI authentication failed") from None
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
         logger.error(f"Error in scan_items: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}") from e
 
 
 @router.post("/scan-receipt", response_model=OCRResponse)
@@ -103,7 +101,9 @@ async def scan_receipt(request: ReceiptScanRequest):
             image_data = base64.b64decode(request.image_base64)
         except Exception as decode_error:
             logger.error(f"Base64 decode error: {decode_error}")
-            raise HTTPException(status_code=400, detail="Invalid base64 image data")
+            raise HTTPException(
+                status_code=400, detail="Invalid base64 image data"
+            ) from decode_error
 
         # Size check
         if len(image_data) > 10 * 1024 * 1024:  # 10MB limit
@@ -119,15 +119,15 @@ async def scan_receipt(request: ReceiptScanRequest):
 
     except AuthenticationError:
         logger.error("OpenAI authentication failed")
-        raise HTTPException(status_code=401, detail="OpenAI authentication failed")
+        raise HTTPException(status_code=401, detail="OpenAI authentication failed") from None
     except ValueError as e:
         logger.error(f"Validation error: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
     except HTTPException:
         raise  # Re-raise HTTP exceptions as-is
     except Exception as e:
         logger.error(f"Error in scan_receipt: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing receipt: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing receipt: {str(e)}") from e
 
 
 @router.post("/scan-barcode", response_model=BarcodeResponse)
@@ -155,11 +155,11 @@ async def scan_barcode(file: UploadFile = File(...)):
 
         system_prompt = """You are a barcode reader. Look for any barcode (UPC, EAN, QR code, or other) in this image.
         If you find a barcode, return the numbers you can read.
-        
+
         Return a JSON object with:
         - 'barcode': The barcode number as a string (or null if no barcode found)
         - 'type': The type of barcode (UPC, EAN, QR, etc.) if identifiable
-        
+
         If no barcode is visible, return: {"barcode": null, "type": null}
         """
 
@@ -181,7 +181,7 @@ async def scan_barcode(file: UploadFile = File(...)):
                     ],
                 },
             ],
-            max_tokens=300,
+            max_completion_tokens=300,
         )
 
         content = response.choices[0].message.content
@@ -190,10 +190,7 @@ async def scan_barcode(file: UploadFile = File(...)):
         try:
             # Extract JSON from response
             json_match = re.search(r"```json\n(.*?)\n```", content, re.DOTALL)
-            if json_match:
-                json_str = json_match.group(1)
-            else:
-                json_str = content
+            json_str = json_match.group(1) if json_match else content
 
             parsed_json = json.loads(json_str)
             barcode = parsed_json.get("barcode")
@@ -217,10 +214,10 @@ async def scan_barcode(file: UploadFile = File(...)):
 
     except AuthenticationError:
         logger.error("OpenAI authentication failed")
-        raise HTTPException(status_code=401, detail="OpenAI authentication failed")
+        raise HTTPException(status_code=401, detail="OpenAI authentication failed") from None
     except Exception as e:
         logger.error(f"Error processing image: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}") from e
 
 
 # Business logic moved to OcrService
@@ -238,7 +235,7 @@ async def get_debug_status():
 
     # Check OpenAI client status
     try:
-        client = get_openai_client()
+        get_openai_client()
         openai_status = "✅ Available"
     except Exception as e:
         openai_status = f"❌ Error: {str(e)}"
@@ -250,7 +247,7 @@ async def get_debug_status():
         mock_data_enabled=is_ocr_mock_enabled(),
         cache_stats={
             **cache_stats,
-            "ocr_cache_entries": len([k for k in cache.cache.keys() if "ocr_scan_" in k]),
+            "ocr_cache_entries": len([k for k in cache.cache if "ocr_scan_" in k]),
         },
         openai_client_status=openai_status,
         recent_detections=len(recent_detections),
@@ -279,7 +276,7 @@ async def clear_ocr_cache():
 
     except Exception as e:
         logger.error(f"Error clearing OCR cache: {e}")
-        raise HTTPException(status_code=500, detail=f"Error clearing cache: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error clearing cache: {str(e)}") from e
 
 
 @router.post("/debug/test-detection")
@@ -306,7 +303,7 @@ async def test_detection_pipeline():
 
     # Test 2: OpenAI client
     try:
-        client = get_openai_client()
+        get_openai_client()
         openai_test = {
             "test": "OpenAI Client",
             "status": "✅ PASS",
@@ -408,7 +405,7 @@ async def force_fresh_detection(file: UploadFile = File(...)):
 
     except Exception as e:
         logger.error(f"Error in forced fresh detection: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Error in forced detection: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error in forced detection: {str(e)}") from e
 
 
 # === CONFIGURATION ENDPOINTS ===

@@ -4,7 +4,7 @@ Fixes unit issues in OCR-extracted items before adding to pantry.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any
 
 import asyncpg
 
@@ -19,7 +19,7 @@ class OCRUnitEnhancer:
     def __init__(self, db_pool: asyncpg.Pool):
         self.validator = SmartUnitValidator(db_pool)
 
-    async def enhance_ocr_units(self, ocr_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    async def enhance_ocr_units(self, ocr_items: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """
         Fix unit issues in OCR-extracted items.
 
@@ -47,7 +47,7 @@ class OCRUnitEnhancer:
 
         return enhanced_items
 
-    async def _enhance_single_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+    async def _enhance_single_item(self, item: dict[str, Any]) -> dict[str, Any]:
         """Enhance a single OCR item's unit."""
 
         name = item.get("name", "")
@@ -76,7 +76,7 @@ class OCRUnitEnhancer:
 
         return enhanced
 
-    async def get_unit_fix_summary(self, ocr_items: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def get_unit_fix_summary(self, ocr_items: list[dict[str, Any]]) -> dict[str, Any]:
         """
         Get summary of unit fixes that would be applied.
 

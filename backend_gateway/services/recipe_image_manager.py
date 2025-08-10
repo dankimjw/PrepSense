@@ -14,12 +14,11 @@ import os
 import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import requests
 
 from backend_gateway.config.database import db_config
-from backend_gateway.core.config import settings
 from backend_gateway.services.gcs_service import GCSService
 from backend_gateway.services.postgres_service import PostgresService
 from backend_gateway.services.recipe_image_service import RecipeImageService
@@ -57,7 +56,7 @@ class RecipeImageManager:
         try:
             migration_file = Path("backend_gateway/migrations/create_recipe_images_table.sql")
             if migration_file.exists():
-                with open(migration_file, "r") as f:
+                with open(migration_file) as f:
                     sql = f.read()
                 await self.postgres_service.execute_query(sql)
                 logger.info("✅ Recipe images table ready")
@@ -86,7 +85,7 @@ class RecipeImageManager:
         """
         await self.postgres_service.execute_query(sql)
 
-    async def get_image_record(self, recipe_id: str) -> Optional[Dict[str, Any]]:
+    async def get_image_record(self, recipe_id: str) -> Optional[dict[str, Any]]:
         """Get image record from database"""
         try:
             sql = "SELECT * FROM recipe_images WHERE recipe_id = $1"
@@ -108,11 +107,11 @@ class RecipeImageManager:
         """Insert or update image record in database"""
         try:
             sql = """
-            INSERT INTO recipe_images (recipe_id, recipe_title, gcs_signed_url, gcs_blob_path, 
+            INSERT INTO recipe_images (recipe_id, recipe_title, gcs_signed_url, gcs_blob_path,
                                      local_file_path, url_expires_at, updated_at)
             VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            ON CONFLICT (recipe_id) 
-            DO UPDATE SET 
+            ON CONFLICT (recipe_id)
+            DO UPDATE SET
                 recipe_title = EXCLUDED.recipe_title,
                 gcs_signed_url = EXCLUDED.gcs_signed_url,
                 gcs_blob_path = EXCLUDED.gcs_blob_path,
@@ -317,14 +316,14 @@ class RecipeImageManager:
             logger.error(f"Error generating and storing recipe image for {recipe_id}: {e}")
             return None
 
-    async def check_and_refresh_expiring_urls(self) -> Dict[str, int]:
+    async def check_and_refresh_expiring_urls(self) -> dict[str, int]:
         """Check for expiring URLs and refresh them"""
         try:
             # Find URLs expiring in next 24 hours
             sql = """
             SELECT recipe_id, recipe_title, gcs_blob_path, local_file_path
-            FROM recipe_images 
-            WHERE url_expires_at < $1 
+            FROM recipe_images
+            WHERE url_expires_at < $1
             ORDER BY url_expires_at ASC
             """
             expiring_threshold = datetime.now(timezone.utc) + timedelta(hours=24)
@@ -370,11 +369,11 @@ class RecipeImageManager:
             logger.error(f"Error checking expiring URLs: {e}")
             return {"error": str(e)}
 
-    async def get_image_statistics(self) -> Dict[str, Any]:
+    async def get_image_statistics(self) -> dict[str, Any]:
         """Get comprehensive image statistics"""
         try:
             sql = """
-            SELECT 
+            SELECT
                 COUNT(*) as total_images,
                 COUNT(CASE WHEN url_expires_at > NOW() THEN 1 END) as valid_urls,
                 COUNT(CASE WHEN url_expires_at <= NOW() + INTERVAL '24 hours' THEN 1 END) as expiring_soon,

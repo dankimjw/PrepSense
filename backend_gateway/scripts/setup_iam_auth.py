@@ -6,7 +6,6 @@ This allows team members to connect without passwords
 
 import os
 import subprocess
-import sys
 
 PROJECT_ID = os.getenv("GCP_PROJECT_ID", "your-project-id")
 INSTANCE_NAME = os.getenv("CLOUD_SQL_INSTANCE", "your-instance-name")
@@ -16,7 +15,7 @@ DATABASE_NAME = os.getenv("POSTGRES_DATABASE", "your-database-name")
 def run_command(cmd, check=True):
     """Run command and return result"""
     print(f"Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(cmd, check=False, shell=True, capture_output=True, text=True)
     if check and result.returncode != 0:
         print(f"Error: {result.stderr}")
         return False
@@ -40,12 +39,12 @@ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'cloudsqlsuperuser') THEN
         CREATE ROLE cloudsqlsuperuser;
     END IF;
-    
+
     -- Grant necessary permissions
     GRANT CONNECT ON DATABASE prepsense TO cloudsqlsuperuser;
     GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO cloudsqlsuperuser;
     GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO cloudsqlsuperuser;
-    
+
     -- Grant permissions on future tables
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO cloudsqlsuperuser;
     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO cloudsqlsuperuser;
@@ -60,7 +59,7 @@ SELECT usename, usesuper FROM pg_user WHERE usename LIKE '%@%';
         f.write(grant_sql)
 
     print("\n2. To complete IAM setup, run these commands:")
-    print(f"   # Connect as postgres user and grant permissions")
+    print("   # Connect as postgres user and grant permissions")
     # Get password from environment variable
     postgres_password = os.getenv("POSTGRES_PASSWORD")
     if not postgres_password:
@@ -80,7 +79,7 @@ SELECT usename, usesuper FROM pg_user WHERE usename LIKE '%@%';
     )
 
     print("\n3. Team members can now connect without passwords:")
-    print(f"   # Using gcloud (recommended)")
+    print("   # Using gcloud (recommended)")
     print(
         f"   gcloud sql connect {INSTANCE_NAME} --user=YOUR_EMAIL@uchicago.edu --database={DATABASE_NAME}"
     )

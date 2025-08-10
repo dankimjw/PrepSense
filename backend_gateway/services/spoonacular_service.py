@@ -2,8 +2,7 @@
 
 import asyncio
 import logging
-import os
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
 
 import httpx
 
@@ -21,7 +20,7 @@ class SpoonacularService:
         if not self.api_key:
             # Try to read from file as fallback
             try:
-                with open("config/spoonacular_key.txt", "r") as f:
+                with open("config/spoonacular_key.txt") as f:
                     self.api_key = f.read().strip()
             except FileNotFoundError:
                 logger.warning("Spoonacular API key not found in environment or config file")
@@ -33,7 +32,7 @@ class SpoonacularService:
         self.max_retries = 3
         self.openai_service = OpenAIRecipeService()
 
-    def parse_ingredients(self, ingredients: List[str]) -> List[Dict[str, Any]]:
+    def parse_ingredients(self, ingredients: list[str]) -> list[dict[str, Any]]:
         """
         Parse ingredients using Spoonacular API to get nutritional info and categories
 
@@ -67,8 +66,8 @@ class SpoonacularService:
             return []
 
     async def search_recipes_by_ingredients_with_allergen_filter(
-        self, ingredients: List[str], intolerances: List[str], number: int = 10
-    ) -> List[Dict[str, Any]]:
+        self, ingredients: list[str], intolerances: list[str], number: int = 10
+    ) -> list[dict[str, Any]]:
         """
         Use complexSearch for better allergen filtering when searching by ingredients.
         This is more reliable than findByIngredients for allergen filtering.
@@ -135,12 +134,12 @@ class SpoonacularService:
 
     async def search_recipes_by_ingredients(
         self,
-        ingredients: List[str],
+        ingredients: list[str],
         number: int = 10,
         ranking: int = 1,
         ignore_pantry: bool = False,
-        intolerances: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        intolerances: Optional[list[str]] = None,
+    ) -> list[dict[str, Any]]:
         """
         Search for recipes by ingredients
 
@@ -209,7 +208,7 @@ class SpoonacularService:
 
     async def get_recipe_information(
         self, recipe_id: int, include_nutrition: bool = True
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Get detailed information about a recipe
 
@@ -263,7 +262,7 @@ class SpoonacularService:
                     if e.response.status_code >= 500:
                         raise Exception(
                             f"Spoonacular server error (status {e.response.status_code})"
-                        )
+                        ) from e
                 raise
 
             except Exception as e:
@@ -271,8 +270,8 @@ class SpoonacularService:
                 raise
 
     async def get_recipe_information_bulk(
-        self, recipe_ids: List[str], include_nutrition: bool = False
-    ) -> Dict[str, Dict[str, Any]]:
+        self, recipe_ids: list[str], include_nutrition: bool = False
+    ) -> dict[str, dict[str, Any]]:
         """
         Get information for multiple recipes in a single request
 
@@ -327,14 +326,14 @@ class SpoonacularService:
         query: Optional[str] = None,
         cuisine: Optional[str] = None,
         diet: Optional[str] = None,
-        include_ingredients: Optional[List[str]] = None,
-        exclude_ingredients: Optional[List[str]] = None,
-        intolerances: Optional[List[str]] = None,
+        include_ingredients: Optional[list[str]] = None,
+        exclude_ingredients: Optional[list[str]] = None,
+        intolerances: Optional[list[str]] = None,
         max_ready_time: Optional[int] = None,
         sort: Optional[str] = None,
         number: int = 10,
         offset: int = 0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Complex recipe search with multiple filters
 
@@ -408,7 +407,7 @@ class SpoonacularService:
                 logger.error(f"Error in complex search: {str(e)}")
                 raise
 
-    def _check_recipe_for_allergens(self, recipe_title: str, intolerances: List[str]) -> bool:
+    def _check_recipe_for_allergens(self, recipe_title: str, intolerances: list[str]) -> bool:
         """
         Check if a recipe title contains common allergen indicators
 
@@ -491,8 +490,8 @@ class SpoonacularService:
         return False
 
     async def get_random_recipes(
-        self, number: int = 10, tags: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        self, number: int = 10, tags: Optional[list[str]] = None
+    ) -> dict[str, Any]:
         """
         Get random recipes
 
@@ -520,7 +519,7 @@ class SpoonacularService:
                 logger.error(f"Error getting random recipes: {str(e)}")
                 raise
 
-    def validate_recipe_instructions(self, recipe: Dict[str, Any], min_steps: int = 2) -> bool:
+    def validate_recipe_instructions(self, recipe: dict[str, Any], min_steps: int = 2) -> bool:
         """
         Validate that a recipe has sufficient instructions
 
@@ -558,8 +557,8 @@ class SpoonacularService:
         return False
 
     def filter_recipes_by_instructions(
-        self, recipes: List[Dict[str, Any]], min_steps: int = 2
-    ) -> List[Dict[str, Any]]:
+        self, recipes: list[dict[str, Any]], min_steps: int = 2
+    ) -> list[dict[str, Any]]:
         """
         Filter a list of recipes to only include those with sufficient instructions
 
