@@ -23,7 +23,7 @@ from backend_gateway.core.logging_config import get_logger, setup_logging
 
 # Import monitoring and logging configuration
 from backend_gateway.core.monitoring import setup_monitoring
-from backend_gateway.core.observability import setup_observability
+# from backend_gateway.core.observability import setup_observability  # Temporarily disabled
 
 # Import enhanced OpenAPI configuration
 from backend_gateway.core.openapi_config import custom_openapi_schema, setup_enhanced_docs, export_openapi_schema
@@ -72,8 +72,8 @@ async def lifespan(app: FastAPI):
     environment = os.getenv("ENVIRONMENT", "development")
     try:
         setup_monitoring(app, environment)
-        setup_observability(app, environment=environment)
-        logger.info("Monitoring and observability configured", environment=environment)
+        # setup_observability(app, environment=environment)  # Temporarily disabled
+        logger.info("Monitoring configured", environment=environment)
     except Exception as e:
         logger.error("Failed to setup monitoring", error=str(e), exc_info=True)
 
@@ -299,9 +299,9 @@ from backend_gateway.routers.semantic_search_router import router as semantic_se
 app.include_router(semantic_search_router, tags=["recipes"])
 
 # Import supply chain impact router
-from backend_gateway.routers.supply_chain_impact_router import router as supply_chain_impact_router
+from backend_gateway.routers.supply_chain_impact_router import router as supply_chain_router
 
-app.include_router(supply_chain_impact_router, tags=["pantry"])
+app.include_router(supply_chain_router, tags=["pantry"])
 
 # Import USDA router for nutritional data
 from backend_gateway.routers.usda_router import router as usda_router
@@ -318,10 +318,9 @@ from backend_gateway.routers.unit_validation_router import router as unit_valida
 
 app.include_router(unit_validation_router, tags=["pantry"])
 
-# CrewAI intelligent recipe recommendation system
-from backend_gateway.routers.crewai_router import router as crewai_router
-
-app.include_router(crewai_router, prefix=f"{settings.API_V1_STR}", tags=["crewai"])
+# CrewAI intelligent recipe recommendation system - TEMPORARILY DISABLED
+# from backend_gateway.routers.crewai_router import router as crewai_router
+# app.include_router(crewai_router, prefix=f"{settings.API_V1_STR}", tags=["crewai"])
 
 # AI-powered recipe generation using CrewAI
 # from backend_gateway.routers.ai_recipes_router import router as ai_recipes_router
@@ -419,15 +418,15 @@ async def health_check():
         health_status["services"]["database"]["status"] = "configured"
         # TODO: Add actual database connectivity test
 
-    # Check CrewAI system
-    try:
-        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
-        from src.crews.prepsense_main import PrepSenseMainCrew
-        health_status["services"]["crewai"]["enabled"] = True
-        health_status["services"]["crewai"]["status"] = "healthy"
-    except ImportError:
-        logger.info("CrewAI system not available")
-        health_status["services"]["crewai"]["status"] = "not_available"
+    # Check CrewAI system - DISABLED
+    # try:
+    #     sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__)), "src"))
+    #     from src.crews.prepsense_main import PrepSenseMainCrew
+    #     health_status["services"]["crewai"]["enabled"] = True
+    #     health_status["services"]["crewai"]["status"] = "healthy"
+    # except ImportError:
+    #     logger.info("CrewAI system not available")
+    #     health_status["services"]["crewai"]["status"] = "not_available"
 
     # Overall health determination
     service_statuses = [service["status"] for service in health_status["services"].values()]

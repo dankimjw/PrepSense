@@ -455,17 +455,30 @@ export default function RecipesContainer() {
   const fetchMyRecipes = useCallback(async () => {
     // Use preloaded data if available and fresh
     if (recipesData?.myRecipes && !state.refreshing) {
-      const filterMap = {
-        'all': recipesData.myRecipes,
-        'thumbs_up': recipesData.myRecipes.filter(r => r.rating === 'thumbs_up'),
-        'thumbs_down': recipesData.myRecipes.filter(r => r.rating === 'thumbs_down'),
-        'favorites': recipesData.myRecipes.filter(r => r.is_favorite)
-      };
-      const filteredRecipes = filterMap[state.myRecipesFilter] || recipesData.myRecipes;
+      let filteredRecipes = recipesData.myRecipes;
       
-      // Apply user preference filtering to show only recipes matching Lily's preferences
-      const preferencesFilteredRecipes = filterRecipesByPreferences(filteredRecipes);
-      console.log(`Filtered ${filteredRecipes.length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
+      // Filter to demo recipes only when on "Saved" tab
+      if (state.myRecipesTab === 'saved') {
+        console.log('🔍 Using preloaded data - filtering to demo recipes only for "Saved" tab');
+        // Filter based on is_demo field if available, otherwise fall back to source filtering
+        filteredRecipes = recipesData.myRecipes.filter(r => 
+          r.is_demo === true || (r.is_demo === undefined && r.source === 'demo')
+        );
+        console.log(`Filtered from ${recipesData.myRecipes.length} to ${filteredRecipes.length} demo recipes`);
+      }
+      
+      // Apply rating/favorite filters
+      const filterMap = {
+        'all': filteredRecipes,
+        'thumbs_up': filteredRecipes.filter(r => r.rating === 'thumbs_up'),
+        'thumbs_down': filteredRecipes.filter(r => r.rating === 'thumbs_down'),
+        'favorites': filteredRecipes.filter(r => r.is_favorite)
+      };
+      const finalFilteredRecipes = filterMap[state.myRecipesFilter] || filteredRecipes;
+      
+      // Apply user preference filtering to show only recipes matching user preferences
+      const preferencesFilteredRecipes = filterRecipesByPreferences(finalFilteredRecipes);
+      console.log(`Filtered ${finalFilteredRecipes.length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
       
       dispatch({ type: 'SET_SAVED_RECIPES', payload: preferencesFilteredRecipes });
       return;
@@ -474,22 +487,29 @@ export default function RecipesContainer() {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
 
-      let filterParam = '';
+      let filterParams = new URLSearchParams();
+      
       // Add status filter based on current tab
       if (state.myRecipesTab === 'saved') {
-        filterParam = '?status=saved';
+        filterParams.append('status', 'saved');
+        // Enable demo filtering for saved tab only
+        filterParams.append('demo_only', 'true');
       } else if (state.myRecipesTab === 'cooked') {
-        filterParam = '?status=cooked';
+        filterParams.append('status', 'cooked');
       }
       
       // Add additional filters
       if (state.myRecipesFilter === 'favorites') {
-        filterParam += filterParam ? '&is_favorite=true' : '?is_favorite=true';
+        filterParams.append('is_favorite', 'true');
       } else if (state.myRecipesFilter !== 'all') {
-        filterParam += filterParam ? `&rating=${state.myRecipesFilter}` : `?rating=${state.myRecipesFilter}`;
+        filterParams.append('rating', state.myRecipesFilter);
       }
       
-      const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
+      const queryString = filterParams.toString();
+      const url = `${Config.API_BASE_URL}/user-recipes${queryString ? `?${queryString}` : ''}`;
+      
+      console.log('🔍 Fetching My Recipes from:', url);
+      const response = await fetch(url, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -500,11 +520,18 @@ export default function RecipesContainer() {
       }
       
       const data = await response.json();
-      console.log('Fetched saved recipes with filter:', state.myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
+      console.log('Fetched saved recipes with filters:', {
+        tab: state.myRecipesTab,
+        filter: state.myRecipesFilter,
+        demo_only: state.myRecipesTab === 'saved',
+        returned: data?.length || 0
+      });
       
-      // Apply user preference filtering to show only recipes matching Lily's preferences
-      const preferencesFilteredRecipes = filterRecipesByPreferences(data || []);
-      console.log(`Filtered ${(data || []).length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
+      const recipes = data || [];
+      
+      // Apply user preference filtering to show only recipes matching user preferences
+      const preferencesFilteredRecipes = filterRecipesByPreferences(recipes);
+      console.log(`Filtered ${recipes.length} recipes to ${preferencesFilteredRecipes.length} based on user preferences`);
       
       dispatch({ type: 'SET_SAVED_RECIPES', payload: preferencesFilteredRecipes });
     } catch (error) {

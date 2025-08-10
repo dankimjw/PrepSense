@@ -18,12 +18,62 @@ htmlcov/
 dist/
 build/
 
+# Claude-related files and folders
+.claude/
+.claude_*
+.claude-*
+**/CLAUDE_*.md
+**/CLAUDE_*.txt
+**/claude_*
+**/.claude*
+Scratchpads/
+Archive/
+docs/archive/
+backend_gateway/docs/archive/
+archive_unused/
+
 # System files
 .DS_Store
 Thumbs.db
 *.swp
 *.swo
 *~
+
+# Personal/Internal documentation
+docs/internal/
+docs/*CLAUDE*
+docs/*claude*
+docs/*TEAM*
+docs/*team*
+docs/*WORKTREE*
+docs/*worktree*
+docs/*engineer*
+docs/**/*CLAUDE*
+docs/**/*claude*
+docs/**/*WORKTREE*
+docs/**/*worktree*
+
+# MCP (Model Context Protocol) - local only
+.mcp.json
+.mcp.json.backup
+scripts/setup_mcp_servers.sh
+scripts/setup_mcp_worktree.sh
+mcp-servers/
+
+# Claude-specific setup scripts
+setup_claude_md_symlinks.sh
+setup_worktrees.sh
+../PrepSense-worktrees/
+
+# Project specific
+.prepsense_config.json
+config/
+!backend_gateway/config/
+my_notes/
+test_assets/
+notebooks/.ipynb_checkpoints/
+ios-app/coverage/
+ios-app/.vscode/
 
 # Logs
 *.log

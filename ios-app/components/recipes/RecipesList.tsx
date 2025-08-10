@@ -19,35 +19,11 @@ import { Config } from '../../config';
 
 const { width } = Dimensions.get('window');
 
-// Fallback image URL for recipes with missing or invalid images
-const FALLBACK_RECIPE_IMAGE = 'https://img.spoonacular.com/recipes/default-312x231.jpg';
+// Working fallback image URL for recipes with missing or invalid images
+const FALLBACK_RECIPE_IMAGE = 'https://via.placeholder.com/312x231/E5E5E5/666666?text=Recipe+Image';
 
-interface Recipe {
-  id: number;
-  title: string;
-  image?: string;
-  summary?: string;
-  readyInMinutes?: number;
-  servings?: number;
-  sourceUrl?: string;
-  usedIngredientCount?: number;
-  missedIngredientCount?: number;
-  spoonacularSourceUrl?: string;
-  usedIngredients?: Array<{
-    id: number;
-    amount: number;
-    unit: string;
-    name: string;
-    image: string;
-  }>;
-  missedIngredients?: Array<{
-    id: number;
-    amount: number;
-    unit: string;
-    name: string;
-    image: string;
-  }>;
-}
+// Use the Recipe interface from the API module to avoid conflicts
+type Recipe = api.Recipe;
 
 interface SavedRecipe {
   id: number;
@@ -119,7 +95,7 @@ const RecipesList: React.FC<RecipesListProps> = ({
         },
         body: JSON.stringify({
           recipe_id: recipe.id,
-          recipe_title: recipe.title,
+          recipe_title: recipe.title || recipe.name,
           recipe_image: recipe.image,
           recipe_data: recipe,
           source: 'spoonacular',
@@ -167,25 +143,33 @@ const RecipesList: React.FC<RecipesListProps> = ({
     return title;
   };
 
+  // Enhanced image URL generation with better fallback handling
   const getRecipeImage = (recipe: Recipe | SavedRecipe): string => {
     let imageUrl = '';
+    let recipeId: number | null = null;
     
     if ('recipe_data' in recipe) {
       // This is a saved recipe
       imageUrl = recipe.recipe_data?.image || recipe.recipe_data?.image_url || '';
-      console.log('🖼️ Saved recipe image URL:', {
+      // Try to get recipe ID for Spoonacular URL generation
+      recipeId = recipe.recipe_id || recipe.recipe_data?.id || recipe.recipe_data?.external_recipe_id || null;
+      
+      console.log('🖼️ Saved recipe image URL processing:', {
         recipe_id: recipe.id,
+        spoonacular_id: recipeId,
         recipe_data_image: recipe.recipe_data?.image,
         recipe_data_image_url: recipe.recipe_data?.image_url,
-        final_url: imageUrl
+        initial_url: imageUrl
       });
     } else {
-      // This is a regular recipe from Spoonacular API - images are at the top level
+      // This is a regular recipe from Spoonacular API
       imageUrl = recipe.image || '';
-      console.log('🖼️ Spoonacular recipe image URL:', {
+      recipeId = recipe.id || null;
+      
+      console.log('🖼️ Spoonacular recipe image URL processing:', {
         recipe_id: recipe.id,
         image: recipe.image,
-        final_url: imageUrl
+        initial_url: imageUrl
       });
     }
     
@@ -193,482 +177,261 @@ const RecipesList: React.FC<RecipesListProps> = ({
     if (imageUrl && !imageUrl.startsWith('http')) {
       const baseUrl = Config.API_BASE_URL.replace('/api/v1', '');
       imageUrl = `${baseUrl}${imageUrl.startsWith('/') ? '' : '/'}${imageUrl}`;
-      console.log('🔧 Fixed relative image URL:', {
-        original: imageUrl.includes(baseUrl) ? imageUrl.replace(baseUrl, '').replace('/', '') : imageUrl,
-        fixed: imageUrl
-      });
+      console.log('🔧 Fixed relative URL:', imageUrl);
     }
     
-    // Return fallback image if the URL is empty or invalid
-    if (!imageUrl || imageUrl.trim() === '') {
-      console.log('🖼️ Using fallback image for recipe:', getRecipeTitle(recipe));
-      return FALLBACK_RECIPE_IMAGE;
+    // Enhanced Spoonacular image URL handling
+    if (recipeId && typeof recipeId === 'number' && recipeId > 0) {
+      // If no image URL or it's a broken default URL, generate proper Spoonacular URL
+      if (!imageUrl || imageUrl === 'https://img.spoonacular.com/recipes/default-312x231.jpg') {
+        imageUrl = `https://img.spoonacular.com/recipes/${recipeId}-312x231.jpg`;
+        console.log('🖼️ Generated Spoonacular image URL:', imageUrl);
+      }
+      // Fix malformed Spoonacular URLs that don't include the recipe ID
+      else if (imageUrl.includes('spoonacular.com') && !imageUrl.includes(`${recipeId}-`)) {
+        imageUrl = `https://img.spoonacular.com/recipes/${recipeId}-312x231.jpg`;
+        console.log('🔧 Fixed malformed Spoonacular URL:', imageUrl);
+      }
+    }
+    
+    // Use working fallback image if we still don't have a valid URL
+    if (!imageUrl || imageUrl === 'https://img.spoonacular.com/recipes/default-312x231.jpg') {
+      imageUrl = FALLBACK_RECIPE_IMAGE;
+      console.log('🖼️ Using working fallback image for recipe:', getRecipeTitle(recipe));
     }
     
     return imageUrl;
   };
 
-  const getIngredientCounts = (recipe: Recipe | SavedRecipe) => {
-    if ('recipe_data' in recipe) {
-      // This is a saved recipe - try to get ingredient count from recipe_data
-      const ingredients = recipe.recipe_data?.ingredients || recipe.recipe_data?.extendedIngredients || [];
-      const counts = {
-        have: ingredients.length,
-        missing: 0
-      };
-      console.log('🥕 Saved recipe ingredient counts:', {
-        recipe_id: recipe.id,
-        ingredients_length: ingredients.length,
-        counts
-      });
-      return counts;
-    }
-    // This is a regular recipe from Spoonacular
-    const counts = {
-      have: recipe.usedIngredientCount || 0,
-      missing: recipe.missedIngredientCount || 0
-    };
-    console.log('🥕 Spoonacular recipe ingredient counts:', {
-      recipe_id: recipe.id,
-      usedIngredientCount: recipe.usedIngredientCount,
-      missedIngredientCount: recipe.missedIngredientCount,
-      counts
-    });
-    return counts;
-  };
-
-  // Enhanced recipe ID resolution with comprehensive fallback logic
   const getRecipeId = (recipe: Recipe | SavedRecipe): number | null => {
     if ('recipe_data' in recipe) {
-      // This is a saved recipe - try multiple ID sources
-      const possibleIds = [
-        recipe.recipe_id,
-        recipe.recipe_data?.external_recipe_id,
-        recipe.recipe_data?.id,
-        recipe.recipe_data?.spoonacular_id,
-        recipe.id // Use the saved recipe's own ID as last resort
-      ];
-      
-      for (const id of possibleIds) {
-        if (id && (typeof id === 'number' || typeof id === 'string')) {
-          const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-          if (!isNaN(numericId) && numericId > 0) {
-            console.log('🔍 Found recipe ID for saved recipe:', {
-              recipe_id: recipe.id,
-              source_field: possibleIds.indexOf(id) === 0 ? 'recipe_id' : 
-                           possibleIds.indexOf(id) === 1 ? 'external_recipe_id' :
-                           possibleIds.indexOf(id) === 2 ? 'recipe_data.id' :
-                           possibleIds.indexOf(id) === 3 ? 'spoonacular_id' : 'fallback_id',
-              found_id: numericId
-            });
-            return numericId;
-          }
-        }
-      }
-      
-      console.error('❌ No valid recipe ID found for saved recipe:', {
-        recipe_id: recipe.id,
-        recipe_id_field: recipe.recipe_id,
-        recipe_data_keys: recipe.recipe_data ? Object.keys(recipe.recipe_data) : 'no recipe_data'
-      });
-      return null;
-    } else {
-      // This is a regular recipe from Spoonacular
-      const id = recipe.id;
-      if (id && (typeof id === 'number' || typeof id === 'string')) {
-        const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
-        if (!isNaN(numericId) && numericId > 0) {
-          console.log('🔍 Found recipe ID for regular recipe:', {
-            recipe_id: numericId,
-            original_type: typeof id
-          });
-          return numericId;
-        }
-      }
-      
-      console.error('❌ No valid recipe ID found for regular recipe:', {
-        id: recipe.id,
-        id_type: typeof recipe.id,
-        recipe_keys: Object.keys(recipe)
-      });
-      return null;
+      // This is a saved recipe - try multiple ID fields
+      return recipe.recipe_id || recipe.recipe_data?.id || recipe.recipe_data?.external_recipe_id || recipe.id || null;
     }
+    // This is a regular recipe
+    return recipe.id || null;
   };
 
-  const navigateToRecipeDetail = (recipe: Recipe | SavedRecipe) => {
-    if ('recipe_data' in recipe) {
-      // This is a saved recipe
-      if (recipe.source === 'chat' || recipe.source === 'openai') {
-        // Chat/AI-generated recipes should go to recipe-details
-        router.push({
-          pathname: '/recipe-details',
-          params: { recipe: JSON.stringify(recipe.recipe_data) },
-        });
-        return;
-      } else {
-        // Spoonacular saved recipes go to recipe-spoonacular-detail
-        const recipeId = getRecipeId(recipe);
-        if (recipeId) {
-          router.push({
-            pathname: '/recipe-spoonacular-detail',
-            params: { recipeId: recipeId.toString() },
-          });
-          return;
-        }
-      }
-    } else {
-      // This is a regular recipe from search/discovery
-      const recipeId = getRecipeId(recipe);
-      if (recipeId) {
-        router.push({
-          pathname: '/recipe-spoonacular-detail',
-          params: { recipeId: recipeId.toString() },
-        });
-        return;
-      }
-    }
+  const handleRecipePress = (recipe: Recipe | SavedRecipe) => {
+    const recipeId = getRecipeId(recipe);
+    const recipeTitle = getRecipeTitle(recipe);
     
-    // If we get here, we couldn't find a valid ID
-    console.error('❌ Unable to navigate - no valid recipe ID found:', recipe);
-    Alert.alert(
-      'Error', 
-      'Unable to open recipe details. This recipe may be corrupted or have missing information.',
-      [
-        { text: 'OK', style: 'default' }
-      ]
-    );
-  };
-
-  const toggleFavorite = async (recipeId: number, isFavorite: boolean) => {
-    try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || Config.API_BASE_URL}/user-recipes/${recipeId}/favorite`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ is_favorite: isFavorite }),
+    if (recipeId) {
+      console.log('📱 Navigating to recipe details:', {
+        recipe_id: recipeId,
+        title: recipeTitle,
+        source: 'recipe_list'
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update favorite status');
-      }
       
-      if (isFavorite) {
-        Alert.alert('Added to Favorites', 'This recipe will be used to improve your recommendations.');
-      }
+      router.push({
+        pathname: '/recipe-spoonacular-detail',
+        params: { recipeId: recipeId.toString() },
+      });
+    } else {
+      console.error('❌ Cannot navigate - no valid recipe ID found:', {
+        recipe: JSON.stringify(recipe, null, 2).slice(0, 300) + '...'
+      });
       
-      // Refresh the list
-      onRefresh();
-    } catch (error) {
-      console.error('Error updating favorite:', error);
-      Alert.alert('Error', 'Failed to update favorite status. Please try again.');
+      Alert.alert(
+        'Error', 
+        'Unable to open recipe details. This recipe may be missing information.',
+        [{ text: 'OK', style: 'default' }]
+      );
     }
   };
 
-  const updateRecipeRating = async (recipeId: number, rating: 'thumbs_up' | 'thumbs_down' | 'neutral') => {
-    try {
-      const response = await fetch(`${api.Config?.API_BASE_URL || Config.API_BASE_URL}/user-recipes/${recipeId}/rating`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ rating }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update rating');
-      }
-      
-      // Refresh the list
-      onRefresh();
-    } catch (error) {
-      console.error('Error updating rating:', error);
-      Alert.alert('Error', 'Failed to update rating. Please try again.');
-    }
-  };
-
-  // Enhanced recipe card with better image error handling
-  const renderRecipeCard = (recipe: Recipe, index: number) => (
-    <View style={styles.recipeCardWrapper}>
-      <TouchableOpacity
-        style={styles.recipeCard}
-        onPress={() => navigateToRecipeDetail(recipe)}
-        activeOpacity={0.9}
-      >
-        <Image 
-          source={{ uri: getRecipeImage(recipe) }} 
-          style={styles.recipeImage}
-          defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
-          onError={(error) => {
-            console.log('🚨 Failed to load recipe image:', {
-              recipe_id: recipe.id,
-              attempted_url: getRecipeImage(recipe),
-              error: error.nativeEvent?.error
-            });
-          }}
-        />
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.8)']}
-          style={styles.gradient}
-        />
-        <View style={styles.recipeInfo}>
-          <Text style={styles.recipeTitle} numberOfLines={2}>
-            {getRecipeTitle(recipe)}
-          </Text>
-          <View style={styles.recipeStats}>
-            <View style={styles.stat}>
-              <MaterialCommunityIcons 
-                name="check-circle" 
-                size={16} 
-                color="#4CAF50"
-              />
-              <Text style={styles.statText}>{getIngredientCounts(recipe).have} have</Text>
-            </View>
-            <View style={styles.stat}>
-              <MaterialCommunityIcons 
-                name="close-circle" 
-                size={16} 
-                color="#F44336"
-              />
-              <Text style={styles.statText}>{getIngredientCounts(recipe).missing} missing</Text>
-            </View>
-          </View>
-        </View>
-        <TouchableOpacity 
-          style={styles.saveButton}
-          onPress={() => saveRecipe(recipe)}
-        >
-          <Ionicons name="bookmark-outline" size={20} color="#fff" />
-        </TouchableOpacity>
-      </TouchableOpacity>
-    </View>
-  );
-
-  // Enhanced saved recipe card with better image error handling
-  const renderSavedRecipeCard = (savedRecipe: SavedRecipe, index: number) => {
-    const isDeleting = deletingRecipeId === savedRecipe.id;
+  const renderRecipeCard = (recipe: Recipe | SavedRecipe, index: number) => {
+    const title = getRecipeTitle(recipe);
+    const imageUrl = getRecipeImage(recipe);
+    const recipeId = getRecipeId(recipe);
     
     return (
-      <View style={styles.recipeCardWrapper}>
-        <TouchableOpacity
-          style={styles.recipeCard}
-          onPress={() => navigateToRecipeDetail(savedRecipe)}
-          activeOpacity={0.9}
-        >
+      <TouchableOpacity
+        key={`${listType}-${index}-${recipeId || 'no-id'}`}
+        style={styles.recipeCard}
+        onPress={() => handleRecipePress(recipe)}
+        activeOpacity={0.8}
+      >
+        <View style={styles.imageContainer}>
           <Image 
-            source={{ uri: getRecipeImage(savedRecipe) }} 
+            source={{ uri: imageUrl }}
             style={styles.recipeImage}
-            defaultSource={{ uri: FALLBACK_RECIPE_IMAGE }}
+            resizeMode="cover"
             onError={(error) => {
-              console.log('🚨 Failed to load saved recipe image:', {
-                recipe_id: savedRecipe.id,
-                attempted_url: getRecipeImage(savedRecipe),
-                error: error.nativeEvent?.error
+              console.log(`🚨 Recipe image failed to load:`, {
+                attempted_url: imageUrl,
+                recipe_id: recipeId,
+                recipe_title: title,
+                error: error.nativeEvent.error || 'Unknown error'
+              });
+            }}
+            onLoad={() => {
+              console.log(`✅ Recipe image loaded successfully:`, {
+                url: imageUrl,
+                recipe_id: recipeId,
+                recipe_title: title
               });
             }}
           />
+          
+          {/* Gradient overlay for better text readability */}
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.8)']}
+            colors={['transparent', 'rgba(0,0,0,0.7)']}
             style={styles.gradient}
           />
+          
+          {/* Save/Delete button overlay */}
+          <View style={styles.actionButtonContainer}>
+            {listType === 'fromPantry' && (
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  saveRecipe(recipe as Recipe);
+                }}
+              >
+                <Ionicons name="bookmark-outline" size={20} color="white" />
+              </TouchableOpacity>
+            )}
+            
+            {listType === 'myRecipes' && (
+              <TouchableOpacity
+                style={styles.deleteButton}
+                onPress={(e) => {
+                  e.stopPropagation();
+                  confirmDelete(recipeId || 0, title);
+                }}
+                disabled={deletingRecipeId === recipeId}
+              >
+                {deletingRecipeId === recipeId ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Ionicons name="trash-outline" size={20} color="white" />
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
+          
+          {/* Recipe info overlay */}
           <View style={styles.recipeInfo}>
             <Text style={styles.recipeTitle} numberOfLines={2}>
-              {getRecipeTitle(savedRecipe)}
+              {title}
             </Text>
-            {/* Rating buttons for saved recipes */}
-            {listType === 'myRecipes' && (
-              <View style={styles.ratingButtons}>
-                <TouchableOpacity 
-                  style={[
-                    styles.ratingButton,
-                    savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
-                  ]}
-                  onPress={() => updateRecipeRating(
-                    savedRecipe.id, 
-                    savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
-                  )}
-                >
-                  <Ionicons 
-                    name="thumbs-up" 
+            
+            {/* Show ingredient availability for pantry recipes */}
+            {listType === 'fromPantry' && 'usedIngredientCount' in recipe && (
+              <View style={styles.ingredientInfo}>
+                <View style={styles.ingredientStat}>
+                  <MaterialCommunityIcons 
+                    name="check-circle" 
                     size={16} 
-                    color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                    color="#4CAF50" 
                   />
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[
-                    styles.ratingButton,
-                    savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
-                  ]}
-                  onPress={() => updateRecipeRating(
-                    savedRecipe.id, 
-                    savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
-                  )}
-                >
-                  <Ionicons 
-                    name="thumbs-down" 
+                  <Text style={styles.ingredientText}>
+                    {(recipe as Recipe).usedIngredientCount || 0} available
+                  </Text>
+                </View>
+                <View style={styles.ingredientStat}>
+                  <MaterialCommunityIcons 
+                    name="close-circle" 
                     size={16} 
-                    color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                    color="#F44336" 
                   />
-                </TouchableOpacity>
+                  <Text style={styles.ingredientText}>
+                    {(recipe as Recipe).missedIngredientCount || 0} missing
+                  </Text>
+                </View>
               </View>
             )}
           </View>
-          <View style={styles.cardActions}>
-            <TouchableOpacity 
-              style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
-              onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
-            >
-              <Ionicons 
-                name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
-                size={16} 
-                color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={styles.deleteButton}
-              onPress={() => confirmDelete(savedRecipe.id, getRecipeTitle(savedRecipe))}
-              disabled={isDeleting}
-            >
-              {isDeleting ? (
-                <ActivityIndicator size="small" color="#fff" />
-              ) : (
-                <Ionicons name="trash-outline" size={14} color="#fff" />
-              )}
-            </TouchableOpacity>
-          </View>
-        </TouchableOpacity>
-      </View>
+        </View>
+      </TouchableOpacity>
     );
   };
 
-  if (isLoading) {
+  if (isLoading && recipes.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#4CAF50" />
+        <ActivityIndicator size="large" color="#007AFF" />
         <Text style={styles.loadingText}>Loading recipes...</Text>
       </View>
     );
   }
 
-  if (!recipes || recipes.length === 0) {
+  if (recipes.length === 0) {
     return (
-      <ScrollView
-        contentContainerStyle={styles.emptyContainer}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <Ionicons
-          name={listType === 'fromPantry' ? 'restaurant' : 'bookmark'}
-          size={64}
-          color="#ccc"
+      <View style={styles.emptyContainer}>
+        <MaterialCommunityIcons 
+          name="chef-hat" 
+          size={80} 
+          color="#CCCCCC" 
+          style={styles.emptyIcon}
         />
-        <Text style={styles.emptyText}>
-          {listType === 'fromPantry'
-            ? 'No recipes found based on your pantry ingredients'
-            : 'No saved recipes yet'}
+        <Text style={styles.emptyTitle}>
+          {listType === 'fromPantry' ? 'No Pantry Recipes Found' : 'No Saved Recipes'}
         </Text>
-        <Text style={styles.emptySubtext}>
-          {listType === 'fromPantry'
-            ? 'Try adding more ingredients to your pantry'
-            : 'Save recipes from the "From Pantry" tab to see them here'}
+        <Text style={styles.emptyMessage}>
+          {listType === 'fromPantry' 
+            ? 'Add items to your pantry to discover recipes you can make!'
+            : 'Save recipes from the Pantry tab to see them here.'
+          }
         </Text>
-      </ScrollView>
+      </View>
     );
   }
 
   return (
     <ScrollView
-      style={styles.scrollView}
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          colors={['#007AFF']}
+          tintColor="#007AFF"
+        />
       }
     >
       <View style={styles.recipesGrid}>
-        {recipes.map((recipe, index) => {
-          // Create truly unique keys by combining type prefix, recipe ID, and index
-          // This prevents collisions even if recipes have duplicate IDs or appear multiple times
-          const recipeType = ('recipe_data' in recipe) ? 'saved' : 'recipe';
-          const recipeId = recipe.id || 'unknown';
-          const uniqueKey = `${recipeType}-${recipeId}-${index}`;
-          
-          if ('recipe_data' in recipe) {
-            return <React.Fragment key={uniqueKey}>{renderSavedRecipeCard(recipe as SavedRecipe, index)}</React.Fragment>;
-          } else {
-            return <React.Fragment key={uniqueKey}>{renderRecipeCard(recipe as Recipe, index)}</React.Fragment>;
-          }
-        })}
+        {recipes.map((recipe, index) => renderRecipeCard(recipe, index))}
       </View>
     </ScrollView>
   );
 };
 
-// Original Spoonacular Recipe Card Styles
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
     flex: 1,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f8f9fa',
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#F9FAFB',
-  },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: '#666',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-    paddingHorizontal: 20,
-  },
-  emptyText: {
-    fontSize: 18,
-    color: '#666',
-    textAlign: 'center',
-    marginTop: 16,
-    fontWeight: '500',
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    marginTop: 8,
-    lineHeight: 20,
-  },
-  recipesGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 100,
   },
-  recipeCardWrapper: {
-    width: '50%',
-    paddingHorizontal: 8,
-    marginBottom: 16,
+  recipesGrid: {
+    gap: 16,
   },
   recipeCard: {
-    width: '100%',
-    height: 220,
+    backgroundColor: 'white',
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#fff',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 4,
+    marginBottom: 16,
+  },
+  imageContainer: {
+    height: 200,
+    position: 'relative',
   },
   recipeImage: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
   },
   gradient: {
     position: 'absolute',
@@ -677,74 +440,90 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 100,
   },
+  actionButtonContainer: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+  saveButton: {
+    backgroundColor: 'rgba(0, 122, 255, 0.8)',
+    borderRadius: 20,
+    padding: 8,
+    backdropFilter: 'blur(10px)',
+  },
+  deleteButton: {
+    backgroundColor: 'rgba(244, 67, 54, 0.8)',
+    borderRadius: 20,
+    padding: 8,
+    backdropFilter: 'blur(10px)',
+  },
   recipeInfo: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 12,
+    padding: 16,
   },
   recipeTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#fff',
-    marginBottom: 4,
+    color: 'white',
+    marginBottom: 8,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
-  recipeStats: {
+  ingredientInfo: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: 12,
   },
-  stat: {
+  ingredientStat: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
-  statText: {
+  ingredientText: {
     fontSize: 12,
-    color: '#fff',
+    color: 'white',
+    fontWeight: '500',
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
-  saveButton: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 20,
-    padding: 8,
-  },
-  ratingButtons: {
-    flexDirection: 'row',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 4,
+    backgroundColor: '#f8f9fa',
   },
-  ratingButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 16,
-    padding: 6,
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 12,
   },
-  ratingButtonActive: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f8f9fa',
+    paddingHorizontal: 32,
   },
-  cardActions: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    flexDirection: 'column',
-    gap: 4,
+  emptyIcon: {
+    marginBottom: 24,
   },
-  favoriteButton: {
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    borderRadius: 16,
-    padding: 6,
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#333',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  favoriteButtonActive: {
-    backgroundColor: 'rgba(255,68,68,0.8)',
-  },
-  deleteButton: {
-    backgroundColor: 'rgba(244, 67, 54, 0.8)',
-    borderRadius: 16,
-    padding: 6,
+  emptyMessage: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });
 

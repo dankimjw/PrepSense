@@ -256,7 +256,9 @@ export default function ChatScreen() {
         >
           {messages.length === 0 ? (
             <View style={styles.emptyState}>
-              <Ionicons name="chatbubble-ellipses" size={48} color="#ccc" />
+              <View style={styles.aiIconContainer}>
+                <Text style={styles.aiIcon}>💬</Text>
+              </View>
               <Text style={styles.emptyStateText}>Ask me anything about cooking!</Text>
               <Text style={styles.emptyStateSubtext}>I can help with recipes, meal planning, and pantry management</Text>
               
@@ -499,19 +501,32 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 100,
+    paddingHorizontal: 20,
+  },
+  aiIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#E8E8E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  aiIcon: {
+    fontSize: 40,
   },
   emptyStateText: {
-    marginTop: 16,
-    color: '#999',
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 8,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#bbb',
-    marginTop: 4,
+    color: '#999',
     textAlign: 'center',
     paddingHorizontal: 40,
+    marginBottom: 32,
   },
   messageBubble: {
     maxWidth: '80%',
@@ -657,7 +672,6 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   suggestionsContainer: {
-    marginTop: 24,
     width: '100%',
     paddingHorizontal: 20,
   },
@@ -665,31 +679,25 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
-    marginBottom: 12,
+    marginBottom: 16,
     textAlign: 'center',
   },
   suggestionBubbles: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    gap: 8,
+    alignItems: 'center',
   },
   suggestionBubble: {
-    backgroundColor: '#F0F7F4',
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    marginBottom: 12,
     borderWidth: 1,
     borderColor: '#297A56',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
+    width: '100%',
+    maxWidth: 340,
   },
   suggestionText: {
-    fontSize: 14,
+    fontSize: 15,
     color: '#297A56',
     fontWeight: '500',
     textAlign: 'center',

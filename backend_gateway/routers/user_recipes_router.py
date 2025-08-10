@@ -20,11 +20,12 @@ class SaveRecipeRequest(BaseModel):
     recipe_title: str = Field(..., description="Recipe title")
     recipe_image: Optional[str] = Field(None, description="Recipe image URL")
     recipe_data: Dict[str, Any] = Field(..., description="Complete recipe data")
-    source: str = Field(..., description="Recipe source: 'spoonacular', 'generated', 'custom'")
+    source: str = Field(..., description="Recipe source: 'spoonacular', 'generated', 'custom', 'demo'")
     rating: str = Field(
         "neutral", description="Initial rating: 'thumbs_up', 'thumbs_down', 'neutral'"
     )
     is_favorite: bool = Field(False, description="Whether this recipe is marked as favorite")
+    is_demo: bool = Field(False, description="Whether this is a demo recipe")
 
 
 class UpdateRatingRequest(BaseModel):
@@ -71,6 +72,7 @@ async def save_user_recipe(
             source=request.source,
             rating=request.rating,
             is_favorite=request.is_favorite,
+            is_demo=request.is_demo,
         )
 
         return result
@@ -80,18 +82,20 @@ async def save_user_recipe(
         raise HTTPException(status_code=500, detail=f"Failed to save recipe: {str(e)}")
 
 
-@router.get("", response_model=List[Dict[str, Any]], summary="Get user's saved recipes")
+@router.get("", response_model=List[Dict[str, Any]], summary="Get user's saved recipes (My Recipes)")
 async def get_user_recipes(
     source: Optional[str] = Query(None, description="Filter by source"),
     is_favorite: Optional[bool] = Query(None, description="Filter by favorite status"),
     rating: Optional[str] = Query(None, description="Filter by rating"),
     status: Optional[str] = Query(None, description="Filter by status: 'saved' or 'cooked'"),
+    demo_only: bool = Query(False, description="Filter to show only demo recipes"),
+    include_external: bool = Query(False, description="Include external recipes (Spoonacular, etc.) - defaults to False for My Recipes"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
     offset: int = Query(0, ge=0, description="Number of recipes to skip"),
     service: UserRecipesService = Depends(get_user_recipes_service),
     # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
 ):
-    """Get user's saved recipes with optional filters"""
+    """Get user's saved recipes with optional filters. By default, excludes external recipes (Spoonacular) to keep My Recipes clean."""
     try:
         # For now, hardcode user_id to 111
         user_id = 111  # Replace with: current_user.user_id
@@ -102,6 +106,8 @@ async def get_user_recipes(
             is_favorite=is_favorite,
             rating=rating,
             status=status,
+            demo_only=demo_only,
+            include_external=include_external,  # NEW: Controls external recipe inclusion
             limit=limit,
             offset=offset,
         )
@@ -113,12 +119,39 @@ async def get_user_recipes(
         raise HTTPException(status_code=500, detail=f"Failed to get recipes: {str(e)}")
 
 
+@router.get("/bookmarked-external", response_model=List[Dict[str, Any]], summary="Get user's bookmarked external recipes")
+async def get_bookmarked_external_recipes(
+    source: Optional[str] = Query('spoonacular', description="External source filter - defaults to 'spoonacular'"),
+    limit: int = Query(100, ge=1, le=1000, description="Maximum number of recipes to return"),
+    offset: int = Query(0, ge=0, description="Number of recipes to skip"),
+    service: UserRecipesService = Depends(get_user_recipes_service),
+    # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
+):
+    """Get user's bookmarked external recipes (Spoonacular, etc.) - separate from My Recipes"""
+    try:
+        # For now, hardcode user_id to 111
+        user_id = 111  # Replace with: current_user.user_id
+
+        recipes = await service.get_bookmarked_external_recipes(
+            user_id=user_id,
+            source=source,
+            limit=limit,
+            offset=offset,
+        )
+
+        return recipes
+
+    except Exception as e:
+        logger.error(f"Error getting bookmarked external recipes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to get external recipes: {str(e)}")
+
+
 @router.get("/stats", response_model=Dict[str, Any], summary="Get user's recipe statistics")
 async def get_recipe_stats(
     service: UserRecipesService = Depends(get_user_recipes_service),
     # current_user = Depends(get_current_user)  # Uncomment when auth is enabled
 ):
-    """Get statistics about user's saved recipes"""
+    """Get statistics about user's saved recipes (excludes external recipes from main counts)"""
     try:
         # For now, hardcode user_id to 111
         user_id = 111  # Replace with: current_user.user_id
@@ -230,7 +263,13 @@ async def get_user_recipe(
         # For now, hardcode user_id to 111
         user_id = 111  # Replace with: current_user.user_id
 
-        recipes = await service.get_user_recipes(user_id=user_id, limit=1, offset=0)
+        # Include external recipes when getting a specific recipe by ID
+        recipes = await service.get_user_recipes(
+            user_id=user_id, 
+            include_external=True,  # Include external for specific lookups
+            limit=1000,  # Get more recipes to find the specific one
+            offset=0
+        )
 
         # Find the specific recipe
         recipe = next((r for r in recipes if r["id"] == recipe_id), None)
