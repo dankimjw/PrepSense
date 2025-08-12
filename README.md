@@ -270,12 +270,11 @@ We worked collaboratively using GitHub Projects and CI workflows.
 
 ## 📜 License & Acknowledgements
 
-Licensed under the **MIT License**.  
 Gratitude to:
 - University of Chicago MSADS Faculty
 - OpenAI (GPT-4o, Vision API)
 - RTS Food Waste Research
-- Expo / React Native Community
+- Expo/React Native Community
 - The CrewAI Project
 
 ---
