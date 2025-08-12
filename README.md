@@ -39,7 +39,7 @@ Built as a capstone project for the University of Chicago’s MS in Applied Data
 
 Lily is a tech professional residing in San Diego. She is passionate about maintaining a healthy lifestyle, enjoys preparing nutritious home-cooked meals, and makes a weekly trip to the grocery store to stock her pantry. Lily is also deeply committed to sustainability and is mindful of how her daily choices impact the environment.
 
-<img width="1920" height="1080" alt="PrepSense" src="https://github.com/user-attachments/assets/9f66e3ea-50a3-408a-b0e9-8dd4314e625c" />
+<img width="1164" height="627" alt="image" src="https://github.com/user-attachments/assets/2be2ca9c-0aa2-48ab-8aad-f59f82d9fc07" />
 
 Her challenges:
 
@@ -82,7 +82,7 @@ Her ideal solution is one that is mobile-first, smart, and “just works” with
 **Our system**:
 Engages multiple AI agents to read from pantry, filter out unexpired items, incorporate user’s taste preferences, search for recipe, score recipe based on nutritional value, generates recipe image, evaluate the results are accurate and formats it to a readable format.
 
-<img width="1600" height="900" alt="image" src="https://github.com/user-attachments/assets/195a34e1-ab63-4140-bce7-c1e2f32878e0" />
+<img width="1163" height="616" alt="image" src="https://github.com/user-attachments/assets/6ca447b4-6094-492e-bda4-40359ccefb95" />
 
 Once pantry items are captured, users can:
 1. Receive personalized recipe suggestions that use up ingredients before they expire
@@ -116,15 +116,15 @@ The table below compares PrepSense to several leading apps in the market:
 
 | **Feature / Capability**         | **PrepSense** | **NoWaste** | **Yummly** | **Whisk** | **PantryCheck** |
 |----------------------------------|---------------|-------------|------------|-----------|-----------------|
-| Pantry Scanning                  | ✅             | ❌          | ❌         | ❌        | ❌              |
-| Pantry Expiry Tracking           | ✅             | 🟣 Partial  | ❌         | ❌        | 🟣 Partial      |
-| Smart Grocery List               | ✅             | ❌          | ❌         | ✅        | ✅              |
-| Personalized Recipe Generation   | ✅             | ❌          | 🟢 Strong  | ❌        | ❌              |
-| Recipe Scoring                   | ✅             | ❌          | ❌         | ✅        | ❌              |
-| Adaptive to User Preferences     | 🟢 Emerging    | ❌          | 🟠 Basic   | 🟠 Basic  | ❌              |
-| Sustainability Gamification      | 🟡 Roadmap     | ❌          | ❌         | ❌        | ❌              |
+| Pantry Scanning                  | ✅             | ✅          | ❌         | ❌        | ✅              |
+| Pantry Expiry Tracking           | ✅             | ✅          | ❌         | ❌        | ✅              |
+| Smart Grocery List               | ✅             | ✅          | ✅         | ✅        | ✅              |
+| Personalized Recipe Generation   | ✅             | ❌          | ✅         | ✅        | ❌              |
+| Adaptive to User Preferences     | 🟢 Emerging    | ❌          | ✅         | 🟠 Basic  | ❌              |
+| Sustainability Gamification      | 🟡 Roadmap     | ✅          | ❌         | ❌        | ❌              |
+| Grocery Store API Integration    | 🟡 Roadmap     | ❌          | ✅         | ❌        | ❌              |
 
-> ✅ = Fully implemented | 🟣 = Partial or limited | 🟠 = Basic version | 🟢 = In development | 🟡 = On roadmap
+> ✅ = Fully implemented | 🟠 = Basic version | 🟢 = In development | 🟡 = On roadmap
 
 ---
 
@@ -142,7 +142,8 @@ PrepSense doesn’t just help users decide what to eat — it transforms how the
 
 ## 🧠 Architecture: 
 
-<img width="1017" height="571" alt="PrepSense Architecture diagram" src="https://github.com/user-attachments/assets/fbc6b935-ef3b-4536-8279-85b9a3ec5be4" />
+
+<img width="1017" height="571" alt="image" src="https://github.com/user-attachments/assets/c757cd5c-17db-4a24-8a51-8fb3958d4394" />
 
 
 At the heart of PrepSense is an agentic pipeline powered by [**CrewAI**](https://github.com/joaomdmoura/crewai), which enables modular, memory-aware, and task-specific collaboration across AI agents.
@@ -151,10 +152,9 @@ At the heart of PrepSense is an agentic pipeline powered by [**CrewAI**](https:/
 | Agent         | Role |
 |---------------|------|
 | **Scanner Sage** | Reads pantry items from the database |
-| **Fresh Filter** | Removes expired or unusable items |
 | **Taster Tune** | Applies dietary restrictions/preferences stored in database |
+| **Filter Fresh** | Removes expired or unusable items |
 | **Recipe Rover** | Generates recipe suggestions |
-| **Nutri Check** | Evaluates nutritional balance |
 | **Health Ranker** | Scores meals based on dietary preferences and health guidelines  |
 | **Judge Thyme** | Validates if recipe is feasible with current pantry inventory |
 | **Bite Cam** | Creates recipe image |
@@ -245,14 +245,6 @@ pip install -r requirements.txt
 cd ios-app
 npm install
 npx expo start
-```
-
-**.env Configuration**
-
-```env
-OPENAI_API_KEY=your_key
-VISION_API_KEY=your_key
-DATABASE_URL=sqlite:///./pantry.db
 ```
 
 ---
