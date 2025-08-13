@@ -49,6 +49,18 @@ coverage.xml
 /backend_gateway/node_modules/
 **/node_modules/
 
+# CrewAI/Agent files (excluded)
+backend_gateway/crewai-implementation/
+backend_gateway/agents/
+**/crewai-implementation/
+**/*crewai*
+**/*agent*.py
+
+# Temporary/analysis files
+phase2_analysis_results.json
+.health_check_results.json
+*_analysis_results.json
+
 # Expo
 /.expo/
 /.expo-shared/
