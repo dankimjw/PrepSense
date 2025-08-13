@@ -49,6 +49,12 @@ coverage.xml
 /backend_gateway/node_modules/
 **/node_modules/
 
+# Temporary/analysis files
+.health_check_results.json
+phase2_analysis_results.json
+*_analysis_results.json
+settings.local.json
+
 # Expo
 /.expo/
 /.expo-shared/
