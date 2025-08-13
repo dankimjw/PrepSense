@@ -72,6 +72,27 @@ class RecipeAdvisor:
             ):
                 analysis["staples"].append(product_name)
 
+            # Identify vegetables
+            if any(
+                vegetable in product_name
+                for vegetable in [
+                    "carrot",
+                    "broccoli",
+                    "spinach",
+                    "tomato",
+                    "cucumber",
+                    "bell pepper",
+                ]
+            ):
+                analysis["vegetables"].append(product_name)
+
+            # Identify carbs
+            if any(
+                carb in product_name
+                for carb in ["pasta", "rice", "bread", "potato", "flour", "cereals"]
+            ):
+                analysis["carbs"].append(product_name)
+
         return analysis
 
     def evaluate_recipe_fit(
@@ -80,7 +101,39 @@ class RecipeAdvisor:
         user_preferences: dict[str, Any],
         pantry_analysis: dict[str, Any],
     ) -> dict[str, Any]:
-        """Evaluate how well a recipe fits the user's needs"""
+        """
+        Evaluate how well a recipe fits the user's needs.
+        
+        Args:
+            recipe (dict[str, Any]): Recipe object with structure:
+                {
+                    "ingredients": list[str] or list[dict],  # Can be strings or dicts
+                    "readyInMinutes": int,
+                    "name" or "title": str,
+                    "cuisines": list[str],
+                    "diets": list[str]
+                }
+                If ingredients are dicts, they should have "name" field:
+                [{"name": "chicken", "amount": 1, "unit": "lb"}, ...]
+                
+            user_preferences (dict[str, Any]): User preferences with:
+                {
+                    "dietary_preference": list[str],  # e.g., ["vegetarian"]
+                    "allergens": list[str],          # e.g., ["peanuts"]
+                    "cuisine_preference": list[str]  # e.g., ["italian"]
+                }
+                
+            pantry_analysis (dict[str, Any]): Pantry analysis with:
+                {
+                    "expiring_soon": list[dict],     # Items expiring soon
+                    "protein_sources": list[str],    # Available proteins
+                    "vegetables": list[str],         # Available vegetables
+                    "carbs": list[str]              # Available carbs
+                }
+                
+        Returns:
+            dict[str, Any]: Evaluation metrics
+        """
         evaluation = {
             "uses_expiring": False,
             "nutritional_balance": "unknown",
@@ -89,7 +142,23 @@ class RecipeAdvisor:
         }
 
         # Check if recipe uses expiring ingredients
-        recipe_ingredients = " ".join(recipe.get("ingredients", [])).lower()
+        ingredients = recipe.get("ingredients", [])
+        
+        # CRITICAL: Handle both string and dict ingredient formats to avoid TypeError
+        # ingredients can be:
+        # 1. list[str]: ["chicken breast", "tomatoes", "onions"]
+        # 2. list[dict]: [{"name": "chicken breast", "amount": 1}, ...]
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, dict):
+                # Extract name from dict format - prevents "expected str, dict found" error
+                name = ing.get("name", "")
+                if name:
+                    ingredient_strings.append(name)
+            else:
+                # Handle string format directly
+                ingredient_strings.append(str(ing))
+        recipe_ingredients = " ".join(ingredient_strings).lower()
         for expiring in pantry_analysis["expiring_soon"]:
             if expiring["name"].lower() in recipe_ingredients:
                 evaluation["uses_expiring"] = True
@@ -99,7 +168,7 @@ class RecipeAdvisor:
         if any(protein in recipe_ingredients for protein in pantry_analysis["protein_sources"]):
             if any(
                 veg in recipe_ingredients
-                for veg in ["vegetable", "salad", "broccoli", "carrot", "spinach"]
+                for veg in pantry_analysis["vegetables"]
             ):
                 evaluation["nutritional_balance"] = "good"
             else:
@@ -206,6 +275,8 @@ class CrewAIService:
             logger.info(f"   - Expired: {len(pantry_analysis['expired'])} items")
             logger.info(f"   - Protein sources: {len(pantry_analysis['protein_sources'])} items")
             logger.info(f"   - Staples: {len(pantry_analysis['staples'])} items")
+            logger.info(f"   - Vegetables: {len(pantry_analysis['vegetables'])} items")
+            logger.info(f"   - Carbs: {len(pantry_analysis['carbs'])} items")
 
             # Step 4: Check saved recipes first
             logger.info("\n💾 STEP 4: Checking saved recipes...")
@@ -396,9 +467,29 @@ class CrewAIService:
         pantry_items: list[dict[str, Any]],
         message: str,
         user_preferences: dict[str, Any],
-        num_recipes: int = 10,
+        limit: int = 5,
     ) -> list[dict[str, Any]]:
-        """Get recipes from Spoonacular API based on pantry items."""
+        """
+        Get recipe recommendations from Spoonacular API.
+        
+        Args:
+            pantry_items (list[dict[str, Any]]): List of pantry items with:
+                [
+                    {
+                        "pantry_item_id": int,
+                        "product_name": str,        # Used for ingredient search
+                        "quantity": float,
+                        "unit_of_measurement": str,
+                        "expiration_date": str,
+                        "category": str
+                    }
+                ]
+            user_preferences (dict[str, Any]): User preferences (same as evaluate_recipe_fit)
+            limit (int): Maximum number of recipes to return
+            
+        Returns:
+            list[dict[str, Any]]: List of Spoonacular recipe objects
+        """ 
         logger.info("🥄 Fetching Spoonacular recipes")
         logger.info(f"📝 User message: '{message}'")
 

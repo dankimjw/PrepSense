@@ -285,15 +285,24 @@ def monitor_database_query(query_type: str):
     return decorator
 
 
-def setup_monitoring(app: FastAPI, environment: str = "development") -> None:
-    """Setup comprehensive monitoring for the FastAPI app."""
-
-    # Initialize Sentry
-    init_sentry(environment)
-
+def setup_monitoring_middleware(app: FastAPI) -> None:
+    """Setup monitoring middleware for the FastAPI app.
+    
+    This function should be called during app creation, before startup.
+    """
     # Add monitoring middleware
     app.add_middleware(PrometheusMiddleware)
     app.add_middleware(RequestLoggingMiddleware)
+
+
+def setup_monitoring(app: FastAPI, environment: str = "development") -> None:
+    """Setup comprehensive monitoring for the FastAPI app.
+    
+    This function should be called during app startup.
+    """
+
+    # Initialize Sentry
+    init_sentry(environment)
 
     # Add metrics endpoint
     @app.get("/metrics")

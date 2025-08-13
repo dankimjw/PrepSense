@@ -50,6 +50,8 @@ class ForegroundRecipeCrew:
             vectors to quickly rank recipe candidates by relevance and feasibility.""",
             verbose=False,
             allow_delegation=False,
+            max_iter=5,  # Limit iterations for faster response
+            max_execution_time=60,  # 60 second timeout per agent
         )
 
         # Nutritionist Agent - Fast macro validation
@@ -61,6 +63,8 @@ class ForegroundRecipeCrew:
             and basic macro validation without deep analysis.""",
             verbose=False,
             allow_delegation=False,
+            max_iter=3,  # Faster nutrition validation
+            max_execution_time=45,  # 45 second timeout
         )
 
         # UX Formatter Agent - Prepares final response
@@ -71,6 +75,8 @@ class ForegroundRecipeCrew:
             mobile-optimized recipe cards with clear ingredients, instructions, and metadata.""",
             verbose=False,
             allow_delegation=False,
+            max_iter=2,  # Simple formatting should be quick
+            max_execution_time=30,  # 30 second timeout
         )
 
     def _initialize_tasks(self):
@@ -115,7 +121,7 @@ class ForegroundRecipeCrew:
         )
 
     def _initialize_crew(self):
-        """Initialize the crew with parallel processing"""
+        """Initialize the crew with parallel processing and optimized iteration limits"""
         self.crew = Crew(
             agents=[self.nutritionist, self.formatter],  # Manager agent excluded from agents list
             tasks=[self.ranking_task, self.nutrition_task, self.formatting_task],
@@ -123,6 +129,8 @@ class ForegroundRecipeCrew:
             manager_agent=self.ranker,
             allow_parallel=True,  # Critical for <3s latency
             verbose=False,
+            max_iter=10,  # Limit iterations to prevent "maximum iterations reached" warnings
+            max_execution_time=180,  # 3 minute timeout for safety
         )
 
     async def generate_recommendations(self, crew_input: CrewInput) -> CrewOutput:

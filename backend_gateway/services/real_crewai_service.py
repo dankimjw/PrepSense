@@ -7,14 +7,15 @@ recipe recommendations using background flows and foreground crews.
 
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Dict
 
 from backend_gateway.config.database import get_database_service
 
-# We'll import the foreground crew function once CrewAI is installed
-# from backend_gateway.crewai.foreground_crew import get_recipe_recommendations
-from backend_gateway.crewai.crewai.cache_manager import ArtifactCacheManager
-from backend_gateway.crewai.crewai.models import CrewInput, CrewOutput
+# Import from the prepsense_crew module
+from backend_gateway.prepsense_crew.cache_manager import ArtifactCacheManager
+from backend_gateway.prepsense_crew.file_cache_manager import FileCacheManager
+from backend_gateway.prepsense_crew.models import CrewInput, CrewOutput
+from backend_gateway.prepsense_crew.foreground_crew import ForegroundRecipeCrew
 from backend_gateway.services.spoonacular_service import SpoonacularService
 
 logger = logging.getLogger(__name__)
@@ -32,9 +33,20 @@ class RealCrewAIService:
     """
 
     def __init__(self):
-        self.cache_manager = ArtifactCacheManager()
-        self.spoonacular_service = SpoonacularService()
         self.db_service = get_database_service()
+        self.spoonacular_service = SpoonacularService()
+        
+        # Try Redis cache first, fall back to file cache if Redis unavailable
+        try:
+            self.cache_manager = ArtifactCacheManager()
+            if not self.cache_manager.health_check():
+                logger.info("Redis cache failed health check, switching to file cache")
+                self.cache_manager = FileCacheManager()
+        except Exception as e:
+            logger.info(f"Redis cache initialization failed ({e}), using file cache")
+            self.cache_manager = FileCacheManager()
+            
+        self.foreground_crew = ForegroundRecipeCrew()
 
     async def process_message(
         self, user_id: int, message: str, use_preferences: bool = True
@@ -60,6 +72,15 @@ class RealCrewAIService:
                 self.cache_manager.get_preference_artifact(user_id) if use_preferences else None
             )
 
+            # If cache miss, create artifacts from database
+            if not pantry_artifact:
+                logger.info("Creating pantry artifact from database")
+                pantry_artifact = await self._create_pantry_artifact(user_id)
+            
+            if use_preferences and not preference_artifact:
+                logger.info("Creating preference artifact from database")
+                preference_artifact = await self._create_preference_artifact(user_id)
+
             # Step 2: Get recipe candidates from Spoonacular
             recipe_candidates = await self._get_recipe_candidates(message, user_id)
 
@@ -73,8 +94,8 @@ class RealCrewAIService:
                 context=self._extract_context(message),
             )
 
-            # Step 4: Use CrewAI for recommendations (fallback for now)
-            crew_output = await self._get_recommendations_fallback(crew_input)
+            # Step 4: Use real CrewAI for recommendations
+            crew_output = await self._get_crew_recommendations(crew_input)
 
             # Step 5: Format response for chat API
             processing_time = (datetime.now() - start_time).total_seconds() * 1000
@@ -87,7 +108,35 @@ class RealCrewAIService:
             return await self._get_fallback_response(user_id, message)
 
     async def _get_recipe_candidates(self, message: str, user_id: int) -> list[dict[str, Any]]:
-        """Get recipe candidates from Spoonacular based on message"""
+        """
+        Get recipe candidates from Spoonacular based on message.
+        
+        Args:
+            message (str): User's chat message requesting recipes
+            user_id (int): User ID for fetching pantry items
+            
+        Returns:
+            list[dict[str, Any]]: List of recipe dictionaries with structure:
+                [
+                    {
+                        "id": int,
+                        "title": str,
+                        "image": str,
+                        "usedIngredientCount": int,
+                        "missedIngredientCount": int,
+                        "likes": int,
+                        "readyInMinutes": int,
+                        "servings": int,
+                        "sourceUrl": str,
+                        "summary": str,
+                        "cuisines": list[str],
+                        "dishTypes": list[str],
+                        "diets": list[str],
+                        "instructions": str,
+                        "extendedIngredients": list[dict]
+                    }
+                ]
+        """
         try:
             # Extract ingredients from pantry if available
             pantry_items = await self._get_pantry_items(user_id)
@@ -95,23 +144,53 @@ class RealCrewAIService:
             # Use Spoonacular to find recipes
             if pantry_items:
                 ingredient_names = [item.get("product_name", "") for item in pantry_items[:10]]
-                recipes = await self.spoonacular_service.find_by_ingredients(
-                    ingredients=",".join(ingredient_names),
-                    number=10,
-                    ranking=2,  # Maximize used ingredients
+                # IMPORTANT: Pass ingredient_names as a list, NOT a comma-separated string!
+                # ingredient_names should be: ["chicken", "rice", "tomatoes", ...]
+                recipes = await self.spoonacular_service.search_recipes_by_ingredients(
+                    ingredients=ingredient_names,  # list[str] - e.g., ["chicken", "rice"]
+                    number=10,                     # int - max recipes to return
+                    ranking=2,                     # int - 1=minimize missing, 2=maximize used
                 )
             else:
-                # Search by query
-                recipes = await self.spoonacular_service.complex_search(
-                    query=message, number=10, add_recipe_information=True
+                # Search by query when no pantry items available
+                # NOTE: complex_search may not exist in SpoonacularService
+                # Consider using search_recipes method instead
+                recipes = await self.spoonacular_service.search_recipes_complex(
+                    query=message,                    # str - search query
+                    number=10                         # int - max results
                 )
 
-            return recipes.get("results", []) if recipes else []
+            # search_recipes_by_ingredients returns a list directly
+            # search_recipes_complex returns a dict with "results" key
+            if isinstance(recipes, list):
+                return recipes
+            elif isinstance(recipes, dict):
+                return recipes.get("results", [])
+            else:
+                return []
 
         except Exception as e:
             logger.error(f"Error getting recipe candidates: {e}")
             return []
 
+    async def _get_crew_recommendations(self, crew_input: CrewInput) -> CrewOutput:
+        """
+        Get recommendations using the real CrewAI prepsense_crew implementation.
+        """
+        try:
+            logger.info(f"Running ForegroundRecipeCrew with {len(crew_input.recipe_candidates)} candidates")
+            logger.info(f"Pantry artifact: {crew_input.pantry_artifact is not None}")
+            logger.info(f"Preference artifact: {crew_input.preference_artifact is not None}")
+            
+            # Use the ForegroundRecipeCrew for real-time recommendations
+            result = await self.foreground_crew.generate_recommendations(crew_input)
+            logger.info(f"ForegroundRecipeCrew returned: {result.response_text[:100]}...")
+            return result
+        except Exception as e:
+            logger.error(f"Error running CrewAI: {e}", exc_info=True)
+            # Fall back to the existing logic if crew fails
+            return await self._get_recommendations_fallback(crew_input)
+    
     async def _get_recommendations_fallback(self, crew_input: CrewInput) -> CrewOutput:
         """
         Fallback recommendation logic when CrewAI library isn't available.
@@ -331,9 +410,9 @@ class RealCrewAIService:
 
         return [
             {
-                "name": item["name"],
+                "name": item.get("product_name", "Unknown"),
                 "quantity": item.get("quantity"),
-                "category": item.get("category", "Unknown"),
+                "category": item.get("food_category", "Unknown"),
             }
             for item in pantry_artifact.normalized_items[:10]  # Limit to 10 items
         ]
@@ -341,7 +420,7 @@ class RealCrewAIService:
     def _get_preference_summary(self, preference_artifact) -> dict[str, Any]:
         """Get preference summary for response"""
         if not preference_artifact:
-            return None
+            return {}  # Return empty dict instead of None
 
         return {
             "dietary_restrictions": preference_artifact.dietary_restrictions,
@@ -378,22 +457,78 @@ class RealCrewAIService:
 
         return context
 
+    async def _create_pantry_artifact(self, user_id: int):
+        """Create pantry artifact from database data"""
+        from backend_gateway.prepsense_crew.models import PantryArtifact
+        from datetime import datetime
+        
+        try:
+            pantry_items = await self._get_pantry_items(user_id)
+            
+            if not pantry_items:
+                return None
+                
+            # Create pantry artifact
+            return PantryArtifact(
+                user_id=user_id,
+                normalized_items=pantry_items,
+                expiry_analysis={},
+                ingredient_vectors=[],
+                last_updated=datetime.now(),
+                ttl_seconds=86400
+            )
+        except Exception as e:
+            logger.error(f"Error creating pantry artifact: {e}")
+            return None
+    
+    async def _create_preference_artifact(self, user_id: int):
+        """Create preference artifact from database data"""
+        from backend_gateway.prepsense_crew.models import PreferenceArtifact
+        from datetime import datetime
+        
+        try:
+            # Get user preferences - database service methods are synchronous
+            try:
+                preferences = self.db_service.get_user_preferences(user_id)
+            except Exception as e:
+                logger.error(f"Error fetching user preferences: {e}")
+                return None
+            
+            if not preferences:
+                return None
+                
+            # Create preference artifact
+            return PreferenceArtifact(
+                user_id=user_id,
+                preference_vector=[],  # Empty vector for now
+                dietary_restrictions=preferences.get("dietary_restrictions", []),
+                allergens=preferences.get("allergens", []),
+                cuisine_preferences=preferences.get("cuisine_preferences", {}),
+                learning_data={},  # Empty learning data
+                last_updated=datetime.now(),
+                ttl_seconds=86400
+            )
+        except Exception as e:
+            logger.error(f"Error creating preference artifact: {e}")
+            return None
+
     async def _get_pantry_items(self, user_id: int) -> list[dict[str, Any]]:
         """Get pantry items from database"""
         try:
-            pantry_items = await self.db_service.get_user_pantry_items(user_id)
+            # Database service methods are synchronous, don't await them
+            pantry_items = self.db_service.get_user_pantry_items(user_id)
             return pantry_items if pantry_items else []
         except Exception as e:
             logger.error(f"Error fetching pantry items: {e}")
             return []
-
+    
     async def _get_fallback_response(self, user_id: int, message: str) -> dict[str, Any]:
-        """Fallback response when everything fails"""
+        """Generate fallback response when CrewAI processing fails"""
         return {
-            "response": "I'm having trouble processing your request right now. Please try again in a moment!",
+            "response": "I'm having trouble processing your request right now. Please try again in a moment.",
             "recipes": [],
             "pantry_items": [],
-            "user_preferences": None,
+            "user_preferences": {},
             "show_preference_choice": False,
             "metadata": {"error": True, "processing_time_ms": 50},
         }

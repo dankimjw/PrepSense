@@ -1,8 +1,8 @@
 """
-CrewAI Artifact Cache Manager
+File-based Cache Manager for CrewAI Artifacts
 
-Redis-based caching for pantry artifacts, preference artifacts, and recipe artifacts.
-Provides automatic TTL management and serialization.
+Alternative to Redis-based cache manager that works without external dependencies.
+Provides the same interface as ArtifactCacheManager but uses local file storage.
 """
 
 import json
@@ -12,11 +12,11 @@ import time
 from collections import defaultdict
 from datetime import datetime
 from functools import wraps
+from pathlib import Path
 from typing import Any, Callable, Optional
+import hashlib
 
-import redis
-
-from models import CacheKey, PantryArtifact, PreferenceArtifact, RecipeArtifact
+from .models import CacheKey, PantryArtifact, PreferenceArtifact, RecipeArtifact
 
 logger = logging.getLogger(__name__)
 
@@ -32,16 +32,16 @@ class CacheMetrics:
         self.consecutive_errors = 0
 
 
-class ArtifactCacheManager:
-    """Redis-based cache manager for CrewAI artifacts with monitoring and guardrails"""
+class FileCacheManager:
+    """File-based cache manager for CrewAI artifacts with monitoring and guardrails"""
 
-    def __init__(self, redis_host: str = None, redis_port: int = None, redis_db: int = None,
-                 alert_callback: Optional[Callable] = None):
-        """Initialize cache manager with Redis connection and monitoring"""
-        self.redis_host = redis_host or os.getenv("REDIS_HOST", "localhost")
-        self.redis_port = redis_port or int(os.getenv("REDIS_PORT", "6379"))
-        self.redis_db = redis_db or int(os.getenv("REDIS_DB", "0"))
-
+    def __init__(self, cache_dir: str = None, alert_callback: Optional[Callable] = None):
+        """Initialize file cache manager with storage directory and monitoring"""
+        self.cache_dir = Path(cache_dir) if cache_dir else Path(os.getenv("CACHE_DIR", "/tmp/prepsense_cache"))
+        
+        # Create cache directory if it doesn't exist
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        
         # Monitoring and alerting
         self.metrics = CacheMetrics()
         self.alert_callback = alert_callback
@@ -51,30 +51,21 @@ class ArtifactCacheManager:
         # Thresholds for alerts
         self.error_threshold = 5  # consecutive errors before alert
         self.hit_rate_threshold = 0.5  # minimum acceptable hit rate
+        
+        # Cache expiration cleanup interval
+        self.last_cleanup = time.time()
+        self.cleanup_interval = 300  # 5 minutes
 
         try:
-            # Initialize Redis client
-            self.redis_client = redis.Redis(
-                host=self.redis_host,
-                port=self.redis_port,
-                db=self.redis_db,
-                decode_responses=True,
-                socket_connect_timeout=5,
-                socket_timeout=5,
-            )
-
-            # Test connection
-            self.redis_client.ping()
-            logger.info(f"Connected to Redis at {self.redis_host}:{self.redis_port}")
-
-        except redis.ConnectionError as e:
-            logger.warning(f"Failed to connect to Redis: {e} - Cache operations will be disabled")
-            self._handle_connection_failure("ConnectionError", str(e))
-            self.redis_client = None
+            # Test write permissions
+            test_file = self.cache_dir / ".test_write"
+            test_file.write_text("test")
+            test_file.unlink()
+            logger.info(f"File cache initialized at {self.cache_dir}")
+            
         except Exception as e:
-            logger.warning(f"Redis initialization error: {e} - Cache operations will be disabled")
-            self._handle_connection_failure("InitializationError", str(e))
-            self.redis_client = None
+            logger.error(f"Failed to initialize file cache: {e}")
+            raise
 
     def _monitor_operation(self, operation: str, artifact_type: str):
         """Decorator to monitor cache operations"""
@@ -100,17 +91,16 @@ class ArtifactCacheManager:
         return decorator
 
     def _handle_connection_failure(self, error_type: str, error_msg: str):
-        """Handle Redis connection failures with proper alerting"""
+        """Handle cache failures with proper alerting"""
         self.metrics.consecutive_errors += 1
         self.metrics.last_error_time = datetime.now()
 
         if self.metrics.consecutive_errors >= self.error_threshold:
-            self._send_alert("Redis Connection Failed", {
+            self._send_alert("File Cache Failed", {
                 "error_type": error_type,
                 "error_message": error_msg,
                 "consecutive_errors": self.metrics.consecutive_errors,
-                "host": self.redis_host,
-                "port": self.redis_port
+                "cache_dir": str(self.cache_dir)
             })
 
     def _send_alert(self, alert_type: str, details: dict[str, Any]):
@@ -134,22 +124,53 @@ class ArtifactCacheManager:
                 "last_error_time": self.metrics.last_error_time.isoformat() if self.metrics.last_error_time else None
             })
 
+    def _get_cache_path(self, key: str) -> Path:
+        """Get file path for cache key"""
+        # Hash the key to avoid filesystem issues with special characters
+        key_hash = hashlib.md5(key.encode()).hexdigest()
+        return self.cache_dir / f"{key_hash}.json"
+
+    def _cleanup_expired(self):
+        """Clean up expired cache files"""
+        if time.time() - self.last_cleanup < self.cleanup_interval:
+            return
+            
+        try:
+            current_time = time.time()
+            for cache_file in self.cache_dir.glob("*.json"):
+                try:
+                    stat = cache_file.stat()
+                    # Simple TTL check - delete files older than 1 hour
+                    if current_time - stat.st_mtime > 3600:
+                        cache_file.unlink()
+                except Exception as e:
+                    logger.warning(f"Error cleaning up {cache_file}: {e}")
+                    
+            self.last_cleanup = current_time
+            
+        except Exception as e:
+            logger.error(f"Error during cache cleanup: {e}")
+
     def save_pantry_artifact(self, artifact: PantryArtifact) -> bool:
         """Save pantry artifact to cache with monitoring"""
-        if not self.redis_client:
-            logger.warning("Cache save attempted but Redis is not connected")
-            return False
-
         @self._monitor_operation("save", "pantry")
         def _save():
             key = CacheKey.pantry(artifact.user_id)
-            json_data = artifact.to_json()
-            result = self.redis_client.setex(key, artifact.ttl_seconds, json_data)
-            logger.debug(f"Saved pantry artifact for user {artifact.user_id}")
+            cache_path = self._get_cache_path(key)
+            
+            cache_data = {
+                "artifact": json.loads(artifact.to_json()),
+                "timestamp": time.time(),
+                "ttl_seconds": artifact.ttl_seconds
+            }
+            
+            cache_path.write_text(json.dumps(cache_data), encoding='utf-8')
+            logger.debug(f"Saved pantry artifact for user {artifact.user_id} to {cache_path}")
             self.metrics.consecutive_errors = 0  # Reset on success
-            return bool(result)
+            return True
 
         try:
+            self._cleanup_expired()
             return _save()
         except Exception as e:
             logger.error(f"Error saving pantry artifact for user {artifact.user_id}: {e}")
@@ -157,32 +178,40 @@ class ArtifactCacheManager:
 
     def get_pantry_artifact(self, user_id: int) -> Optional[PantryArtifact]:
         """Get pantry artifact from cache with monitoring"""
-        if not self.redis_client:
-            logger.warning(f"Cache get attempted for user {user_id} but Redis is not connected")
-            self.metrics.misses["pantry"] += 1
-            return None
-
         @self._monitor_operation("get", "pantry")
         def _get():
             key = CacheKey.pantry(user_id)
-            json_data = self.redis_client.get(key)
-
-            if json_data:
-                artifact = PantryArtifact.from_json(json_data)
-                if artifact.is_fresh():
-                    logger.debug(f"Cache HIT: Retrieved fresh pantry artifact for user {user_id}")
-                    self.metrics.hits["pantry"] += 1
-                    self.metrics.consecutive_errors = 0
-                    return artifact
-                else:
-                    logger.info(f"Cache STALE: Pantry artifact for user {user_id} is stale, deleting")
-                    self.redis_client.delete(key)
-                    self.metrics.misses["pantry"] += 1
-            else:
+            cache_path = self._get_cache_path(key)
+            
+            if not cache_path.exists():
                 logger.debug(f"Cache MISS: No pantry artifact found for user {user_id}")
                 self.metrics.misses["pantry"] += 1
-
-            return None
+                return None
+                
+            try:
+                cache_data = json.loads(cache_path.read_text(encoding='utf-8'))
+                timestamp = cache_data["timestamp"]
+                ttl_seconds = cache_data["ttl_seconds"]
+                
+                # Check if expired
+                if time.time() - timestamp > ttl_seconds:
+                    logger.info(f"Cache STALE: Pantry artifact for user {user_id} is stale, deleting")
+                    cache_path.unlink()
+                    self.metrics.misses["pantry"] += 1
+                    return None
+                    
+                # Reconstruct artifact
+                artifact = PantryArtifact.from_json(json.dumps(cache_data["artifact"]))
+                logger.debug(f"Cache HIT: Retrieved fresh pantry artifact for user {user_id}")
+                self.metrics.hits["pantry"] += 1
+                self.metrics.consecutive_errors = 0
+                return artifact
+                
+            except Exception as e:
+                logger.error(f"Error reading cache file {cache_path}: {e}")
+                cache_path.unlink()  # Remove corrupted file
+                self.metrics.misses["pantry"] += 1
+                return None
 
         try:
             return _get()
@@ -193,20 +222,24 @@ class ArtifactCacheManager:
 
     def save_preference_artifact(self, artifact: PreferenceArtifact) -> bool:
         """Save preference artifact to cache with monitoring"""
-        if not self.redis_client:
-            logger.warning("Cache save attempted but Redis is not connected")
-            return False
-
         @self._monitor_operation("save", "preferences")
         def _save():
             key = CacheKey.preferences(artifact.user_id)
-            json_data = artifact.to_json()
-            result = self.redis_client.setex(key, artifact.ttl_seconds, json_data)
-            logger.debug(f"Saved preference artifact for user {artifact.user_id}")
+            cache_path = self._get_cache_path(key)
+            
+            cache_data = {
+                "artifact": json.loads(artifact.to_json()),
+                "timestamp": time.time(),
+                "ttl_seconds": artifact.ttl_seconds
+            }
+            
+            cache_path.write_text(json.dumps(cache_data), encoding='utf-8')
+            logger.debug(f"Saved preference artifact for user {artifact.user_id} to {cache_path}")
             self.metrics.consecutive_errors = 0  # Reset on success
-            return bool(result)
+            return True
 
         try:
+            self._cleanup_expired()
             return _save()
         except Exception as e:
             logger.error(f"Error saving preference artifact for user {artifact.user_id}: {e}")
@@ -214,32 +247,40 @@ class ArtifactCacheManager:
 
     def get_preference_artifact(self, user_id: int) -> Optional[PreferenceArtifact]:
         """Get preference artifact from cache with monitoring"""
-        if not self.redis_client:
-            logger.warning(f"Cache get attempted for user {user_id} but Redis is not connected")
-            self.metrics.misses["preferences"] += 1
-            return None
-
         @self._monitor_operation("get", "preferences")
         def _get():
             key = CacheKey.preferences(user_id)
-            json_data = self.redis_client.get(key)
-
-            if json_data:
-                artifact = PreferenceArtifact.from_json(json_data)
-                if artifact.is_fresh():
-                    logger.debug(f"Cache HIT: Retrieved fresh preference artifact for user {user_id}")
-                    self.metrics.hits["preferences"] += 1
-                    self.metrics.consecutive_errors = 0
-                    return artifact
-                else:
-                    logger.info(f"Cache STALE: Preference artifact for user {user_id} is stale, deleting")
-                    self.redis_client.delete(key)
-                    self.metrics.misses["preferences"] += 1
-            else:
+            cache_path = self._get_cache_path(key)
+            
+            if not cache_path.exists():
                 logger.debug(f"Cache MISS: No preference artifact found for user {user_id}")
                 self.metrics.misses["preferences"] += 1
-
-            return None
+                return None
+                
+            try:
+                cache_data = json.loads(cache_path.read_text(encoding='utf-8'))
+                timestamp = cache_data["timestamp"]
+                ttl_seconds = cache_data["ttl_seconds"]
+                
+                # Check if expired
+                if time.time() - timestamp > ttl_seconds:
+                    logger.info(f"Cache STALE: Preference artifact for user {user_id} is stale, deleting")
+                    cache_path.unlink()
+                    self.metrics.misses["preferences"] += 1
+                    return None
+                    
+                # Reconstruct artifact
+                artifact = PreferenceArtifact.from_json(json.dumps(cache_data["artifact"]))
+                logger.debug(f"Cache HIT: Retrieved fresh preference artifact for user {user_id}")
+                self.metrics.hits["preferences"] += 1
+                self.metrics.consecutive_errors = 0
+                return artifact
+                
+            except Exception as e:
+                logger.error(f"Error reading cache file {cache_path}: {e}")
+                cache_path.unlink()  # Remove corrupted file
+                self.metrics.misses["preferences"] += 1
+                return None
 
         try:
             return _get()
@@ -250,61 +291,65 @@ class ArtifactCacheManager:
 
     def save_recipe_artifact(self, artifact: RecipeArtifact) -> bool:
         """Save recipe artifact to cache with monitoring"""
-        if not self.redis_client:
-            logger.warning("Cache save attempted but Redis is not connected")
-            return False
-
         @self._monitor_operation("save", "recipes")
         def _save():
             key = CacheKey.recipes(artifact.user_id, artifact.context)
-            json_data = artifact.to_json()
-            result = self.redis_client.setex(key, artifact.ttl_seconds, json_data)
-            logger.debug(
-                f"Saved recipe artifact for user {artifact.user_id} with context '{artifact.context}'"
-            )
+            cache_path = self._get_cache_path(key)
+            
+            cache_data = {
+                "artifact": json.loads(artifact.to_json()),
+                "timestamp": time.time(),
+                "ttl_seconds": artifact.ttl_seconds
+            }
+            
+            cache_path.write_text(json.dumps(cache_data), encoding='utf-8')
+            logger.debug(f"Saved recipe artifact for user {artifact.user_id} with context '{artifact.context}' to {cache_path}")
             self.metrics.consecutive_errors = 0  # Reset on success
-            return bool(result)
+            return True
 
         try:
+            self._cleanup_expired()
             return _save()
         except Exception as e:
             logger.error(f"Error saving recipe artifact for user {artifact.user_id}: {e}")
             return False
 
-    def get_recipe_artifact(
-        self, user_id: int, context: Optional[str] = None
-    ) -> Optional[RecipeArtifact]:
+    def get_recipe_artifact(self, user_id: int, context: Optional[str] = None) -> Optional[RecipeArtifact]:
         """Get recipe artifact from cache with monitoring"""
-        if not self.redis_client:
-            logger.warning(f"Cache get attempted for user {user_id} but Redis is not connected")
-            self.metrics.misses["recipes"] += 1
-            return None
-
         @self._monitor_operation("get", "recipes")
         def _get():
             key = CacheKey.recipes(user_id, context)
-            json_data = self.redis_client.get(key)
-
-            if json_data:
-                artifact = RecipeArtifact.from_json(json_data)
-                if artifact.is_fresh():
-                    logger.debug(
-                        f"Cache HIT: Retrieved fresh recipe artifact for user {user_id} with context '{context}'"
-                    )
-                    self.metrics.hits["recipes"] += 1
-                    self.metrics.consecutive_errors = 0
-                    return artifact
-                else:
-                    logger.info(
-                        f"Cache STALE: Recipe artifact for user {user_id} with context '{context}' is stale, deleting"
-                    )
-                    self.redis_client.delete(key)
-                    self.metrics.misses["recipes"] += 1
-            else:
+            cache_path = self._get_cache_path(key)
+            
+            if not cache_path.exists():
                 logger.debug(f"Cache MISS: No recipe artifact found for user {user_id} with context '{context}'")
                 self.metrics.misses["recipes"] += 1
-
-            return None
+                return None
+                
+            try:
+                cache_data = json.loads(cache_path.read_text(encoding='utf-8'))
+                timestamp = cache_data["timestamp"]
+                ttl_seconds = cache_data["ttl_seconds"]
+                
+                # Check if expired
+                if time.time() - timestamp > ttl_seconds:
+                    logger.info(f"Cache STALE: Recipe artifact for user {user_id} with context '{context}' is stale, deleting")
+                    cache_path.unlink()
+                    self.metrics.misses["recipes"] += 1
+                    return None
+                    
+                # Reconstruct artifact
+                artifact = RecipeArtifact.from_json(json.dumps(cache_data["artifact"]))
+                logger.debug(f"Cache HIT: Retrieved fresh recipe artifact for user {user_id} with context '{context}'")
+                self.metrics.hits["recipes"] += 1
+                self.metrics.consecutive_errors = 0
+                return artifact
+                
+            except Exception as e:
+                logger.error(f"Error reading cache file {cache_path}: {e}")
+                cache_path.unlink()  # Remove corrupted file
+                self.metrics.misses["recipes"] += 1
+                return None
 
         try:
             return _get()
@@ -315,21 +360,14 @@ class ArtifactCacheManager:
 
     def invalidate_recipe_cache(self, user_id: int, context: Optional[str] = None) -> list[str]:
         """Invalidate recipe cache entries for a user"""
-        if not self.redis_client:
-            return []
-
         try:
-            patterns = [
-                CacheKey.recipes(user_id, context),
-            ]
-
+            key = CacheKey.recipes(user_id, context)
+            cache_path = self._get_cache_path(key)
+            
             deleted = 0
-            for pattern in patterns:
-                if "*" in pattern:
-                    # Use scan for pattern matching
-                    deleted += self._delete_by_pattern(pattern)
-                else:
-                    deleted += self.redis_client.delete(pattern)
+            if cache_path.exists():
+                cache_path.unlink()
+                deleted = 1
 
             logger.info(f"Invalidated {deleted} recipe cache entries for user {user_id}")
             self.metrics.consecutive_errors = 0  # Reset on success
@@ -343,11 +381,9 @@ class ArtifactCacheManager:
     def warm_cache(self, user_id: int, artifacts: dict[str, Any]) -> dict[str, bool]:
         """Warm cache with provided artifacts"""
         results = {}
-
         # Implementation would create artifacts from provided data
         # and save them to cache
         # This is a placeholder for the actual implementation
-
         return results
 
     def get_cache_stats(self) -> dict[str, Any]:
@@ -358,28 +394,22 @@ class ArtifactCacheManager:
             self._perform_health_check()
             self.last_health_check = current_time
 
-        if not self.redis_client:
-            return {
-                "connected": False,
-                "error": "Redis not connected",
-                "consecutive_errors": self.metrics.consecutive_errors,
-                "last_error_time": self.metrics.last_error_time.isoformat() if self.metrics.last_error_time else None
-            }
-
         try:
-            info = self.redis_client.info()
-
             # Calculate application-level metrics
             app_stats = self._calculate_app_metrics()
+            
+            # Get cache directory stats
+            cache_files = list(self.cache_dir.glob("*.json"))
+            total_size = sum(f.stat().st_size for f in cache_files if f.exists())
 
             stats = {
                 "connected": True,
-                "redis_info": {
-                    "used_memory_human": info.get("used_memory_human", "unknown"),
-                    "connected_clients": info.get("connected_clients", 0),
-                    "total_commands_processed": info.get("total_commands_processed", 0),
-                    "keyspace_hits": info.get("keyspace_hits", 0),
-                    "keyspace_misses": info.get("keyspace_misses", 0),
+                "cache_type": "file_based",
+                "cache_info": {
+                    "cache_directory": str(self.cache_dir),
+                    "total_files": len(cache_files),
+                    "total_size_bytes": total_size,
+                    "total_size_human": f"{total_size / 1024:.1f} KB" if total_size < 1024*1024 else f"{total_size / (1024*1024):.1f} MB",
                 },
                 "application_metrics": app_stats,
                 "health": {
@@ -462,10 +492,11 @@ class ArtifactCacheManager:
 
     def health_check(self) -> bool:
         """Check if cache manager is healthy"""
-        if not self.redis_client:
-            return False
-
         try:
-            return self.redis_client.ping()
+            # Test write permissions
+            test_file = self.cache_dir / ".health_test"
+            test_file.write_text("health_check")
+            test_file.unlink()
+            return True
         except Exception:
             return False

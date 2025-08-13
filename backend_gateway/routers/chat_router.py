@@ -6,7 +6,7 @@ import openai
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from backend_gateway.services.recipe_advisor_service import CrewAIService
+from backend_gateway.services.real_crewai_service import RealCrewAIService
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,13 @@ class ImageGenerationResponse(BaseModel):
 
 
 def get_crew_ai_service():
-    return CrewAIService()
+    try:
+        service = RealCrewAIService()
+        logger.info("RealCrewAIService initialized successfully")
+        return service
+    except Exception as e:
+        logger.error(f"Failed to initialize RealCrewAIService: {e}")
+        raise
 
 
 # def get_nutrient_aware_crew_service():
@@ -54,7 +60,7 @@ def get_crew_ai_service():
 
 @router.post("/message", response_model=ChatResponse)
 async def send_message(
-    chat_message: ChatMessage, crew_ai_service: CrewAIService = Depends(get_crew_ai_service)
+    chat_message: ChatMessage, crew_ai_service: RealCrewAIService = Depends(get_crew_ai_service)
 ):
     """
     Send a message to the AI assistant and get recipe recommendations.

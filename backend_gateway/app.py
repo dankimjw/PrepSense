@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from backend_gateway.core.logging_config import get_logger, setup_logging
 
 # Import monitoring and logging configuration
-from backend_gateway.core.monitoring import setup_monitoring
+from backend_gateway.core.monitoring import setup_monitoring, setup_monitoring_middleware
 
 # Import enhanced OpenAPI configuration
 from backend_gateway.core.openapi_config import (
@@ -165,6 +165,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Setup monitoring middleware (before startup)
+setup_monitoring_middleware(app)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -313,9 +316,9 @@ from backend_gateway.routers.unit_validation_router import router as unit_valida
 
 app.include_router(unit_validation_router, prefix=f"{settings.API_V1_STR}", tags=["pantry"])
 
-# CrewAI intelligent recipe recommendation system - TEMPORARILY DISABLED
-# from backend_gateway.routers.crewai_router import router as crewai_router
-# app.include_router(crewai_router, prefix=f"{settings.API_V1_STR}", tags=["crewai"])
+# CrewAI intelligent recipe recommendation system
+from backend_gateway.routers.crewai_router_updated import router as crewai_router
+app.include_router(crewai_router, prefix=f"{settings.API_V1_STR}", tags=["crewai"])
 
 # AI-powered recipe generation using CrewAI
 # from backend_gateway.routers.ai_recipes_router import router as ai_recipes_router

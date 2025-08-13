@@ -186,7 +186,18 @@ class PreferenceTool:
 
             # Check ingredients for allergens
             ingredients = recipe.get("ingredients", [])
-            ingredients_text = " ".join(ingredients).lower()
+            # Handle both string and dict ingredient formats
+            ingredient_strings = []
+            for ing in ingredients:
+                if isinstance(ing, str):
+                    ingredient_strings.append(ing)
+                elif isinstance(ing, dict):
+                    # Try different possible keys for ingredient names
+                    name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                    ingredient_strings.append(name)
+                else:
+                    ingredient_strings.append(str(ing))
+            ingredients_text = " ".join(ingredient_strings).lower()
 
             for allergen in allergens:
                 if self._contains_allergen(ingredients_text, allergen):
@@ -411,7 +422,18 @@ class PreferenceTool:
     def _is_vegetarian_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is vegetarian compatible."""
         ingredients = recipe.get("ingredients", [])
-        ingredients_text = " ".join(ingredients).lower()
+        # Handle both string and dict ingredient formats
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                ingredient_strings.append(ing)
+            elif isinstance(ing, dict):
+                # Try different possible keys for ingredient names
+                name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                ingredient_strings.append(name)
+            else:
+                ingredient_strings.append(str(ing))
+        ingredients_text = " ".join(ingredient_strings).lower()
 
         meat_keywords = [
             "chicken",
@@ -435,7 +457,18 @@ class PreferenceTool:
             return False
 
         ingredients = recipe.get("ingredients", [])
-        ingredients_text = " ".join(ingredients).lower()
+        # Handle both string and dict ingredient formats
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                ingredient_strings.append(ing)
+            elif isinstance(ing, dict):
+                # Try different possible keys for ingredient names
+                name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                ingredient_strings.append(name)
+            else:
+                ingredient_strings.append(str(ing))
+        ingredients_text = " ".join(ingredient_strings).lower()
 
         animal_keywords = ["milk", "cheese", "butter", "cream", "yogurt", "egg", "honey", "gelatin"]
 
@@ -444,7 +477,18 @@ class PreferenceTool:
     def _is_gluten_free_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is gluten-free compatible."""
         ingredients = recipe.get("ingredients", [])
-        ingredients_text = " ".join(ingredients).lower()
+        # Handle both string and dict ingredient formats
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                ingredient_strings.append(ing)
+            elif isinstance(ing, dict):
+                # Try different possible keys for ingredient names
+                name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                ingredient_strings.append(name)
+            else:
+                ingredient_strings.append(str(ing))
+        ingredients_text = " ".join(ingredient_strings).lower()
 
         gluten_keywords = [
             "wheat",
@@ -462,7 +506,18 @@ class PreferenceTool:
     def _is_dairy_free_compatible(self, recipe: dict[str, Any]) -> bool:
         """Check if recipe is dairy-free compatible."""
         ingredients = recipe.get("ingredients", [])
-        ingredients_text = " ".join(ingredients).lower()
+        # Handle both string and dict ingredient formats
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                ingredient_strings.append(ing)
+            elif isinstance(ing, dict):
+                # Try different possible keys for ingredient names
+                name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                ingredient_strings.append(name)
+            else:
+                ingredient_strings.append(str(ing))
+        ingredients_text = " ".join(ingredient_strings).lower()
 
         dairy_keywords = [
             "milk",

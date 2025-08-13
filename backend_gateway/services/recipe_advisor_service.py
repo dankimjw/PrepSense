@@ -71,6 +71,18 @@ class RecipeAdvisor:
             ):
                 analysis["staples"].append(product_name)
 
+            # Identify vegetables
+            if any(
+                vegetable in product_name for vegetable in ["vegetable", "salad", "broccoli", "carrot", "spinach"]
+            ):
+                analysis["vegetables"].append(product_name)
+
+            # Identify carbs
+            if any(
+                carb in product_name for carb in ["rice", "pasta", "bread", "potato", "flour"]
+            ):
+                analysis["carbs"].append(product_name)
+
         return analysis
 
     def evaluate_recipe_fit(
@@ -79,7 +91,28 @@ class RecipeAdvisor:
         user_preferences: dict[str, Any],
         pantry_analysis: dict[str, Any],
     ) -> dict[str, Any]:
-        """Evaluate how well a recipe fits the user's needs"""
+        """
+        Evaluate how well a recipe fits the user's needs.
+        
+        Args:
+            recipe (dict[str, Any]): Recipe object with at least:
+                {
+                    "ingredients": list[str] or list[dict],  # ingredient list
+                    "readyInMinutes": int,
+                    "name" or "title": str
+                }
+            user_preferences (dict[str, Any]): Same structure as _get_spoonacular_recipes
+            pantry_analysis (dict[str, Any]): Analysis from analyze_pantry with:
+                {
+                    "expiring_soon": list[dict],
+                    "protein_sources": list[str],
+                    "vegetables": list[str],
+                    "carbs": list[str]
+                }
+                
+        Returns:
+            dict[str, Any]: Evaluation metrics
+        """
         evaluation = {
             "uses_expiring": False,
             "nutritional_balance": "unknown",
@@ -88,7 +121,19 @@ class RecipeAdvisor:
         }
 
         # Check if recipe uses expiring ingredients
-        recipe_ingredients = " ".join(recipe.get("ingredients", [])).lower()
+        ingredients = recipe.get("ingredients", [])
+        # Handle both string and dict ingredient formats
+        ingredient_strings = []
+        for ing in ingredients:
+            if isinstance(ing, str):
+                ingredient_strings.append(ing)
+            elif isinstance(ing, dict):
+                # Try different possible keys for ingredient names
+                name = ing.get("name") or ing.get("original") or ing.get("nameClean") or str(ing)
+                ingredient_strings.append(name)
+            else:
+                ingredient_strings.append(str(ing))
+        recipe_ingredients = " ".join(ingredient_strings).lower()
         for expiring in pantry_analysis["expiring_soon"]:
             if expiring["name"].lower() in recipe_ingredients:
                 evaluation["uses_expiring"] = True
@@ -98,7 +143,7 @@ class RecipeAdvisor:
         if any(protein in recipe_ingredients for protein in pantry_analysis["protein_sources"]):
             if any(
                 veg in recipe_ingredients
-                for veg in ["vegetable", "salad", "broccoli", "carrot", "spinach"]
+                for veg in pantry_analysis["vegetables"]
             ):
                 evaluation["nutritional_balance"] = "good"
             else:
@@ -205,6 +250,8 @@ class CrewAIService:
             logger.info(f"   - Expired: {len(pantry_analysis['expired'])} items")
             logger.info(f"   - Protein sources: {len(pantry_analysis['protein_sources'])} items")
             logger.info(f"   - Staples: {len(pantry_analysis['staples'])} items")
+            logger.info(f"   - Vegetables: {len(pantry_analysis['vegetables'])} items")
+            logger.info(f"   - Carbs: {len(pantry_analysis['carbs'])} items")
 
             # Step 4: Check saved recipes first
             logger.info("\n💾 STEP 4: Checking saved recipes...")
@@ -472,7 +519,32 @@ class CrewAIService:
         user_preferences: dict[str, Any],
         limit: int = 5,
     ) -> list[dict[str, Any]]:
-        """Get recipe recommendations from Spoonacular API."""
+        """
+        Get recipe recommendations from Spoonacular API.
+        
+        Args:
+            pantry_items (list[dict[str, Any]]): List of pantry items with structure:
+                [
+                    {
+                        "pantry_item_id": int,
+                        "product_name": str,
+                        "quantity": float,
+                        "unit_of_measurement": str,
+                        "expiration_date": str,
+                        "category": str
+                    }
+                ]
+            user_preferences (dict[str, Any]): User preferences with structure:
+                {
+                    "dietary_preference": list[str],  # e.g., ["vegetarian", "gluten-free"]
+                    "allergens": list[str],          # e.g., ["peanuts", "dairy"]
+                    "cuisine_preference": list[str]   # e.g., ["italian", "mexican"]
+                }
+            limit (int): Maximum number of recipes to return
+            
+        Returns:
+            list[dict[str, Any]]: List of Spoonacular recipe objects
+        """
         logger.info(f"🥄 Getting {limit} Spoonacular recipes...")
 
         try:
@@ -490,15 +562,17 @@ class CrewAIService:
                 logger.warning("⚠️  No valid ingredients found for Spoonacular search")
                 return []
 
-            # Use find_by_ingredients for pantry-based search
+            # Use search_recipes_by_ingredients for pantry-based search
             ingredient_query = ",".join(ingredient_names)
             logger.info(f"🔍 Searching Spoonacular with ingredients: {ingredient_query[:100]}...")
 
-            result = await self.spoonacular_service.find_by_ingredients(
-                ingredients=ingredient_query,
-                number=limit,
-                ranking=2,  # Maximize used ingredients
-                ignore_pantry=False,
+            # CRITICAL: Pass ingredient_names as list[str], NOT comma-separated string!
+            # Example: ["chicken breast", "tomatoes", "onions", "garlic"]
+            result = await self.spoonacular_service.search_recipes_by_ingredients(
+                ingredients=ingredient_names,  # list[str] - cleaned ingredient names
+                number=limit,                  # int - max recipes to return
+                ranking=2,                     # int - 1=minimize missing, 2=maximize used
+                ignore_pantry=False,          # bool - consider pantry ingredients
             )
 
             if not result or "results" not in result:
@@ -702,7 +776,18 @@ class CrewAIService:
             logger.info(f"      - Source: {recipe.get('source', 'unknown')}")
             logger.info(f"      - Missing items: {recipe.get('missing_count', 0)}")
             if recipe.get("score_reasoning"):
-                logger.info(f"      - Why: {'; '.join(recipe['score_reasoning'][:2])}")
+                # Handle both string and dict formats in score_reasoning
+                reasoning_items = recipe['score_reasoning'][:2]
+                reasoning_strings = []
+                for item in reasoning_items:
+                    if isinstance(item, str):
+                        reasoning_strings.append(item)
+                    elif isinstance(item, dict):
+                        # Convert dict to a readable string
+                        reasoning_strings.append(str(item))
+                    else:
+                        reasoning_strings.append(str(item))
+                logger.info(f"      - Why: {'; '.join(reasoning_strings)}")
 
         return ranked
 
