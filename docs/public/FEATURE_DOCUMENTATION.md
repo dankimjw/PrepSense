@@ -429,4 +429,4 @@ python -c "import os; print('API Key set:', bool(os.getenv('OPENAI_API_KEY')))"
 
 ## Contributing
 
-Please follow the guidelines in CLAUDE.md when contributing to this project.
+Please follow the project guidelines when contributing to this project.

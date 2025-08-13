@@ -1,8 +1,8 @@
 # 6. Code Quality Tools Documentation
 
-## 🚨 CRITICAL INSTRUCTIONS FOR CLAUDE INSTANCES 🚨
+## 📚 Code Quality Guidelines
 
-This documentation covers code cleanup and quality tools essential for maintaining the PrepSense codebase. **ALL Claude instances MUST use these tools during development.**
+This documentation covers code cleanup and quality tools essential for maintaining the PrepSense codebase.
 
 **BEFORE and AFTER any code changes:**
 1. Run appropriate cleanup tools for your area (frontend/backend)
@@ -411,7 +411,7 @@ def check_code_quality():
 
 ---
 
-## 🎯 Summary for Claude Instances
+## 🎯 Summary
 
 **Essential Commands:**
 ```bash
@@ -440,4 +440,4 @@ This toolset ensures the PrepSense codebase remains lean and maintainable while 
 ---
 
 **Last Updated:** 2025-08-06  
-**Maintainer:** Lightbulb-Recommender Agent & All Claude Instances
+**Maintainer:** Development Team

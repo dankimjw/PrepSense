@@ -95,18 +95,10 @@ Thumbs.db
 *~
 
 # Personal/Internal documentation
-docs/internal/
-docs/*CLAUDE*
-docs/*claude*
-docs/*TEAM*
-docs/*team*
-docs/*WORKTREE*
-docs/*worktree*
-docs/*engineer*
-docs/**/*CLAUDE*
-docs/**/*claude*
-docs/**/*WORKTREE*
-docs/**/*worktree*
+# Ignore everything in docs except public folder
+docs/*
+!docs/public/
+!docs/public/**
 
 # MCP (Model Context Protocol) - local only
 .mcp.json

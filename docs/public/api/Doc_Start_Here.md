@@ -1,13 +1,13 @@
 # PrepSense Live Documentation Hub
 
-## 🚨 CRITICAL INSTRUCTIONS FOR ALL CLAUDE INSTANCES 🚨
+## 📚 Documentation Guidelines
 
 **BEFORE making any changes to the codebase:**
 1. **READ** the relevant Doc_*.md files for the area you're working on
 2. **ANALYZE** the current implementation state thoroughly
 3. **UPDATE** documentation immediately after making changes
 4. **ADD** any missing documentation you discover
-5. **FIX** incorrect documentation (ask user first before updating)
+5. **FIX** incorrect documentation
 
 **This is LIVE DOCUMENTATION** - it represents the current state of the codebase and MUST be kept synchronized with all changes.
 
@@ -88,7 +88,7 @@
 When creating a new Doc_*.md file:
 1. Add it to this index with a clear description
 2. If it's a subcategory, link it in both the parent Doc and here
-3. Include the Claude instance instructions at the top
+3. Include clear instructions at the top
 4. Follow the existing format and structure
 
 ### Documentation Standards
