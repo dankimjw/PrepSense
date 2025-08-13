@@ -122,7 +122,7 @@ The table below compares PrepSense to several leading apps in the market:
 | Personalized Recipe Generation   | ✅             | ❌          | ✅         | ✅        | ❌              |
 | Adaptive to User Preferences     | 🟢 Emerging    | ❌          | ✅         | 🟠 Basic  | ❌              |
 | Sustainability Gamification      | 🟡 Roadmap     | ✅          | ❌         | ❌        | ❌              |
-| Grocery Store API Integration    | 🟡 Roadmap     | ❌          | ✅         | ❌        | ❌              |
+| Grocery Store API Integration    | 🟡 Roadmap     | ❌          | ✅         | ❌        | 🟠 Basic              |
 
 > ✅ = Fully implemented | 🟠 = Basic version | 🟢 = In development | 🟡 = On roadmap
 
