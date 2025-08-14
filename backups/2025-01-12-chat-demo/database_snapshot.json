@@ -1,0 +1,216 @@
+{
+  "timestamp": "2025-08-12T01:16:43.890203",
+  "user_id": 111,
+  "pantry_items": [
+    {
+      "pantry_item_id": 17,
+      "product_name": "All-purpose flour",
+      "quantity": 2.0,
+      "unit": "cups",
+      "category": "Grains",
+      "expiration_date": "2026-08-12"
+    },
+    {
+      "pantry_item_id": 15,
+      "product_name": "Butter",
+      "quantity": 1.0,
+      "unit": "cup",
+      "category": "Dairy",
+      "expiration_date": "2025-08-26"
+    },
+    {
+      "pantry_item_id": 16,
+      "product_name": "Eggs",
+      "quantity": 1.0,
+      "unit": "each",
+      "category": "Protein",
+      "expiration_date": "2025-08-19"
+    },
+    {
+      "pantry_item_id": 18,
+      "product_name": "Potatoes",
+      "quantity": 500.0,
+      "unit": "grams",
+      "category": "Vegetables",
+      "expiration_date": "2025-08-26"
+    },
+    {
+      "pantry_item_id": 19,
+      "product_name": "Salmon",
+      "quantity": 1.0,
+      "unit": "can",
+      "category": "Protein",
+      "expiration_date": "2026-08-12"
+    },
+    {
+      "pantry_item_id": 14,
+      "product_name": "Sliced almonds",
+      "quantity": 1.0,
+      "unit": "cup",
+      "category": "Nuts",
+      "expiration_date": "2026-02-08"
+    },
+    {
+      "pantry_item_id": 20,
+      "product_name": "Tuna flakes",
+      "quantity": 1.0,
+      "unit": "can",
+      "category": "Protein",
+      "expiration_date": "2026-08-12"
+    },
+    {
+      "pantry_item_id": 2,
+      "product_name": "bacon",
+      "quantity": 10.0,
+      "unit": "package",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 11,
+      "product_name": "black pepper",
+      "quantity": 10.0,
+      "unit": "container",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 4,
+      "product_name": "burger buns",
+      "quantity": 10.0,
+      "unit": "package",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 3,
+      "product_name": "cheddar cheese",
+      "quantity": 10.0,
+      "unit": "package",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 9,
+      "product_name": "chipotle peppers in adobo",
+      "quantity": 10.0,
+      "unit": "can",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 1,
+      "product_name": "ground beef",
+      "quantity": 10.0,
+      "unit": "lb",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 5,
+      "product_name": "lettuce",
+      "quantity": 10.0,
+      "unit": "head",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 8,
+      "product_name": "mayonnaise",
+      "quantity": 10.0,
+      "unit": "jar",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 12,
+      "product_name": "pickles",
+      "quantity": 10.0,
+      "unit": "jar",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 7,
+      "product_name": "red onion",
+      "quantity": 10.0,
+      "unit": "each",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 10,
+      "product_name": "salt",
+      "quantity": 10.0,
+      "unit": "container",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    },
+    {
+      "pantry_item_id": 6,
+      "product_name": "tomato",
+      "quantity": 10.0,
+      "unit": "each",
+      "category": "Other",
+      "expiration_date": "2025-08-13"
+    }
+  ],
+  "saved_recipes": [
+    {
+      "recipe_id": 2011,
+      "recipe_title": "Cheesy Bacon Burger with Spicy Chipotle",
+      "created_at": "2025-08-12T00:57:17.503540"
+    },
+    {
+      "recipe_id": 1002,
+      "recipe_title": "Stuffed Chicken Breast",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1003,
+      "recipe_title": "Caprese Portobello Pizzas",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1004,
+      "recipe_title": "Paneer & Spinach Curry",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1005,
+      "recipe_title": "Strawberry-Banana Protein Shake",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1001,
+      "recipe_title": "Chicken Parmesan with Protein-Packed Marinara",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1007,
+      "recipe_title": "High-Protein Greek Salad with Grilled Chicken",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1008,
+      "recipe_title": "Palak Paneer with Chickpea Flour Roti",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1009,
+      "recipe_title": "Chicken Biryani with Raita",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1010,
+      "recipe_title": "Tandoori Chicken with High-Protein Dal",
+      "created_at": "2025-08-06T22:34:31.672893"
+    },
+    {
+      "recipe_id": 1006,
+      "recipe_title": "Mexican Turkey & Avocado Lettuce Wraps",
+      "created_at": "2025-08-06T22:34:31.672893"
+    }
+  ],
+  "user_preferences": {}
+}

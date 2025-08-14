@@ -1,0 +1,1082 @@
+"""
+Enhanced OpenAI Chat Service for PrepSense
+Prioritizes OpenAI recipe generation with intelligent fallbacks
+"""
+
+import json
+import logging
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+import hashlib
+
+import openai
+
+from backend_gateway.config.database import get_database_service
+from backend_gateway.core.config_utils import get_openai_api_key
+from backend_gateway.RemoteControl_7 import is_chat_recipes_mock_enabled
+from backend_gateway.routers.mock_recipe_router import get_mock_recipes_for_chat
+from backend_gateway.services.openai_recipe_service import OpenAIRecipeService
+from backend_gateway.services.recipe_advisor_service import RecipeAdvisor
+from backend_gateway.services.recipe_preference_scorer import RecipePreferenceScorer
+from backend_gateway.services.recipe_service import RecipeService
+from backend_gateway.services.spoonacular_service import SpoonacularService
+from backend_gateway.services.user_recipes_service import UserRecipesService
+
+logger = logging.getLogger(__name__)
+
+
+class OpenAIChatService:
+    """Enhanced chat service that prioritizes OpenAI recipe generation"""
+
+    def __init__(self):
+        """Initialize the OpenAI Chat service."""
+        self.db_service = get_database_service()
+        self.recipe_service = RecipeService()
+        self.user_recipes_service = UserRecipesService(self.db_service)
+        self.spoonacular_service = SpoonacularService()
+        self.openai_service = OpenAIRecipeService()
+        self.preference_scorer = RecipePreferenceScorer(self.db_service)
+        self.recipe_advisor = RecipeAdvisor()
+
+        # Initialize OpenAI
+        openai.api_key = get_openai_api_key()
+        self.openai_client = openai.OpenAI(api_key=openai.api_key) if openai.api_key else None
+        
+        # Simple in-memory cache for common queries (TTL: 5 minutes for faster updates)
+        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache_ttl = timedelta(minutes=5)  # Reduced from 30 to 5 minutes
+
+    def _get_cache_key(self, user_id: int, message: str, use_preferences: bool) -> str:
+        """Generate a cache key for the request"""
+        key_parts = [str(user_id), message.lower().strip(), str(use_preferences)]
+        key_string = "|".join(key_parts)
+        return hashlib.md5(key_string.encode()).hexdigest()
+    
+    def _get_cached_response(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get cached response if available and not expired"""
+        if cache_key in self._cache:
+            cached = self._cache[cache_key]
+            if datetime.now() - cached['timestamp'] < self._cache_ttl:
+                logger.info(f"✨ Cache hit for key: {cache_key[:8]}...")
+                return cached['data']
+            else:
+                # Remove expired cache
+                del self._cache[cache_key]
+        return None
+    
+    def _cache_response(self, cache_key: str, response: Dict[str, Any]) -> None:
+        """Cache a response with timestamp"""
+        self._cache[cache_key] = {
+            'timestamp': datetime.now(),
+            'data': response
+        }
+        logger.info(f"💾 Cached response for key: {cache_key[:8]}...")
+        
+        # Clean old cache entries (keep max 100)
+        if len(self._cache) > 100:
+            oldest_key = min(self._cache.keys(), 
+                           key=lambda k: self._cache[k]['timestamp'])
+            del self._cache[oldest_key]
+    
+    def _get_recipe_image_url(self, recipe_title: str) -> str:
+        """Generate a food image URL based on recipe title"""
+        # List of food image URLs from Unsplash
+        food_images = [
+            "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop",  # Salad
+            "https://images.unsplash.com/photo-1565299624946-b28f40a0ae38?w=400&h=300&fit=crop",  # Pizza
+            "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=400&h=300&fit=crop",  # Burger
+            "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=400&h=300&fit=crop",  # Pasta
+            "https://images.unsplash.com/photo-1540189549336-e6e99c3679fe?w=400&h=300&fit=crop",  # Bowl
+            "https://images.unsplash.com/photo-1565958011703-44f9829ba187?w=400&h=300&fit=crop",  # Cake
+            "https://images.unsplash.com/photo-1482049016688-2d3e1b311543?w=400&h=300&fit=crop",  # Eggs
+            "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=400&h=300&fit=crop",  # Stir fry
+            "https://images.unsplash.com/photo-1529042410759-befb1204b468?w=400&h=300&fit=crop",  # Asian
+            "https://images.unsplash.com/photo-1547592577-b11d0c9a1f91?w=400&h=300&fit=crop",  # Soup
+        ]
+        
+        # Map keywords to specific images
+        title_lower = recipe_title.lower()
+        if 'pasta' in title_lower or 'spaghetti' in title_lower or 'aglio' in title_lower:
+            return food_images[3]  # Pasta image
+        elif 'stir' in title_lower or 'fry' in title_lower or 'wok' in title_lower:
+            return food_images[7]  # Stir fry image
+        elif 'burger' in title_lower:
+            return food_images[2]  # Burger image
+        elif 'salad' in title_lower:
+            return food_images[0]  # Salad image
+        elif 'soup' in title_lower or 'stew' in title_lower:
+            return food_images[9]  # Soup image
+        elif 'asian' in title_lower or 'korean' in title_lower or 'bibimbap' in title_lower or 'tofu' in title_lower:
+            return food_images[8]  # Asian food image
+        elif 'breakfast' in title_lower or 'egg' in title_lower:
+            return food_images[6]  # Eggs image
+        elif 'dessert' in title_lower or 'cake' in title_lower:
+            return food_images[5]  # Cake image
+        else:
+            # Use a hash of the title to consistently pick an image
+            import hashlib
+            hash_val = int(hashlib.md5(recipe_title.encode()).hexdigest()[:8], 16)
+            return food_images[hash_val % len(food_images)]
+
+    async def process_message(
+        self, user_id: int, message: str, use_preferences: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Process a chat message and return OpenAI-powered recipe recommendations.
+
+        Args:
+            user_id: The user's ID
+            message: The user's message
+            use_preferences: Whether to use user preferences
+
+        Returns:
+            Dict containing response, recipes, and pantry items
+        """
+        logger.info("=" * 60)
+        logger.info(f"🚀 STARTING OPENAI CHAT PROCESS for user {user_id}")
+        logger.info(f"📝 Message: '{message}'")
+        logger.info(f"⚙️ Use preferences: {use_preferences}")
+        logger.info("=" * 60)
+
+        try:
+            # Check if mock mode is enabled first
+            if is_chat_recipes_mock_enabled():
+                logger.info("🧪 Mock mode enabled, returning mock recipes")
+                return await self._get_mock_response(message)
+            
+            # Check cache for common queries
+            cache_key = self._get_cache_key(user_id, message, use_preferences)
+            cached_response = self._get_cached_response(cache_key)
+            if cached_response:
+                return cached_response
+
+            # Step 1: Fetch pantry items and user preferences
+            logger.info("\n📦 STEP 1: Fetching pantry items...")
+            pantry_items = await self._fetch_pantry_items(user_id)
+            logger.info(f"✅ Found {len(pantry_items)} total pantry items")
+
+            # Fetch preferences if needed
+            if use_preferences:
+                logger.info("\n👤 Fetching user preferences...")
+                user_preferences = await self._fetch_user_preferences(user_id)
+                logger.info(f"✅ Preferences loaded: {user_preferences}")
+            else:
+                logger.info("\n⏭️ Skipping user preferences (use_preferences=False)")
+                user_preferences = {
+                    "dietary_preference": [],
+                    "allergens": [],
+                    "cuisine_preference": [],
+                }
+
+            # Step 2: Filter valid items
+            logger.info("\n🔍 STEP 2: Filtering valid (non-expired) items...")
+            valid_items = self._filter_valid_items(pantry_items)
+            logger.info(f"✅ {len(valid_items)} valid items out of {len(pantry_items)} total")
+
+            # Return pantry items IMMEDIATELY with a quick response
+            quick_response = "I'm looking at your pantry and finding the best recipes for you..."
+            
+            # Step 2.5: Fetch user's saved recipes - GET ALL saved recipes
+            logger.info("\n📚 STEP 2.5: Fetching ALL user's saved recipes...")
+            saved_recipes = await self._fetch_saved_recipes(user_id, limit=50)  # Get all saved recipes (up to 50)
+            logger.info(f"✅ Found {len(saved_recipes)} saved recipes")
+
+            # Step 3: Generate OpenAI recipes (including demo burger)
+            logger.info("\n🤖 STEP 3: Generating OpenAI recipes...")
+            num_ai_recipes = max(10 - len(saved_recipes), 8)  # At least 8, up to 10
+            openai_recipes = await self._generate_openai_recipes(
+                valid_items, message, user_preferences, num_recipes=num_ai_recipes, saved_recipes=saved_recipes
+            )
+            logger.info(f"✅ Generated {len(openai_recipes)} OpenAI recipes")
+            
+            # Combine saved + AI recipes (saved first, then AI)
+            all_recipes = saved_recipes + openai_recipes
+            logger.info(f"✅ Total recipes: {len(all_recipes)} recipes (saved + AI)")
+
+            # Step 6: Generate intelligent response (but keep it quick and personalized)
+            logger.info("\n💬 STEP 6: Generating response...")
+            if all_recipes:
+                # Create a personalized response for saved recipes
+                recipe_count = len(all_recipes)
+                first_recipe = all_recipes[0].get('title', 'Recipe')
+                
+                # Always indicate these are saved recipes
+                if recipe_count == 1:
+                    response_text = f"Here's your saved recipe: {first_recipe}. You can cook it again today!"
+                elif recipe_count == 2:
+                    response_text = f"Here are your {recipe_count} saved recipes. {first_recipe} would be great for tonight!"
+                else:
+                    response_text = f"Here are your {recipe_count} saved recipes from My Recipes. {first_recipe} is a great choice for today!"
+                
+                # Add preference-based context
+                if user_preferences and user_preferences.get("dietary_preference"):
+                    diet_pref = user_preferences["dietary_preference"][0] if user_preferences["dietary_preference"] else None
+                    if diet_pref:
+                        response_text += f" These recipes match your {diet_pref.lower()} dietary preference."
+                elif user_preferences and user_preferences.get("cuisine_preference"):
+                    cuisine_pref = user_preferences["cuisine_preference"][0] if user_preferences["cuisine_preference"] else None
+                    if cuisine_pref:
+                        response_text += f" You've saved some great {cuisine_pref} recipes!"
+            else:
+                response_text = "You haven't saved any recipes yet. Try exploring the Recipes tab to find and save recipes you love!"
+            
+            # Step 7: Return structured response QUICKLY
+            final_recipes = all_recipes[:10]  # Allow up to 10 recipes to be returned
+            result = {
+                "response": response_text,
+                "recipes": final_recipes,
+                "pantry_items": valid_items,
+                "user_preferences": user_preferences if use_preferences else {},
+                "show_preference_choice": False,
+                "source": "openai_enhanced",
+            }
+
+            logger.info(f"✅ CHAT COMPLETE: Returning {len(result['recipes'])} recipes")
+            
+            # Cache the successful response
+            self._cache_response(cache_key, result)
+            
+            return result
+
+        except Exception as e:
+            logger.error(f"Error in OpenAI chat processing: {str(e)}")
+            # Fallback to basic response
+            return {
+                "response": "I'm having trouble generating recipes right now. Please check that the OpenAI API is configured and try again.",
+                "recipes": [],
+                "pantry_items": [],
+                "user_preferences": {},
+                "show_preference_choice": False,
+                "source": "error_fallback",
+            }
+
+    async def _fetch_pantry_items(self, user_id: int) -> List[Dict[str, Any]]:
+        """Fetch pantry items for the user"""
+        try:
+            sql = """
+                SELECT pantry_item_id, product_name as item_name, quantity,
+                       unit_of_measurement, expiration_date, food_category,
+                       pantry_item_created_at
+                FROM pantry_items
+                WHERE user_id = $1 AND quantity > 0
+                ORDER BY expiration_date ASC NULLS LAST
+            """
+            async with self.db_service.get_connection() as conn:
+                rows = await conn.fetch(sql, user_id)
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Error fetching pantry items: {e}")
+            return []
+
+    async def _fetch_saved_recipes(self, user_id: int, limit: int = 4) -> List[Dict[str, Any]]:
+        """Fetch user's saved recipes to show first"""
+        try:
+            # Get ALL saved recipes (not just thumbs_up)
+            saved = await self.user_recipes_service.get_user_recipes(
+                user_id=user_id,
+                include_external=True,
+                limit=limit * 2  # Get more to filter out incomplete ones
+            )
+            
+            # Format saved recipes to match chat recipe format
+            formatted_recipes = []
+            for recipe in saved:
+                recipe_data = recipe.get('recipe_data', {})
+                
+                # Skip recipes without ingredients or instructions
+                ingredients = recipe_data.get('extendedIngredients', [])
+                raw_instructions = recipe_data.get('analyzedInstructions', [])
+                
+                # Parse instructions if they're a single string
+                if isinstance(raw_instructions, str):
+                    # Split the condensed instructions string
+                    instruction_text = raw_instructions.replace('.', '. ').replace('.  ', '. ')
+                    
+                    # Split by sentence endings
+                    parts = []
+                    for sentence in instruction_text.split('. '):
+                        sentence = sentence.strip()
+                        if sentence:
+                            # Further split on lowercase-to-uppercase transitions (like "well.Divide")
+                            import re
+                            sub_parts = re.split(r'(?<=[a-z])(?=[A-Z])', sentence)
+                            for part in sub_parts:
+                                if part and len(part) > 5:
+                                    if not part[-1] in '.!?':
+                                        part += '.'
+                                    parts.append(part)
+                    
+                    instructions = [{
+                        "name": "",
+                        "steps": [
+                            {
+                                "number": i + 1,
+                                "step": step,
+                                "ingredients": [],
+                                "equipment": []
+                            }
+                            for i, step in enumerate(parts)
+                        ]
+                    }]
+                elif isinstance(raw_instructions, list) and len(raw_instructions) > 0:
+                    # Already in array format
+                    instructions = raw_instructions
+                else:
+                    instructions = []
+                
+                # Only include recipes with actual content
+                if not ingredients and not instructions:
+                    logger.info(f"Skipping incomplete saved recipe: {recipe.get('recipe_title', 'Unknown')}")
+                    continue
+                
+                # Extract nutrition data from saved recipe
+                nutrition = recipe_data.get('nutrition', {})
+                if not nutrition or not nutrition.get('calories'):
+                    # Provide sensible defaults if nutrition is missing
+                    servings = recipe_data.get('servings', 4)
+                    nutrition = {
+                        'calories': 350 * servings,  # 350 cal per serving
+                        'protein': 25,
+                        'fat': 15,
+                        'carbs': 40
+                    }
+                
+                formatted_recipes.append({
+                    'id': recipe.get('recipe_id') or recipe.get('id'),
+                    'name': recipe.get('recipe_title', 'Unknown Recipe'),
+                    'title': recipe.get('recipe_title', 'Unknown Recipe'),
+                    'image': recipe.get('recipe_image', ''),
+                    'time': recipe_data.get('readyInMinutes', 30),
+                    'servings': recipe_data.get('servings', 4),
+                    'ingredients': ingredients,
+                    'instructions': instructions,
+                    'nutrition': nutrition,  # Added nutrition field
+                    'source': 'saved_recipe',
+                    'is_saved': True,
+                    'rating': recipe.get('rating', 'neutral')
+                })
+                
+                # Stop when we have enough complete recipes
+                if len(formatted_recipes) >= limit:
+                    break
+            
+            return formatted_recipes
+        except Exception as e:
+            logger.error(f"Error fetching saved recipes: {e}")
+            return []
+
+    async def _fetch_user_preferences(self, user_id: int) -> Dict[str, Any]:
+        """Fetch user preferences from JSONB column"""
+        try:
+            sql = """
+                SELECT preferences, household_size
+                FROM user_preferences
+                WHERE user_id = %(user_id)s
+            """
+            result = self.db_service.execute_query(sql, {"user_id": user_id})
+
+            if result and len(result) > 0:
+                row = result[0]
+                preferences_json = row.get("preferences", {})
+
+                # Map the JSONB structure to expected format
+                # Database has: dietary_restrictions, allergens, cuisine_preferences
+                # Code expects: dietary_preference, allergens, cuisine_preference
+                return {
+                    "dietary_preference": preferences_json.get("dietary_restrictions", []),
+                    "allergens": preferences_json.get("allergens", []),
+                    "cuisine_preference": preferences_json.get("cuisine_preferences", []),
+                    "household_size": row.get(
+                        "household_size", preferences_json.get("household_size", 2)
+                    ),
+                }
+            else:
+                logger.info(f"No preferences found for user {user_id}, using defaults")
+                return {
+                    "dietary_preference": [],
+                    "allergens": [],
+                    "cuisine_preference": [],
+                    "household_size": 2,
+                }
+        except Exception as e:
+            logger.error(f"Error fetching user preferences: {e}")
+            return {
+                "dietary_preference": [],
+                "allergens": [],
+                "cuisine_preference": [],
+                "household_size": 2,
+            }
+
+    def _filter_valid_items(self, pantry_items: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """Filter out expired items"""
+        valid_items = []
+        current_date = datetime.now().date()
+
+        for item in pantry_items:
+            try:
+                if item.get("expiration_date"):
+                    if isinstance(item["expiration_date"], str):
+                        exp_date = datetime.fromisoformat(
+                            item["expiration_date"].replace("Z", "+00:00")
+                        ).date()
+                    else:
+                        exp_date = item["expiration_date"]
+
+                    if exp_date >= current_date:
+                        valid_items.append(item)
+                else:
+                    # Include items without expiration date
+                    valid_items.append(item)
+            except Exception as e:
+                logger.warning(
+                    f"Error parsing expiration date for item {item.get('item_name', 'unknown')}: {e}"
+                )
+                # Include item if we can't parse date
+                valid_items.append(item)
+
+        return valid_items
+
+    async def _generate_openai_recipes(
+        self,
+        pantry_items: List[Dict[str, Any]],
+        message: str,
+        user_preferences: Dict[str, Any],
+        num_recipes: int = 5,  # Default to 5 recipes for better variety
+        saved_recipes: List[Dict[str, Any]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Generate recipes using OpenAI as the primary method"""
+        
+        # DEMO MODE: Return hardcoded recipes for demo
+        demo_recipes = []
+        
+        # Recipe 1: Burger
+        if "burger" in message.lower() or "chipotle" in message.lower():
+            demo_recipes.append({
+                "name": "Cheesy Bacon Burger with Spicy Chipotle",
+                "ingredients": [
+                    "2 teaspoons Chopped Chipotle Chiles in Adobo",
+                    "3 tablespoons Fat Free Mayonnaise", 
+                    "1 clove Garlic",
+                    "1/4 teaspoon Garlic Powder",
+                    "3 tablespoons Greek Yogurt, Non-fat",
+                    "1 cup Green Bell Pepper",
+                    "1/2 teaspoon Ground Cumin",
+                    "1/4 teaspoon Ground Black Pepper",
+                    "1 1/2 pounds Lean Ground Beef",
+                    "4 teaspoons Lime Juice",
+                    "1/2 cup Onion",
+                    "2 wedges Laughing Cow Swiss Cheese",
+                    "4 slices Turkey Bacon",
+                    "4 whole Wheat Hamburger Buns"
+                ],
+                "instructions": [
+                    "Cook the turkey bacon in a skillet over medium heat until crispy. Set aside on paper towels.",
+                    "In a small bowl, mix the chopped chipotle chiles, mayonnaise, Greek yogurt, and lime juice to make the chipotle sauce.",
+                    "Mince the garlic and dice the onion and bell pepper. Set aside.",
+                    "In a large bowl, combine the ground beef with garlic powder, ground cumin, and black pepper. Mix gently.",
+                    "Form the beef mixture into 8 thin patties. Place half a cheese wedge on 4 patties, then top with remaining patties and seal edges.",
+                    "Grill or pan-fry the burgers for 4-5 minutes per side until cooked through.",
+                    "Toast the hamburger buns lightly. Spread chipotle sauce on both halves.",
+                    "Assemble burgers with patties, bacon, grilled peppers and onions. Serve immediately."
+                ],
+                "nutrition": {"calories": 1800, "protein": 120, "fat": 65, "carbs": 140},
+                "time": 30, "servings": 4, "cuisine_type": "American", "dietary_tags": [], "difficulty": "medium"
+            })
+        
+        # Recipe 2: Salmon Potato Bake
+        if "salmon" in message.lower() or "potato" in message.lower() or "fish" in message.lower():
+            demo_recipes.append({
+                "name": "Salmon and Almond Potato Bake",
+                "ingredients": [
+                    "1 cup Sliced Almonds",
+                    "1 cup Butter or Margarine",
+                    "1 large Egg",
+                    "1 3/4 cups All-purpose Flour",
+                    "500 grams Potatoes",
+                    "1 teaspoon Salt",
+                    "1/2 teaspoon Black Pepper",
+                    "1 can Salmon or Tuna Flakes"
+                ],
+                "instructions": [
+                    "Preheat oven to 375°F (190°C). Grease a 9x13 inch baking dish.",
+                    "Wash and slice potatoes into thin rounds. Layer half the potatoes in the baking dish.",
+                    "In a bowl, mix the salmon or tuna flakes with salt and pepper. Spread over potatoes.",
+                    "Layer remaining potato slices on top of the fish mixture.",
+                    "In another bowl, cream butter until fluffy. Beat in egg, then gradually add flour to form a crumbly mixture.",
+                    "Sprinkle the flour mixture and sliced almonds evenly over the top layer of potatoes.",
+                    "Cover with foil and bake for 45 minutes. Remove foil and bake another 15 minutes until golden.",
+                    "Let cool for 10 minutes before serving. The almonds should be toasted and the potatoes tender."
+                ],
+                "nutrition": {"calories": 2200, "protein": 85, "fat": 140, "carbs": 180},
+                "time": 75, "servings": 6, "cuisine_type": "Scandinavian", "dietary_tags": [], "difficulty": "easy"
+            })
+        
+        # Recipe 3: Mediterranean Pasta (default fallback)
+        if len(demo_recipes) == 0 or "pasta" in message.lower() or "mediterranean" in message.lower():
+            demo_recipes.append({
+                "name": "Mediterranean Pasta with Fresh Herbs",
+                "ingredients": [
+                    "1 pound Penne Pasta",
+                    "2 tablespoons Olive Oil",
+                    "3 cloves Garlic",
+                    "1 cup Cherry Tomatoes",
+                    "1/2 cup Kalamata Olives",
+                    "1/2 cup Sun-dried Tomatoes",
+                    "1/4 cup Fresh Basil",
+                    "1/4 cup Fresh Parsley",
+                    "1/2 cup Feta Cheese",
+                    "1/4 cup Pine Nuts",
+                    "1 teaspoon Dried Oregano",
+                    "Salt and Black Pepper to taste"
+                ],
+                "instructions": [
+                    "Cook pasta according to package directions until al dente. Reserve 1/2 cup pasta water before draining.",
+                    "While pasta cooks, heat olive oil in a large skillet over medium heat.",
+                    "Add minced garlic and cook for 1 minute until fragrant.",
+                    "Add cherry tomatoes and cook for 3-4 minutes until they start to burst.",
+                    "Stir in sun-dried tomatoes, olives, and oregano. Cook for 2 minutes.",
+                    "Add drained pasta to the skillet with a splash of pasta water. Toss to combine.",
+                    "Remove from heat and add fresh herbs, crumbled feta, and pine nuts.",
+                    "Season with salt and pepper. Serve immediately with extra feta and herbs."
+                ],
+                "nutrition": {"calories": 1900, "protein": 65, "fat": 75, "carbs": 250},
+                "time": 20, "servings": 4, "cuisine_type": "Mediterranean", "dietary_tags": ["vegetarian"], "difficulty": "easy"
+            })
+        
+        # Process demo recipes if any match, then add saved recipes
+        if demo_recipes:
+            processed_recipes = []
+            for i, recipe in enumerate(demo_recipes[:2]):  # 2 demo recipes
+                processed_recipe = self._process_openai_recipe(recipe, pantry_items, i)
+                processed_recipes.append(processed_recipe)
+            
+            # Add 2 saved recipes to make total of 4
+            if saved_recipes:
+                processed_recipes.extend(saved_recipes[:2])
+            
+            return processed_recipes
+        
+        if not self.openai_client:
+            logger.warning("OpenAI client not available, skipping OpenAI recipe generation")
+            return []
+
+        try:
+            # Create ingredient list
+            ingredient_names = [
+                item.get("item_name", "") for item in pantry_items if item.get("item_name")
+            ]
+            if not ingredient_names:
+                ingredient_names = ["basic pantry staples"]
+
+            # Determine meal type from message
+            meal_type = self._extract_meal_type(message)
+
+            # Build comprehensive prompt with personalization
+            prompt = self._build_openai_recipe_prompt(
+                ingredient_names, message, user_preferences, meal_type, num_recipes, saved_recipes
+            )
+
+            logger.info("📞 Calling OpenAI API for recipe generation...")
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Using faster model for quicker responses
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a professional chef and recipe developer. Generate detailed, practical recipes in JSON format. CRITICAL: You MUST ONLY use the ingredients provided in the available ingredients list. Do NOT suggest any ingredients that are not explicitly listed. Each recipe should be fully makeable with ONLY the available ingredients (basic pantry staples like salt, pepper, oil, water are okay).",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.7,
+                max_completion_tokens=4096,  # Maximum supported by gpt-3.5-turbo
+            )
+
+            recipes_text = response.choices[0].message.content.strip()
+
+            # Clean up markdown formatting
+            if recipes_text.startswith("```json"):
+                recipes_text = recipes_text[7:]
+            if recipes_text.endswith("```"):
+                recipes_text = recipes_text[:-3]
+
+            recipes = json.loads(recipes_text)
+            logger.info(f"📋 OpenAI returned {len(recipes)} recipes (requested {num_recipes})")
+
+            # Process and enhance recipes
+            processed_recipes = []
+            for i, recipe in enumerate(recipes):
+                processed_recipe = self._process_openai_recipe(recipe, pantry_items, i)
+                # Include recipes with at least 30% ingredient match (or any recipe if we have pantry staples)
+                match_score = processed_recipe.get("match_score", 0)
+                if match_score >= 0.3 or len(pantry_items) <= 5:  # Lower threshold or few pantry items
+                    processed_recipes.append(processed_recipe)
+                    logger.info(f"Including recipe '{processed_recipe.get('name')}' with match score {match_score:.1%}")
+                else:
+                    logger.info(f"Filtering out recipe '{processed_recipe.get('name')}' with match score {match_score:.1%}")
+
+            logger.info(f"✅ Successfully generated {len(processed_recipes)} OpenAI recipes")
+            return processed_recipes
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Error parsing OpenAI response as JSON: {str(e)}")
+            logger.error(f"Response text: {recipes_text[:500] if 'recipes_text' in locals() else 'No response'}")
+            return []
+        except Exception as e:
+            logger.error(f"Error generating OpenAI recipes: {str(e)}", exc_info=True)
+            return []
+
+    def _build_openai_recipe_prompt(
+        self,
+        ingredients: List[str],
+        message: str,
+        preferences: Dict[str, Any],
+        meal_type: str,
+        num_recipes: int,
+        saved_recipes: List[Dict[str, Any]] = None,
+    ) -> str:
+        """Build comprehensive prompt for OpenAI recipe generation with personalization"""
+
+        # Extract dietary restrictions
+        dietary_prefs = preferences.get("dietary_preference", [])
+        allergens = preferences.get("allergens", [])
+        cuisine_prefs = preferences.get("cuisine_preference", [])
+
+        # Add special requirements based on message content
+        special_requirements = []
+        message_lower = message.lower()
+        
+        if "healthy" in message_lower:
+            special_requirements.append("Focus on nutritious, balanced recipes with vegetables and lean proteins")
+        if "quick" in message_lower or "20 minutes" in message_lower or "fast" in message_lower:
+            special_requirements.append("Recipes should take 20 minutes or less to prepare")
+        if "only ingredients i have" in message_lower:
+            special_requirements.append("Use STRICTLY ONLY the available ingredients, no substitutions")
+        if "easy" in message_lower or "simple" in message_lower:
+            special_requirements.append("Keep recipes simple with minimal steps")
+            
+        special_req_text = "\n".join(f"- {req}" for req in special_requirements) if special_requirements else ""
+        
+        # Add personalization based on saved recipes
+        saved_recipe_context = ""
+        if saved_recipes and len(saved_recipes) > 0:
+            saved_titles = [r.get('title', r.get('recipe_title', '')) for r in saved_recipes[:3]]
+            if saved_titles:
+                saved_recipe_context = f"\n- User has previously saved/liked: {', '.join(saved_titles)}"
+                saved_recipe_context += "\n- Consider creating similar style recipes or complementary dishes"
+
+        prompt = f"""Generate {num_recipes} detailed recipes based on this request: "{message}"
+
+Available ingredients: {", ".join(ingredients)}
+
+CRITICAL REQUIREMENTS:
+- ONLY use ingredients from the available ingredients list above
+- DO NOT include ANY ingredients not listed in the available ingredients
+- Each recipe MUST be makeable with ONLY the available ingredients (you can use basic pantry staples like salt, pepper, oil)
+- Meal type: {meal_type}
+- Dietary preferences: {", ".join(dietary_prefs) if dietary_prefs else "None"}
+- Avoid allergens: {", ".join(allergens) if allergens else "None"}
+- Preferred cuisines: {", ".join(cuisine_prefs) if cuisine_prefs else "Any"}
+{saved_recipe_context}
+{special_req_text}
+
+For each recipe, provide a JSON object with ALL of these fields (all are required):
+- name: recipe name (string)
+- ingredients: array of strings with quantities - MUST ONLY use ingredients from the available list above
+- instructions: array of EXACTLY 5-8 detailed step-by-step cooking instructions (IMPORTANT: each step MUST be a separate string in the array, do NOT combine multiple steps into one string)
+- nutrition: object with {{"calories": number (total for all servings), "protein": number (grams), "fat": number (grams), "carbs": number (grams)}}
+- time: cooking time in minutes (number, e.g., {20 if ("quick" in message_lower or "20 minutes" in message_lower) else 30})
+- servings: number of servings (number, e.g., 4)
+- cuisine_type: cuisine style (string)
+- dietary_tags: array of dietary tags (e.g., "vegetarian", "gluten-free")
+- difficulty: "easy", "medium", or "hard"
+
+IMPORTANT: Every field is required. Instructions must be detailed and actionable. Nutrition must have realistic values.
+
+Make recipes practical and delicious. Use as many available ingredients as possible.
+Return ONLY a JSON array, no other text."""
+
+        return prompt
+
+    def _extract_meal_type(self, message: str) -> str:
+        """Extract meal type from user message"""
+        message_lower = message.lower()
+
+        if any(word in message_lower for word in ["breakfast", "morning", "brunch"]):
+            return "breakfast"
+        elif any(word in message_lower for word in ["lunch", "midday", "noon"]):
+            return "lunch"
+        elif any(word in message_lower for word in ["dinner", "evening", "supper"]):
+            return "dinner"
+        elif any(word in message_lower for word in ["snack", "appetizer", "side"]):
+            return "snack"
+        elif any(word in message_lower for word in ["dessert", "sweet", "cake", "cookie"]):
+            return "dessert"
+        else:
+            # Determine by time of day
+            current_hour = datetime.now().hour
+            if 5 <= current_hour < 11:
+                return "breakfast"
+            elif 11 <= current_hour < 16:
+                return "lunch"
+            else:
+                return "dinner"
+
+    def _process_openai_recipe(
+        self, recipe: Dict[str, Any], pantry_items: List[Dict[str, Any]], index: int
+    ) -> Dict[str, Any]:
+        """Process and enhance OpenAI recipe with additional metadata"""
+        # Generate unique ID
+        recipe_id = f"openai_{int(datetime.now().timestamp())}_{index}"
+
+        # Calculate ingredient matching and create pantry_item_matches
+        pantry_ingredient_names = [item.get("item_name", "").lower() for item in pantry_items]
+
+        available_ingredients = []
+        missing_ingredients = []
+        pantry_item_matches = {}
+
+        for ingredient in structured_ingredients:
+            # Get the ingredient name and original string
+            if isinstance(ingredient, dict):
+                ing_name = ingredient.get("name", "").lower()
+                ing_original = ingredient.get("original", "")
+            else:
+                ing_name = str(ingredient).lower()
+                ing_original = str(ingredient)
+            
+            found = False
+            matched_items = []
+            
+            for pantry_item in pantry_items:
+                pantry_name = pantry_item.get("item_name", "").lower()
+                if pantry_name and (pantry_name in ing_name or ing_name in pantry_name):
+                    available_ingredients.append(ing_original)
+                    matched_items.append({
+                        "pantry_item_id": pantry_item.get("pantry_item_id"),
+                        "product_name": pantry_item.get("item_name"),
+                        "quantity": pantry_item.get("quantity", 1),
+                        "unit": pantry_item.get("unit_of_measurement", "unit")
+                    })
+                    found = True
+            
+            if matched_items:
+                pantry_item_matches[ing_original] = matched_items
+            
+            if not found:
+                missing_ingredients.append(ing_original)
+
+        # Calculate match score
+        total_ingredients = len(recipe_ingredients)
+        available_count = len(available_ingredients)
+        match_score = available_count / total_ingredients if total_ingredients > 0 else 0
+
+        # Convert ingredients to structured format if they're strings
+        raw_ingredients = recipe.get("ingredients", [])
+        structured_ingredients = []
+        
+        for ing in raw_ingredients:
+            if isinstance(ing, str):
+                # Parse string ingredients into structured format
+                import re
+                # Match patterns like "2 teaspoons Chopped Chipotle Chiles"
+                match = re.match(r'^([\d/\s]+(?:\d+/\d+|\d+\.?\d*)?)\s*([a-zA-Z]+(?:\s+[a-zA-Z]+)?)\s+(.+)$', ing)
+                if match:
+                    amount_str, unit, name = match.groups()
+                    # Convert fractions to decimals
+                    if '/' in amount_str:
+                        parts = amount_str.strip().split()
+                        if len(parts) == 2:  # "1 1/2"
+                            whole = float(parts[0])
+                            frac_parts = parts[1].split('/')
+                            amount = whole + float(frac_parts[0]) / float(frac_parts[1])
+                        else:  # "1/2"
+                            frac_parts = amount_str.strip().split('/')
+                            amount = float(frac_parts[0]) / float(frac_parts[1])
+                    else:
+                        amount = float(amount_str.strip())
+                    
+                    structured_ingredients.append({
+                        "original": ing,
+                        "amount": amount,
+                        "unit": unit.lower(),
+                        "name": name
+                    })
+                else:
+                    # Fallback for ingredients without clear quantity/unit
+                    structured_ingredients.append({
+                        "original": ing,
+                        "amount": 1,
+                        "unit": "unit",
+                        "name": ing
+                    })
+            else:
+                structured_ingredients.append(ing)
+        
+        # Update recipe with structured ingredients
+        recipe["ingredients"] = structured_ingredients
+        recipe_ingredients = structured_ingredients
+        
+        # Convert instructions to Spoonacular analyzedInstructions format
+        raw_instructions = recipe.get("instructions", [])
+        if isinstance(raw_instructions, list) and len(raw_instructions) > 1:
+            # Already properly formatted as array
+            analyzed_instructions = [{
+                "name": "",
+                "steps": [
+                    {
+                        "number": i + 1,
+                        "step": str(inst).strip(),
+                        "ingredients": [],
+                        "equipment": [],
+                        "length": {"number": 5, "unit": "minutes"}  # Default timing
+                    }
+                    for i, inst in enumerate(raw_instructions)
+                ]
+            }]
+            # Also keep simple format for backward compatibility
+            formatted_instructions = [str(inst).strip() for inst in raw_instructions]
+        else:
+            # Single instruction string or single-item list - parse it
+            instruction_text = str(raw_instructions[0] if isinstance(raw_instructions, list) else raw_instructions)
+            
+            # Try to intelligently split the instruction text
+            # First, fix missing spaces after periods
+            instruction_text = instruction_text.replace('.', '. ').replace('.  ', '. ')
+            
+            # Split by common patterns
+            split_instructions = []
+            
+            # Try splitting by sentence endings followed by capital letters
+            parts = instruction_text.split('. ')
+            for part in parts:
+                part = part.strip()
+                if part:
+                    # Further split if we see patterns like "mix well.Divide"
+                    sub_parts = []
+                    current = ""
+                    for i, char in enumerate(part):
+                        if i > 0 and char.isupper() and part[i-1].islower() and part[i-1] != ' ':
+                            # Found lowercase to uppercase transition
+                            if current:
+                                sub_parts.append(current)
+                            current = char
+                        else:
+                            current += char
+                    if current:
+                        sub_parts.append(current)
+                    
+                    split_instructions.extend(sub_parts)
+            
+            # Clean up and format instructions
+            formatted_instructions = []
+            for inst in split_instructions:
+                inst = inst.strip()
+                if inst and len(inst) > 5:  # Filter out very short fragments
+                    # Ensure proper capitalization
+                    inst = inst[0].upper() + inst[1:] if inst else inst
+                    # Add period if missing
+                    if inst and not inst[-1] in '.!?':
+                        inst += '.'
+                    formatted_instructions.append(inst)
+            
+            # If we still have no valid instructions or only one very long one, try more aggressive splitting
+            if len(formatted_instructions) <= 1 and instruction_text and len(instruction_text) > 150:
+                # Split on common cooking verbs
+                import re
+                pattern = r'(?=[A-Z](?:add|Add|Mix|mix|Place|place|Take|take|Divide|divide|Flatten|flatten|Cook|cook|Heat|heat|Stir|stir|Pour|pour|Bake|bake|Fry|fry|Boil|boil))'
+                parts = re.split(pattern, instruction_text)
+                formatted_instructions = []
+                for part in parts:
+                    part = part.strip()
+                    if part and len(part) > 5:
+                        if not part[-1] in '.!?':
+                            part += '.'
+                        formatted_instructions.append(part)
+            
+            # Create analyzedInstructions format
+            analyzed_instructions = [{
+                "name": "",
+                "steps": [
+                    {
+                        "number": i + 1,
+                        "step": inst,
+                        "ingredients": [],
+                        "equipment": [],
+                        "length": {"number": 5, "unit": "minutes"}
+                    }
+                    for i, inst in enumerate(formatted_instructions)
+                ]
+            }]
+        
+        # Generate realistic nutrition if not provided by OpenAI
+        nutrition = recipe.get("nutrition", {})
+        if not nutrition or nutrition.get("calories", 0) == 0:
+            # Estimate calories based on recipe type and servings
+            servings = recipe.get("servings", 4)
+            estimated_calories_per_serving = 350  # Average meal calories
+            nutrition = {
+                "calories": estimated_calories_per_serving * servings,
+                "protein": 25,  # Average protein per serving
+                "fat": 15,
+                "carbs": 40  # Frontend expects "carbs" not "carbohydrates"
+            }
+        else:
+            # Ensure we have carbs field for frontend compatibility
+            if "carbohydrates" in nutrition and "carbs" not in nutrition:
+                nutrition["carbs"] = nutrition["carbohydrates"]
+        
+        return {
+            "id": recipe_id,
+            "name": recipe.get("name", "OpenAI Generated Recipe"),
+            "title": recipe.get("name", "OpenAI Generated Recipe"),
+            "ingredients": structured_ingredients,  # Use structured ingredients
+            "extendedIngredients": structured_ingredients,  # Also provide in Spoonacular format
+            "instructions": formatted_instructions,
+            "analyzedInstructions": analyzed_instructions,  # Add Spoonacular format
+            "nutrition": nutrition,
+            "time": recipe.get("time", 30),
+            "servings": recipe.get("servings", 4),
+            "cuisine_type": recipe.get("cuisine_type", "international"),
+            "dietary_tags": recipe.get("dietary_tags", []),
+            "difficulty": recipe.get("difficulty", "medium"),
+            "available_ingredients": available_ingredients,
+            "missing_ingredients": missing_ingredients,
+            "missing_count": len(missing_ingredients),
+            "available_count": available_count,
+            "match_score": match_score,
+            "source": "openai",
+            "can_make": match_score >= 0.7,  # Can make if 70% or more ingredients are available
+            "image": self._get_recipe_image_url(recipe.get("name", "food")),
+            "pantry_item_matches": pantry_item_matches,  # Add pantry item matches for recipe completion
+        }
+
+    async def _get_spoonacular_recipes(
+        self,
+        pantry_items: List[Dict[str, Any]],
+        message: str,
+        user_preferences: Dict[str, Any],
+        num_recipes: int,
+    ) -> List[Dict[str, Any]]:
+        """Get limited Spoonacular recipes as fallback"""
+        try:
+            ingredient_names = [item.get("item_name", "") for item in pantry_items]
+            if not ingredient_names:
+                return []
+
+            # Use existing Spoonacular service
+            recipes = await self.spoonacular_service.search_recipes_by_ingredients(
+                ingredients=ingredient_names[:10],  # Limit ingredients
+                number=num_recipes,
+                ranking=1,
+                ignore_pantry=True,
+            )
+
+            # Add source metadata
+            for recipe in recipes:
+                recipe["source"] = "spoonacular"
+
+            return recipes[:num_recipes]
+
+        except Exception as e:
+            logger.error(f"Error fetching Spoonacular recipes: {e}")
+            return []
+
+    def _combine_recipes_openai_priority(
+        self, openai_recipes: List[Dict[str, Any]], spoonacular_recipes: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Combine recipes with OpenAI taking priority"""
+        combined = []
+
+        # Add OpenAI recipes first (highest priority)
+        combined.extend(openai_recipes)
+
+        # Add Spoonacular recipes as fallback
+        combined.extend(spoonacular_recipes)
+
+        return combined
+
+    async def _generate_openai_response(
+        self,
+        message: str,
+        recipes: List[Dict[str, Any]],
+        pantry_analysis: Dict[str, Any],
+        user_preferences: Dict[str, Any],
+    ) -> str:
+        """Generate intelligent response using OpenAI"""
+        if not self.openai_client:
+            return self._generate_fallback_response(message, recipes, pantry_analysis)
+
+        try:
+            # Create context for response generation
+            recipe_names = [recipe.get("name", "Unknown") for recipe in recipes[:5]]
+            expiring_soon = pantry_analysis.get("expiring_soon", [])
+
+            prompt = f"""User asked: "{message}"
+
+I've found {len(recipes)} recipes for them: {", ".join(recipe_names)}
+
+Pantry context:
+- Items expiring soon: {", ".join([item.get("item_name", "") for item in expiring_soon[:3]])}
+- Total recipes found: {len(recipes)}
+- Primary source: OpenAI-generated recipes
+
+Write a friendly, helpful response (2-3 sentences) that:
+1. Acknowledges their request
+2. Highlights the best recipes found
+3. Mentions any expiring ingredients if relevant
+4. Encourages them to try cooking
+
+Keep it conversational and enthusiastic about cooking!"""
+
+            response = self.openai_client.chat.completions.create(
+                model="gpt-3.5-turbo",  # Using faster model for quicker responses
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are a friendly cooking assistant. Give brief, enthusiastic responses about recipes.",
+                    },
+                    {"role": "user", "content": prompt},
+                ],
+                temperature=0.8,
+                max_completion_tokens=200,
+            )
+
+            return response.choices[0].message.content.strip()
+
+        except Exception as e:
+            logger.error(f"Error generating OpenAI response: {e}")
+            return self._generate_fallback_response(message, recipes, pantry_analysis)
+
+    def _generate_fallback_response(
+        self, message: str, recipes: List[Dict[str, Any]], pantry_analysis: Dict[str, Any]
+    ) -> str:
+        """Generate fallback response when OpenAI is not available"""
+        if not recipes:
+            return "I couldn't find any recipes matching your request right now. Please check your pantry items and try a different search."
+
+        recipe_count = len(recipes)
+        expiring_items = pantry_analysis.get("expiring_soon", [])
+
+        response = (
+            f"I found {recipe_count} great recipe{'s' if recipe_count != 1 else ''} for you! "
+        )
+
+        if expiring_items:
+            expiring_names = [item.get("item_name", "") for item in expiring_items[:2]]
+            response += f"I also noticed you have {', '.join(expiring_names)} expiring soon - perfect timing to use them up! "
+
+        response += "Let me know which recipe catches your eye and I can help you get cooking!"
+
+        return response
+
+    async def _get_mock_response(self, message: str) -> Dict[str, Any]:
+        """Return mock response when mock mode is enabled"""
+        mock_recipes = get_mock_recipes_for_chat()
+
+        return {
+            "response": f"🧪 Mock mode: I found some test recipes for '{message}'. These are sample recipes from our test dataset.",
+            "recipes": mock_recipes[:10] if mock_recipes else [],  # Increased to match main flow
+            "pantry_items": [],
+            "user_preferences": {},
+            "show_preference_choice": False,
+            "source": "mock",
+        }

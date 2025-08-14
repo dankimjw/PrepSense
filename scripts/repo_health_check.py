@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-# # PrepSense - Smart Pantry Management System
-# # Copyright (c) 2025 Daniel Kim. All rights reserved.
-# #
-# # This software is proprietary and confidential. Unauthorized copying
-# # of this file, via any medium, is strictly prohibited.
 
 """PrepSense Repository Health Check - Validates repository state and structure"""
 

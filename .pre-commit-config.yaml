@@ -151,18 +151,6 @@ repos:
       - id: commitizen
         stages: [commit-msg]
 
-  # License and copyright checks
-  - repo: https://github.com/Lucas-C/pre-commit-hooks
-    rev: v1.5.5
-    hooks:
-      - id: insert-license
-        files: '\.(py|js|jsx|ts|tsx)$'
-        args:
-          - --license-filepath
-          - LICENSE_HEADER
-          - --comment-style
-          - "#"
-        exclude: "^(tests/|node_modules/|ios-app/node_modules/)"
 
   # Documentation generation
   - repo: local
