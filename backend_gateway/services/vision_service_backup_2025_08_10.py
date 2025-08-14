@@ -1,3 +1,9 @@
+# # PrepSense - Smart Pantry Management System
+# # Copyright (c) 2025 Daniel Kim. All rights reserved.
+# #
+# # This software is proprietary and confidential. Unauthorized copying
+# # of this file, via any medium, is strictly prohibited.
+
 """Service wrapper around OpenAI's vision API."""
 
 # File: PrepSense/backend_gateway/services/vision_service.py
@@ -146,7 +152,7 @@ class VisionService:
                 print("   ⚠️ Warning: OpenAI returned None content")
                 print(f"   Full response: {response}")
                 raise RuntimeError("OpenAI API returned empty response content")
-            
+
             vision_result = message_content.strip()
             print("   Vision Result Preview:")
             print(f"   {vision_result[:300]}...")

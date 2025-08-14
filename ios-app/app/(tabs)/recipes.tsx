@@ -1,3 +1,9 @@
+# # PrepSense - Smart Pantry Management System
+# # Copyright (c) 2025 Daniel Kim. All rights reserved.
+# #
+# # This software is proprietary and confidential. Unauthorized copying
+# # of this file, via any medium, is strictly prohibited.
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
@@ -83,7 +89,7 @@ export default function RecipesScreen() {
   const [scrollOffset, setScrollOffset] = useState(0);
   const filterHeight = useRef(new Animated.Value(1)).current;
   const [pantryIngredients, setPantryIngredients] = useState<string[]>([]);
-  
+
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const { items } = useItems();
@@ -130,8 +136,8 @@ export default function RecipesScreen() {
   ];
 
   const toggleFilter = (filterId: string) => {
-    setSelectedFilters(prev => 
-      prev.includes(filterId) 
+    setSelectedFilters(prev =>
+      prev.includes(filterId)
         ? prev.filter(f => f !== filterId)
         : [...prev, filterId]
     );
@@ -141,7 +147,7 @@ export default function RecipesScreen() {
   const recalculateIngredientCounts = (recipe: Recipe, pantryItems: string[]) => {
     // Convert pantry items to the expected format
     const pantryItemObjects = pantryItems.map(item => ({ product_name: item }));
-    
+
     // Combine all ingredients into a single array with the expected format
     const allIngredients = [
       ...(recipe.usedIngredients || []),
@@ -154,15 +160,15 @@ export default function RecipesScreen() {
 
     // Use the standardized ingredient matching utility
     const result = calculateIngredientAvailability(allIngredients, pantryItemObjects);
-    
+
     // Validate that counts add up correctly
     if (!validateIngredientCounts(result)) {
       console.warn('Ingredient count validation failed in recipes list:', result);
     }
 
-    return { 
-      usedCount: result.availableCount, 
-      missedCount: result.missingCount 
+    return {
+      usedCount: result.availableCount,
+      missedCount: result.missingCount
     };
   };
 
@@ -191,21 +197,21 @@ export default function RecipesScreen() {
         }
         throw new Error('Failed to fetch recipes');
       }
-      
+
       const data = await response.json();
-      
+
       // Store pantry ingredients for count calculation
       if (data.pantry_ingredients) {
         const pantryNames = data.pantry_ingredients.map((item: any) => item.name);
         setPantryIngredients(pantryNames);
       }
-      
+
       // Filter to only include Spoonacular recipes (safety check)
       const spoonacularRecipes = (data.recipes || []).filter((recipe: Recipe) => {
         // Only include recipes that have a valid Spoonacular ID
         return recipe.id && typeof recipe.id === 'number' && recipe.id > 0;
       });
-      
+
       // Update recipes with recalculated counts
       const recipesWithCorrectCounts = spoonacularRecipes
         .filter((recipe: Recipe) => isValidRecipe(recipe))
@@ -221,7 +227,7 @@ export default function RecipesScreen() {
           }
           return recipe;
         });
-      
+
       setRecipes(recipesWithCorrectCounts);
     } catch (error) {
       console.error('Error fetching recipes:', error);
@@ -264,15 +270,15 @@ export default function RecipesScreen() {
         }
         throw new Error('Failed to search recipes');
       }
-      
+
       const data = await response.json();
-      
+
       // Filter to only include valid Spoonacular recipes
       const spoonacularRecipes = (data.results || []).filter((recipe: Recipe) => {
         // Only include recipes that have a valid Spoonacular ID and meet quality standards
         return recipe.id && typeof recipe.id === 'number' && recipe.id > 0 && isValidRecipe(recipe);
       });
-      
+
       setRecipes(spoonacularRecipes);
     } catch (error) {
       console.error('Error searching recipes:', error);
@@ -299,15 +305,15 @@ export default function RecipesScreen() {
         }
         throw new Error('Failed to fetch random recipes');
       }
-      
+
       const data = await response.json();
-      
+
       // Filter to only include valid Spoonacular recipes
       const spoonacularRecipes = (data.recipes || []).filter((recipe: Recipe) => {
         // Only include recipes that have a valid Spoonacular ID and meet quality standards
         return recipe.id && typeof recipe.id === 'number' && recipe.id > 0 && isValidRecipe(recipe);
       });
-      
+
       setRecipes(spoonacularRecipes);
     } catch (error) {
       console.error('Error fetching random recipes:', error);
@@ -333,14 +339,14 @@ export default function RecipesScreen() {
       } else if (myRecipesTab === 'cooked') {
         filterParam = '?status=cooked';
       }
-      
+
       // Add additional filters
       if (myRecipesFilter === 'favorites') {
         filterParam += filterParam ? '&is_favorite=true' : '?is_favorite=true';
       } else if (myRecipesFilter !== 'all') {
         filterParam += filterParam ? `&rating=${myRecipesFilter}` : `?rating=${myRecipesFilter}`;
       }
-      
+
       const response = await fetch(`${Config.API_BASE_URL}/user-recipes${filterParam}`, {
         headers: {
           // 'Authorization': `Bearer ${token}`,
@@ -351,7 +357,7 @@ export default function RecipesScreen() {
       if (!response.ok) {
         throw new Error('Failed to fetch saved recipes');
       }
-      
+
       const data = await response.json();
       console.log('Fetched saved recipes with filter:', myRecipesFilter, 'API returned:', data?.length || 0, 'recipes');
       // Mock recipes removed to prevent 404 errors with invalid Spoonacular IDs
@@ -544,14 +550,14 @@ export default function RecipesScreen() {
           recipe.status = (recipe.rating === 'thumbs_up' || recipe.rating === 'thumbs_down') ? 'cooked' : 'saved';
         }
       });
-      
+
       // Filter mock recipes based on current tab and filter
       let filteredMockRecipes = mockRecipes;
       */
-      
+
       // Use empty array instead of mock recipes
       let filteredMockRecipes: SavedRecipe[] = [];
-      
+
       // Mock recipes filtering commented out - no mock recipes to filter
       /*
       // First filter by status (tab)
@@ -560,7 +566,7 @@ export default function RecipesScreen() {
       } else if (myRecipesTab === 'cooked') {
         filteredMockRecipes = mockRecipes.filter(recipe => recipe.status === 'cooked');
       }
-      
+
       // Then apply additional filters
       if (myRecipesFilter === 'favorites') {
         filteredMockRecipes = filteredMockRecipes.filter(recipe => recipe.is_favorite);
@@ -569,10 +575,10 @@ export default function RecipesScreen() {
       } else if (myRecipesFilter === 'thumbs_down') {
         filteredMockRecipes = filteredMockRecipes.filter(recipe => recipe.rating === 'thumbs_down');
       }
-      
+
       console.log('Mock recipes filtered:', filteredMockRecipes.length, 'out of', mockRecipes.length, 'for filter:', myRecipesFilter);
       */
-      
+
       // Combine real data with filtered mock data
       const combinedData = [...(data || []), ...filteredMockRecipes];
       setSavedRecipes(combinedData);
@@ -616,7 +622,7 @@ export default function RecipesScreen() {
         }
         throw new Error('Failed to save recipe');
       }
-      
+
       Alert.alert('Success', 'Recipe saved to My Recipes ▸ Saved');
       // Refresh my recipes if on that tab
       if (activeTab === 'my-recipes') {
@@ -648,7 +654,7 @@ export default function RecipesScreen() {
       if (!response.ok) {
         throw new Error('Failed to update rating');
       }
-      
+
       // Refresh the list
       await fetchMyRecipes();
     } catch (error) {
@@ -677,14 +683,14 @@ export default function RecipesScreen() {
       if (!response.ok) {
         throw new Error('Failed to update favorite status');
       }
-      
+
       // Update local state
-      setSavedRecipes(prevRecipes => 
-        prevRecipes.map(recipe => 
+      setSavedRecipes(prevRecipes =>
+        prevRecipes.map(recipe =>
           recipe.id === recipeId ? { ...recipe, is_favorite: isFavorite } : recipe
         )
       );
-      
+
       // Show feedback
       if (isFavorite) {
         Alert.alert('Added to Favorites', 'This recipe will be used to improve your recommendations.');
@@ -723,7 +729,7 @@ export default function RecipesScreen() {
               if (!response.ok) {
                 throw new Error('Failed to delete recipe');
               }
-              
+
               Alert.alert('Success', 'Recipe removed from your collection.');
               await fetchMyRecipes();
             },
@@ -739,40 +745,40 @@ export default function RecipesScreen() {
   // Filter recipes based on search query
   const getFilteredRecipes = () => {
     let filteredRecipes = [...recipes];
-    
+
     if (searchQuery && activeTab === 'pantry') {
-      filteredRecipes = recipes.filter(recipe => 
+      filteredRecipes = recipes.filter(recipe =>
         recipe.title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // Sort recipes
     if (sortBy === 'name') {
       filteredRecipes.sort((a, b) => a.title.localeCompare(b.title));
     } else if (sortBy === 'missing') {
-      filteredRecipes.sort((a, b) => 
+      filteredRecipes.sort((a, b) =>
         (a.missedIngredientCount || 0) - (b.missedIngredientCount || 0)
       );
     }
-    
+
     return filteredRecipes;
   };
 
   // Filter saved recipes based on search query
   const getFilteredSavedRecipes = () => {
     let filteredRecipes = [...savedRecipes];
-    
+
     if (searchQuery) {
-      filteredRecipes = savedRecipes.filter(recipe => 
+      filteredRecipes = savedRecipes.filter(recipe =>
         recipe.recipe_title.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-    
+
     // Sort recipes
     if (sortBy === 'name') {
       filteredRecipes.sort((a, b) => a.recipe_title.localeCompare(b.recipe_title));
     } else if (sortBy === 'date') {
-      filteredRecipes.sort((a, b) => 
+      filteredRecipes.sort((a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
     } else if (sortBy === 'rating') {
@@ -781,7 +787,7 @@ export default function RecipesScreen() {
         return ratingOrder[b.rating] - ratingOrder[a.rating];
       });
     }
-    
+
     return filteredRecipes;
   };
 
@@ -857,7 +863,7 @@ export default function RecipesScreen() {
   const handleScroll = (event: any) => {
     const currentOffset = event.nativeEvent.contentOffset.y;
     const scrollDiff = currentOffset - scrollOffset;
-    
+
     // Collapse filters when scrolling down after 30px with velocity check
     if (activeTab === 'discover') {
       if (currentOffset > 30 && scrollDiff > 2 && !filtersCollapsed) {
@@ -880,7 +886,7 @@ export default function RecipesScreen() {
         }).start();
       }
     }
-    
+
     setScrollOffset(currentOffset);
   };
 
@@ -902,26 +908,26 @@ export default function RecipesScreen() {
         </Text>
         <View testID={`recipe-stats-${recipe.id}`} style={styles.recipeStats}>
           <View testID={`have-badge-${recipe.id}`} style={styles.stat}>
-            <MaterialCommunityIcons 
-              name="check-circle" 
-              size={16} 
-              color="#4CAF50" 
+            <MaterialCommunityIcons
+              name="check-circle"
+              size={16}
+              color="#4CAF50"
               accessibilityLabel="Ingredients available"
             />
             <Text testID={`have-count-${recipe.id}`} style={styles.statText}>{recipe.usedIngredientCount || 0} have</Text>
           </View>
           <View testID={`missing-badge-${recipe.id}`} style={styles.stat}>
-            <MaterialCommunityIcons 
-              name="close-circle" 
-              size={16} 
-              color="#F44336" 
+            <MaterialCommunityIcons
+              name="close-circle"
+              size={16}
+              color="#F44336"
               accessibilityLabel="Ingredients missing"
             />
             <Text testID={`missing-count-${recipe.id}`} style={styles.statText}>{recipe.missedIngredientCount || 0} missing</Text>
           </View>
         </View>
       </View>
-      <TouchableOpacity 
+      <TouchableOpacity
         testID={`bookmark-button-${recipe.id}`}
         style={styles.saveButton}
         onPress={() => saveRecipe(recipe)}
@@ -951,39 +957,39 @@ export default function RecipesScreen() {
           {/* Only show rating buttons in Cooked tab */}
           {myRecipesTab === 'cooked' && (
             <View testID={`rating-buttons-${savedRecipe.id}`} style={styles.ratingButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 testID={`thumbs-up-button-${savedRecipe.id}`}
                 style={[
                   styles.ratingButton,
                   savedRecipe.rating === 'thumbs_up' && styles.ratingButtonActive
                 ]}
                 onPress={() => updateRecipeRating(
-                  savedRecipe.id, 
+                  savedRecipe.id,
                   savedRecipe.rating === 'thumbs_up' ? 'neutral' : 'thumbs_up'
                 )}
               >
-                <Ionicons 
-                  name="thumbs-up" 
-                  size={16} 
-                  color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'} 
+                <Ionicons
+                  name="thumbs-up"
+                  size={16}
+                  color={savedRecipe.rating === 'thumbs_up' ? '#4CAF50' : '#fff'}
                   accessibilityLabel="Rate recipe positively"
                 />
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 testID={`thumbs-down-button-${savedRecipe.id}`}
                 style={[
                   styles.ratingButton,
                   savedRecipe.rating === 'thumbs_down' && styles.ratingButtonActive
                 ]}
                 onPress={() => updateRecipeRating(
-                  savedRecipe.id, 
+                  savedRecipe.id,
                   savedRecipe.rating === 'thumbs_down' ? 'neutral' : 'thumbs_down'
                 )}
               >
-                <Ionicons 
-                  name="thumbs-down" 
-                  size={16} 
-                  color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'} 
+                <Ionicons
+                  name="thumbs-down"
+                  size={16}
+                  color={savedRecipe.rating === 'thumbs_down' ? '#F44336' : '#fff'}
                   accessibilityLabel="Rate recipe negatively"
                 />
               </TouchableOpacity>
@@ -991,19 +997,19 @@ export default function RecipesScreen() {
           )}
         </View>
         <View testID={`card-actions-${savedRecipe.id}`} style={styles.cardActions}>
-          <TouchableOpacity 
+          <TouchableOpacity
             testID={`favorite-button-${savedRecipe.id}`}
             style={[styles.favoriteButton, savedRecipe.is_favorite && styles.favoriteButtonActive]}
             onPress={() => toggleFavorite(savedRecipe.id, !savedRecipe.is_favorite)}
           >
-            <Ionicons 
-              name={savedRecipe.is_favorite ? "heart" : "heart-outline"} 
-              size={16} 
-              color={savedRecipe.is_favorite ? "#FF4444" : "#fff"} 
+            <Ionicons
+              name={savedRecipe.is_favorite ? "heart" : "heart-outline"}
+              size={16}
+              color={savedRecipe.is_favorite ? "#FF4444" : "#fff"}
               accessibilityLabel={savedRecipe.is_favorite ? "Remove from favorites" : "Add to favorites"}
             />
           </TouchableOpacity>
-          <TouchableOpacity 
+          <TouchableOpacity
             testID={`delete-button-${savedRecipe.id}`}
             style={styles.deleteButton}
             onPress={() => deleteRecipe(savedRecipe.id)}
@@ -1129,11 +1135,11 @@ export default function RecipesScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          
+
           {/* Only show rating filters in Cooked tab */}
           {myRecipesTab === 'cooked' && (
             <View style={styles.filterContainer}>
-              <ScrollView 
+              <ScrollView
                 horizontal
                 style={styles.filterScrollView}
                 contentContainerStyle={styles.filterContent}
@@ -1192,7 +1198,7 @@ export default function RecipesScreen() {
           )}
         </View>
       ) : activeTab === 'discover' ? (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.discoverFiltersContainer,
             {
@@ -1203,7 +1209,7 @@ export default function RecipesScreen() {
             }
           ]}
         >
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.collapsedFilterBar}
             onPress={() => {
               if (filtersCollapsed) {
@@ -1248,7 +1254,7 @@ export default function RecipesScreen() {
           >
           {/* Dietary Filters Row */}
           <View style={styles.filterRow}>
-            <ScrollView 
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterRowContent}
@@ -1277,7 +1283,7 @@ export default function RecipesScreen() {
 
           {/* Cuisine Filters Row */}
           <View style={styles.filterRow}>
-            <ScrollView 
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterRowContent}
@@ -1306,7 +1312,7 @@ export default function RecipesScreen() {
 
           {/* Meal Type Filters Row */}
           <View style={styles.filterRow}>
-            <ScrollView 
+            <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.filterRowContent}
@@ -1336,7 +1342,7 @@ export default function RecipesScreen() {
         </Animated.View>
       ) : activeTab === 'pantry' ? (
         <View style={styles.filterContainer}>
-          <ScrollView 
+          <ScrollView
             horizontal
             style={styles.filterScrollView}
             contentContainerStyle={styles.filterContent}
@@ -1394,7 +1400,7 @@ export default function RecipesScreen() {
               <View testID="empty-my-recipes" style={styles.emptyContainer}>
                 <MaterialCommunityIcons name="bookmark-off" size={64} color="#ccc" accessibilityLabel="No saved recipes" />
                 <Text testID="empty-my-recipes-text" style={styles.emptyText}>
-                  {searchQuery 
+                  {searchQuery
                     ? `No recipes found matching "${searchQuery}"`
                     : myRecipesTab === 'saved'
                     ? 'Bookmarks save recipes you want to try. Tap the bookmark icon on any recipe to add one.'
@@ -1454,10 +1460,10 @@ export default function RecipesScreen() {
                   setShowSortModal(false);
                 }}
               >
-                <MaterialCommunityIcons 
-                  name={option.icon as any} 
-                  size={24} 
-                  color={sortBy === option.value ? '#297A56' : '#666'} 
+                <MaterialCommunityIcons
+                  name={option.icon as any}
+                  size={24}
+                  color={sortBy === option.value ? '#297A56' : '#666'}
                   accessibilityLabel={`Sort by ${option.label}`}
                 />
                 <Text style={[
