@@ -3,7 +3,9 @@ Personalized Suggestions Service for generating user-specific chat suggestions
 based on dietary preferences, allergens, and pantry contents.
 """
 
+import json
 import logging
+import random
 from datetime import datetime
 from typing import Any
 
@@ -19,6 +21,9 @@ class PersonalizedSuggestionsService:
 
     def __init__(self):
         self.db_service = PostgresService()
+        self.exploration_rate = 0.2
+        self.exploration_min_candidates = 3
+        self._outcome_actions = {"shown", "clicked", "saved", "cooked", "dismissed"}
 
         # Base suggestion templates categorized by type
         self.suggestion_templates = {
@@ -124,7 +129,7 @@ class PersonalizedSuggestionsService:
             ],
         }
 
-    async def get_personalized_suggestions(self, user_id: int, limit: int = 6) -> list[str]:
+    async def get_personalized_suggestions(self, user_id: int, limit: int = 6) -> list[dict[str, Any]]:
         """
         Generate personalized chat suggestions based on user preferences and pantry
 
@@ -133,69 +138,99 @@ class PersonalizedSuggestionsService:
             limit: Maximum number of suggestions to return
 
         Returns:
-            List of personalized suggestion strings
+            Ranked personalized suggestions with scoring metadata
         """
         try:
+            await self._ensure_suggestion_outcomes_table()
+
             # Fetch user preferences
             user_preferences = await self._fetch_user_preferences(user_id)
 
             # Check for expiring items
             expiring_items = await self._check_expiring_items(user_id)
+            interaction_signals = await self._fetch_interaction_signals(user_id)
+            outcome_priors = await self._fetch_suggestion_outcome_priors(user_id)
 
-            # Generate suggestions based on user profile
+            # Generate suggestion candidates (templates remain candidate source)
+            candidates = self._build_template_candidates(
+                user_preferences=user_preferences,
+                expiring_items=expiring_items,
+            )
+            if not candidates:
+                return self._get_fallback_suggestions(limit)
+
+            ranked_candidates = self._rank_candidates(
+                candidates=candidates,
+                interaction_signals=interaction_signals,
+                outcome_priors=outcome_priors,
+                expiring_items=expiring_items,
+            )
+            selected_candidates = self._select_with_exploration(ranked_candidates, limit)
+            await self._persist_served_suggestions(user_id, selected_candidates)
+
             suggestions = []
-
-            # Priority 1: Expiring items (highest priority for food safety)
-            if expiring_items:
-                suggestions.extend(self.suggestion_templates["expiring_items"][:2])
-                logger.info(f"Added expiring items suggestions for user {user_id}")
-
-            # Priority 2: Allergen-safe suggestions (critical for safety)
-            allergen_suggestions = self._get_allergen_safe_suggestions(user_preferences)
-            if allergen_suggestions:
-                suggestions.extend(allergen_suggestions[:2])
-                logger.info(f"Added allergen-safe suggestions for user {user_id}")
-
-            # Priority 3: Dietary preference suggestions
-            dietary_suggestions = self._get_dietary_suggestions(user_preferences)
-            if dietary_suggestions:
-                suggestions.extend(dietary_suggestions[:2])
-                logger.info(f"Added dietary preference suggestions for user {user_id}")
-
-            # Priority 4: Cuisine preference suggestions
-            cuisine_suggestions = self._get_cuisine_suggestions(user_preferences)
-            if cuisine_suggestions:
-                suggestions.extend(cuisine_suggestions[:1])
-                logger.info(f"Added cuisine preference suggestions for user {user_id}")
-
-            # Fill remaining slots with general helpful suggestions
-            remaining_slots = limit - len(suggestions)
-            if remaining_slots > 0:
-                general_suggestions = [
-                    *self.suggestion_templates["pantry_based"][:1],
-                    *self.suggestion_templates["quick_meals"][:1],
-                    *self.suggestion_templates["healthy"][:1],
-                ]
-                suggestions.extend(general_suggestions[:remaining_slots])
-                logger.info(f"Added general suggestions for user {user_id}")
-
-            # Ensure we don't exceed the limit and remove duplicates
-            unique_suggestions = []
-            seen = set()
-            for suggestion in suggestions:
-                if suggestion not in seen and len(unique_suggestions) < limit:
-                    unique_suggestions.append(suggestion)
-                    seen.add(suggestion)
+            for candidate in selected_candidates:
+                expected_utility = max(min(candidate["score"], 1.0), 0.0)
+                suggestions.append(
+                    {
+                        "suggestion": candidate["suggestion"],
+                        "reason_code": candidate["reason_code"],
+                        "confidence": round(expected_utility, 3),
+                        "source_signal": candidate["source_signal"],
+                        "expected_utility": round(expected_utility, 3),
+                        "exploration_selected": candidate.get("exploration_selected", False),
+                    }
+                )
 
             logger.info(
-                f"Generated {len(unique_suggestions)} personalized suggestions for user {user_id}"
+                f"Generated {len(suggestions)} ranked personalized suggestions for user {user_id}"
             )
-            return unique_suggestions
+            return suggestions
 
         except Exception as e:
             logger.error(f"Error generating personalized suggestions for user {user_id}: {str(e)}")
             # Fallback to generic suggestions
             return self._get_fallback_suggestions(limit)
+
+    async def track_suggestion_outcome(
+        self,
+        user_id: int,
+        suggestion: str,
+        action: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> bool:
+        """Persist suggestion outcome events for learning and offline evaluation."""
+        normalized_action = action.lower()
+        if normalized_action not in self._outcome_actions:
+            logger.warning(
+                f"Rejected unknown suggestion action '{action}' for user {user_id}, suggestion '{suggestion}'"
+            )
+            return False
+
+        try:
+            await self._ensure_suggestion_outcomes_table()
+            query = text(
+                """
+                INSERT INTO personalized_suggestion_outcomes
+                (user_id, suggestion, action, metadata, created_at)
+                VALUES (:user_id, :suggestion, :action, CAST(:metadata AS JSONB), NOW())
+                """
+            )
+            with self.db_service.get_session() as session:
+                session.execute(
+                    query,
+                    {
+                        "user_id": user_id,
+                        "suggestion": suggestion,
+                        "action": normalized_action,
+                        "metadata": json.dumps(metadata or {}),
+                    },
+                )
+                session.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error persisting suggestion outcome: {str(e)}")
+            return False
 
     async def _fetch_user_preferences(self, user_id: int) -> dict[str, Any]:
         """Fetch user dietary preferences and allergens"""
@@ -329,7 +364,7 @@ class PersonalizedSuggestionsService:
 
         return suggestions
 
-    def _get_fallback_suggestions(self, limit: int) -> list[str]:
+    def _get_fallback_suggestions(self, limit: int) -> list[dict[str, Any]]:
         """Fallback suggestions when personalization fails"""
         fallback = [
             "What can I make for dinner?",
@@ -339,7 +374,305 @@ class PersonalizedSuggestionsService:
             "What should I cook tonight?",
             "Help me use expiring ingredients",
         ]
-        return fallback[:limit]
+        return [
+            {
+                "suggestion": suggestion,
+                "reason_code": "generic_fallback",
+                "confidence": 0.35,
+                "source_signal": "fallback_template",
+                "expected_utility": 0.35,
+                "exploration_selected": False,
+            }
+            for suggestion in fallback[:limit]
+        ]
+
+    def _build_template_candidates(
+        self,
+        user_preferences: dict[str, Any],
+        expiring_items: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Build candidate suggestions from templates before ranking."""
+        candidates: list[dict[str, Any]] = []
+
+        if expiring_items:
+            for suggestion in self.suggestion_templates["expiring_items"]:
+                candidates.append(
+                    {
+                        "suggestion": suggestion,
+                        "reason_code": "expiring_item_relevance",
+                        "source_signal": "expiring_items",
+                    }
+                )
+
+        for suggestion in self._get_allergen_safe_suggestions(user_preferences):
+            candidates.append(
+                {
+                    "suggestion": suggestion,
+                    "reason_code": "allergen_safety",
+                    "source_signal": "allergen_preference",
+                }
+            )
+        for suggestion in self._get_dietary_suggestions(user_preferences):
+            candidates.append(
+                {
+                    "suggestion": suggestion,
+                    "reason_code": "dietary_affinity",
+                    "source_signal": "dietary_preference",
+                }
+            )
+        for suggestion in self._get_cuisine_suggestions(user_preferences):
+            candidates.append(
+                {
+                    "suggestion": suggestion,
+                    "reason_code": "cuisine_affinity",
+                    "source_signal": "cuisine_preference",
+                }
+            )
+
+        for suggestion in (
+            self.suggestion_templates["pantry_based"]
+            + self.suggestion_templates["quick_meals"]
+            + self.suggestion_templates["healthy"]
+        ):
+            candidates.append(
+                {
+                    "suggestion": suggestion,
+                    "reason_code": "general_helpfulness",
+                    "source_signal": "general_template",
+                }
+            )
+
+        # De-duplicate while preserving first semantic reason/source assignment.
+        deduped = []
+        seen = set()
+        for candidate in candidates:
+            if candidate["suggestion"] in seen:
+                continue
+            deduped.append(candidate)
+            seen.add(candidate["suggestion"])
+        return deduped
+
+    def _rank_candidates(
+        self,
+        candidates: list[dict[str, Any]],
+        interaction_signals: dict[str, Any],
+        outcome_priors: dict[str, Any],
+        expiring_items: list[dict[str, Any]],
+    ) -> list[dict[str, Any]]:
+        """Rank by expected utility from interaction and freshness signals."""
+        cuisine_affinity = interaction_signals.get("cuisine_affinity", {})
+        positive_rate = interaction_signals.get("positive_rate", 0.5)
+        dismiss_rate = interaction_signals.get("dismiss_rate", 0.0)
+
+        for candidate in candidates:
+            text_value = candidate["suggestion"].lower()
+
+            expiring_score = 0.0
+            if expiring_items and any(
+                keyword in text_value for keyword in ["expir", "waste", "pantry", "use"]
+            ):
+                expiring_score = 1.0
+
+            cuisine_score = 0.0
+            for cuisine, affinity in cuisine_affinity.items():
+                if cuisine and cuisine.lower() in text_value:
+                    cuisine_score = max(cuisine_score, affinity)
+
+            outcome_stats = outcome_priors.get(candidate["suggestion"], {})
+            historical_success = outcome_stats.get("success_rate", 0.5)
+            historical_dismiss = outcome_stats.get("dismiss_rate", 0.0)
+
+            expected_utility = (
+                0.30 * expiring_score
+                + 0.25 * cuisine_score
+                + 0.20 * positive_rate
+                + 0.20 * historical_success
+                - 0.15 * dismiss_rate
+                - 0.10 * historical_dismiss
+            )
+            candidate["score"] = expected_utility
+
+        return sorted(candidates, key=lambda row: row["score"], reverse=True)
+
+    def _select_with_exploration(
+        self, ranked_candidates: list[dict[str, Any]], limit: int
+    ) -> list[dict[str, Any]]:
+        """Use epsilon-greedy exploration to avoid repeatedly serving same templates."""
+        if not ranked_candidates:
+            return []
+
+        top_ranked = ranked_candidates[: max(limit, 1)]
+        final_selection = list(top_ranked)
+
+        should_explore = (
+            len(ranked_candidates) >= self.exploration_min_candidates
+            and random.random() < self.exploration_rate
+        )
+        if not should_explore or len(ranked_candidates) <= limit:
+            return final_selection[:limit]
+
+        exploration_pool = ranked_candidates[limit:]
+        if not exploration_pool:
+            return final_selection[:limit]
+
+        replace_index = random.randrange(min(limit, len(final_selection)))
+        exploration_candidate = random.choice(exploration_pool).copy()
+        exploration_candidate["exploration_selected"] = True
+        final_selection[replace_index] = exploration_candidate
+        return final_selection[:limit]
+
+    async def _fetch_interaction_signals(self, user_id: int) -> dict[str, Any]:
+        """Aggregate interaction behavior from user_recipe_interactions."""
+        try:
+            query = text(
+                """
+                SELECT
+                    COUNT(*) FILTER (WHERE action IN ('clicked', 'saved', 'cooked'))::float AS positive_events,
+                    COUNT(*) FILTER (WHERE action = 'dismissed')::float AS dismiss_events,
+                    COUNT(*)::float AS total_events
+                FROM user_recipe_interactions
+                WHERE user_id = :user_id
+                    AND timestamp >= NOW() - INTERVAL '60 days'
+                """
+            )
+
+            cuisine_query = text(
+                """
+                SELECT
+                    LOWER(COALESCE(metadata->>'cuisine', context->>'cuisine')) AS cuisine,
+                    AVG(
+                        CASE
+                            WHEN action IN ('clicked', 'saved', 'cooked') THEN 1.0
+                            WHEN action = 'dismissed' THEN 0.0
+                            ELSE 0.4
+                        END
+                    ) AS affinity
+                FROM user_recipe_interactions
+                WHERE user_id = :user_id
+                    AND timestamp >= NOW() - INTERVAL '90 days'
+                GROUP BY LOWER(COALESCE(metadata->>'cuisine', context->>'cuisine'))
+                HAVING LOWER(COALESCE(metadata->>'cuisine', context->>'cuisine')) IS NOT NULL
+                """
+            )
+
+            with self.db_service.get_session() as session:
+                counts = session.execute(query, {"user_id": user_id}).fetchone()
+                cuisine_rows = session.execute(cuisine_query, {"user_id": user_id}).fetchall()
+
+            total_events = float(counts.total_events or 0.0) if counts else 0.0
+            positive_rate = (
+                float(counts.positive_events or 0.0) / total_events if total_events else 0.5
+            )
+            dismiss_rate = float(counts.dismiss_events or 0.0) / total_events if total_events else 0.0
+            cuisine_affinity = {
+                row.cuisine: max(min(float(row.affinity or 0.0), 1.0), 0.0) for row in cuisine_rows
+            }
+            return {
+                "positive_rate": positive_rate,
+                "dismiss_rate": dismiss_rate,
+                "cuisine_affinity": cuisine_affinity,
+            }
+        except Exception as e:
+            logger.warning(f"Failed to fetch interaction signals for user {user_id}: {str(e)}")
+            return {"positive_rate": 0.5, "dismiss_rate": 0.0, "cuisine_affinity": {}}
+
+    async def _fetch_suggestion_outcome_priors(self, user_id: int) -> dict[str, Any]:
+        """Load prior suggestion-level outcomes for expected utility estimation."""
+        try:
+            query = text(
+                """
+                SELECT
+                    suggestion,
+                    COUNT(*) FILTER (WHERE action = 'shown')::float AS shown_count,
+                    COUNT(*) FILTER (WHERE action IN ('clicked', 'saved', 'cooked'))::float AS success_count,
+                    COUNT(*) FILTER (WHERE action = 'dismissed')::float AS dismiss_count
+                FROM personalized_suggestion_outcomes
+                WHERE user_id = :user_id
+                    AND created_at >= NOW() - INTERVAL '120 days'
+                GROUP BY suggestion
+                """
+            )
+            with self.db_service.get_session() as session:
+                rows = session.execute(query, {"user_id": user_id}).fetchall()
+
+            priors: dict[str, Any] = {}
+            for row in rows:
+                shown_count = float(row.shown_count or 0.0)
+                denominator = shown_count if shown_count > 0 else 1.0
+                priors[row.suggestion] = {
+                    "success_rate": float(row.success_count or 0.0) / denominator,
+                    "dismiss_rate": float(row.dismiss_count or 0.0) / denominator,
+                }
+            return priors
+        except Exception as e:
+            logger.warning(f"Failed to fetch suggestion outcome priors for user {user_id}: {str(e)}")
+            return {}
+
+    async def _persist_served_suggestions(
+        self, user_id: int, suggestions: list[dict[str, Any]]
+    ) -> None:
+        """Persist shown events per suggestion for future learning."""
+        if not suggestions:
+            return
+        try:
+            query = text(
+                """
+                INSERT INTO personalized_suggestion_outcomes
+                (user_id, suggestion, action, metadata, created_at)
+                VALUES (
+                    :user_id,
+                    :suggestion,
+                    'shown',
+                    CAST(:metadata AS JSONB),
+                    NOW()
+                )
+                """
+            )
+            with self.db_service.get_session() as session:
+                for candidate in suggestions:
+                    metadata = {
+                        "reason_code": candidate.get("reason_code"),
+                        "source_signal": candidate.get("source_signal"),
+                        "score": candidate.get("score"),
+                        "exploration_selected": candidate.get("exploration_selected", False),
+                    }
+                    session.execute(
+                        query,
+                        {
+                            "user_id": user_id,
+                            "suggestion": candidate.get("suggestion"),
+                            "metadata": json.dumps(metadata),
+                        },
+                    )
+                session.commit()
+        except Exception as e:
+            logger.warning(f"Failed to persist shown suggestions for user {user_id}: {str(e)}")
+
+    async def _ensure_suggestion_outcomes_table(self) -> None:
+        """Ensure lightweight suggestion outcomes table exists."""
+        try:
+            ddl = text(
+                """
+                CREATE TABLE IF NOT EXISTS personalized_suggestion_outcomes (
+                    id BIGSERIAL PRIMARY KEY,
+                    user_id BIGINT NOT NULL,
+                    suggestion TEXT NOT NULL,
+                    action VARCHAR(32) NOT NULL,
+                    metadata JSONB DEFAULT '{}'::jsonb,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                );
+
+                CREATE INDEX IF NOT EXISTS idx_pso_user_created
+                    ON personalized_suggestion_outcomes(user_id, created_at DESC);
+                CREATE INDEX IF NOT EXISTS idx_pso_user_suggestion
+                    ON personalized_suggestion_outcomes(user_id, suggestion);
+                """
+            )
+            with self.db_service.get_session() as session:
+                session.execute(ddl)
+                session.commit()
+        except Exception as e:
+            logger.warning(f"Unable to create suggestion outcomes table: {str(e)}")
 
     async def get_suggestion_context(self, user_id: int, suggestion: str) -> dict[str, Any]:
         """
