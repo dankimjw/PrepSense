@@ -23,6 +23,7 @@ from backend_gateway.core.config import get_settings
 from backend_gateway.services.ai_recipe_cache_service import AIRecipeCacheService
 from backend_gateway.services.environmental_impact_service import EnvironmentalImpactService
 from backend_gateway.services.food_waste_service import FoodWasteService
+from backend_gateway.services.openai_client import OpenAIClient
 from backend_gateway.services.postgres_service import PostgresService
 from backend_gateway.services.smart_unit_validator import SmartUnitValidator
 
@@ -221,6 +222,26 @@ class FoodCategorizationTool(BaseTool):
     def __init__(self, db_service: PostgresService):
         super().__init__()
         self.db_service = db_service
+        self.low_confidence_threshold = 0.65
+        self.canonical_categories = [
+            "Beverages",
+            "Soups & Broths",
+            "Produce",
+            "Dairy and Egg Products",
+            "Meat",
+            "Pantry",
+            "Frozen",
+            "Bakery",
+            "Condiments",
+            "Spices and Herbs",
+            "Other",
+        ]
+        self.openai_client: Optional[OpenAIClient] = None
+        if settings.OPENAI_API_KEY:
+            try:
+                self.openai_client = OpenAIClient(settings.OPENAI_API_KEY)
+            except Exception as e:
+                logger.warning("FoodCategorizationTool model classifier disabled: %s", str(e))
 
         # Category rules based on keywords and patterns
         self.category_rules = {
@@ -258,26 +279,39 @@ class FoodCategorizationTool(BaseTool):
     def _run(self, food_name: str, current_category: Optional[str] = None) -> dict:
         """Categorize a food item"""
         try:
-            food_lower = food_name.lower()
+            model_result = self._classify_with_model(food_name)
+            model_confidence = model_result.get("confidence", 0.0) if model_result else 0.0
 
-            # Check for specific patterns first
-            if any(word in food_lower for word in ["broth", "stock"]):
-                category = "Soups & Broths"
-                confidence = 0.95
-                reason = "Contains 'broth' or 'stock' - these are liquid soup bases, not meat"
+            if (
+                model_result
+                and model_result.get("suggested_category") in self.canonical_categories
+                and model_confidence >= self.low_confidence_threshold
+            ):
+                best_category = model_result["suggested_category"]
+                confidence = model_confidence
+                reason = model_result.get("reason", "Model classified item successfully.")
+                decision_source = "model"
             else:
-                # Find best matching category
-                best_category = current_category or "Other"
-                best_score = 0
+                rule_result = self._classify_with_rules(food_name, current_category=current_category)
+                best_category = rule_result["suggested_category"]
+                confidence = rule_result["confidence"]
+                reason = rule_result["reason"]
+                decision_source = "rules"
+                if model_result:
+                    reason = (
+                        f"Model confidence {model_confidence:.2f} below threshold "
+                        f"{self.low_confidence_threshold:.2f}. {reason}"
+                    )
 
-                for category, keywords in self.category_rules.items():
-                    score = sum(1 for keyword in keywords if keyword in food_lower)
-                    if score > best_score:
-                        best_score = score
-                        best_category = category
-
-                confidence = min(best_score * 0.3, 0.9) if best_score > 0 else 0.3
-                reason = f"Matched {best_score} keywords for {best_category}"
+            needs_correction = bool(current_category and current_category != best_category)
+            if needs_correction:
+                self._log_manual_correction_event(
+                    food_name=food_name,
+                    old_category=current_category or "Unknown",
+                    new_category=best_category,
+                    decision_source=decision_source,
+                    confidence=confidence,
+                )
 
             return {
                 "food_name": food_name,
@@ -285,11 +319,135 @@ class FoodCategorizationTool(BaseTool):
                 "current_category": current_category,
                 "confidence": confidence,
                 "reason": reason,
-                "needs_correction": current_category and current_category != best_category,
+                "decision_source": decision_source,
+                "needs_correction": needs_correction,
             }
 
         except Exception as e:
             return {"error": str(e)}
+
+    def _classify_with_rules(self, food_name: str, current_category: Optional[str] = None) -> dict:
+        """Fallback keyword-based categorization."""
+        food_lower = food_name.lower()
+
+        if any(word in food_lower for word in ["broth", "stock"]):
+            return {
+                "suggested_category": "Soups & Broths",
+                "confidence": 0.95,
+                "reason": "Contains 'broth' or 'stock' - these are liquid soup bases, not meat",
+            }
+
+        best_category = current_category or "Other"
+        best_score = 0
+        for category, keywords in self.category_rules.items():
+            score = sum(1 for keyword in keywords if keyword in food_lower)
+            if score > best_score:
+                best_score = score
+                best_category = category
+
+        confidence = min(best_score * 0.3, 0.9) if best_score > 0 else 0.3
+        return {
+            "suggested_category": best_category,
+            "confidence": confidence,
+            "reason": f"Matched {best_score} keywords for {best_category}",
+        }
+
+    def _classify_with_model(self, food_name: str) -> Optional[dict]:
+        """Primary structured LLM classification pass."""
+        if not self.openai_client:
+            return None
+
+        schema_hint = {
+            "suggested_category": "One of canonical_categories",
+            "confidence": "float between 0 and 1",
+            "reason": "short explanation",
+        }
+        messages = [
+            {
+                "role": "system",
+                "content": (
+                    "You classify grocery items into one canonical category. "
+                    "Return only valid JSON. No markdown."
+                ),
+            },
+            {
+                "role": "user",
+                "content": (
+                    f"food_name={food_name}\n"
+                    f"canonical_categories={json.dumps(self.canonical_categories)}\n"
+                    f"output_schema={json.dumps(schema_hint)}"
+                ),
+            },
+        ]
+
+        try:
+            response = self.openai_client.chat_completion(
+                messages=messages,
+                model="gpt-4o-mini",
+                temperature=0,
+                max_completion_tokens=180,
+            )
+            parsed = json.loads(response.get("content") or "{}")
+            suggested_category = parsed.get("suggested_category")
+            confidence = float(parsed.get("confidence", 0.0))
+            reason = str(parsed.get("reason", "")).strip() or "LLM classification result"
+
+            if suggested_category not in self.canonical_categories:
+                return None
+
+            return {
+                "suggested_category": suggested_category,
+                "confidence": max(0.0, min(confidence, 1.0)),
+                "reason": reason,
+            }
+        except Exception as e:
+            logger.warning("Model categorization failed for '%s': %s", food_name, str(e))
+            return None
+
+    def _log_manual_correction_event(
+        self,
+        food_name: str,
+        old_category: str,
+        new_category: str,
+        decision_source: str,
+        confidence: float,
+    ) -> None:
+        """Log correction signals for measuring/retraining category quality."""
+        event_payload = {
+            "event": "food_category_manual_correction",
+            "food_name": food_name,
+            "old_category": old_category,
+            "new_category": new_category,
+            "decision_source": decision_source,
+            "confidence": confidence,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        logger.info("Food categorization correction feedback: %s", json.dumps(event_payload))
+
+        try:
+            with self.db_service.get_session() as session:
+                session.execute(
+                    text(
+                        """
+                        INSERT INTO food_categorization_corrections
+                        (item_name, old_category, new_category, correction_date)
+                        VALUES (:item_name, :old_category, :new_category, :correction_date)
+                        """
+                    ),
+                    {
+                        "item_name": food_name,
+                        "old_category": old_category,
+                        "new_category": new_category,
+                        "correction_date": datetime.utcnow(),
+                    },
+                )
+                session.commit()
+        except Exception as e:
+            logger.debug(
+                "Could not persist correction feedback for '%s' (non-blocking): %s",
+                food_name,
+                str(e),
+            )
 
 
 class UnitCorrectionToolInput(BaseModel):
